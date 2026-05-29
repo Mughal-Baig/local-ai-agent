@@ -1,0 +1,515 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Local AI Agent Demo</title>
+    <style>
+      :root {
+        --bg: #f7f5ef;
+        --panel: #ffffff;
+        --ink: #1f2430;
+        --muted: #6b6f7a;
+        --line: #ddd8cc;
+        --teal: #246b62;
+        --teal-dark: #174c46;
+        --coral: #c35b43;
+        --amber: #d99b2b;
+        --soft-teal: #e4f0ed;
+        --soft-coral: #f6e5df;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--ink);
+        font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      }
+
+      button {
+        cursor: pointer;
+        font: inherit;
+      }
+
+      .demo-shell {
+        display: grid;
+        grid-template-columns: minmax(300px, 360px) minmax(0, 1fr);
+        min-height: 100vh;
+      }
+
+      .sidebar {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+        padding: 22px;
+        border-right: 1px solid var(--line);
+        background: #ebe5d8;
+      }
+
+      .brand {
+        display: grid;
+        grid-template-columns: 52px 1fr;
+        gap: 12px;
+        align-items: center;
+      }
+
+      .mark {
+        display: grid;
+        place-items: center;
+        width: 52px;
+        height: 52px;
+        border-radius: 14px;
+        background: var(--teal);
+        color: white;
+        font-weight: 900;
+      }
+
+      h1,
+      h2,
+      p {
+        margin: 0;
+      }
+
+      h1 {
+        font-size: 1.15rem;
+      }
+
+      .brand p,
+      .hint {
+        color: var(--muted);
+        font-size: 0.86rem;
+      }
+
+      .panel {
+        padding: 14px;
+        border: 1px solid rgba(31, 36, 48, 0.08);
+        border-radius: 8px;
+        background: rgba(255, 255, 255, 0.72);
+      }
+
+      .panel-heading {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        margin-bottom: 12px;
+      }
+
+      .panel h2 {
+        color: var(--muted);
+        font-size: 0.86rem;
+        letter-spacing: 0;
+        text-transform: uppercase;
+      }
+
+      .signal-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+      }
+
+      .signal-card,
+      .file-item,
+      .trail-item,
+      .recipe-card {
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: var(--panel);
+      }
+
+      .signal-card {
+        padding: 10px;
+      }
+
+      .signal-card span {
+        display: block;
+        color: var(--muted);
+        font-size: 0.72rem;
+        font-weight: 800;
+        text-transform: uppercase;
+      }
+
+      .signal-card strong {
+        display: block;
+        margin-top: 4px;
+        font-size: 0.88rem;
+      }
+
+      .recipe-card {
+        display: grid;
+        gap: 8px;
+        padding: 12px;
+      }
+
+      .recipe-card strong {
+        color: var(--teal-dark);
+      }
+
+      .tag-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+      }
+
+      .tag-row span {
+        padding: 4px 7px;
+        border-radius: 999px;
+        background: var(--soft-teal);
+        color: var(--teal-dark);
+        font-size: 0.72rem;
+        font-weight: 800;
+      }
+
+      .file-item {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 10px;
+        background: var(--soft-teal);
+        font-weight: 800;
+      }
+
+      .trail-list {
+        display: grid;
+        gap: 8px;
+      }
+
+      .trail-item {
+        display: grid;
+        grid-template-columns: 10px minmax(0, 1fr) auto;
+        gap: 8px;
+        align-items: center;
+        padding: 8px 9px;
+      }
+
+      .dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: var(--teal);
+      }
+
+      .trail-item.tool .dot {
+        background: var(--amber);
+      }
+
+      .trail-item.write .dot {
+        background: var(--coral);
+      }
+
+      .trail-item span {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        font-size: 0.8rem;
+        font-weight: 800;
+      }
+
+      .trail-item time {
+        color: var(--muted);
+        font-size: 0.72rem;
+      }
+
+      main {
+        display: grid;
+        grid-template-rows: auto auto minmax(0, 1fr) auto;
+        min-width: 0;
+        min-height: 100vh;
+      }
+
+      .topbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 18px;
+        padding: 22px 28px;
+        border-bottom: 1px solid var(--line);
+      }
+
+      .eyebrow {
+        color: var(--coral);
+        font-size: 0.78rem;
+        font-weight: 900;
+        text-transform: uppercase;
+      }
+
+      .topbar h2 {
+        margin-top: 4px;
+        font-size: clamp(1.25rem, 2vw, 1.8rem);
+      }
+
+      .pill {
+        flex: 0 0 auto;
+        padding: 9px 12px;
+        border: 1px solid rgba(36, 107, 98, 0.25);
+        border-radius: 999px;
+        background: var(--soft-teal);
+        color: var(--teal-dark);
+        font-size: 0.84rem;
+        font-weight: 800;
+      }
+
+      .prompt-strip {
+        display: flex;
+        gap: 10px;
+        overflow-x: auto;
+        padding: 12px 28px;
+        border-bottom: 1px solid var(--line);
+        background: rgba(255, 255, 255, 0.45);
+      }
+
+      .prompt-strip button {
+        flex: 0 0 auto;
+        min-height: 38px;
+        padding: 0 13px;
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        background: var(--panel);
+        color: var(--teal-dark);
+        font-weight: 900;
+      }
+
+      .messages {
+        display: flex;
+        flex-direction: column;
+        gap: 18px;
+        padding: 28px;
+      }
+
+      .message {
+        display: grid;
+        grid-template-columns: 38px minmax(0, 760px);
+        gap: 12px;
+        align-items: start;
+      }
+
+      .avatar {
+        display: grid;
+        place-items: center;
+        width: 38px;
+        height: 38px;
+        border-radius: 8px;
+        background: var(--teal);
+        color: white;
+        font-size: 0.82rem;
+        font-weight: 900;
+      }
+
+      .bubble {
+        padding: 16px 18px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: var(--panel);
+        box-shadow: 0 12px 34px rgba(31, 36, 48, 0.07);
+      }
+
+      .bubble p {
+        margin-bottom: 0.8rem;
+        line-height: 1.58;
+      }
+
+      .bubble p:last-child {
+        margin-bottom: 0;
+      }
+
+      .receipt {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 12px;
+      }
+
+      .receipt span {
+        padding: 7px 9px;
+        border: 1px solid rgba(217, 155, 43, 0.4);
+        border-radius: 999px;
+        background: #fff4d8;
+        color: #654814;
+        font-size: 0.78rem;
+        font-weight: 800;
+      }
+
+      .composer {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 140px;
+        gap: 12px;
+        padding: 20px 28px 24px;
+        border-top: 1px solid var(--line);
+      }
+
+      .composer div {
+        min-height: 52px;
+        padding: 15px 16px;
+        border: 2px solid rgba(217, 155, 43, 0.8);
+        border-radius: 8px;
+        background: var(--panel);
+        color: var(--muted);
+      }
+
+      .composer a {
+        display: grid;
+        place-items: center;
+        min-height: 52px;
+        border-radius: 8px;
+        background: var(--teal);
+        color: white;
+        font-weight: 900;
+        text-decoration: none;
+      }
+
+      @media (max-width: 860px) {
+        .demo-shell {
+          grid-template-columns: 1fr;
+        }
+
+        .sidebar {
+          border-right: 0;
+          border-bottom: 1px solid var(--line);
+        }
+
+        .topbar {
+          align-items: flex-start;
+          flex-direction: column;
+          padding: 18px;
+        }
+
+        .messages {
+          padding: 18px;
+        }
+
+        .composer {
+          grid-template-columns: 1fr;
+          padding: 14px 18px 18px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="demo-shell">
+      <aside class="sidebar" aria-label="Demo workspace">
+        <div class="brand">
+          <div class="mark">AI</div>
+          <div>
+            <h1>Local Agent</h1>
+            <p>Static demo, no backend needed</p>
+          </div>
+        </div>
+
+        <section class="panel">
+          <div class="panel-heading">
+            <h2>Signals</h2>
+          </div>
+          <div class="signal-grid">
+            <div class="signal-card">
+              <span>Privacy</span>
+              <strong>Offline-ready</strong>
+            </div>
+            <div class="signal-card">
+              <span>Boundary</span>
+              <strong>Workspace</strong>
+            </div>
+            <div class="signal-card">
+              <span>Context</span>
+              <strong>1 file</strong>
+            </div>
+            <div class="signal-card">
+              <span>Tools</span>
+              <strong>2 calls</strong>
+            </div>
+          </div>
+        </section>
+
+        <section class="panel">
+          <div class="panel-heading">
+            <h2>Recipe</h2>
+          </div>
+          <div class="recipe-card">
+            <strong>Local Agent Hardening</strong>
+            <p class="hint">Audit path traversal, hidden network calls, unsafe writes, prompt injection, and missing receipts.</p>
+            <div class="tag-row">
+              <span>security</span>
+              <span>agents</span>
+              <span>local-first</span>
+            </div>
+          </div>
+        </section>
+
+        <section class="panel">
+          <div class="panel-heading">
+            <h2>Workspace</h2>
+          </div>
+          <div class="file-item">
+            <span>welcome.md</span>
+            <small>293 B</small>
+          </div>
+        </section>
+
+        <section class="panel">
+          <div class="panel-heading">
+            <h2>Agent Trail</h2>
+            <span class="pill">Export .md</span>
+          </div>
+          <div class="trail-list">
+            <div class="trail-item">
+              <span class="dot"></span>
+              <span>Workspace boundary active</span>
+              <time>00:01</time>
+            </div>
+            <div class="trail-item tool">
+              <span class="dot"></span>
+              <span>read_file: welcome.md</span>
+              <time>00:02</time>
+            </div>
+            <div class="trail-item write">
+              <span class="dot"></span>
+              <span>Receipt exported</span>
+              <time>00:03</time>
+            </div>
+          </div>
+        </section>
+      </aside>
+
+      <main>
+        <header class="topbar">
+          <div>
+            <p class="eyebrow">Evaluate before installing</p>
+            <h2>Tiny local agent kit with recipes and receipts</h2>
+          </div>
+          <div class="pill">Zero npm dependencies</div>
+        </header>
+
+        <section class="prompt-strip" aria-label="Starter prompts">
+          <button type="button">Summarize</button>
+          <button type="button">Plan</button>
+          <button type="button">Review</button>
+          <button type="button">Save note</button>
+        </section>
+
+        <section class="messages" aria-label="Demo transcript">
+          <article class="message">
+            <div class="avatar">AI</div>
+            <div class="bubble">
+              <p><strong>What makes this different?</strong></p>
+              <p>Local AI Agent is intentionally small: a readable Node server, workspace-safe file tools, plain JSON recipes, and user-visible receipts for every tool action.</p>
+              <p>It is built for people who want to learn, fork, and trust a local agent without adopting a giant platform.</p>
+              <div class="receipt">
+                <span>Recipe loaded: Local Agent Hardening</span>
+                <span>read_file: welcome.md</span>
+                <span>Exported audit receipt</span>
+              </div>
+            </div>
+          </article>
+        </section>
+
+        <section class="composer" aria-label="Try locally">
+          <div>Clone the repo, run <strong>node server.js</strong>, and connect your local Ollama model.</div>
+          <a href="https://github.com/Mughal-Baig/local-ai-agent">View GitHub</a>
+        </section>
+      </main>
+    </div>
+  </body>
+</html>

@@ -5,7 +5,7 @@
 - Add a read-only search tool for workspace files.
 - Add a model capability check for tool-call reliability.
 - Add more recipes for common local-agent workflows.
-- Add a GitHub Pages demo that does not require Ollama.
+- Enable the included GitHub Pages demo after the repo is public.
 - Add optional browser-open command for first-run setup.
 
 ## Later

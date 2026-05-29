@@ -20,6 +20,7 @@ The highest-interest local AI repos do at least one of these well:
 - [lastmile-ai/mcp-agent](https://github.com/lastmile-ai/mcp-agent): clear protocol-native agent-building story.
 - [agentreplay/agentreplay](https://github.com/agentreplay/agentreplay): local-first observability and replay is a strong trust hook.
 - [abordage/awesome-mcp](https://github.com/abordage/awesome-mcp): lists and registries work because contributors can add small entries.
+- GitHub README research and maintainer anecdotes repeatedly emphasize an above-the-fold demo or screenshot, especially for visual tools.
 
 ## Chosen Niche
 
@@ -38,12 +39,13 @@ This creates a sharper reason to star:
 
 1. Make the repo public only when ready.
 2. Pin a short demo GIF or screenshot above the README fold.
-3. Add 10-15 recipes before launch.
-4. Create GitHub issues labeled `good first issue` for new recipes.
-5. Post to communities with a concrete hook: "tiny local agent recipe kit with audit receipts."
-6. Submit to awesome lists for Ollama, MCP, local-first AI, and self-hosted tools.
-7. Keep CI green and release small tagged versions.
-8. Avoid fake stars. They create long-term trust risk and can damage credibility.
+3. Enable GitHub Pages so the static demo is live.
+4. Add 10-15 recipes before launch.
+5. Create GitHub issues labeled `good first issue` for new recipes.
+6. Post to communities with a concrete hook: "tiny local agent recipe kit with audit receipts."
+7. Submit to awesome lists for Ollama, MCP, local-first AI, and self-hosted tools.
+8. Keep CI green and release small tagged versions.
+9. Avoid fake stars. They create long-term trust risk and can damage credibility.
 
 ## Next Differentiators
 

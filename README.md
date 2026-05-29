@@ -9,10 +9,13 @@ A tiny, transparent local AI agent and recipe kit for people who want a Claude/C
 
 ![Local AI Agent preview](docs/preview.svg)
 
+**Static demo:** open [docs/demo.html](docs/demo.html) locally, or enable GitHub Pages after making the repo public.
+
 ## Why Star This
 
 - **Transparent by default**: every tool call is shown as an Agent Trail receipt.
 - **Recipe-driven**: reusable local workflows live in plain JSON files anyone can add.
+- **Demo-first**: the static demo lets visitors understand the project before installing Ollama.
 - **Private by design**: the server only talks to Ollama and the local browser UI.
 - **Safe workspace boundary**: file reads and writes are blocked outside `workspace/`.
 - **Zero npm dependencies**: clone, run `node server.js`, and start building.

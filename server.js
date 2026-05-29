@@ -14,6 +14,7 @@ const DEFAULT_MODEL = process.env.OLLAMA_MODEL || "llama3.2";
 const MAX_TOOL_ITERATIONS = Number(process.env.MAX_TOOL_ITERATIONS || 4);
 const PROJECT_ROOT = __dirname;
 const PUBLIC_DIR = path.join(PROJECT_ROOT, "public");
+const DOCS_DIR = path.join(PROJECT_ROOT, "docs");
 const RECIPES_DIR = path.join(PROJECT_ROOT, "recipes");
 const WORKSPACE_ROOT = path.resolve(PROJECT_ROOT, process.env.WORKSPACE_ROOT || "workspace");
 const MAX_BODY_BYTES = 1024 * 1024;
@@ -51,6 +52,9 @@ const server = http.createServer(async (req, res) => {
     }
 
     if (req.method === "GET" || req.method === "HEAD") {
+      if (url.pathname.startsWith("/docs/")) {
+        return serveStaticFrom(DOCS_DIR, url.pathname.replace(/^\/docs\/?/, ""), req, res);
+      }
       return serveStatic(url.pathname, req, res);
     }
 
@@ -493,9 +497,14 @@ function normalizeRelativePath(relativePath) {
 async function serveStatic(requestPath, req, res) {
   const pathname = decodeURIComponent(requestPath);
   const relativePath = pathname === "/" ? "index.html" : pathname.replace(/^\/+/, "");
-  const absolutePath = path.resolve(PUBLIC_DIR, relativePath);
+  return serveStaticFrom(PUBLIC_DIR, relativePath, req, res);
+}
 
-  if (absolutePath !== PUBLIC_DIR && !absolutePath.startsWith(`${PUBLIC_DIR}${path.sep}`)) {
+async function serveStaticFrom(rootDir, relativePath, req, res) {
+  const safeRelativePath = decodeURIComponent(relativePath || "").replace(/^\/+/, "") || "index.html";
+  const absolutePath = path.resolve(rootDir, safeRelativePath);
+
+  if (absolutePath !== rootDir && !absolutePath.startsWith(`${rootDir}${path.sep}`)) {
     return sendJson(res, 403, { error: "Forbidden" });
   }
 
