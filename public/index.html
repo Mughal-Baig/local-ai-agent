@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Local AI Agent</title>
+    <link rel="icon" href="/logo.svg" />
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar" aria-label="Workspace">
+        <div class="brand">
+          <img src="/logo.svg" alt="" class="brand-mark" />
+          <div>
+            <h1>Local Agent</h1>
+            <p id="connectionStatus">Checking local model...</p>
+          </div>
+        </div>
+
+        <section class="panel">
+          <div class="panel-heading">
+            <h2>Model</h2>
+            <button id="refreshStatus" class="icon-button" title="Refresh local model status" aria-label="Refresh local model status">R</button>
+          </div>
+          <label class="field-label" for="modelSelect">Ollama model</label>
+          <select id="modelSelect"></select>
+          <p class="hint" id="modelHint">Local models appear here when Ollama is running.</p>
+        </section>
+
+        <section class="panel files-panel">
+          <div class="panel-heading">
+            <h2>Workspace</h2>
+            <button id="refreshFiles" class="icon-button" title="Refresh workspace files" aria-label="Refresh workspace files">R</button>
+          </div>
+          <div id="fileList" class="file-list"></div>
+          <button id="newNote" class="secondary-button">New note</button>
+        </section>
+      </aside>
+
+      <main class="chat-area">
+        <header class="topbar">
+          <div>
+            <p class="eyebrow">Private local assistant</p>
+            <h2>Chat with your files and local model</h2>
+          </div>
+          <div class="status-pill" id="workspaceStatus">Workspace ready</div>
+        </header>
+
+        <section id="messages" class="messages" aria-live="polite"></section>
+
+        <form id="composer" class="composer">
+          <textarea id="prompt" rows="1" placeholder="Ask the agent to explain, draft, code, or work with selected files..."></textarea>
+          <button id="sendButton" type="submit">Send</button>
+        </form>
+      </main>
+    </div>
+
+    <script src="/app.js"></script>
+  </body>
+</html>

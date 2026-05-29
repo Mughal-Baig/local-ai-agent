@@ -1,0 +1,21 @@
+{
+  "name": "local-ai-agent",
+  "version": "0.1.0",
+  "description": "A private local AI agent with an Ollama-backed chat UI and workspace file tools.",
+  "main": "server.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js",
+    "test": "node scripts/smoke-test.js"
+  },
+  "keywords": [
+    "ai",
+    "agent",
+    "ollama",
+    "local-first",
+    "chat"
+  ],
+  "author": "",
+  "license": "MIT"
+}
