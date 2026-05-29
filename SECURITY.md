@@ -1,0 +1,21 @@
+# Security Policy
+
+Local AI Agent is designed to keep file access inside the configured workspace.
+
+## Current Safety Boundaries
+
+- The server binds to `127.0.0.1`.
+- File tools resolve paths against `WORKSPACE_ROOT`.
+- Attempts to escape the workspace are rejected.
+- `.env` and private workspace folders are ignored by git.
+
+## Reporting A Vulnerability
+
+Please open a private security advisory or contact the repository owner. Include:
+
+- What happened
+- Steps to reproduce
+- Expected behavior
+- Affected commit or version
+
+Do not publish exploit details before the issue has been reviewed.

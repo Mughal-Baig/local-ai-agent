@@ -1,0 +1,67 @@
+<svg width="1280" height="720" viewBox="0 0 1280 720" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1280" height="720" fill="#F7F5EF"/>
+  <rect width="340" height="720" fill="#EBE5D8"/>
+  <rect x="24" y="28" width="44" height="44" rx="12" fill="#246B62"/>
+  <rect x="35" y="38" width="22" height="24" rx="4" fill="#F7F5EF"/>
+  <circle cx="61" cy="35" r="6" fill="#D99B2B"/>
+  <text x="84" y="46" fill="#1F2430" font-family="Arial, sans-serif" font-size="18" font-weight="700">Local Agent</text>
+  <text x="84" y="66" fill="#6B6F7A" font-family="Arial, sans-serif" font-size="13">2 local model(s) found</text>
+
+  <rect x="22" y="90" width="294" height="168" rx="8" fill="white" fill-opacity="0.72" stroke="#DDD8CC"/>
+  <text x="38" y="126" fill="#6B6F7A" font-family="Arial, sans-serif" font-size="13" font-weight="700">MODEL</text>
+  <rect x="38" y="146" width="262" height="42" rx="8" fill="white" stroke="#DDD8CC"/>
+  <text x="54" y="172" fill="#1F2430" font-family="Arial, sans-serif" font-size="15">gemma3:4b</text>
+  <text x="38" y="218" fill="#6B6F7A" font-family="Arial, sans-serif" font-size="13">Connected to http://127.0.0.1:11434</text>
+
+  <rect x="22" y="276" width="294" height="154" rx="8" fill="white" fill-opacity="0.72" stroke="#DDD8CC"/>
+  <text x="38" y="312" fill="#6B6F7A" font-family="Arial, sans-serif" font-size="13" font-weight="700">SIGNALS</text>
+  <rect x="38" y="332" width="122" height="38" rx="8" fill="white" stroke="#DDD8CC"/>
+  <text x="50" y="348" fill="#6B6F7A" font-family="Arial, sans-serif" font-size="10" font-weight="700">PRIVACY</text>
+  <text x="50" y="364" fill="#1F2430" font-family="Arial, sans-serif" font-size="12" font-weight="700">Offline-ready</text>
+  <rect x="176" y="332" width="122" height="38" rx="8" fill="white" stroke="#DDD8CC"/>
+  <text x="188" y="348" fill="#6B6F7A" font-family="Arial, sans-serif" font-size="10" font-weight="700">BOUNDARY</text>
+  <text x="188" y="364" fill="#1F2430" font-family="Arial, sans-serif" font-size="12" font-weight="700">Workspace</text>
+  <rect x="38" y="380" width="122" height="38" rx="8" fill="white" stroke="#DDD8CC"/>
+  <text x="50" y="396" fill="#6B6F7A" font-family="Arial, sans-serif" font-size="10" font-weight="700">CONTEXT</text>
+  <text x="50" y="412" fill="#1F2430" font-family="Arial, sans-serif" font-size="12" font-weight="700">1 file</text>
+  <rect x="176" y="380" width="122" height="38" rx="8" fill="white" stroke="#DDD8CC"/>
+  <text x="188" y="396" fill="#6B6F7A" font-family="Arial, sans-serif" font-size="10" font-weight="700">TOOLS</text>
+  <text x="188" y="412" fill="#1F2430" font-family="Arial, sans-serif" font-size="12" font-weight="700">2 calls</text>
+
+  <rect x="22" y="448" width="294" height="218" rx="8" fill="white" fill-opacity="0.72" stroke="#DDD8CC"/>
+  <text x="38" y="484" fill="#6B6F7A" font-family="Arial, sans-serif" font-size="13" font-weight="700">AGENT TRAIL</text>
+  <rect x="38" y="506" width="262" height="38" rx="8" fill="white" stroke="#DDD8CC"/>
+  <circle cx="52" cy="525" r="4" fill="#D99B2B"/>
+  <text x="64" y="529" fill="#1F2430" font-family="Arial, sans-serif" font-size="12" font-weight="700">read_file: welcome.md</text>
+  <rect x="38" y="554" width="262" height="38" rx="8" fill="white" stroke="#DDD8CC"/>
+  <circle cx="52" cy="573" r="4" fill="#246B62"/>
+  <text x="64" y="577" fill="#1F2430" font-family="Arial, sans-serif" font-size="12" font-weight="700">Workspace boundary active</text>
+  <rect x="38" y="602" width="262" height="38" rx="8" fill="white" stroke="#DDD8CC"/>
+  <circle cx="52" cy="621" r="4" fill="#246B62"/>
+  <text x="64" y="625" fill="#1F2430" font-family="Arial, sans-serif" font-size="12" font-weight="700">2 local model(s) available</text>
+
+  <rect x="340" y="0" width="940" height="92" fill="#F7F5EF" stroke="#DDD8CC"/>
+  <text x="368" y="34" fill="#C35B43" font-family="Arial, sans-serif" font-size="12" font-weight="700">PRIVATE LOCAL ASSISTANT</text>
+  <text x="368" y="66" fill="#1F2430" font-family="Arial, sans-serif" font-size="28" font-weight="800">Chat with your files and local model</text>
+  <rect x="1098" y="29" width="154" height="36" rx="18" fill="#E4F0ED" stroke="#A7CBC4"/>
+  <text x="1118" y="52" fill="#174C46" font-family="Arial, sans-serif" font-size="13" font-weight="700">1 workspace file(s)</text>
+
+  <rect x="340" y="92" width="940" height="56" fill="white" fill-opacity="0.45" stroke="#DDD8CC"/>
+  <rect x="368" y="104" width="104" height="32" rx="16" fill="white" stroke="#DDD8CC"/>
+  <text x="390" y="125" fill="#174C46" font-family="Arial, sans-serif" font-size="13" font-weight="700">Summarize</text>
+  <rect x="482" y="104" width="72" height="32" rx="16" fill="white" stroke="#DDD8CC"/>
+  <text x="505" y="125" fill="#174C46" font-family="Arial, sans-serif" font-size="13" font-weight="700">Plan</text>
+  <rect x="564" y="104" width="82" height="32" rx="16" fill="white" stroke="#DDD8CC"/>
+  <text x="587" y="125" fill="#174C46" font-family="Arial, sans-serif" font-size="13" font-weight="700">Review</text>
+
+  <rect x="418" y="180" width="760" height="84" rx="8" fill="white" stroke="#DDD8CC"/>
+  <rect x="368" y="180" width="38" height="38" rx="8" fill="#246B62"/>
+  <text x="379" y="204" fill="white" font-family="Arial, sans-serif" font-size="13" font-weight="800">AI</text>
+  <text x="438" y="214" fill="#1F2430" font-family="Arial, sans-serif" font-size="16">I am ready. Select workspace files for context, then ask me to</text>
+  <text x="438" y="240" fill="#1F2430" font-family="Arial, sans-serif" font-size="16">explain, draft, plan, or create something locally.</text>
+
+  <rect x="364" y="638" width="770" height="62" rx="8" fill="white" stroke="#D99B2B" stroke-width="2"/>
+  <text x="386" y="675" fill="#6B6F7A" font-family="Arial, sans-serif" font-size="16">Summarize the selected files and list the next useful action.</text>
+  <rect x="1142" y="638" width="110" height="62" rx="8" fill="#246B62"/>
+  <text x="1176" y="675" fill="white" font-family="Arial, sans-serif" font-size="16" font-weight="800">Send</text>
+</svg>

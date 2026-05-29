@@ -11,6 +11,9 @@ const state = {
   selectedFiles: new Set(),
   models: [],
   model: "",
+  trail: [],
+  toolCount: 0,
+  ollamaAvailable: false,
   busy: false
 };
 
@@ -19,10 +22,15 @@ const els = {
   workspaceStatus: document.querySelector("#workspaceStatus"),
   modelSelect: document.querySelector("#modelSelect"),
   modelHint: document.querySelector("#modelHint"),
+  privacySignal: document.querySelector("#privacySignal"),
+  selectedSignal: document.querySelector("#selectedSignal"),
+  toolSignal: document.querySelector("#toolSignal"),
   refreshStatus: document.querySelector("#refreshStatus"),
   refreshFiles: document.querySelector("#refreshFiles"),
   fileList: document.querySelector("#fileList"),
   newNote: document.querySelector("#newNote"),
+  clearTrail: document.querySelector("#clearTrail"),
+  agentTrail: document.querySelector("#agentTrail"),
   messages: document.querySelector("#messages"),
   composer: document.querySelector("#composer"),
   prompt: document.querySelector("#prompt"),
@@ -32,6 +40,8 @@ const els = {
 document.addEventListener("DOMContentLoaded", async () => {
   bindEvents();
   renderMessages();
+  addTrail("system", "Workspace boundary active");
+  updateSendState();
   await Promise.all([refreshStatus(), refreshFiles()]);
   els.prompt.focus();
 });
@@ -41,8 +51,23 @@ function bindEvents() {
   els.refreshFiles.addEventListener("click", refreshFiles);
   els.modelSelect.addEventListener("change", () => {
     state.model = els.modelSelect.value;
+    addTrail("model", `Model set to ${state.model}`);
+    renderLocalSignals();
   });
   els.newNote.addEventListener("click", createNewNote);
+  els.clearTrail.addEventListener("click", () => {
+    state.trail = [];
+    state.toolCount = 0;
+    addTrail("system", "Trail cleared");
+    renderLocalSignals();
+  });
+  document.querySelectorAll("[data-prompt]").forEach((button) => {
+    button.addEventListener("click", () => {
+      els.prompt.value = button.dataset.prompt || "";
+      resizePrompt();
+      els.prompt.focus();
+    });
+  });
   els.composer.addEventListener("submit", sendMessage);
   els.prompt.addEventListener("input", resizePrompt);
   els.prompt.addEventListener("keydown", (event) => {
@@ -59,23 +84,31 @@ async function refreshStatus() {
     const status = await getJson("/api/status");
     state.models = status.ollama.models || [];
     const available = status.ollama.available;
+    state.ollamaAvailable = available;
 
     if (available && state.models.length) {
       setConnection(`${state.models.length} local model(s) found`);
       renderModels(status.defaults.model);
       els.modelHint.textContent = `Connected to ${status.ollama.host}`;
+      addTrail("model", `${state.models.length} local model(s) available`);
     } else if (available) {
       setConnection("Ollama is running with no models");
       renderModels(status.defaults.model);
       els.modelHint.textContent = `Run: ollama pull ${status.defaults.model}`;
+      addTrail("model", "Ollama connected without models");
     } else {
       setConnection("Ollama is not connected");
       renderModels(status.defaults.model);
       els.modelHint.textContent = "Start Ollama and pull a model to chat.";
+      addTrail("warning", "Ollama not connected");
     }
+    renderLocalSignals();
   } catch (error) {
     setConnection("Status check failed");
     els.modelHint.textContent = error.message;
+    state.ollamaAvailable = false;
+    addTrail("error", error.message);
+    renderLocalSignals();
   }
 }
 
@@ -103,9 +136,11 @@ async function refreshFiles() {
     state.files = data.files || [];
     renderFiles();
     els.workspaceStatus.textContent = `${state.files.length} workspace file(s)`;
+    renderLocalSignals();
   } catch (error) {
     els.workspaceStatus.textContent = "Workspace unavailable";
     els.fileList.innerHTML = `<div class="empty-state">${escapeHtml(error.message)}</div>`;
+    addTrail("error", error.message);
   }
 }
 
@@ -137,6 +172,8 @@ function renderFiles() {
       }
       renderFiles();
       els.workspaceStatus.textContent = `${state.selectedFiles.size} selected`;
+      addTrail("context", `${state.selectedFiles.size} selected file(s)`);
+      renderLocalSignals();
     });
     els.fileList.appendChild(item);
   }
@@ -153,6 +190,8 @@ async function createNewNote() {
   state.selectedFiles.add(path);
   renderFiles();
   els.workspaceStatus.textContent = `Created ${path}`;
+  addTrail("file", `Created ${path}`);
+  renderLocalSignals();
 }
 
 async function sendMessage(event) {
@@ -174,6 +213,7 @@ async function sendMessage(event) {
 
   state.messages.push(userMessage, assistantMessage);
   state.busy = true;
+  addTrail("chat", `Sent prompt with ${state.selectedFiles.size} file(s)`);
   els.prompt.value = "";
   resizePrompt();
   renderMessages();
@@ -199,10 +239,12 @@ async function sendMessage(event) {
         assistantMessage.content += data.text || "";
       }
       if (eventName === "tool") {
+        state.toolCount += 1;
         assistantMessage.events.push({
           type: "tool",
           label: `${data.name}: ${data.result}`
         });
+        addTrail("tool", `${data.name}: ${data.result}`);
       }
       if (eventName === "status") {
         els.workspaceStatus.textContent = data.message || "Working";
@@ -212,11 +254,14 @@ async function sendMessage(event) {
           type: "error",
           label: data.message || "The agent hit an error"
         });
+        addTrail("error", data.message || "Agent error");
       }
+      renderLocalSignals();
       renderMessages();
     });
   } catch (error) {
     assistantMessage.events.push({ type: "error", label: error.message });
+    addTrail("error", error.message);
     renderMessages();
   } finally {
     state.busy = false;
@@ -224,6 +269,45 @@ async function sendMessage(event) {
     updateSendState();
     await refreshFiles();
   }
+}
+
+function addTrail(type, label) {
+  state.trail.unshift({
+    type,
+    label,
+    time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" })
+  });
+  state.trail = state.trail.slice(0, 18);
+  renderTrail();
+}
+
+function renderTrail() {
+  els.agentTrail.innerHTML = "";
+
+  if (!state.trail.length) {
+    const empty = document.createElement("div");
+    empty.className = "empty-state";
+    empty.textContent = "No activity yet.";
+    els.agentTrail.appendChild(empty);
+    return;
+  }
+
+  for (const item of state.trail) {
+    const row = document.createElement("div");
+    row.className = `trail-item ${item.type}`;
+    row.innerHTML = `
+      <span class="trail-dot" aria-hidden="true"></span>
+      <span class="trail-text">${escapeHtml(item.label)}</span>
+      <time>${escapeHtml(item.time)}</time>
+    `;
+    els.agentTrail.appendChild(row);
+  }
+}
+
+function renderLocalSignals() {
+  els.privacySignal.textContent = state.ollamaAvailable ? "Offline-ready" : "Local";
+  els.selectedSignal.textContent = `${state.selectedFiles.size} file${state.selectedFiles.size === 1 ? "" : "s"}`;
+  els.toolSignal.textContent = `${state.toolCount} call${state.toolCount === 1 ? "" : "s"}`;
 }
 
 async function readEventStream(body, onEvent) {

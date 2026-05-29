@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Local AI Agent</title>
     <link rel="icon" href="/logo.svg" />
-    <link rel="stylesheet" href="/styles.css" />
+    <link rel="stylesheet" href="/styles.css?v=3" />
   </head>
   <body>
     <div class="app-shell">
@@ -28,6 +28,30 @@
           <p class="hint" id="modelHint">Local models appear here when Ollama is running.</p>
         </section>
 
+        <section class="panel signal-panel" aria-label="Local safety signals">
+          <div class="panel-heading">
+            <h2>Signals</h2>
+          </div>
+          <div class="signal-grid">
+            <div class="signal-card">
+              <span>Privacy</span>
+              <strong id="privacySignal">Local</strong>
+            </div>
+            <div class="signal-card">
+              <span>Boundary</span>
+              <strong>Workspace</strong>
+            </div>
+            <div class="signal-card">
+              <span>Context</span>
+              <strong id="selectedSignal">0 files</strong>
+            </div>
+            <div class="signal-card">
+              <span>Tools</span>
+              <strong id="toolSignal">0 calls</strong>
+            </div>
+          </div>
+        </section>
+
         <section class="panel files-panel">
           <div class="panel-heading">
             <h2>Workspace</h2>
@@ -35,6 +59,14 @@
           </div>
           <div id="fileList" class="file-list"></div>
           <button id="newNote" class="secondary-button">New note</button>
+        </section>
+
+        <section class="panel trail-panel" aria-label="Agent trail">
+          <div class="panel-heading">
+            <h2>Agent Trail</h2>
+            <button id="clearTrail" class="icon-button" title="Clear agent trail" aria-label="Clear agent trail">C</button>
+          </div>
+          <div id="agentTrail" class="agent-trail"></div>
         </section>
       </aside>
 
@@ -47,6 +79,13 @@
           <div class="status-pill" id="workspaceStatus">Workspace ready</div>
         </header>
 
+        <section class="prompt-strip" aria-label="Starter prompts">
+          <button type="button" data-prompt="Summarize the selected files and list the next useful action.">Summarize</button>
+          <button type="button" data-prompt="Create a practical implementation plan using the selected files as context.">Plan</button>
+          <button type="button" data-prompt="Find risks, missing pieces, and quick improvements in the selected files.">Review</button>
+          <button type="button" data-prompt="Create or update a workspace note with the key decisions from this chat.">Save note</button>
+        </section>
+
         <section id="messages" class="messages" aria-live="polite"></section>
 
         <form id="composer" class="composer">
@@ -56,6 +95,6 @@
       </main>
     </div>
 
-    <script src="/app.js"></script>
+    <script src="/app.js?v=3"></script>
   </body>
 </html>

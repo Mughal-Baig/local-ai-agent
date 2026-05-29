@@ -41,7 +41,7 @@ button {
 
 .app-shell {
   display: grid;
-  grid-template-columns: minmax(280px, 340px) minmax(0, 1fr);
+  grid-template-columns: minmax(300px, 360px) minmax(0, 1fr);
   min-height: 100%;
 }
 
@@ -123,6 +123,7 @@ button {
 }
 
 .icon-button:hover,
+.prompt-strip button:hover,
 .secondary-button:hover {
   border-color: var(--teal);
 }
@@ -152,9 +153,49 @@ select {
   line-height: 1.45;
 }
 
-.files-panel {
+.files-panel,
+.trail-panel {
   min-height: 0;
+}
+
+.files-panel {
+  flex: 0 1 auto;
+}
+
+.trail-panel {
   flex: 1;
+}
+
+.signal-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.signal-card {
+  min-width: 0;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel);
+}
+
+.signal-card span {
+  display: block;
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.signal-card strong {
+  display: block;
+  margin-top: 4px;
+  overflow: hidden;
+  color: var(--ink);
+  font-size: 0.88rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .file-list {
@@ -218,9 +259,59 @@ select {
   font-weight: 800;
 }
 
+.agent-trail {
+  display: grid;
+  gap: 8px;
+  max-height: 250px;
+  overflow: auto;
+  padding-right: 2px;
+}
+
+.trail-item {
+  display: grid;
+  grid-template-columns: 10px minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: center;
+  min-height: 38px;
+  padding: 8px 9px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel);
+}
+
+.trail-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--teal);
+}
+
+.trail-item.tool .trail-dot {
+  background: var(--amber);
+}
+
+.trail-item.error .trail-dot,
+.trail-item.warning .trail-dot {
+  background: var(--coral);
+}
+
+.trail-text {
+  overflow: hidden;
+  color: var(--ink);
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.trail-item time {
+  color: var(--muted);
+  font-size: 0.72rem;
+}
+
 .chat-area {
   display: grid;
-  grid-template-rows: auto minmax(0, 1fr) auto;
+  grid-template-rows: auto auto minmax(0, 1fr) auto;
   min-width: 0;
   min-height: 100vh;
 }
@@ -263,6 +354,27 @@ select {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.prompt-strip {
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+  padding: 12px 28px;
+  border-bottom: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.45);
+}
+
+.prompt-strip button {
+  flex: 0 0 auto;
+  min-height: 38px;
+  padding: 0 13px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--panel);
+  color: var(--teal-dark);
+  font-size: 0.85rem;
+  font-weight: 900;
 }
 
 .messages {
@@ -434,6 +546,10 @@ button:focus-visible {
     max-height: 190px;
   }
 
+  .agent-trail {
+    max-height: 170px;
+  }
+
   .topbar {
     align-items: flex-start;
     flex-direction: column;
@@ -446,6 +562,10 @@ button:focus-visible {
 
   .messages {
     padding: 18px;
+  }
+
+  .prompt-strip {
+    padding: 10px 18px;
   }
 
   .message,

@@ -1,15 +1,43 @@
 # Local AI Agent
 
-A private, local-first AI agent inspired by tools like Claude, ChatGPT, and Gemini. It runs on your machine, talks to local Ollama models, and can inspect or update files inside a sandboxed workspace folder.
+[![CI](https://github.com/Mughal-Baig/local-ai-agent/actions/workflows/ci.yml/badge.svg)](https://github.com/Mughal-Baig/local-ai-agent/actions/workflows/ci.yml)
+![No npm dependencies](https://img.shields.io/badge/runtime-zero%20npm%20deps-246B62)
+![Local first](https://img.shields.io/badge/privacy-local--first-C35B43)
+![Ollama](https://img.shields.io/badge/models-Ollama-D99B2B)
+
+A tiny, transparent local AI agent for people who want a Claude/ChatGPT/Gemini-style workspace assistant without sending files to a cloud service.
+
+![Local AI Agent preview](docs/preview.svg)
+
+## Why Star This
+
+- **Transparent by default**: every tool call is shown as an Agent Trail receipt.
+- **Private by design**: the server only talks to Ollama and the local browser UI.
+- **Safe workspace boundary**: file reads and writes are blocked outside `workspace/`.
+- **Zero npm dependencies**: clone, run `node server.js`, and start building.
+- **Hackable core**: the agent loop is one readable Node server, not a framework maze.
+
+## What Makes It Different
+
+Popular local AI tools are often full platforms. This project is intentionally smaller: it is a starter agent you can read, modify, and trust in an afternoon.
+
+| Area | Local AI Agent |
+| --- | --- |
+| Setup | One Node command, no package install required |
+| Model backend | Ollama |
+| File access | Sandboxed workspace tools |
+| Trust UX | Visible local signals and tool receipts |
+| Best use | Personal workspace agent starter kit |
 
 ## Features
 
 - Chat UI with model picker and streaming-style responses
+- Starter prompts for summarize, plan, review, and save-note workflows
 - Ollama integration for local models
 - Workspace-aware tools: list files, read files, and write files
+- Agent Trail receipts for tool calls, selected context, model status, and errors
 - Safe path handling so the agent stays inside `workspace/`
-- No npm dependencies required
-- Smoke test included
+- Smoke test and GitHub Actions CI included
 
 ## Quick Start
 
@@ -38,9 +66,21 @@ You can also use:
 npm start
 ```
 
+## Try It
+
+1. Open the app.
+2. Select `welcome.md` in the workspace.
+3. Click **Summarize** or ask:
+
+   ```text
+   Summarize the selected file and create a checklist for improving the project.
+   ```
+
+4. Watch the Agent Trail for local model, context, and tool receipts.
+
 ## How It Works
 
-The browser sends messages to the local Node server. The server sends the prompt to Ollama and gives the model a small tool protocol. When the model requests a tool, the server runs it against the workspace and sends the result back into the next model step.
+The browser sends messages to the local Node server. The server sends a prompt to Ollama with a small tool protocol. When the model requests a tool, the server runs it against the workspace and sends the result into the next model step.
 
 Available tools:
 
@@ -81,6 +121,14 @@ node scripts/smoke-test.js
 ```
 
 The smoke test starts the server on a temporary port, checks the UI and API, writes a test file in a temporary workspace, reads it back, and shuts the server down.
+
+## Roadmap
+
+See [docs/ROADMAP.md](docs/ROADMAP.md).
+
+## Contributing
+
+Small, focused contributions are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Upload To GitHub
 
