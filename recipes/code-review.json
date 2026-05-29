@@ -1,0 +1,7 @@
+{
+  "id": "code-review",
+  "title": "Code Review",
+  "description": "Review selected files for bugs, missing tests, security risks, and small improvements.",
+  "tags": ["code", "quality", "security"],
+  "prompt": "Review the selected files like a senior engineer. Lead with the highest-risk bugs or behavior issues, then list missing tests, then give a short change plan. If the selected context is insufficient, ask for the specific file that would unblock the review."
+}

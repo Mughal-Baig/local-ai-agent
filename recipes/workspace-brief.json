@@ -1,0 +1,7 @@
+{
+  "id": "workspace-brief",
+  "title": "Workspace Brief",
+  "description": "Create a fast project brief from selected workspace files.",
+  "tags": ["planning", "docs", "context"],
+  "prompt": "Create a workspace brief from the selected files. Include project purpose, current capabilities, risks, next 5 improvements, and one small first task. If helpful, write the brief as Markdown that can be saved into workspace/notes/project-brief.md."
+}

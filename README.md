@@ -5,13 +5,14 @@
 ![Local first](https://img.shields.io/badge/privacy-local--first-C35B43)
 ![Ollama](https://img.shields.io/badge/models-Ollama-D99B2B)
 
-A tiny, transparent local AI agent for people who want a Claude/ChatGPT/Gemini-style workspace assistant without sending files to a cloud service.
+A tiny, transparent local AI agent and recipe kit for people who want a Claude/ChatGPT/Gemini-style workspace assistant without sending files to a cloud service.
 
 ![Local AI Agent preview](docs/preview.svg)
 
 ## Why Star This
 
 - **Transparent by default**: every tool call is shown as an Agent Trail receipt.
+- **Recipe-driven**: reusable local workflows live in plain JSON files anyone can add.
 - **Private by design**: the server only talks to Ollama and the local browser UI.
 - **Safe workspace boundary**: file reads and writes are blocked outside `workspace/`.
 - **Zero npm dependencies**: clone, run `node server.js`, and start building.
@@ -26,16 +27,19 @@ Popular local AI tools are often full platforms. This project is intentionally s
 | Setup | One Node command, no package install required |
 | Model backend | Ollama |
 | File access | Sandboxed workspace tools |
-| Trust UX | Visible local signals and tool receipts |
+| Trust UX | Visible local signals, exportable receipts, and tool history |
+| Workflow system | Plain JSON recipes in `recipes/` |
 | Best use | Personal workspace agent starter kit |
 
 ## Features
 
 - Chat UI with model picker and streaming-style responses
 - Starter prompts for summarize, plan, review, and save-note workflows
+- Local recipe picker backed by plain JSON workflow files
 - Ollama integration for local models
 - Workspace-aware tools: list files, read files, and write files
 - Agent Trail receipts for tool calls, selected context, model status, and errors
+- Exportable Markdown audit receipts
 - Safe path handling so the agent stays inside `workspace/`
 - Smoke test and GitHub Actions CI included
 
@@ -77,6 +81,19 @@ npm start
    ```
 
 4. Watch the Agent Trail for local model, context, and tool receipts.
+
+## Recipes
+
+Recipes are reusable local workflows stored as JSON files in [recipes](recipes).
+
+Each recipe has:
+
+- `title`
+- `description`
+- `tags`
+- `prompt`
+
+Good recipe ideas are easy to review and useful without any cloud service: code review, launch notes, security hardening, receipt summaries, research briefs, and workspace planning.
 
 ## How It Works
 
@@ -125,6 +142,10 @@ The smoke test starts the server on a temporary port, checks the UI and API, wri
 ## Roadmap
 
 See [docs/ROADMAP.md](docs/ROADMAP.md).
+
+## Growth Research
+
+See [docs/GROWTH_RESEARCH.md](docs/GROWTH_RESEARCH.md) for research-backed positioning and [docs/LAUNCH_PLAN.md](docs/LAUNCH_PLAN.md) for the public launch checklist.
 
 ## Contributing
 

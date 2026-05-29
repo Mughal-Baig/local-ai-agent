@@ -103,6 +103,12 @@ button {
   margin-bottom: 12px;
 }
 
+.panel-actions {
+  display: flex;
+  gap: 7px;
+  align-items: center;
+}
+
 .panel h2 {
   font-size: 0.86rem;
   text-transform: uppercase;
@@ -154,6 +160,7 @@ select {
 }
 
 .files-panel,
+.recipes-panel,
 .trail-panel {
   min-height: 0;
 }

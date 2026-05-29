@@ -6,6 +6,7 @@ This project should avoid competing as a giant platform. Its sharper niche is:
 
 - tiny local agent starter kit
 - visible tool receipts
+- plain JSON agent recipes
 - workspace safety by default
 - no npm dependency install
 - readable implementation
@@ -18,3 +19,4 @@ This project should avoid competing as a giant platform. Its sharper niche is:
 - Keep CI green.
 - Show exactly what makes the app different above the fold.
 - Turn common feature ideas into small, labeled issues.
+- Encourage recipe contributions because they are small and easy to review.

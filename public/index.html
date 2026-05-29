@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Local AI Agent</title>
     <link rel="icon" href="/logo.svg" />
-    <link rel="stylesheet" href="/styles.css?v=3" />
+    <link rel="stylesheet" href="/styles.css?v=4" />
   </head>
   <body>
     <div class="app-shell">
@@ -52,6 +52,17 @@
           </div>
         </section>
 
+        <section class="panel recipes-panel" aria-label="Agent recipes">
+          <div class="panel-heading">
+            <h2>Recipes</h2>
+            <button id="refreshRecipes" class="icon-button" title="Refresh agent recipes" aria-label="Refresh agent recipes">R</button>
+          </div>
+          <label class="field-label" for="recipeSelect">Reusable workflow</label>
+          <select id="recipeSelect"></select>
+          <p class="hint" id="recipeHint">Recipes are local prompt workflows stored in the repo.</p>
+          <button id="useRecipe" class="secondary-button" type="button">Use recipe</button>
+        </section>
+
         <section class="panel files-panel">
           <div class="panel-heading">
             <h2>Workspace</h2>
@@ -64,7 +75,10 @@
         <section class="panel trail-panel" aria-label="Agent trail">
           <div class="panel-heading">
             <h2>Agent Trail</h2>
-            <button id="clearTrail" class="icon-button" title="Clear agent trail" aria-label="Clear agent trail">C</button>
+            <div class="panel-actions">
+              <button id="exportTrail" class="icon-button" title="Export agent trail as Markdown" aria-label="Export agent trail as Markdown">E</button>
+              <button id="clearTrail" class="icon-button" title="Clear agent trail" aria-label="Clear agent trail">C</button>
+            </div>
           </div>
           <div id="agentTrail" class="agent-trail"></div>
         </section>
@@ -95,6 +109,6 @@
       </main>
     </div>
 
-    <script src="/app.js?v=3"></script>
+    <script src="/app.js?v=4"></script>
   </body>
 </html>

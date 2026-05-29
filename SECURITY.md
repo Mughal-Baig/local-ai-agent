@@ -8,6 +8,8 @@ Local AI Agent is designed to keep file access inside the configured workspace.
 - File tools resolve paths against `WORKSPACE_ROOT`.
 - Attempts to escape the workspace are rejected.
 - `.env` and private workspace folders are ignored by git.
+- Agent Trail receipts make local tool activity visible to the user.
+- Recipes are prompt templates only; they do not grant new tool permissions.
 
 ## Reporting A Vulnerability
 

@@ -14,7 +14,12 @@
     "agent",
     "ollama",
     "local-first",
-    "chat"
+    "chat",
+    "agent-recipes",
+    "audit-trail",
+    "tool-use",
+    "self-hosted",
+    "privacy"
   ],
   "author": "",
   "license": "MIT"

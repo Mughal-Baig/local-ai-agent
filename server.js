@@ -14,6 +14,7 @@ const DEFAULT_MODEL = process.env.OLLAMA_MODEL || "llama3.2";
 const MAX_TOOL_ITERATIONS = Number(process.env.MAX_TOOL_ITERATIONS || 4);
 const PROJECT_ROOT = __dirname;
 const PUBLIC_DIR = path.join(PROJECT_ROOT, "public");
+const RECIPES_DIR = path.join(PROJECT_ROOT, "recipes");
 const WORKSPACE_ROOT = path.resolve(PROJECT_ROOT, process.env.WORKSPACE_ROOT || "workspace");
 const MAX_BODY_BYTES = 1024 * 1024;
 const MAX_FILE_BYTES = 80 * 1024;
@@ -31,6 +32,10 @@ const server = http.createServer(async (req, res) => {
 
     if (url.pathname === "/api/files" && req.method === "GET") {
       return handleListFiles(res);
+    }
+
+    if (url.pathname === "/api/recipes" && req.method === "GET") {
+      return handleListRecipes(res);
     }
 
     if (url.pathname === "/api/files/content" && req.method === "GET") {
@@ -84,6 +89,11 @@ async function handleStatus(res) {
 async function handleListFiles(res) {
   const files = await listWorkspaceFiles();
   sendJson(res, 200, { workspaceRoot: WORKSPACE_ROOT, files });
+}
+
+async function handleListRecipes(res) {
+  const recipes = await listRecipes();
+  sendJson(res, 200, { recipes });
 }
 
 async function handleReadFile(url, res) {
@@ -378,6 +388,54 @@ async function listWorkspaceFiles() {
 
   await walk(WORKSPACE_ROOT, "");
   return files;
+}
+
+async function listRecipes() {
+  const entries = await fsp.readdir(RECIPES_DIR, { withFileTypes: true }).catch(() => []);
+  const recipes = [];
+
+  for (const entry of entries) {
+    if (!entry.isFile() || !entry.name.endsWith(".json")) {
+      continue;
+    }
+
+    const absolutePath = path.join(RECIPES_DIR, entry.name);
+    try {
+      const raw = await fsp.readFile(absolutePath, "utf8");
+      const recipe = normalizeRecipe(JSON.parse(raw), entry.name);
+      if (recipe) {
+        recipes.push(recipe);
+      }
+    } catch {
+      // Invalid community recipe files are ignored instead of breaking startup.
+    }
+  }
+
+  recipes.sort((a, b) => a.title.localeCompare(b.title));
+  return recipes;
+}
+
+function normalizeRecipe(recipe, fileName) {
+  if (!recipe || typeof recipe !== "object") {
+    return null;
+  }
+
+  const id = String(recipe.id || fileName.replace(/\.json$/, "")).trim();
+  const title = String(recipe.title || "").trim();
+  const description = String(recipe.description || "").trim();
+  const prompt = String(recipe.prompt || "").trim();
+
+  if (!id || !title || !prompt) {
+    return null;
+  }
+
+  return {
+    id,
+    title: truncate(title, 80),
+    description: truncate(description, 180),
+    prompt: truncate(prompt, 2400),
+    tags: Array.isArray(recipe.tags) ? recipe.tags.map((tag) => String(tag).trim()).filter(Boolean).slice(0, 8) : []
+  };
 }
 
 async function readWorkspaceFile(relativePath, maxBytes) {

@@ -8,6 +8,7 @@ const state = {
     }
   ],
   files: [],
+  recipes: [],
   selectedFiles: new Set(),
   models: [],
   model: "",
@@ -27,8 +28,13 @@ const els = {
   toolSignal: document.querySelector("#toolSignal"),
   refreshStatus: document.querySelector("#refreshStatus"),
   refreshFiles: document.querySelector("#refreshFiles"),
+  refreshRecipes: document.querySelector("#refreshRecipes"),
+  recipeSelect: document.querySelector("#recipeSelect"),
+  recipeHint: document.querySelector("#recipeHint"),
+  useRecipe: document.querySelector("#useRecipe"),
   fileList: document.querySelector("#fileList"),
   newNote: document.querySelector("#newNote"),
+  exportTrail: document.querySelector("#exportTrail"),
   clearTrail: document.querySelector("#clearTrail"),
   agentTrail: document.querySelector("#agentTrail"),
   messages: document.querySelector("#messages"),
@@ -42,19 +48,23 @@ document.addEventListener("DOMContentLoaded", async () => {
   renderMessages();
   addTrail("system", "Workspace boundary active");
   updateSendState();
-  await Promise.all([refreshStatus(), refreshFiles()]);
+  await Promise.all([refreshStatus(), refreshFiles(), refreshRecipes()]);
   els.prompt.focus();
 });
 
 function bindEvents() {
   els.refreshStatus.addEventListener("click", refreshStatus);
   els.refreshFiles.addEventListener("click", refreshFiles);
+  els.refreshRecipes.addEventListener("click", refreshRecipes);
   els.modelSelect.addEventListener("change", () => {
     state.model = els.modelSelect.value;
     addTrail("model", `Model set to ${state.model}`);
     renderLocalSignals();
   });
   els.newNote.addEventListener("click", createNewNote);
+  els.useRecipe.addEventListener("click", applySelectedRecipe);
+  els.recipeSelect.addEventListener("change", updateRecipeHint);
+  els.exportTrail.addEventListener("click", exportTrailReceipt);
   els.clearTrail.addEventListener("click", () => {
     state.trail = [];
     state.toolCount = 0;
@@ -76,6 +86,71 @@ function bindEvents() {
       els.composer.requestSubmit();
     }
   });
+}
+
+async function refreshRecipes() {
+  try {
+    const data = await getJson("/api/recipes");
+    state.recipes = data.recipes || [];
+    renderRecipes();
+    addTrail("recipe", `${state.recipes.length} recipe(s) loaded`);
+  } catch (error) {
+    state.recipes = [];
+    renderRecipes();
+    els.recipeHint.textContent = "Recipes could not be loaded.";
+    addTrail("error", error.message);
+  }
+}
+
+function renderRecipes() {
+  els.recipeSelect.innerHTML = "";
+
+  if (!state.recipes.length) {
+    const option = document.createElement("option");
+    option.value = "";
+    option.textContent = "No recipes found";
+    els.recipeSelect.appendChild(option);
+    els.useRecipe.disabled = true;
+    return;
+  }
+
+  for (const recipe of state.recipes) {
+    const option = document.createElement("option");
+    option.value = recipe.id;
+    option.textContent = recipe.title;
+    els.recipeSelect.appendChild(option);
+  }
+
+  els.useRecipe.disabled = false;
+  updateRecipeHint();
+}
+
+function updateRecipeHint() {
+  const recipe = selectedRecipe();
+  if (!recipe) {
+    els.recipeHint.textContent = "Recipes are local prompt workflows stored in the repo.";
+    return;
+  }
+
+  const tags = recipe.tags && recipe.tags.length ? ` Tags: ${recipe.tags.join(", ")}.` : "";
+  els.recipeHint.textContent = `${recipe.description}${tags}`;
+}
+
+function applySelectedRecipe() {
+  const recipe = selectedRecipe();
+  if (!recipe) {
+    return;
+  }
+
+  els.prompt.value = recipe.prompt;
+  resizePrompt();
+  els.prompt.focus();
+  addTrail("recipe", `Loaded ${recipe.title}`);
+}
+
+function selectedRecipe() {
+  const id = els.recipeSelect.value;
+  return state.recipes.find((recipe) => recipe.id === id) || null;
 }
 
 async function refreshStatus() {
@@ -279,6 +354,34 @@ function addTrail(type, label) {
   });
   state.trail = state.trail.slice(0, 18);
   renderTrail();
+}
+
+function exportTrailReceipt() {
+  addTrail("system", "Exported audit receipt");
+  const rows = state.trail
+    .slice()
+    .reverse()
+    .map((item) => `- ${item.time} [${item.type}] ${item.label}`)
+    .join("\n");
+  const content = [
+    "# Local Agent Trail Receipt",
+    "",
+    `Exported: ${new Date().toISOString()}`,
+    `Model: ${state.model || "not selected"}`,
+    `Selected files: ${Array.from(state.selectedFiles).join(", ") || "none"}`,
+    `Tool calls: ${state.toolCount}`,
+    "",
+    "## Events",
+    "",
+    rows || "- No events"
+  ].join("\n");
+  const blob = new Blob([content], { type: "text/markdown" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `local-agent-trail-${new Date().toISOString().replace(/[:.]/g, "-")}.md`;
+  link.click();
+  URL.revokeObjectURL(url);
 }
 
 function renderTrail() {

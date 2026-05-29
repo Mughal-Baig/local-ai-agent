@@ -45,6 +45,10 @@ async function main() {
     assert.equal(status.app, "ok");
     assert.equal(status.ollama.available, false);
 
+    const recipes = await fetchJson(`http://127.0.0.1:${port}/api/recipes`);
+    assert.equal(Array.isArray(recipes.recipes), true);
+    assert.equal(recipes.recipes.some((recipe) => recipe.id === "code-review"), true);
+
     const write = await postJson(`http://127.0.0.1:${port}/api/files/content`, {
       path: "notes/test.md",
       content: "# Test\n\nSmoke test content.\n"

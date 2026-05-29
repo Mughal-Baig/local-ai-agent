@@ -1,0 +1,7 @@
+{
+  "id": "launch-readme",
+  "title": "Launch README",
+  "description": "Turn selected project files into a GitHub launch-ready README section or announcement draft.",
+  "tags": ["github", "launch", "readme"],
+  "prompt": "Using the selected files, draft a concise GitHub launch section that explains the project in one sentence, why it is different, a 3-step quick start, and a short call for contributors. Keep claims honest and avoid hype that is not supported by the files."
+}

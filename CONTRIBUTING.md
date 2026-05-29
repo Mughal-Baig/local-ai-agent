@@ -4,6 +4,7 @@ Thanks for helping improve Local AI Agent.
 
 ## Good First Contributions
 
+- Add a recipe in `recipes/`.
 - Add a small workspace tool with clear safety boundaries.
 - Improve the prompt protocol for local models.
 - Add tests for path handling and file operations.
@@ -31,5 +32,6 @@ node scripts/smoke-test.js
 - Keep the no-dependency default unless a dependency is clearly worth it.
 - Keep workspace file access sandboxed.
 - Show user-visible receipts for agent actions.
+- Keep recipes honest, specific, and useful without cloud services.
 - Update docs when behavior changes.
 - Run the smoke test.

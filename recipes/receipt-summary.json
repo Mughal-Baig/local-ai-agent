@@ -1,0 +1,7 @@
+{
+  "id": "receipt-summary",
+  "title": "Receipt Summary",
+  "description": "Summarize agent tool activity into a user-readable receipt for trust and debugging.",
+  "tags": ["audit", "observability", "trust"],
+  "prompt": "Summarize the selected agent trail or workspace notes into a receipt. Include what the agent saw, what it changed, what it did not touch, and what the user should verify next. Keep it suitable for attaching to a GitHub issue or pull request."
+}
