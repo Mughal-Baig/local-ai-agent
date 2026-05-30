@@ -1,0 +1,5 @@
+{
+  "id": "002-schema-manifest",
+  "title": "Write schema version manifest",
+  "creates": [".agenttrail/schema-manifest.json"]
+}

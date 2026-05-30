@@ -1,0 +1,5 @@
+{
+  "id": "003-jsonl-store",
+  "title": "Enable append-only local store",
+  "creates": [".agenttrail/store.jsonl"]
+}

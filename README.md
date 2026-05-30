@@ -35,6 +35,7 @@ The demo loop: semantic local search -> diff preview -> explicit Apply -> receip
 - **Safe workspace boundary**: file reads and writes are blocked outside `workspace/`.
 - **Zero npm dependencies**: clone, run `node server.js`, and start building.
 - **Serious foundation**: schemas, migrations, permission engine, background jobs, backups, plugins, checksums, and tests keep it from feeling like a toy.
+- **Product proof loop**: chunk citations, replay guidance, model comparison, plugin gallery, onboarding, and trust badges make the value obvious fast.
 
 ## What Makes It Different
 
@@ -92,13 +93,21 @@ Open `http://127.0.0.1:4173`, build the semantic index, ask for a change, review
 - Local evaluation harness plus saved pass/fail history and model benchmark surface
 - Dockerfile, Docker Compose, `agenttrail` bin entry, install script, Homebrew formula draft, and desktop launchers
 - Stable schemas exposed at `/api/schemas`
+- Route catalog exposed at `/api/routes`
+- Config validation exposed at `/api/config`
+- Structured logs exposed at `/api/logs`
+- SQLite store exposed at `/api/sqlite/status`
+- File watcher controls exposed at `/api/watch/status`, `/api/watch/start`, and `/api/watch/stop`
 - Append-only local event store exposed at `/api/store/stats`
 - Migration system exposed at `/api/migrations`
 - Background jobs exposed at `/api/jobs`
 - Plugin manifests exposed at `/api/plugins`
+- Plugin sandbox execution exposed at `/api/plugins/run`
 - Backup export exposed at `/api/backup/export`
+- Backup import exposed at `/api/backup/import`
 - Release checksums exposed at `/api/releases/checksums`
-- Separate frontend foundation module in `public/modules/foundation.js`
+- Release signing plan exposed at `/api/releases/signing-plan`
+- Separate frontend foundation and product modules in `public/modules/`
 - Saved receipt history in `workspace/receipts/`
 - Safe path handling so the agent stays inside `workspace/`
 - Smoke test and GitHub Actions CI included
@@ -216,6 +225,14 @@ When write preview mode is enabled, `write_file` returns a diff preview instead 
 - Security hardening engine: prompt flags, path escape checks, exfiltration patterns, `/api/security/scan`
 - Shareable reports: polished Markdown/HTML exports in `workspace/reports/`
 - Community growth loop: issue templates, launch posts, marketplace submissions, and good-first contribution docs
+- Guided replay: `/api/replay/plan`
+- Chunk citations: `/api/search/chunks`
+- Trust badge: `/api/trust/badge`
+- Model comparison: `/api/models/compare`
+- Real benchmark run endpoint: `/api/benchmarks/run`
+- Pack import from GitHub URL: `/api/marketplace/import-url`
+- Public demo data: `/api/demo/public` and [docs/public-demo.html](docs/public-demo.html)
+- MCP client setup examples: [docs/mcp/CLIENT_SETUP.md](docs/mcp/CLIENT_SETUP.md)
 
 ## Foundation Surfaces
 
@@ -229,6 +246,9 @@ When write preview mode is enabled, `write_file` returns a diff preview instead 
 - Plugin architecture: [plugins](plugins)
 - Release checksums: [docs/RELEASE_SIGNING.md](docs/RELEASE_SIGNING.md)
 - Backup export: `workspace/backups/`
+- SQLite store: `workspace/.agenttrail/agenttrail.db`
+- Structured logs: `workspace/.agenttrail/logs.jsonl`
+- Versioned migration files: [migrations](migrations)
 
 ## Workspace
 
@@ -269,8 +289,11 @@ Supported variables:
 ```bash
 node scripts/smoke-test.js
 npm run test:unit
+npm run test:integration
+npm run test:ui
 npm run eval
 npm run release:checksums
+npm run package:desktop
 ```
 
 The smoke test starts the server on a temporary port, checks the UI and API, writes a test file in a temporary workspace, reads it back, and shuts the server down.
@@ -283,7 +306,7 @@ See [docs/ROADMAP.md](docs/ROADMAP.md).
 
 See [docs/GROWTH_RESEARCH.md](docs/GROWTH_RESEARCH.md) for research-backed positioning, [docs/LAUNCH_PLAN.md](docs/LAUNCH_PLAN.md) for the public launch checklist, and [docs/TOP_1_PERCENT_PLAYBOOK.md](docs/TOP_1_PERCENT_PLAYBOOK.md) for the focused growth path.
 
-The v0.6 implementation map is in [docs/TOP_1_PERCENT_IMPLEMENTATION.md](docs/TOP_1_PERCENT_IMPLEMENTATION.md).
+The v0.7 implementation map is in [docs/TOP_1_PERCENT_IMPLEMENTATION.md](docs/TOP_1_PERCENT_IMPLEMENTATION.md).
 
 ## Contributing
 

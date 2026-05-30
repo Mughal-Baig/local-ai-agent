@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="540" viewBox="0 0 960 540">
+  <rect width="960" height="540" fill="#f4f7f5"/>
+  <rect x="24" y="24" width="300" height="492" rx="8" fill="#e7eeeb" stroke="#d6ded9"/>
+  <rect x="348" y="24" width="588" height="92" rx="8" fill="#ffffff" stroke="#d6ded9"/>
+  <rect x="348" y="140" width="588" height="260" rx="8" fill="#ffffff" stroke="#d6ded9"/>
+  <rect x="348" y="424" width="588" height="92" rx="8" fill="#ffffff" stroke="#d6ded9"/>
+  <text x="54" y="72" fill="#246b62" font-family="system-ui" font-size="28" font-weight="800">AgentTrail</text>
+  <text x="380" y="78" fill="#1f2430" font-family="system-ui" font-size="34" font-weight="800">Diff Review Center</text>
+  <rect x="54" y="126" width="230" height="42" rx="8" fill="#e4f0ed" stroke="#246b62"/>
+  <rect x="54" y="190" width="230" height="42" rx="8" fill="#fff" stroke="#d6ded9"/>
+  <rect x="54" y="254" width="230" height="42" rx="8" fill="#fff" stroke="#d6ded9"/>
+  <rect x="380" y="178" width="500" height="28" rx="6" fill="#e4f0ed"/>
+  <rect x="380" y="226" width="430" height="28" rx="6" fill="#f7e7e2"/>
+  <rect x="380" y="274" width="470" height="28" rx="6" fill="#fff4d8"/>
+  <rect x="380" y="452" width="180" height="36" rx="8" fill="#246b62"/>
+  <text x="414" y="476" fill="#fff" font-family="system-ui" font-size="16" font-weight="800">Apply</text>
+</svg>

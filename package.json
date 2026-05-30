@@ -1,6 +1,6 @@
 {
   "name": "agenttrail",
-  "version": "0.6.0",
+  "version": "0.7.0",
   "description": "AgentTrail: an auditable local AI agent with Ollama, workspace search, recipes, diff previews, and receipts.",
   "main": "server.js",
   "repository": {
@@ -20,6 +20,7 @@
     "docs",
     "marketplace",
     "mcp",
+    "migrations",
     "plugins",
     "profiles",
     "public",
@@ -27,6 +28,8 @@
     "recipes",
     "scripts",
     "src",
+    "tests",
+    "installers",
     "workspace/welcome.md",
     "Dockerfile",
     "install.sh",
@@ -46,10 +49,15 @@
     "dev": "node server.js",
     "test": "node scripts/smoke-test.js",
     "test:unit": "node tests/unit/foundation.test.js",
+    "test:integration": "node tests/integration/api.test.js",
+    "test:ui": "node tests/ui/playwright-smoke.test.js",
     "eval": "node scripts/evaluate-agenttrail.js",
     "mcp": "node mcp/server.js",
     "demo:gif": "node scripts/generate-demo-gif.js",
+    "demo:video": "node scripts/record-demo.js",
+    "screenshots": "node scripts/generate-demo-screenshots.js",
     "release:checksums": "node scripts/generate-release-checksums.js",
+    "package:desktop": "node scripts/package-desktop.js",
     "benchmark": "node scripts/evaluate-agenttrail.js"
   },
   "keywords": [
@@ -69,7 +77,9 @@
     "local-embeddings",
     "ai-agent",
     "mcp-server",
-    "diff-safe"
+    "diff-safe",
+    "semantic-search",
+    "local-agent"
   ],
   "author": "",
   "license": "MIT"

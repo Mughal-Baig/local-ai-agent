@@ -1,8 +1,8 @@
 class Agenttrail < Formula
   desc "Auditable local AI agent with Ollama, diff previews, receipts, and replay"
   homepage "https://github.com/Mughal-Baig/local-ai-agent"
-  url "https://github.com/Mughal-Baig/local-ai-agent/archive/refs/tags/v0.6.0.tar.gz"
-  version "0.6.0"
+  url "https://github.com/Mughal-Baig/local-ai-agent/archive/refs/tags/v0.7.0.tar.gz"
+  version "0.7.0"
   license "MIT"
 
   depends_on "node"

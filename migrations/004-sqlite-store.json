@@ -1,0 +1,5 @@
+{
+  "id": "004-sqlite-store",
+  "title": "Enable SQLite local store",
+  "creates": [".agenttrail/agenttrail.db"]
+}

@@ -96,6 +96,7 @@
           <input id="workspaceSearch" class="search-input" type="search" placeholder="Search files, notes, receipts..." />
           <button id="buildSearchIndex" class="secondary-button compact-button" type="button">Build search index</button>
           <p id="searchIndexSummary" class="hint">Search index has not been checked yet.</p>
+          <div id="chunkCitations" class="mini-list"></div>
           <div id="searchResults" class="search-results"></div>
         </section>
 
@@ -147,6 +148,7 @@
           <label class="field-label tight-label" for="sessionSelect">Replay session</label>
           <select id="sessionSelect"></select>
           <button id="replaySession" class="secondary-button compact-button" type="button">Replay selected run</button>
+          <div id="replayPlan" class="mini-list"></div>
           <div id="receiptTimeline" class="receipt-timeline"></div>
         </section>
 
@@ -175,10 +177,20 @@
             <button id="runBenchmark" class="secondary-button compact-button" type="button">Benchmark models</button>
             <button id="securityScan" class="secondary-button compact-button" type="button">Security scan</button>
           </div>
+          <div class="toolkit-grid">
+            <button id="runRealBenchmark" class="secondary-button compact-button" type="button">Run real bench</button>
+            <button id="compareModels" class="secondary-button compact-button" type="button">Compare models</button>
+          </div>
+          <label class="field-label tight-label" for="packImportUrl">Import pack URL</label>
+          <input id="packImportUrl" class="search-input" type="url" placeholder="https://raw.githubusercontent.com/..." />
+          <button id="importPackUrl" class="secondary-button compact-button" type="button">Import from URL</button>
           <div id="evalSummary" class="eval-summary"></div>
           <div id="benchmarkSummary" class="mini-list"></div>
+          <div id="modelCompareSummary" class="mini-list"></div>
           <div id="securitySummary" class="mini-list"></div>
           <div id="marketplaceSummary" class="mini-list"></div>
+          <div id="pluginGallery" class="mini-list"></div>
+          <div id="onboardingSummary" class="mini-list"></div>
           <p id="profileSummary" class="hint">Loading profiles and MCP manifest...</p>
         </section>
 
@@ -236,5 +248,6 @@
 
     <script src="/app.js?v=10"></script>
     <script src="/modules/foundation.js?v=1"></script>
+    <script src="/modules/product.js?v=1"></script>
   </body>
 </html>

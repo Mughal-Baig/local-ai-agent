@@ -18,6 +18,11 @@ const MIGRATIONS = [
     id: "003-jsonl-store",
     title: "Enable append-only local store",
     creates: [".agenttrail/store.jsonl"]
+  },
+  {
+    id: "004-sqlite-store",
+    title: "Enable SQLite local store",
+    creates: [".agenttrail/agenttrail.db"]
   }
 ];
 

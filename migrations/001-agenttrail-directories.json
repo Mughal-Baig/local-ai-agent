@@ -1,0 +1,5 @@
+{
+  "id": "001-agenttrail-directories",
+  "title": "Ensure durable AgentTrail workspace directories",
+  "creates": [".agenttrail", "sessions", "receipts", "reports", "memory/history", "evals", "backups"]
+}

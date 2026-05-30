@@ -125,7 +125,7 @@ async function handleMessage(message) {
       return sendResult(message.id, {
         protocolVersion: "2024-11-05",
         capabilities: { tools: {} },
-        serverInfo: { name: "agenttrail-local-mcp", version: "0.6.0" }
+        serverInfo: { name: "agenttrail-local-mcp", version: "0.7.0" }
       });
     }
 

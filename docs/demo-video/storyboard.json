@@ -1,0 +1,15 @@
+{
+  "schema": "agenttrail.demo-video.v1",
+  "title": "AgentTrail screen demo",
+  "output": "docs/demo-video/agenttrail-screen-demo.webm",
+  "steps": [
+    "Open local app",
+    "Build semantic index",
+    "Search workspace",
+    "Show chunk citations",
+    "Preview diff",
+    "Apply diff",
+    "Export receipt and replay plan"
+  ],
+  "command": "Use Playwright video recording or OS screen recorder against http://127.0.0.1:4174/"
+}

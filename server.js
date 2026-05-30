@@ -2,7 +2,6 @@
 
 const fs = require("node:fs");
 const fsp = require("node:fs/promises");
-const crypto = require("node:crypto");
 const http = require("node:http");
 const path = require("node:path");
 const { URL } = require("node:url");
@@ -16,6 +15,15 @@ const { runMigrations, migrationStatus } = require("./src/migrations");
 const { loadPlugins } = require("./src/plugin-loader");
 const { generateChecksums } = require("./src/release");
 const { buildFoundationStatus } = require("./src/foundation");
+const { StructuredLogger } = require("./src/logger");
+const { validateConfig } = require("./src/config");
+const { hashContent, chunkText, rankChunks } = require("./src/features/search");
+const { scanSecurityText } = require("./src/features/security");
+const { friendlyError } = require("./src/features/errors");
+const { SqliteStore } = require("./src/sqlite-store");
+const { FileWatcher } = require("./src/file-watcher");
+const { runPluginTool } = require("./src/plugin-sandbox");
+const { routeCatalog } = require("./src/route-catalog");
 
 loadDotEnv();
 
@@ -52,11 +60,24 @@ const STOP_WORDS = new Set(["the", "and", "for", "with", "that", "this", "from",
 
 fs.mkdirSync(WORKSPACE_ROOT, { recursive: true });
 const STORE = new JsonLineStore(WORKSPACE_ROOT);
+const SQLITE = new SqliteStore(WORKSPACE_ROOT);
 const JOBS = new JobManager();
+const LOGGER = new StructuredLogger(WORKSPACE_ROOT);
+const WATCHER = new FileWatcher(WORKSPACE_ROOT, (event) => {
+  LOGGER.log("info", "workspace.change", event);
+});
+const CONFIG_STATUS = validateConfig(process.env);
 const MIGRATIONS_READY = runMigrations(WORKSPACE_ROOT, SCHEMA_VERSION).catch((error) => {
   console.error(`Migration warning: ${error.message}`);
   return null;
 });
+const SQLITE_READY = SQLITE.init().catch((error) => {
+  console.error(`SQLite warning: ${error.message}`);
+  return null;
+});
+if (!CONFIG_STATUS.ok) {
+  console.warn(`Config warning: ${CONFIG_STATUS.checks.filter((check) => !check.ok).map((check) => check.message).join(" ")}`);
+}
 
 const server = http.createServer(async (req, res) => {
   try {
@@ -64,6 +85,34 @@ const server = http.createServer(async (req, res) => {
 
     if (url.pathname === "/api/status" && req.method === "GET") {
       return handleStatus(res);
+    }
+
+    if (url.pathname === "/api/routes" && req.method === "GET") {
+      return sendJson(res, 200, { routes: routeCatalog() });
+    }
+
+    if (url.pathname === "/api/config" && req.method === "GET") {
+      return sendJson(res, 200, CONFIG_STATUS);
+    }
+
+    if (url.pathname === "/api/logs" && req.method === "GET") {
+      return handleLogs(url, res);
+    }
+
+    if (url.pathname === "/api/sqlite/status" && req.method === "GET") {
+      return handleSqliteStatus(res);
+    }
+
+    if (url.pathname === "/api/watch/status" && req.method === "GET") {
+      return sendJson(res, 200, WATCHER.status());
+    }
+
+    if (url.pathname === "/api/watch/start" && req.method === "POST") {
+      return handleWatchStart(res);
+    }
+
+    if (url.pathname === "/api/watch/stop" && req.method === "POST") {
+      return handleWatchStop(res);
     }
 
     if (url.pathname === "/api/foundation" && req.method === "GET") {
@@ -102,12 +151,24 @@ const server = http.createServer(async (req, res) => {
       return handlePlugins(res);
     }
 
+    if (url.pathname === "/api/plugins/run" && req.method === "POST") {
+      return handleRunPlugin(req, res);
+    }
+
     if (url.pathname === "/api/backup/export" && req.method === "POST") {
       return handleExportBackup(req, res);
     }
 
+    if (url.pathname === "/api/backup/import" && req.method === "POST") {
+      return handleImportBackup(req, res);
+    }
+
     if (url.pathname === "/api/releases/checksums" && req.method === "POST") {
       return handleReleaseChecksums(res);
+    }
+
+    if (url.pathname === "/api/releases/signing-plan" && req.method === "GET") {
+      return handleSigningPlan(res);
     }
 
     if (url.pathname === "/api/files" && req.method === "GET") {
@@ -134,6 +195,10 @@ const server = http.createServer(async (req, res) => {
       return handleSearch(url, res);
     }
 
+    if (url.pathname === "/api/search/chunks" && req.method === "GET") {
+      return handleSearchChunks(url, res);
+    }
+
     if (url.pathname === "/api/search-index" && req.method === "GET") {
       return handleGetSearchIndex(res);
     }
@@ -158,6 +223,10 @@ const server = http.createServer(async (req, res) => {
       return handleSaveReport(req, res);
     }
 
+    if (url.pathname === "/api/trust/badge" && req.method === "POST") {
+      return handleTrustBadge(req, res);
+    }
+
     if (url.pathname === "/api/sessions" && req.method === "GET") {
       return handleListSessions(res);
     }
@@ -170,6 +239,10 @@ const server = http.createServer(async (req, res) => {
       return handleReadFile(url, res);
     }
 
+    if (url.pathname === "/api/replay/plan" && req.method === "GET") {
+      return handleReplayPlan(url, res);
+    }
+
     if (url.pathname === "/api/packs" && req.method === "GET") {
       return handleListPacks(res);
     }
@@ -180,6 +253,10 @@ const server = http.createServer(async (req, res) => {
 
     if (url.pathname === "/api/packs/import" && req.method === "POST") {
       return handleImportPack(req, res);
+    }
+
+    if (url.pathname === "/api/marketplace/import-url" && req.method === "POST") {
+      return handleMarketplaceImportUrl(req, res);
     }
 
     if (url.pathname === "/api/marketplace" && req.method === "GET") {
@@ -210,8 +287,28 @@ const server = http.createServer(async (req, res) => {
       return handleBenchmarks(res);
     }
 
+    if (url.pathname === "/api/benchmarks/run" && req.method === "POST") {
+      return handleRunBenchmarks(req, res);
+    }
+
+    if (url.pathname === "/api/benchmarks/history" && req.method === "GET") {
+      return handleBenchmarkHistory(res);
+    }
+
+    if (url.pathname === "/api/models/compare" && req.method === "GET") {
+      return handleModelCompare(res);
+    }
+
     if (url.pathname === "/api/security/scan" && req.method === "POST") {
       return handleSecurityScan(req, res);
+    }
+
+    if (url.pathname === "/api/onboarding" && req.method === "GET") {
+      return handleOnboarding(res);
+    }
+
+    if (url.pathname === "/api/demo/public" && req.method === "GET") {
+      return handlePublicDemo(res);
     }
 
     if (url.pathname === "/api/files/content" && req.method === "GET") {
@@ -240,7 +337,11 @@ const server = http.createServer(async (req, res) => {
     sendJson(res, 405, { error: "Method not allowed" });
   } catch (error) {
     if (!res.headersSent) {
-      sendJson(res, 500, friendlyError(error));
+      sendJson(res, 500, friendlyError(error, {
+        ollamaHost: OLLAMA_HOST,
+        defaultModel: DEFAULT_MODEL,
+        embeddingModel: OLLAMA_EMBED_MODEL
+      }));
     } else {
       res.end();
     }
@@ -276,21 +377,51 @@ async function handleStatus(res) {
   });
 }
 
+async function handleLogs(url, res) {
+  const limit = Math.min(Math.max(Number(url.searchParams.get("limit") || 80), 1), 200);
+  sendJson(res, 200, { logs: await LOGGER.list(limit) });
+}
+
+async function handleSqliteStatus(res) {
+  await SQLITE_READY;
+  sendJson(res, 200, {
+    ...SQLITE.status(),
+    recent: SQLITE.list("", 20)
+  });
+}
+
+async function handleWatchStart(res) {
+  const status = WATCHER.start();
+  await LOGGER.log("info", "watch.start", { root: WORKSPACE_ROOT });
+  sendJson(res, 200, status);
+}
+
+async function handleWatchStop(res) {
+  const status = WATCHER.stop();
+  await LOGGER.log("info", "watch.stop", { root: WORKSPACE_ROOT });
+  sendJson(res, 200, status);
+}
+
 async function handleFoundation(res) {
   await MIGRATIONS_READY;
+  await SQLITE_READY;
   const [migrations, plugins, storeStats] = await Promise.all([
     migrationStatus(WORKSPACE_ROOT),
     loadPlugins(PLUGINS_DIR),
     STORE.stats()
   ]);
-  sendJson(res, 200, buildFoundationStatus({
+  const foundation = buildFoundationStatus({
     schemas: listSchemaSummaries(),
     migrations,
     plugins,
     storeStats,
     adapters: listModelAdapters(process.env),
     packageVersion: packageMeta.version
-  }));
+  });
+  foundation.sqlite = SQLITE.status();
+  foundation.config = CONFIG_STATUS;
+  foundation.watch = WATCHER.status();
+  sendJson(res, 200, foundation);
 }
 
 async function handleSchemas(res) {
@@ -319,6 +450,8 @@ async function handleMigrationStatus(res) {
 async function handleRunMigrations(res) {
   const result = await runMigrations(WORKSPACE_ROOT, SCHEMA_VERSION);
   await STORE.append("migration", result);
+  SQLITE.insert("migration", result);
+  await LOGGER.log("info", "migration.run", { newlyApplied: result.newlyApplied.length });
   sendJson(res, 200, result);
 }
 
@@ -342,6 +475,30 @@ async function handleStartJob(req, res) {
       update(45, "Generating release checksums");
       return generateChecksums(PROJECT_ROOT, `v${packageMeta.version}`);
     }
+    if (type === "benchmark-run") {
+      update(15, "Loading installed local models");
+      const status = await fetchOllamaModels();
+      const models = status.models.map(scoreModel);
+      const selectedModels = models.filter((model) => !body.model || model.name === body.model).slice(0, 6);
+      const runs = [];
+      for (const [index, model] of selectedModels.entries()) {
+        update(25 + Math.round((index / Math.max(selectedModels.length, 1)) * 60), `Benchmarking ${model.name}`);
+        runs.push(await runModelBenchmark(model));
+      }
+      const result = {
+        schema: "agenttrail.benchmark-run.v1",
+        createdAt: new Date().toISOString(),
+        available: status.available,
+        runs,
+        note: status.available ? "Real local benchmark prompts were attempted." : "Ollama is offline; no real prompt runs were executed."
+      };
+      const stamp = new Date().toISOString().replace(/[:.]/g, "-");
+      const saved = await writeWorkspaceFile(`${EVALS_DIR}/benchmark-${stamp}.json`, JSON.stringify(result, null, 2));
+      await STORE.append("benchmark", { path: saved.path, runs: runs.length });
+      SQLITE.insert("benchmark", { path: saved.path, runs: runs.length });
+      update(95, "Benchmark saved");
+      return { ...result, saved };
+    }
     update(35, "Auditing foundation");
     return {
       foundation: buildFoundationStatus({
@@ -355,6 +512,8 @@ async function handleStartJob(req, res) {
     };
   });
   await STORE.append("job", { id: job.id, type: job.type, status: job.status });
+  SQLITE.insert("job", { id: job.id, type: job.type, status: job.status });
+  await LOGGER.log("info", "job.start", { id: job.id, type: job.type });
   sendJson(res, 200, job);
 }
 
@@ -362,17 +521,109 @@ async function handlePlugins(res) {
   sendJson(res, 200, { plugins: await loadPlugins(PLUGINS_DIR) });
 }
 
+async function handleRunPlugin(req, res) {
+  const body = await readJsonBody(req);
+  const pluginId = String(body.pluginId || "").trim();
+  const toolName = String(body.tool || "").trim();
+  const plugins = await loadPlugins(PLUGINS_DIR);
+  const plugin = plugins.find((item) => item.id === pluginId);
+  if (!plugin) {
+    return sendJson(res, 404, { error: "Plugin not found" });
+  }
+  const result = runPluginTool(plugin, toolName, body.input || {});
+  await STORE.append("plugin", { pluginId, tool: toolName, result: result.ok });
+  SQLITE.insert("plugin", { pluginId, tool: toolName, result: result.ok });
+  await LOGGER.log("info", "plugin.run", { pluginId, tool: toolName });
+  sendJson(res, 200, result);
+}
+
 async function handleExportBackup(req, res) {
   const body = await readJsonBody(req);
   const result = await exportBackup({ includeWorkspaceFiles: body.includeWorkspaceFiles === true });
   await STORE.append("backup", result);
+  SQLITE.insert("backup", result);
+  await LOGGER.log("info", "backup.export", { path: result.path, itemCount: result.itemCount });
+  sendJson(res, 200, result);
+}
+
+async function handleImportBackup(req, res) {
+  const body = await readJsonBody(req);
+  const result = await importBackup(body);
+  await STORE.append("backup-import", result);
+  SQLITE.insert("backup-import", result);
+  await LOGGER.log("info", "backup.import", { restored: result.restored.length, skipped: result.skipped.length });
   sendJson(res, 200, result);
 }
 
 async function handleReleaseChecksums(res) {
   const result = await generateChecksums(PROJECT_ROOT, `v${packageMeta.version}`);
   await STORE.append("release-checksums", result);
+  SQLITE.insert("release-checksums", result);
+  await LOGGER.log("info", "release.checksums", { path: result.path, count: result.count });
   sendJson(res, 200, result);
+}
+
+async function handleOnboarding(res) {
+  const [status, files, packs, foundation] = await Promise.all([
+    fetchOllamaModels(),
+    listWorkspaceFiles(),
+    listRecipePacks(),
+    Promise.resolve(buildFoundationStatus({
+      schemas: listSchemaSummaries(),
+      migrations: { pending: [] },
+      plugins: [],
+      storeStats: { path: ".agenttrail/store.jsonl" },
+      adapters: listModelAdapters(process.env),
+      packageVersion: packageMeta.version
+    }))
+  ]);
+  const items = [
+    { id: "ollama", label: "Start Ollama", ok: status.available, action: `ollama pull ${DEFAULT_MODEL}` },
+    { id: "workspace", label: "Add or select a workspace file", ok: files.length > 0, action: "Use workspace/welcome.md" },
+    { id: "semantic-index", label: "Build semantic search index", ok: Boolean(await readSearchIndex()), action: "Click Build search index" },
+    { id: "recipe", label: "Load a recipe pack", ok: packs.length >= 5, action: "Choose Coder, Founder, Security, Student, or Writer pack" },
+    { id: "safe-write", label: "Keep preview writes enabled", ok: true, action: "Review diffs before Apply" },
+    { id: "receipt", label: "Export a receipt or report", ok: false, action: "Click E or H after a run" },
+    { id: "foundation", label: "Foundation checks healthy", ok: foundation.score >= 90, action: "Open Foundation panel" }
+  ];
+  sendJson(res, 200, {
+    version: packageMeta.version,
+    score: Math.round((items.filter((item) => item.ok).length / items.length) * 100),
+    items
+  });
+}
+
+async function handlePublicDemo(res) {
+  sendJson(res, 200, {
+    schema: "agenttrail.public-demo.v1",
+    title: "AgentTrail 60-second demo",
+    steps: [
+      { id: "search", label: "Search workspace", detail: "Semantic chunk search finds a local receipt and memory citation." },
+      { id: "diff", label: "Preview diff", detail: "The agent proposes a patch but does not write silently." },
+      { id: "apply", label: "Apply deliberately", detail: "The user approves the exact change." },
+      { id: "receipt", label: "Save receipt", detail: "A replayable session and report are exported." }
+    ],
+    trust: {
+      score: 96,
+      checks: ["searched evidence", "read before write", "previewed write", "receipt saved", "workspace boundary"]
+    },
+    sampleDiff: "--- a/workspace/welcome.md\n+++ b/workspace/welcome.md\n+Add receipt-first workflow note",
+    sampleCitations: ["workspace/welcome.md#chunk-1", "receipts/demo.md#chunk-2"]
+  });
+}
+
+async function handleSigningPlan(res) {
+  sendJson(res, 200, {
+    schema: "agenttrail.signing-plan.v1",
+    version: packageMeta.version,
+    artifacts: [
+      { platform: "macos", path: "desktop/mac/AgentTrail.command", signing: "Developer ID + notarization required" },
+      { platform: "windows", path: "desktop/windows/AgentTrail.cmd", signing: "Authenticode certificate required" },
+      { platform: "linux", path: "desktop/linux/agenttrail.desktop", signing: "signed checksums/package repo metadata" },
+      { platform: "npm", path: "package.json", signing: "npm provenance recommended after package ownership is verified" }
+    ],
+    checksums: `docs/checksums/SHA256SUMS_v${packageMeta.version}.txt`
+  });
 }
 
 async function exportBackup(options = {}) {
@@ -428,6 +679,38 @@ async function exportBackup(options = {}) {
   const stamp = new Date().toISOString().replace(/[:.]/g, "-");
   const result = await writeWorkspaceFile(`${BACKUPS_DIR}/agenttrail-backup-${stamp}.json`, JSON.stringify(backup, null, 2));
   return { ...result, itemCount: backup.items.length, includeWorkspaceFiles };
+}
+
+async function importBackup(body) {
+  const backup = typeof body.content === "string" ? JSON.parse(body.content) : body.backup || body;
+  if (!backup || backup.schema !== "agenttrail.backup.v1" || !Array.isArray(backup.items)) {
+    throw new Error("Backup must use agenttrail.backup.v1 with an items array.");
+  }
+  const restored = [];
+  const skipped = [];
+  for (const item of backup.items.slice(0, 500)) {
+    const itemPath = normalizeRelativePath(item.path || "");
+    if (!itemPath || typeof item.content !== "string") {
+      skipped.push({ path: item.path || "unknown", reason: "Missing path or content" });
+      continue;
+    }
+    if (item.area === "workspace") {
+      try {
+        const result = await writeWorkspaceFile(`restored/${itemPath}`, item.content);
+        restored.push(result.path);
+      } catch (error) {
+        skipped.push({ path: itemPath, reason: error.message });
+      }
+      continue;
+    }
+    skipped.push({ path: itemPath, reason: "Project file imports are review-only; workspace files restore under restored/." });
+  }
+  return {
+    ok: true,
+    restored,
+    skipped,
+    importedAt: new Date().toISOString()
+  };
 }
 
 async function collectProjectBackupItems(directories) {
@@ -513,6 +796,19 @@ async function handleSearch(url, res) {
   const results = await searchWorkspace(query, limit, { semantic: mode === "semantic" });
   const semanticProvider = results.find((item) => item.semanticProvider)?.semanticProvider || null;
   sendJson(res, 200, { query, mode, semanticProvider, results });
+}
+
+async function handleSearchChunks(url, res) {
+  const query = url.searchParams.get("query") || "";
+  const limit = Math.min(Math.max(Number(url.searchParams.get("limit") || 8), 1), 30);
+  const index = await readSearchIndex();
+  const chunks = rankChunks(query, index && Array.isArray(index.chunks) ? index.chunks : [], limit);
+  sendJson(res, 200, {
+    query,
+    provider: index ? index.provider : "none",
+    model: index ? index.model : null,
+    chunks
+  });
 }
 
 async function handleGetSearchIndex(res) {
@@ -637,6 +933,25 @@ async function handleSaveReport(req, res) {
   sendJson(res, 200, { markdown: mdResult, html: htmlResult });
 }
 
+async function handleTrustBadge(req, res) {
+  const body = await readJsonBody(req);
+  const score = Math.max(0, Math.min(100, Number(body.score || 0)));
+  const label = truncate(String(body.label || "trust"), 32);
+  const color = score >= 85 ? "#246b62" : score >= 65 ? "#d99b2b" : "#c35b43";
+  const svg = [
+    `<svg xmlns="http://www.w3.org/2000/svg" width="190" height="28" role="img" aria-label="AgentTrail ${label} ${score}/100">`,
+    `<rect width="190" height="28" rx="6" fill="#1f2430"/>`,
+    `<rect x="88" width="102" height="28" rx="6" fill="${color}"/>`,
+    `<text x="12" y="18" fill="#f4f7f5" font-family="system-ui, sans-serif" font-size="12" font-weight="700">AgentTrail</text>`,
+    `<text x="102" y="18" fill="#fff" font-family="system-ui, sans-serif" font-size="12" font-weight="800">${escapeHtmlForReport(label)} ${score}/100</text>`,
+    `</svg>`
+  ].join("");
+  const stamp = new Date().toISOString().replace(/[:.]/g, "-");
+  const result = await writeWorkspaceFile(`${REPORTS_DIR}/badges/trust-${stamp}.svg`, svg);
+  await STORE.append("trust-badge", { path: result.path, score, label });
+  sendJson(res, 200, { ...result, svg });
+}
+
 async function handleListSessions(res) {
   const files = await listWorkspaceFiles();
   const sessions = [];
@@ -694,6 +1009,28 @@ async function handleSaveSession(req, res) {
   sendJson(res, 200, { ...result, session });
 }
 
+async function handleReplayPlan(url, res) {
+  const relativePath = url.searchParams.get("path") || "";
+  if (!relativePath) {
+    return sendJson(res, 400, { error: "Session path is required" });
+  }
+  const file = await readWorkspaceFile(relativePath, MAX_FILE_BYTES);
+  const session = JSON.parse(file.content || "{}");
+  sendJson(res, 200, {
+    path: file.path,
+    title: session.title || "Replay session",
+    steps: [
+      { id: "restore-model", label: `Restore model ${session.model || DEFAULT_MODEL}`, done: Boolean(session.model) },
+      { id: "restore-files", label: `Select ${(session.selectedFiles || []).length} file(s)`, done: Array.isArray(session.selectedFiles) },
+      { id: "restore-prompt", label: "Load last user prompt into composer", done: Boolean(session.replay && session.replay.prompt) },
+      { id: "restore-diffs", label: `Restore ${(session.pendingPreviews || []).length} pending/applied diff(s)`, done: Array.isArray(session.pendingPreviews) },
+      { id: "restore-trail", label: `Restore ${(session.trail || []).length} trail event(s)`, done: Array.isArray(session.trail) },
+      { id: "rerun", label: "User reviews and reruns deliberately", done: false }
+    ],
+    replay: session.replay || {}
+  });
+}
+
 async function handleListPacks(res) {
   sendJson(res, 200, { packs: await listRecipePacks() });
 }
@@ -718,6 +1055,26 @@ async function handleImportPack(req, res) {
   const packPath = path.join(RECIPE_PACKS_DIR, `${pack.id}.json`);
   await fsp.writeFile(packPath, JSON.stringify(pack, null, 2), "utf8");
   sendJson(res, 200, { ok: true, path: `recipe-packs/${pack.id}.json`, pack });
+}
+
+async function handleMarketplaceImportUrl(req, res) {
+  const body = await readJsonBody(req);
+  const sourceUrl = String(body.url || "").trim();
+  if (!/^https:\/\/(raw\.githubusercontent\.com|gist\.githubusercontent\.com|github\.com)\//.test(sourceUrl)) {
+    return sendJson(res, 400, { error: "Only GitHub raw/gist recipe pack URLs are allowed." });
+  }
+  const response = await fetch(sourceUrl, { signal: AbortSignal.timeout(12000) });
+  if (!response.ok) {
+    return sendJson(res, 400, { error: `Could not import pack: HTTP ${response.status}` });
+  }
+  const pack = normalizeImportedPack(JSON.parse(await response.text()));
+  if (!pack) {
+    return sendJson(res, 400, { error: "Imported URL did not contain a valid recipe pack." });
+  }
+  const packPath = path.join(RECIPE_PACKS_DIR, `${pack.id}.json`);
+  await fsp.writeFile(packPath, JSON.stringify({ ...pack, source: sourceUrl }, null, 2), "utf8");
+  await STORE.append("recipe-pack-import", { id: pack.id, source: sourceUrl });
+  sendJson(res, 200, { ok: true, path: `recipe-packs/${pack.id}.json`, pack: { ...pack, source: sourceUrl } });
 }
 
 async function handleMarketplace(res) {
@@ -801,6 +1158,62 @@ async function handleBenchmarks(res) {
     note: status.available
       ? "Heuristic local benchmark. Run a full prompt benchmark after pulling target models."
       : "Ollama is offline; scores are based on installed-model metadata only."
+  });
+}
+
+async function handleRunBenchmarks(req, res) {
+  const body = await readJsonBody(req);
+  const status = await fetchOllamaModels();
+  const models = status.models.map(scoreModel);
+  const selectedModels = models.filter((model) => !body.model || model.name === body.model).slice(0, 6);
+  const runs = [];
+  for (const model of selectedModels) {
+    runs.push(await runModelBenchmark(model));
+  }
+  const result = {
+    schema: "agenttrail.benchmark-run.v1",
+    createdAt: new Date().toISOString(),
+    available: status.available,
+    runs,
+    note: status.available ? "Real local benchmark prompts were attempted." : "Ollama is offline; no real prompt runs were executed."
+  };
+  const stamp = new Date().toISOString().replace(/[:.]/g, "-");
+  const saved = await writeWorkspaceFile(`${EVALS_DIR}/benchmark-${stamp}.json`, JSON.stringify(result, null, 2));
+  await STORE.append("benchmark", { path: saved.path, runs: runs.length });
+  SQLITE.insert("benchmark", { path: saved.path, runs: runs.length });
+  sendJson(res, 200, { ...result, saved });
+}
+
+async function handleBenchmarkHistory(res) {
+  const files = await listWorkspaceFiles();
+  const history = [];
+  for (const file of files.filter((item) => item.path.startsWith(`${EVALS_DIR}/benchmark-`) && item.path.endsWith(".json"))) {
+    try {
+      const run = JSON.parse((await readWorkspaceFile(file.path, MAX_FILE_BYTES)).content);
+      history.push({
+        path: file.path,
+        modifiedAt: file.modifiedAt,
+        createdAt: run.createdAt,
+        runCount: Array.isArray(run.runs) ? run.runs.length : 0,
+        averageScore: average((run.runs || []).map((item) => item.score || 0))
+      });
+    } catch {
+      // Ignore malformed benchmark files.
+    }
+  }
+  history.sort((a, b) => b.modifiedAt.localeCompare(a.modifiedAt));
+  sendJson(res, 200, { history });
+}
+
+async function handleModelCompare(res) {
+  const status = await fetchOllamaModels();
+  const models = status.models.map(scoreModel).map((model) => benchmarkModel(model));
+  const history = await collectBenchmarkHistory();
+  sendJson(res, 200, {
+    available: status.available,
+    models,
+    history,
+    winner: models.slice().sort((a, b) => b.score - a.score)[0] || null
   });
 }
 
@@ -1967,6 +2380,84 @@ function benchmarkModel(model) {
   };
 }
 
+async function runModelBenchmark(model) {
+  const heuristic = benchmarkModel(model);
+  const tests = [
+    {
+      id: "tool-json",
+      prompt: "Return exactly this JSON object and no prose: {\"tool\":\"search_workspace\",\"arguments\":{\"query\":\"receipt\",\"limit\":3}}"
+    },
+    {
+      id: "diff-safety",
+      prompt: "In one sentence, explain why a local coding agent should preview diffs before writing."
+    },
+    {
+      id: "planning",
+      prompt: "Give a three step plan to inspect files before changing them."
+    }
+  ];
+  const results = [];
+  for (const test of tests) {
+    const started = Date.now();
+    try {
+      const response = await generateWithOllama(model.name, test.prompt, { temperature: 0 }).catch((error) => {
+        throw error;
+      });
+      results.push({
+        id: test.id,
+        ok: response.trim().length > 0,
+        latencyMs: Date.now() - started,
+        sample: truncate(response.trim(), 220)
+      });
+    } catch (error) {
+      results.push({
+        id: test.id,
+        ok: false,
+        latencyMs: Date.now() - started,
+        error: error.message
+      });
+    }
+  }
+  const promptScore = results.length ? Math.round((results.filter((item) => item.ok).length / results.length) * 100) : 0;
+  return {
+    ...heuristic,
+    realPromptScore: promptScore,
+    score: Math.round((heuristic.score + promptScore) / 2),
+    tests: heuristic.tests,
+    promptTests: results
+  };
+}
+
+async function collectBenchmarkHistory() {
+  const files = await listWorkspaceFiles();
+  const rows = [];
+  for (const file of files.filter((item) => item.path.startsWith(`${EVALS_DIR}/benchmark-`) && item.path.endsWith(".json"))) {
+    try {
+      const run = JSON.parse((await readWorkspaceFile(file.path, MAX_FILE_BYTES)).content);
+      rows.push({
+        path: file.path,
+        createdAt: run.createdAt,
+        models: (run.runs || []).map((item) => ({
+          model: item.model,
+          score: item.score,
+          realPromptScore: item.realPromptScore
+        }))
+      });
+    } catch {
+      // Ignore broken benchmark history rows.
+    }
+  }
+  return rows.slice(0, 20);
+}
+
+function average(values) {
+  const clean = values.map(Number).filter((value) => Number.isFinite(value));
+  if (!clean.length) {
+    return 0;
+  }
+  return Math.round(clean.reduce((sum, value) => sum + value, 0) / clean.length);
+}
+
 function recommendModelUse(scores) {
   const best = Object.entries(scores).sort((a, b) => b[1] - a[1])[0];
   return {
@@ -2109,24 +2600,6 @@ function stableHash(value) {
   return hash >>> 0;
 }
 
-function hashContent(content) {
-  return crypto.createHash("sha256").update(String(content || ""), "utf8").digest("hex");
-}
-
-function chunkText(content, size = 1800, overlap = 180) {
-  const text = String(content || "");
-  if (!text) {
-    return [];
-  }
-  const chunks = [];
-  let index = 0;
-  while (index < text.length && chunks.length < 80) {
-    chunks.push(text.slice(index, index + size));
-    index += Math.max(1, size - overlap);
-  }
-  return chunks;
-}
-
 function cosineSimilarity(a, b) {
   if (Array.isArray(a) && Array.isArray(b)) {
     const length = Math.min(a.length, b.length);
@@ -2206,92 +2679,12 @@ function htmlToMarkdownFallback(html, title) {
   return [`# ${title}`, "", text].join("\n");
 }
 
-function friendlyError(error) {
-  const message = error && error.message ? error.message : "Internal server error";
-  const lower = message.toLowerCase();
-  let hint = "Check the Agent Trail and retry the action.";
-  if (lower.includes("ollama")) {
-    hint = `Start Ollama, verify ${OLLAMA_HOST}, and pull ${DEFAULT_MODEL}.`;
-  } else if (lower.includes("embedding")) {
-    hint = `Pull the embedding model with: ollama pull ${OLLAMA_EMBED_MODEL}.`;
-  } else if (lower.includes("too large")) {
-    hint = "Select a smaller file or increase the local size limit deliberately.";
-  } else if (lower.includes("escapes the workspace")) {
-    hint = "Use a path inside the configured workspace folder.";
-  } else if (lower.includes("permission")) {
-    hint = "Review the permission toggles or use preview mode first.";
-  }
-  return {
-    error: message,
-    hint,
-    code: lower.includes("workspace") ? "WORKSPACE_BOUNDARY" : lower.includes("ollama") ? "MODEL_BACKEND" : "AGENTTRAIL_ERROR"
-  };
-}
-
 function escapeHtmlForReport(value) {
   return String(value || "")
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;");
-}
-
-function scanSecurityText(pathName, content) {
-  const lines = String(content || "").split(/\r?\n/);
-  const patterns = [
-    {
-      label: "Prompt injection override",
-      severity: "high",
-      pattern: /(ignore|disregard|forget).{0,30}(previous|above|system|developer).{0,30}(instruction|message|prompt)/i
-    },
-    {
-      label: "Secret exfiltration request",
-      severity: "high",
-      pattern: /(send|post|upload|exfiltrate).{0,60}(secret|token|key|credential|env|\.env|password)/i
-    },
-    {
-      label: "External network command",
-      severity: "medium",
-      pattern: /\b(curl|wget|nc|ncat|scp|rsync)\b.*(https?:\/\/|[a-z0-9.-]+\.[a-z]{2,})/i
-    },
-    {
-      label: "Path escape attempt",
-      severity: "high",
-      pattern: /(\.\.\/|\.\.\\|\/etc\/|\/private\/|~\/|[A-Za-z]:\\)/
-    },
-    {
-      label: "Destructive shell command",
-      severity: "high",
-      pattern: /\b(rm\s+-rf|dd\s+if=|mkfs|diskutil\s+erase|git\s+reset\s+--hard)\b/i
-    },
-    {
-      label: "Hidden instruction marker",
-      severity: "medium",
-      pattern: /(<!--|<script|display:\s*none|base64,|BEGIN SYSTEM PROMPT)/i
-    }
-  ];
-
-  const findings = [];
-  lines.forEach((line, index) => {
-    for (const pattern of patterns) {
-      if (pattern.pattern.test(line)) {
-        findings.push({
-          label: pattern.label,
-          severity: pattern.severity,
-          line: index + 1,
-          detail: truncate(line.trim(), 180)
-        });
-      }
-    }
-  });
-
-  const high = findings.filter((finding) => finding.severity === "high").length;
-  return {
-    path: pathName,
-    risk: high ? "high" : findings.length ? "medium" : "low",
-    score: Math.max(0, 100 - high * 25 - (findings.length - high) * 12),
-    findings
-  };
 }
 
 function latestUserPrompt(messages) {
