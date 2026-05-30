@@ -55,6 +55,9 @@ async function main() {
   checks.push(await check("Guided replay endpoint exists", async () => includes("server.js", ["/api/replay/plan", "handleReplayPlan"])));
   checks.push(await check("Trust badge endpoint exists", async () => includes("server.js", ["/api/trust/badge", "handleTrustBadge"])));
   checks.push(await check("Release artifact workflow exists", async () => includes(".github/workflows/release-artifacts.yml", ["release:checksums", "package:desktop"])));
+  checks.push(await check("Attachment workflow exists", async () => includes("server.js", ["/api/attachments", "handleAttachments", "attachments"])));
+  checks.push(await check("Attachment UI exists", async () => includes("public/index.html", ["attachmentInput", "attachFiles", "Attach"])));
+  checks.push(await check("macOS app bundle generator exists", async () => includes("scripts/package-mac-app.js", ["AgentTrail.app", "Info.plist", "MacOS"])));
 
   const passed = checks.filter((item) => item.ok).length;
   const score = Math.round((passed / checks.length) * 100);

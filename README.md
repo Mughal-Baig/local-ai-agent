@@ -78,6 +78,7 @@ Open `http://127.0.0.1:4173`, build the semantic index, ask for a change, review
 - Keyword search and semantic local search across workspace files, sessions, and saved receipts
 - Ollama embedding index using `OLLAMA_EMBED_MODEL=nomic-embed-text`, with local-vector fallback
 - First-run setup checklist for Ollama, models, workspace files, recipes, and receipts
+- Attachment picker that copies local files into `workspace/attachments/` and selects them for agent context
 - Permission toggles for file reads, file writes, write preview mode, and security hardening mode
 - Ollama integration for local models
 - Model capability scoring for coding, tool use, planning, and long context
@@ -91,7 +92,7 @@ Open `http://127.0.0.1:4173`, build the semantic index, ask for a change, review
 - Real MCP stdio server with explicit per-tool approvals and receipts
 - Workspace profile templates with profile switching API/UI
 - Local evaluation harness plus saved pass/fail history and model benchmark surface
-- Dockerfile, Docker Compose, `agenttrail` bin entry, install script, Homebrew formula draft, and desktop launchers
+- Dockerfile, Docker Compose, `agenttrail` bin entry, install script, Homebrew formula draft, desktop launchers, and a macOS `.app` bundle generator
 - Stable schemas exposed at `/api/schemas`
 - Route catalog exposed at `/api/routes`
 - Config validation exposed at `/api/config`
@@ -164,6 +165,7 @@ docker build -t agenttrail .
 docker run --rm -p 4173:4173 -v "$PWD/workspace:/app/workspace" agenttrail
 docker compose up --build
 ./install.sh
+npm run package:mac-app
 ```
 
 ## Try It
@@ -213,9 +215,11 @@ When write preview mode is enabled, `write_file` returns a diff preview instead 
 - True semantic search: `/api/search-index`, `/api/search?mode=semantic`, Ollama embeddings with local-vector fallback
 - Receipt timeline and replay: saved Markdown receipts in `workspace/receipts/`, JSON sessions in `workspace/sessions/`
 - Diff Review center: pending preview apply/reject UI
+- Local attachments: `/api/attachments` plus browser file picker that saves files into the workspace
 - MCP bridge: [mcp/server.js](mcp/server.js) and [mcp/agenttrail.mcp.json](mcp/agenttrail.mcp.json)
 - Recipe marketplace: [marketplace/recipes.json](marketplace/recipes.json), [recipe-packs](recipe-packs), `/api/packs/import`
 - One-command install surfaces: `bin/agenttrail.js`, [Dockerfile](Dockerfile), [docker-compose.yml](docker-compose.yml), [install.sh](install.sh), [Formula/agenttrail.rb](Formula/agenttrail.rb), [desktop](desktop)
+- Physical Mac app: `npm run package:mac-app` builds `dist/mac/AgentTrail.app`
 - Model scoring and benchmarking: `/api/status`, `/api/benchmarks`
 - Agent eval harness and history: `npm run eval`, `/api/evals`, `/api/evals/history`
 - Project memory: `workspace/memory/project-memory.md`, citations, and revision history
@@ -294,6 +298,7 @@ npm run test:ui
 npm run eval
 npm run release:checksums
 npm run package:desktop
+npm run package:mac-app
 ```
 
 The smoke test starts the server on a temporary port, checks the UI and API, writes a test file in a temporary workspace, reads it back, and shuts the server down.

@@ -20,8 +20,11 @@ async function main() {
   assert.match(html, /Foundation/);
   assert.match(html, /Run real bench/);
   assert.match(html, /Import pack URL/);
+  assert.match(html, /attachmentInput/);
+  assert.match(html, /Attach/);
   assert.match(html, /Diff Review/);
   assert.match(app, /renderPendingChanges/);
+  assert.match(app, /\/api\/attachments/);
   assert.match(foundation, /\/api\/foundation/);
   assert.match(product, /\/api\/search\/chunks/);
   assert.match(product, /\/api\/replay\/plan/);

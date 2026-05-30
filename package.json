@@ -58,6 +58,7 @@
     "screenshots": "node scripts/generate-demo-screenshots.js",
     "release:checksums": "node scripts/generate-release-checksums.js",
     "package:desktop": "node scripts/package-desktop.js",
+    "package:mac-app": "node scripts/package-mac-app.js",
     "benchmark": "node scripts/evaluate-agenttrail.js"
   },
   "keywords": [

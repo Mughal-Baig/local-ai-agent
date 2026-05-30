@@ -47,6 +47,7 @@ const RECEIPTS_DIR = "receipts";
 const REPORTS_DIR = "reports";
 const SESSIONS_DIR = "sessions";
 const EVALS_DIR = "evals";
+const ATTACHMENTS_DIR = "attachments";
 const MEMORY_PATH = "memory/project-memory.md";
 const MEMORY_HISTORY_DIR = "memory/history";
 const SEARCH_INDEX_PATH = ".agenttrail/search-index.json";
@@ -309,6 +310,10 @@ const server = http.createServer(async (req, res) => {
 
     if (url.pathname === "/api/demo/public" && req.method === "GET") {
       return handlePublicDemo(res);
+    }
+
+    if (url.pathname === "/api/attachments" && req.method === "POST") {
+      return handleAttachments(req, res);
     }
 
     if (url.pathname === "/api/files/content" && req.method === "GET") {
@@ -1271,6 +1276,66 @@ async function handleWriteFile(req, res) {
   sendJson(res, 200, result);
 }
 
+async function handleAttachments(req, res) {
+  const body = await readJsonBody(req);
+  const files = Array.isArray(body.files) ? body.files.slice(0, 12) : [];
+  if (!files.length) {
+    return sendJson(res, 400, { error: "No attachments provided" });
+  }
+
+  const stamp = new Date().toISOString().replace(/[:.]/g, "-");
+  const saved = [];
+  const skipped = [];
+
+  for (const file of files) {
+    const originalName = String(file.name || "attachment.txt").trim();
+    const safeName = sanitizeAttachmentName(originalName);
+    const type = String(file.type || "application/octet-stream");
+    const encoding = file.encoding === "base64" ? "base64" : "text";
+    const relativePath = `${ATTACHMENTS_DIR}/${stamp}/${safeName}`;
+
+    try {
+      if (encoding === "base64") {
+        const data = Buffer.from(String(file.content || ""), "base64");
+        if (!data.length) {
+          throw new Error("Attachment is empty");
+        }
+        if (data.length > MAX_FILE_BYTES) {
+          throw new Error(`Attachment is too large (${data.length} bytes)`);
+        }
+        const binary = await writeWorkspaceBinaryFile(relativePath, data);
+        const note = await writeWorkspaceFile(`${relativePath}.agenttrail.md`, [
+          `# Attachment: ${originalName}`,
+          "",
+          `- Stored file: ${binary.path}`,
+          `- Media type: ${type}`,
+          `- Size: ${binary.size} bytes`,
+          "",
+          "This attachment was saved as a binary file. AgentTrail selected this note as context so the agent can see that the file exists without reading raw binary bytes."
+        ].join("\n"));
+        saved.push({ ...binary, originalName, type, encoding, contextPath: note.path, notePath: note.path });
+      } else {
+        const content = String(file.content || "");
+        if (!content.trim()) {
+          throw new Error("Attachment is empty");
+        }
+        if (Buffer.byteLength(content, "utf8") > MAX_FILE_BYTES) {
+          throw new Error(`Attachment is too large (${Buffer.byteLength(content, "utf8")} bytes)`);
+        }
+        const result = await writeWorkspaceFile(relativePath, content);
+        saved.push({ ...result, originalName, type, encoding, contextPath: result.path });
+      }
+    } catch (error) {
+      skipped.push({ name: originalName, error: error.message });
+    }
+  }
+
+  await STORE.append("attachment", { saved: saved.length, skipped: skipped.length });
+  SQLITE.insert("attachment", { saved: saved.length, skipped: skipped.length });
+  await LOGGER.log("info", "attachment.save", { saved: saved.length, skipped: skipped.length });
+  sendJson(res, 200, { ok: saved.length > 0, saved, skipped });
+}
+
 async function handlePreviewFile(req, res) {
   const body = await readJsonBody(req);
   const relativePath = String(body.path || "").trim();
@@ -2119,6 +2184,22 @@ async function writeWorkspaceFile(relativePath, content) {
   };
 }
 
+async function writeWorkspaceBinaryFile(relativePath, data) {
+  if (!relativePath || relativePath.endsWith("/") || relativePath.endsWith("\\")) {
+    throw new Error("A file path is required");
+  }
+  const absolutePath = resolveWorkspacePath(relativePath);
+  await fsp.mkdir(path.dirname(absolutePath), { recursive: true });
+  await fsp.writeFile(absolutePath, data);
+  const stat = await fsp.stat(absolutePath);
+  return {
+    path: normalizeRelativePath(relativePath),
+    size: stat.size,
+    modifiedAt: stat.mtime.toISOString(),
+    ok: true
+  };
+}
+
 async function previewWorkspaceFile(relativePath, content, options = {}) {
   if (!relativePath || relativePath.endsWith("/") || relativePath.endsWith("\\")) {
     throw new Error("A file path is required");
@@ -2172,6 +2253,16 @@ function normalizeRelativePath(relativePath) {
     .replace(/\\/g, "/")
     .replace(/^\/+/, "")
     .trim();
+}
+
+function sanitizeAttachmentName(name) {
+  const cleaned = path.basename(String(name || "attachment.txt").replace(/\\/g, "/"))
+    .replace(/[^a-zA-Z0-9._ -]+/g, "-")
+    .replace(/\s+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^\.+/, "")
+    .slice(0, 120);
+  return cleaned || "attachment.txt";
 }
 
 async function serveStatic(requestPath, req, res) {

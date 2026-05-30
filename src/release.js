@@ -9,7 +9,9 @@ const RELEASE_ARTIFACTS = [
   "package.json",
   "bin/agenttrail.js",
   "mcp/server.js",
+  "scripts/package-mac-app.js",
   "docs/agenttrail-demo.gif",
+  "docs/MAC_APP.md",
   "Dockerfile",
   "docker-compose.yml",
   "install.sh"

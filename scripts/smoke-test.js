@@ -90,6 +90,21 @@ async function main() {
     const file = await fetchJson(`http://127.0.0.1:${port}/api/files/content?path=notes/test.md`);
     assert.match(file.content, /Smoke test content/);
 
+    const attachment = await postJson(`http://127.0.0.1:${port}/api/attachments`, {
+      files: [{
+        name: "attached-note.md",
+        type: "text/markdown",
+        encoding: "text",
+        content: "# Attached Note\n\nAttachment smoke test content.\n"
+      }]
+    });
+    assert.equal(attachment.ok, true);
+    assert.equal(attachment.saved.length, 1);
+    assert.match(attachment.saved[0].contextPath, /attachments/);
+
+    const attachedFile = await fetchJson(`http://127.0.0.1:${port}/api/files/content?path=${encodeURIComponent(attachment.saved[0].contextPath)}`);
+    assert.match(attachedFile.content, /Attachment smoke test content/);
+
     const preview = await postJson(`http://127.0.0.1:${port}/api/files/preview`, {
       path: "notes/test.md",
       content: "# Test\n\nUpdated smoke test content.\n"

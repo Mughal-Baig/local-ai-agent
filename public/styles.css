@@ -935,11 +935,40 @@ select {
 
 .composer {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 110px;
+  grid-template-columns: 118px minmax(0, 1fr) 110px;
   gap: 12px;
   padding: 20px 28px 24px;
   border-top: 1px solid var(--line);
   background: rgba(244, 247, 245, 0.94);
+}
+
+.attachment-queue {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  min-height: 0;
+  padding: 0 28px;
+  background: rgba(244, 247, 245, 0.94);
+}
+
+.attachment-pill {
+  max-width: min(420px, 100%);
+  padding: 7px 9px;
+  border: 1px solid rgba(36, 107, 98, 0.24);
+  border-radius: 8px;
+  background: var(--soft-teal);
+  color: var(--teal-dark);
+  font-size: 0.78rem;
+  font-weight: 800;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.attachment-pill.error {
+  border-color: rgba(195, 91, 67, 0.28);
+  background: var(--soft-coral);
+  color: #7d2f1e;
 }
 
 textarea {
@@ -963,13 +992,27 @@ button:focus-visible {
   outline-offset: 2px;
 }
 
+.attach-button,
 #sendButton {
   min-height: 52px;
   border: 0;
   border-radius: 8px;
+  font-weight: 900;
+}
+
+.attach-button {
+  border: 1px solid var(--line);
+  background: var(--panel);
+  color: var(--teal-dark);
+}
+
+.attach-button:hover {
+  border-color: var(--teal);
+}
+
+#sendButton {
   background: var(--teal);
   color: white;
-  font-weight: 900;
 }
 
 #sendButton:hover {
@@ -1045,5 +1088,9 @@ button:focus-visible {
   .composer {
     grid-template-columns: 1fr;
     padding: 14px 18px 18px;
+  }
+
+  .attachment-queue {
+    padding: 0 18px;
   }
 }

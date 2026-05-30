@@ -22,6 +22,7 @@ const state = {
   mcp: null,
   evals: null,
   memoryLoaded: false,
+  attachments: [],
   selectedFiles: new Set(),
   permissions: {
     readFiles: true,
@@ -94,6 +95,9 @@ const els = {
   profileSummary: document.querySelector("#profileSummary"),
   trustScore: document.querySelector("#trustScore"),
   trustReasons: document.querySelector("#trustReasons"),
+  attachmentInput: document.querySelector("#attachmentInput"),
+  attachFiles: document.querySelector("#attachFiles"),
+  attachmentQueue: document.querySelector("#attachmentQueue"),
   messages: document.querySelector("#messages"),
   composer: document.querySelector("#composer"),
   prompt: document.querySelector("#prompt"),
@@ -156,6 +160,8 @@ function bindEvents() {
     renderLocalSignals();
   });
   els.newNote.addEventListener("click", createNewNote);
+  els.attachFiles.addEventListener("click", () => els.attachmentInput.click());
+  els.attachmentInput.addEventListener("change", attachSelectedFiles);
   els.useRecipe.addEventListener("click", applySelectedRecipe);
   els.recipeSelect.addEventListener("change", updateRecipeHint);
   els.exportTrail.addEventListener("click", exportTrailReceipt);
@@ -920,6 +926,96 @@ async function createNewNote() {
   renderLocalSignals();
 }
 
+async function attachSelectedFiles() {
+  const files = Array.from(els.attachmentInput.files || []);
+  els.attachmentInput.value = "";
+  if (!files.length) {
+    return;
+  }
+
+  state.attachments = files.map((file) => ({ name: file.name, status: "reading", size: file.size }));
+  renderAttachments();
+  const payload = [];
+  const skipped = [];
+  for (const file of files.slice(0, 12)) {
+    if (file.size > 76 * 1024) {
+      skipped.push({ name: file.name, error: `Too large for local context (${formatBytes(file.size)})` });
+      continue;
+    }
+    try {
+      if (isTextAttachment(file)) {
+        payload.push({
+          name: file.name,
+          type: file.type || "text/plain",
+          encoding: "text",
+          content: await file.text()
+        });
+      } else {
+        payload.push({
+          name: file.name,
+          type: file.type || "application/octet-stream",
+          encoding: "base64",
+          content: arrayBufferToBase64(await file.arrayBuffer())
+        });
+      }
+    } catch (error) {
+      skipped.push({ name: file.name, error: error.message });
+    }
+  }
+
+  if (!payload.length) {
+    state.attachments = skipped.map((item) => ({ ...item, status: "skipped" }));
+    renderAttachments();
+    addTrail("attachment", "No attachment saved");
+    return;
+  }
+
+  state.attachments = payload.map((file) => ({ name: file.name, status: "saving" })).concat(skipped.map((item) => ({ ...item, status: "skipped" })));
+  renderAttachments();
+  try {
+    const result = await postJson("/api/attachments", { files: payload });
+    for (const item of result.saved || []) {
+      state.selectedFiles.add(item.contextPath || item.path);
+    }
+    state.attachments = [
+      ...(result.saved || []).map((item) => ({
+        name: item.originalName || item.path,
+        path: item.contextPath || item.path,
+        status: "saved",
+        binary: item.encoding === "base64"
+      })),
+      ...(result.skipped || skipped).map((item) => ({ ...item, status: "skipped" }))
+    ];
+    await refreshFiles();
+    renderAttachments();
+    els.workspaceStatus.textContent = `${state.selectedFiles.size} selected`;
+    addTrail("attachment", `${(result.saved || []).length} attachment(s) saved`);
+    renderLocalSignals();
+    renderTrustScore();
+  } catch (error) {
+    state.attachments = payload.map((file) => ({ name: file.name, status: "error", error: error.message })).concat(skipped.map((item) => ({ ...item, status: "skipped" })));
+    renderAttachments();
+    addTrail("error", error.message);
+  }
+}
+
+function renderAttachments() {
+  if (!els.attachmentQueue) {
+    return;
+  }
+  els.attachmentQueue.innerHTML = "";
+  for (const attachment of state.attachments.slice(0, 8)) {
+    const item = document.createElement("div");
+    item.className = `attachment-pill${attachment.status === "error" || attachment.status === "skipped" ? " error" : ""}`;
+    const label = attachment.status === "saved"
+      ? `${attachment.binary ? "Saved note for " : "Attached "}${attachment.name}`
+      : `${attachment.name}: ${attachment.error || attachment.status}`;
+    item.textContent = label;
+    item.title = attachment.path || attachment.error || attachment.name;
+    els.attachmentQueue.appendChild(item);
+  }
+}
+
 async function sendMessage(event) {
   event.preventDefault();
   if (state.busy) {
@@ -1016,6 +1112,26 @@ async function sendMessage(event) {
     await refreshFiles();
     await refreshReceipts();
   }
+}
+
+function isTextAttachment(file) {
+  const name = file.name.toLowerCase();
+  if ((file.type || "").startsWith("text/")) {
+    return true;
+  }
+  return [
+    ".txt", ".md", ".markdown", ".json", ".js", ".ts", ".tsx", ".jsx", ".css", ".html", ".xml", ".csv", ".yml", ".yaml", ".toml", ".py", ".rb", ".go", ".rs", ".java", ".c", ".cpp", ".h", ".hpp", ".swift", ".sh", ".zsh", ".sql", ".log"
+  ].some((extension) => name.endsWith(extension));
+}
+
+function arrayBufferToBase64(buffer) {
+  const bytes = new Uint8Array(buffer);
+  let binary = "";
+  const chunkSize = 0x8000;
+  for (let index = 0; index < bytes.length; index += chunkSize) {
+    binary += String.fromCharCode(...bytes.subarray(index, index + chunkSize));
+  }
+  return btoa(binary);
 }
 
 function addTrail(type, label) {
