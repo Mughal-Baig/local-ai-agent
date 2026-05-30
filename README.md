@@ -40,6 +40,7 @@ Writes are off by default. The agent proposes a unified diff; you click **Apply*
 - **Search before answer**: keyword search plus real local vector search with Ollama embeddings when available.
 - **Diff-safe writes**: preview mode shows a unified diff in chat and lets the user apply it deliberately.
 - **Trust Score dashboard**: each run shows evidence, preview, receipt, memory, hardening, and eval signals.
+- **Budgeted project memory**: structured memory is ranked by the current prompt/files/tools before it enters the model context.
 - **Receipt timeline, replay, and reports**: reopen a saved run, restore prompt/files/model/diffs, and export Markdown/HTML reports.
 - **Recipe-driven**: reusable local workflows live in plain JSON files anyone can add.
 - **Demo-first**: the GIF and static demo let visitors understand the project before installing Ollama.
@@ -107,7 +108,7 @@ Open `http://127.0.0.1:4173`, build the semantic index, ask for a change, review
 - Diff Review center with pending-change apply/reject controls
 - Agent Trail receipts for tool calls, selected context, model status, and errors
 - Receipt timeline, replayable saved sessions, and exportable Markdown/HTML reports
-- Project memory stored locally as Markdown plus structured facts/preferences/decisions JSON, with visible citations, revision history, and prompt context
+- Project memory stored locally as Markdown plus structured facts/preferences/decisions JSON, with visible citations, revision history, and ranked prompt-budget retrieval
 - Post-run memory suggestions that the user can review and apply; nothing is silently remembered
 - Recipe packs for coder, founder, and security workflows, plus marketplace manifest and import/export route
 - Real MCP stdio server with explicit per-tool approvals and receipts
@@ -332,6 +333,7 @@ npm run test:guardrails
 npm run test:reflection
 npm run test:memory
 npm run test:memory-suggestions
+npm run test:memory-retrieval
 npm run test:ui
 npm run eval
 npm run release:checksums

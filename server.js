@@ -56,6 +56,8 @@ const RESPONSE_CACHE = new Map();
 const TOOL_CAPABILITY_CACHE = new Map();
 // Prompt budget: cap assembled context so long workspaces stay fast and never overflow.
 const MAX_PROMPT_CHARS = Number(process.env.AGENTTRAIL_MAX_PROMPT_CHARS || 24000);
+const MEMORY_PROMPT_CHARS = clampInt(process.env.AGENTTRAIL_MEMORY_PROMPT_CHARS, 240, Math.max(240, MAX_PROMPT_CHARS), Math.floor(MAX_PROMPT_CHARS * 0.16));
+const RAW_MEMORY_PROMPT_CHARS = clampInt(process.env.AGENTTRAIL_RAW_MEMORY_PROMPT_CHARS, 240, Math.max(240, MEMORY_PROMPT_CHARS), Math.min(1200, Math.floor(MEMORY_PROMPT_CHARS * 0.5)));
 const PROJECT_ROOT = __dirname;
 const PUBLIC_DIR = path.join(PROJECT_ROOT, "public");
 const DOCS_DIR = path.join(PROJECT_ROOT, "docs");
@@ -266,6 +268,10 @@ const server = http.createServer(async (req, res) => {
 
     if (url.pathname === "/api/memory/structured" && req.method === "GET") {
       return handleStructuredMemory(res);
+    }
+
+    if (url.pathname === "/api/memory/retrieve" && req.method === "GET") {
+      return handleMemoryRetrieve(url, res);
     }
 
     if (url.pathname === "/api/memory/suggestions" && req.method === "POST") {
@@ -1256,6 +1262,13 @@ async function handleStructuredMemory(res) {
   sendJson(res, 200, structured);
 }
 
+async function handleMemoryRetrieve(url, res) {
+  const query = String(url.searchParams.get("query") || "").trim();
+  const budget = clampInt(url.searchParams.get("budget"), 240, Math.max(240, MEMORY_PROMPT_CHARS), MEMORY_PROMPT_CHARS);
+  const structured = await readOrBuildStructuredMemory();
+  sendJson(res, 200, rankStructuredMemory(structured, query, budget));
+}
+
 async function handleMemorySuggestions(req, res) {
   const body = await readJsonBody(req);
   const messages = normalizeMessages(body.messages || []);
@@ -1504,26 +1517,140 @@ function structuredMemoryToCitations(memory, terms) {
     }));
 }
 
-function formatStructuredMemoryForPrompt(memory) {
-  const sections = [
-    ["Facts", memory.facts || []],
-    ["Preferences", memory.preferences || []],
-    ["Decisions", memory.decisions || []]
-  ];
-  const rows = [
-    `Schema: ${memory.schema || "agenttrail.project-memory.v1"}`,
-    `Updated: ${memory.updatedAt || "unknown"}`
-  ];
-  for (const [title, items] of sections) {
-    rows.push(`${title}:`);
-    if (!items.length) {
-      rows.push("- none");
+function structuredMemoryItems(memory) {
+  return [
+    ...(memory.facts || []),
+    ...(memory.preferences || []),
+    ...(memory.decisions || [])
+  ].filter((item) => item && item.text);
+}
+
+function memoryQueryTerms(queryText) {
+  const generic = new Set([
+    "fact", "facts", "preference", "preferences", "decision", "decisions",
+    "memory", "remember", "project", "structured", "context", "selected",
+    "files", "tool", "tools", "history", "approved", "plan", "conversation"
+  ]);
+  return significantTerms(queryText).filter((term) => !generic.has(term));
+}
+
+function rankStructuredMemory(memory, queryText = "", budgetChars = MEMORY_PROMPT_CHARS) {
+  const items = structuredMemoryItems(memory);
+  const queryTerms = memoryQueryTerms(queryText).slice(0, 18);
+  const queryLower = String(queryText || "").toLowerCase();
+  const cleanBudget = clampInt(budgetChars, 240, Math.max(240, MAX_PROMPT_CHARS), MEMORY_PROMPT_CHARS);
+  const scored = items.map((item, index) => {
+    const haystack = `${item.type} ${item.text} ${item.source?.path || ""}`.toLowerCase();
+    const matches = queryTerms.filter((term) => haystack.includes(term));
+    const occurrenceScore = matches.reduce((sum, term) => sum + Math.min(3, countOccurrences(haystack, term)), 0);
+    const typeBoost = { preference: 4, decision: 3, fact: 1 }[item.type] || 0;
+    const confidenceBoost = { high: 2, medium: 1, low: 0 }[item.confidence] || 0;
+    const sourcePath = String(item.source?.path || "").toLowerCase();
+    const sourceBoost = sourcePath && queryLower.includes(sourcePath) ? 4 : 0;
+    return {
+      item,
+      index,
+      matches,
+      score: (matches.length * 6) + (occurrenceScore * 2) + typeBoost + confidenceBoost + sourceBoost
+    };
+  });
+
+  let ranked = scored.filter((entry) => !queryTerms.length || entry.matches.length || entry.score >= 8);
+  const usedFallback = ranked.length === 0 && scored.length > 0;
+  if (usedFallback) {
+    ranked = scored.filter((entry) => ["preference", "decision"].includes(entry.item.type));
+    if (!ranked.length) {
+      ranked = scored;
+    }
+  }
+
+  ranked.sort((a, b) => {
+    const typeRank = { preference: 0, decision: 1, fact: 2 };
+    const timeA = Date.parse(a.item.updatedAt || "") || 0;
+    const timeB = Date.parse(b.item.updatedAt || "") || 0;
+    return b.score - a.score
+      || (typeRank[a.item.type] ?? 9) - (typeRank[b.item.type] ?? 9)
+      || timeB - timeA
+      || a.index - b.index;
+  });
+
+  const selected = [];
+  let usedChars = 0;
+  for (const entry of ranked) {
+    const fullRow = formatMemoryRetrievalRow(entry);
+    let rowText = fullRow;
+    if (!selected.length && rowText.length > cleanBudget) {
+      const roomForText = Math.max(80, cleanBudget - 120);
+      rowText = formatMemoryRetrievalRow({
+        ...entry,
+        item: {
+          ...entry.item,
+          text: truncate(entry.item.text, roomForText)
+        }
+      });
+    }
+    if (selected.length && usedChars + rowText.length + 1 > cleanBudget) {
       continue;
     }
-    for (const item of items.slice(0, 8)) {
-      const source = item.source ? ` (${item.source.path}:${item.source.line || 1})` : "";
-      rows.push(`- ${item.text}${source}`);
+    usedChars += rowText.length + 1;
+    selected.push({
+      id: entry.item.id,
+      type: entry.item.type,
+      text: entry.item.text,
+      confidence: entry.item.confidence,
+      source: entry.item.source,
+      citation: memoryItemCitation(entry.item),
+      score: entry.score,
+      matches: entry.matches,
+      why: entry.matches.length
+        ? `Matched ${entry.matches.slice(0, 5).join(", ")}.`
+        : "Default high-signal memory.",
+      promptText: rowText
+    });
+    if (usedChars >= cleanBudget) {
+      break;
     }
+  }
+
+  return {
+    schema: "agenttrail.memory-retrieval.v1",
+    queryTerms,
+    budgetChars: cleanBudget,
+    usedChars,
+    totalItems: items.length,
+    selected,
+    fallback: usedFallback
+  };
+}
+
+function formatMemoryRetrievalRow(entry) {
+  const item = entry.item || entry;
+  const citation = memoryItemCitation(item);
+  const matches = Array.isArray(entry.matches) ? entry.matches : [];
+  const why = matches.length
+    ? `matched ${matches.slice(0, 5).join(", ")}`
+    : "default high-signal memory";
+  return `- [${item.type}; score ${entry.score || 0}] ${item.text}${citation ? ` (${citation})` : ""} -- ${why}`;
+}
+
+function memoryItemCitation(item) {
+  if (!item || !item.source) {
+    return "";
+  }
+  return `${item.source.path || MEMORY_STRUCTURED_PATH}:${item.source.line || 1}`;
+}
+
+function formatStructuredMemoryForPrompt(memory, queryText = "", budgetChars = MEMORY_PROMPT_CHARS) {
+  const retrieval = rankStructuredMemory(memory, queryText, budgetChars);
+  const rows = [
+    `Schema: ${memory.schema || "agenttrail.project-memory.v1"}`,
+    `Updated: ${memory.updatedAt || "unknown"}`,
+    `Ranked structured memory: selected ${retrieval.selected.length}/${retrieval.totalItems} item(s), used ${retrieval.usedChars}/${retrieval.budgetChars} chars.`
+  ];
+  if (!retrieval.selected.length) {
+    rows.push("- none");
+  } else {
+    rows.push(...retrieval.selected.map((item) => item.promptText));
   }
   return rows.join("\n");
 }
@@ -2406,15 +2533,15 @@ async function runAgent(body, res, context = {}) {
 async function buildAgentPrompt(messages, selectedFiles, toolHistory, permissions, securityMode, approvedPlan = null, stepBudget = null) {
   const selectedFileBlocks = [];
   let memoryBlock = "No project memory saved.";
-  let structuredMemoryBlock = "No structured project memory saved.";
+  let structuredMemory = defaultStructuredMemory();
 
   try {
     const memory = await readWorkspaceFile(MEMORY_PATH, MAX_PROMPT_FILE_BYTES);
-    memoryBlock = memory.content;
-    structuredMemoryBlock = formatStructuredMemoryForPrompt(await readOrBuildStructuredMemory(memory.content));
+    memoryBlock = truncate(memory.content, RAW_MEMORY_PROMPT_CHARS);
+    structuredMemory = await readOrBuildStructuredMemory(memory.content);
   } catch {
     memoryBlock = "No project memory saved.";
-    structuredMemoryBlock = formatStructuredMemoryForPrompt(await readOrBuildStructuredMemory(""));
+    structuredMemory = await readOrBuildStructuredMemory("");
   }
 
   for (const filePath of selectedFiles) {
@@ -2451,6 +2578,14 @@ async function buildAgentPrompt(messages, selectedFiles, toolHistory, permission
   const planNotes = approvedPlan
     ? formatApprovedPlanForPrompt(approvedPlan)
     : "No user-approved plan was provided for this run.";
+  const memoryQuery = [
+    latestUserPrompt(messages),
+    transcript,
+    selectedFiles.join("\n"),
+    planNotes,
+    truncate(toolNotes, 2000)
+  ].join("\n\n");
+  const structuredMemoryBlock = formatStructuredMemoryForPrompt(structuredMemory, memoryQuery, MEMORY_PROMPT_CHARS);
 
   return [
     "You are AgentTrail, a private AI assistant running on the user's computer.",
