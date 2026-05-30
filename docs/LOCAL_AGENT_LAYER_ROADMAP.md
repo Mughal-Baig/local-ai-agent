@@ -8,6 +8,43 @@ A long-horizon backlog (12+ months) for making AgentTrail the auditable agent la
 
 ---
 
+## Codex Implementation Log Since Public Roadmap Rename
+
+This section tracks the concrete work shipped after the roadmap was publicly reframed from "compete with Ollama" to **AgentTrail as the auditable local-agent layer**. It is here so Claude, Codex, and contributors can review what changed without reconstructing the history from commits.
+
+| Commit | Roadmap tasks | What changed |
+| --- | --- | --- |
+| `667e073` | T017-T020 | Added native Ollama `/api/chat` tool calling, OpenAI-compatible function calling, a shared JSON-schema tool registry, and prompt-JSON fallback for models without native tools. |
+| `b1c53c0` | T021, T023 | Added per-model tool capability probing/cache and malformed tool-call argument repair before retry. |
+| `b06eee8` | T022, T036 | Added multi-tool batch execution so independent read-only tools can run in parallel while write-like tools stay ordered. |
+| `5c04f59` | T025-T027 | Added structured-output support for Ollama JSON-schema `format`, OpenAI-compatible `response_format.json_schema`, and schema validation before tool execution. |
+| `af307aa` | T028-T030 | Added typed extraction recipes, structured recipe endpoint, readable schema-violation messaging, and structured-output round-trip tests. |
+| `9806600` | T031-T032 | Added `/api/agent/plan` and a UI plan panel so users can inspect, edit, and approve plans before execution. |
+| `b895313` | T033, T037 | Added step-budget guardrails, explicit deep-run override, Stop button, and backend stream cancellation. |
+| `b486410` | T034-T035 | Added deterministic final-answer self-check reflection and loop/no-progress aborts for repeated tool batches. |
+| `a16c5a4` | T039 | Added structured project memory JSON with facts, preferences, decisions, citations, and tests. |
+| `a2bef99` | T040 | Added post-run memory suggestions with explicit user apply controls; nothing is silently remembered. |
+| `46a257b` | T041 | Added ranked memory retrieval and prompt-budgeted structured memory injection. |
+| `a011c3a` | T042 | Added memory history list, diff preview, and revert flow that records a new auditable history entry. |
+| `2d3c2f2` | T043 | Added project/global memory scopes, prompt injection for both scopes, scope APIs, UI switching, and tests. |
+| `aa32467` | T045 | Added markdown-aware overlapping search chunks with section headings, chunk type, line ranges, saved chunking metadata, `/api/search/chunks` citation improvements, `npm run test:search`, CI coverage, README/eval/handoff updates. |
+| `fb492da` | T046 | Added BM25 keyword scoring, semantic vector score fusion, `/api/search?mode=semantic` ranker `hybrid-bm25-vector`, exposed `scoreParts`, BM25 chunk ranking, tests, README/eval/handoff updates. |
+
+### Verified After These Passes
+
+- Local suites covered: `npm run test:unit`, `npm run test:search`, `npm run test:integration`, `npm run test:backend`, `npm run test:models`, `npm run test:tools`, `npm run test:structured`, `npm run test:planner`, `npm run test:guardrails`, `npm run test:reflection`, memory integration suites, `npm run test:ui`, `npm test`, `npm run eval`, `npm run release:checksums`, and `git diff --check`.
+- GitHub CI and GitHub Pages passed for the latest search commits.
+- Known follow-up: GitHub Actions reports a future Node 20 action-runtime deprecation warning. It is not a test failure, but the workflows should be updated before GitHub forces Node 24 defaults.
+
+### Best Continuation Points
+
+- T038: resume an interrupted run from its receipt.
+- T047: rerank top search hits with an LLM/cross-encoder style pass.
+- T048: cache embeddings by content hash so rebuilds are faster.
+- T052: build a search-quality eval set and scoring harness.
+
+---
+
 ## Phase 0 — Foundation already shipped (baseline)
 
 - [x] T001 Warm "ink & clay" UI redesign
