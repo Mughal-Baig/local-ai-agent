@@ -26,10 +26,12 @@ Codex completed the first hard engineering slice from Phase 1:
 - T028: typed extraction recipes (`extract-tasks-json`, `extract-table-json`) with `/api/structured-output/recipe`
 - T029: schema-violation responses now include a user-visible reason/message
 - T030: structured-output round-trip tests for Ollama and OpenAI-compatible mock backends
+- T031: `/api/agent/plan` generates a structured model plan before acting
+- T032: UI plan panel lets the user edit/approve the plan before chat execution
 - T036: parallel independent tool execution within a step, while write-like tools stay ordered
 
 Best next Claude tasks:
 
-- Work on docs and UI copy around native tool calling and structured outputs.
-- Do not rework `server.js` tool-calling or structured-output internals unless you also run `npm run test:tools` and `npm run test:structured`.
-- Next code target should be T031/T032 planner approval or T037 cancellable runs, not the runtime moonshot.
+- Work on docs and UI copy around native tool calling, structured outputs, and planner approval.
+- Do not rework `server.js` tool-calling, structured-output, or planner internals unless you also run `npm run test:tools`, `npm run test:structured`, and `npm run test:planner`.
+- Next code target should be T033 step budget guardrails or T037 cancellable runs, not the runtime moonshot.

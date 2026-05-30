@@ -288,17 +288,32 @@
 
         <section id="messages" class="messages" aria-live="polite"></section>
 
+        <section id="planPanel" class="planning-panel" aria-label="Plan review" hidden>
+          <div class="planning-panel-header">
+            <div>
+              <p class="eyebrow">Plan review</p>
+              <h3>Approve the next run</h3>
+            </div>
+            <button id="discardPlan" class="icon-button" type="button" title="Discard plan" aria-label="Discard plan"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></button>
+          </div>
+          <textarea id="planText" rows="5" aria-label="Editable plan"></textarea>
+          <div class="planning-actions">
+            <button id="approvePlan" class="secondary-button compact-button" type="button">Approve + Run</button>
+          </div>
+        </section>
+
         <div id="attachmentQueue" class="attachment-queue" aria-live="polite"></div>
         <form id="composer" class="composer">
           <input id="attachmentInput" type="file" multiple hidden />
           <button id="attachFiles" class="attach-button" type="button" title="Attach files to the workspace" aria-label="Attach files">Attach</button>
           <textarea id="prompt" rows="1" placeholder="Ask the agent to explain, draft, code, or work with selected files..."></textarea>
+          <button id="planButton" class="secondary-button" type="button">Plan first</button>
           <button id="sendButton" type="submit">Send</button>
         </form>
       </main>
     </div>
 
-    <script src="/app.js?v=14"></script>
+    <script src="/app.js?v=15"></script>
     <script src="/modules/foundation.js?v=1"></script>
     <script src="/modules/product.js?v=1"></script>
   </body>

@@ -28,5 +28,6 @@ jobs:
       - run: node tests/integration/tool-repair.test.js
       - run: node tests/integration/multi-tool-calls.test.js
       - run: node tests/integration/structured-output.test.js
+      - run: node tests/integration/agent-plan.test.js
       - run: node scripts/smoke-test.js
       - run: node scripts/evaluate-agenttrail.js

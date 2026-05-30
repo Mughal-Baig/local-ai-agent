@@ -70,6 +70,10 @@ async function main() {
   checks.push(await check("Typed extraction recipes exist", async () => (await includes("recipes/extract-tasks-json.json", ["outputSchemaId", "task-list"])) && (await includes("recipes/extract-table-json.json", ["outputSchemaId", "table-extract"]))));
   checks.push(await check("Structured recipe endpoint exists", async () => includes("server.js", ["/api/structured-output/recipe", "handleStructuredRecipeOutput", "structured-output-recipe"])));
   checks.push(await check("Schema violation message exists", async () => includes("src/structured-output.js", ["structuredOutputMessage", "schema-violation", "did not match"])));
+  checks.push(await check("Planner schema exists", async () => includes("src/structured-output.js", ["agent-plan", "requiresApproval", "needsApproval"])));
+  checks.push(await check("Planner approval endpoint exists", async () => includes("server.js", ["/api/agent/plan", "handleAgentPlan", "Approved user plan"])));
+  checks.push(await check("Planner UI exists", async () => includes("public/index.html", ["planPanel", "approvePlan", "planButton"])));
+  checks.push(await check("Planner tests exist", async () => includes("tests/integration/agent-plan.test.js", ["agent-plan", "approvedPlan", "sawApprovedPlan"])));
 
   const passed = checks.filter((item) => item.ok).length;
   const score = Math.round((passed / checks.length) * 100);

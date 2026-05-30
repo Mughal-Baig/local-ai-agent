@@ -170,6 +170,10 @@ const server = http.createServer(async (req, res) => {
       return handleStructuredRecipeOutput(req, res);
     }
 
+    if (url.pathname === "/api/agent/plan" && req.method === "POST") {
+      return handleAgentPlan(req, res);
+    }
+
     if (url.pathname === "/api/store/stats" && req.method === "GET") {
       return handleStoreStats(res);
     }
@@ -730,6 +734,72 @@ async function buildStructuredRecipePrompt(recipe, input, selectedFiles) {
     fileBlocks.length ? fileBlocks.join("\n\n") : "No files selected.",
     "",
     "Extract the requested data and return only the typed JSON."
+  ].join("\n");
+}
+
+async function handleAgentPlan(req, res) {
+  const body = await readJsonBody(req);
+  const messages = normalizeMessages(body.messages || []);
+  const selectedFiles = Array.isArray(body.selectedFiles) ? body.selectedFiles.slice(0, 8) : [];
+  const permissions = normalizePermissions(body.permissions);
+  const securityMode = body.securityMode !== false;
+  const latestPrompt = latestUserPrompt(messages);
+  if (!latestPrompt) {
+    return sendJson(res, 400, { error: "A user prompt is required to create a plan." });
+  }
+
+  let descriptor;
+  try {
+    descriptor = selectStructuredOutputSchema({ schemaId: "agent-plan" });
+  } catch (error) {
+    return sendJson(res, 500, { error: error.message });
+  }
+
+  const model = String(body.model || DEFAULT_MODEL).trim() || DEFAULT_MODEL;
+  const prompt = await buildPlannerPrompt(messages, selectedFiles, permissions, securityMode);
+  const result = await generateStructuredOutput(model, prompt, descriptor, {
+    temperature: typeof body.temperature === "number" ? body.temperature : 0
+  });
+  await STORE.append("agent-plan", {
+    model,
+    ok: result.ok,
+    stepCount: result.output && Array.isArray(result.output.steps) ? result.output.steps.length : 0
+  });
+  sendJson(res, result.ok ? 200 : 422, result);
+}
+
+async function buildPlannerPrompt(messages, selectedFiles, permissions, securityMode) {
+  const fileBlocks = [];
+  for (const filePath of selectedFiles) {
+    try {
+      const file = await readWorkspaceFile(filePath, MAX_PROMPT_FILE_BYTES);
+      fileBlocks.push(`--- ${file.path} ---\n${file.content}`);
+    } catch (error) {
+      fileBlocks.push(`--- ${filePath} ---\nCould not read file: ${error.message}`);
+    }
+  }
+
+  const transcript = messages
+    .slice(-8)
+    .map((message) => `${message.role === "assistant" ? "Assistant" : "User"}: ${message.content}`)
+    .join("\n\n");
+
+  return [
+    "Create a short, concrete execution plan for AgentTrail before it uses tools or writes files.",
+    "Prefer search/read/preview steps before any write-like step.",
+    "Use risk high for writes, deletes, external sharing, or ambiguous destructive actions.",
+    `read_file permission: ${permissions.readFiles ? "enabled" : "disabled"}`,
+    `write_file permission: ${permissions.writeFiles ? "enabled" : "disabled"}`,
+    `preview writes: ${permissions.previewWrites ? "enabled" : "disabled"}`,
+    `security hardening mode: ${securityMode ? "enabled" : "disabled"}`,
+    "",
+    "Conversation:",
+    transcript,
+    "",
+    "Selected file context:",
+    fileBlocks.length ? fileBlocks.join("\n\n") : "No files selected.",
+    "",
+    "Return a plan the user can edit before approval."
   ].join("\n");
 }
 
@@ -1662,6 +1732,7 @@ async function runAgent(body, res) {
   const selectedFiles = Array.isArray(body.selectedFiles) ? body.selectedFiles.slice(0, 8) : [];
   const permissions = normalizePermissions(body.permissions);
   const securityMode = body.securityMode !== false;
+  const approvedPlan = normalizeApprovedPlan(body.approvedPlan);
   const status = await fetchOllamaModels();
 
   if (!status.available) {
@@ -1684,7 +1755,7 @@ async function runAgent(body, res) {
       message: step === 0 ? "Thinking with local context" : "Reviewing tool result"
     });
 
-    const prompt = await buildAgentPrompt(messages, selectedFiles, toolHistory, permissions, securityMode);
+    const prompt = await buildAgentPrompt(messages, selectedFiles, toolHistory, permissions, securityMode, approvedPlan);
     const gate = createProseGate(res);
     const cacheKey = `${model}::${hashPrompt(prompt)}`;
     const nativeCapability = await probeNativeToolSupport(model);
@@ -1742,7 +1813,7 @@ async function runAgent(body, res) {
   sendEvent(res, "done", { ok: true });
 }
 
-async function buildAgentPrompt(messages, selectedFiles, toolHistory, permissions, securityMode) {
+async function buildAgentPrompt(messages, selectedFiles, toolHistory, permissions, securityMode, approvedPlan = null) {
   const selectedFileBlocks = [];
   let memoryBlock = "No project memory saved.";
 
@@ -1784,6 +1855,9 @@ async function buildAgentPrompt(messages, selectedFiles, toolHistory, permission
         })
         .join("\n\n")
     : "No tools have been used yet.";
+  const planNotes = approvedPlan
+    ? formatApprovedPlanForPrompt(approvedPlan)
+    : "No user-approved plan was provided for this run.";
 
   return [
     "You are AgentTrail, a private AI assistant running on the user's computer.",
@@ -1822,6 +1896,13 @@ async function buildAgentPrompt(messages, selectedFiles, toolHistory, permission
     "",
     "Tool history:",
     toolNotes,
+    "",
+    "Approved user plan:",
+    planNotes,
+    "",
+    approvedPlan
+      ? "Follow the approved user plan unless a tool result or safety issue makes a step unsafe; if that happens, explain the change."
+      : "If the user asks for a risky multi-step task without an approved plan, keep actions conservative and preview writes.",
     "",
     "Conversation:",
     transcript || "No conversation yet.",
@@ -1893,6 +1974,55 @@ async function executeToolCallBatch(toolCalls, permissions) {
 function canRunToolBatchInParallel(toolCalls) {
   const parallelSafeTools = new Set(["list_files", "search_workspace", "read_file"]);
   return toolCalls.every((call) => parallelSafeTools.has(call.tool));
+}
+
+function normalizeApprovedPlan(value) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return null;
+  }
+  const summary = truncate(String(value.summary || value.editedText || "").trim(), 800);
+  const steps = Array.isArray(value.steps)
+    ? value.steps
+        .map((step) => ({
+          title: truncate(String(step && step.title || "").trim(), 180),
+          intent: truncate(String(step && step.intent || "other").trim(), 40),
+          risk: truncate(String(step && step.risk || "medium").trim(), 40),
+          tool: truncate(String(step && step.tool || "").trim(), 80),
+          needsApproval: Boolean(step && step.needsApproval)
+        }))
+        .filter((step) => step.title)
+        .slice(0, 8)
+    : [];
+  const editedText = truncate(String(value.editedText || "").trim(), 2400);
+  if (!summary && !steps.length && !editedText) {
+    return null;
+  }
+  return {
+    summary,
+    steps,
+    editedText,
+    approvedAt: value.approvedAt || new Date().toISOString()
+  };
+}
+
+function formatApprovedPlanForPrompt(plan) {
+  if (plan.editedText) {
+    return plan.editedText;
+  }
+  const rows = [];
+  if (plan.summary) {
+    rows.push(`Summary: ${plan.summary}`);
+  }
+  for (const [index, step] of plan.steps.entries()) {
+    const details = [
+      `intent ${step.intent || "other"}`,
+      `risk ${step.risk || "medium"}`,
+      step.tool ? `tool ${step.tool}` : "",
+      step.needsApproval ? "approval required" : ""
+    ].filter(Boolean).join(", ");
+    rows.push(`${index + 1}. ${step.title}${details ? ` (${details})` : ""}`);
+  }
+  return rows.join("\n") || "Approved plan was empty.";
 }
 
 async function executeToolCall(toolCall, permissions) {

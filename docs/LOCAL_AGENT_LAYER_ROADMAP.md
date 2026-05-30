@@ -50,8 +50,8 @@ A long-horizon backlog (12+ months) for making AgentTrail the auditable agent la
 - [x] T030 Tests for structured-output round-trips
 
 ### Epic C — Planner & multi-step autonomy
-- [ ] T031 Explicit plan step: model proposes a plan before acting
-- [ ] T032 Plan shown in UI; user can edit/approve before execution
+- [x] T031 Explicit plan step: model proposes a plan before acting
+- [x] T032 Plan shown in UI; user can edit/approve before execution
 - [ ] T033 Step budget + cost guardrails with user override
 - [ ] T034 Reflection step: self-check output against the request
 - [ ] T035 Loop-detection / no-progress abort

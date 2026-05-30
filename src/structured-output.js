@@ -51,6 +51,40 @@ const STRUCTURED_OUTPUT_SCHEMAS = [
       required: ["columns", "rows"],
       additionalProperties: false
     }
+  },
+  {
+    id: "agent-plan",
+    title: "Agent plan",
+    description: "Plan an agent run before tools or writes are used.",
+    schema: {
+      type: "object",
+      properties: {
+        summary: { type: "string" },
+        steps: {
+          type: "array",
+          minItems: 1,
+          items: {
+            type: "object",
+            properties: {
+              title: { type: "string" },
+              intent: { type: "string", enum: ["search", "read", "edit", "write", "answer", "test", "other"] },
+              tool: { type: "string" },
+              risk: { type: "string", enum: ["low", "medium", "high"] },
+              needsApproval: { type: "boolean" }
+            },
+            required: ["title", "intent", "risk"],
+            additionalProperties: false
+          }
+        },
+        warnings: {
+          type: "array",
+          items: { type: "string" }
+        },
+        requiresApproval: { type: "boolean" }
+      },
+      required: ["summary", "steps", "requiresApproval"],
+      additionalProperties: false
+    }
   }
 ];
 

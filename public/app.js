@@ -36,7 +36,10 @@ const state = {
   trail: [],
   toolCount: 0,
   ollamaAvailable: false,
-  busy: false
+  busy: false,
+  planning: false,
+  pendingPlan: null,
+  approvedPlan: null
 };
 
 const els = {
@@ -103,6 +106,11 @@ const els = {
   attachFiles: document.querySelector("#attachFiles"),
   attachmentQueue: document.querySelector("#attachmentQueue"),
   messages: document.querySelector("#messages"),
+  planPanel: document.querySelector("#planPanel"),
+  planText: document.querySelector("#planText"),
+  planButton: document.querySelector("#planButton"),
+  approvePlan: document.querySelector("#approvePlan"),
+  discardPlan: document.querySelector("#discardPlan"),
   composer: document.querySelector("#composer"),
   prompt: document.querySelector("#prompt"),
   sendButton: document.querySelector("#sendButton")
@@ -180,6 +188,10 @@ function bindEvents() {
   els.attachmentInput.addEventListener("change", attachSelectedFiles);
   els.useRecipe.addEventListener("click", applySelectedRecipe);
   els.recipeSelect.addEventListener("change", updateRecipeHint);
+  els.planButton.addEventListener("click", generatePlan);
+  els.approvePlan.addEventListener("click", approvePlanAndRun);
+  els.discardPlan.addEventListener("click", discardPlan);
+  els.planText.addEventListener("input", updateSendState);
   els.exportTrail.addEventListener("click", exportTrailReceipt);
   els.applyAllPreviews.addEventListener("click", applyAllPreviews);
   els.receiptFilter.addEventListener("input", renderReceiptTimeline);
@@ -1181,6 +1193,101 @@ function renderAttachments() {
   }
 }
 
+async function generatePlan() {
+  if (state.busy || state.planning) {
+    return;
+  }
+  const content = els.prompt.value.trim();
+  if (!content) {
+    return;
+  }
+
+  const requestMessages = [...state.messages, { role: "user", content }]
+    .filter((message) => message.content && (message.role === "user" || message.role === "assistant"))
+    .map((message) => ({ role: message.role, content: message.content }));
+
+  state.planning = true;
+  updateSendState();
+  els.workspaceStatus.textContent = "Planning run";
+  addTrail("plan", "Requested editable plan");
+
+  try {
+    const data = await postJson("/api/agent/plan", {
+      model: state.model,
+      messages: requestMessages,
+      selectedFiles: Array.from(state.selectedFiles),
+      permissions: state.permissions,
+      securityMode: state.securityMode
+    });
+    state.pendingPlan = data.output;
+    state.approvedPlan = null;
+    renderPlanPanel(data.output);
+    addTrail("plan", `${(data.output.steps || []).length} step plan ready`);
+  } catch (error) {
+    addTrail("error", error.message);
+  } finally {
+    state.planning = false;
+    els.workspaceStatus.textContent = `${state.files.length} workspace file(s)`;
+    updateSendState();
+  }
+}
+
+function renderPlanPanel(plan) {
+  if (!plan) {
+    els.planPanel.hidden = true;
+    els.planText.value = "";
+    return;
+  }
+  els.planText.value = formatPlanForEdit(plan);
+  els.planPanel.hidden = false;
+}
+
+function formatPlanForEdit(plan) {
+  const rows = [];
+  if (plan.summary) {
+    rows.push(`Summary: ${plan.summary}`);
+  }
+  for (const [index, step] of (plan.steps || []).entries()) {
+    const details = [
+      step.intent ? `intent ${step.intent}` : "",
+      step.risk ? `risk ${step.risk}` : "",
+      step.tool ? `tool ${step.tool}` : "",
+      step.needsApproval ? "approval required" : ""
+    ].filter(Boolean).join(", ");
+    rows.push(`${index + 1}. ${step.title}${details ? ` (${details})` : ""}`);
+  }
+  if (Array.isArray(plan.warnings) && plan.warnings.length) {
+    rows.push("");
+    rows.push("Warnings:");
+    for (const warning of plan.warnings) {
+      rows.push(`- ${warning}`);
+    }
+  }
+  return rows.join("\n").trim();
+}
+
+function approvePlanAndRun() {
+  const editedText = els.planText.value.trim();
+  if (!editedText || state.busy) {
+    return;
+  }
+  state.approvedPlan = {
+    ...(state.pendingPlan || {}),
+    editedText,
+    approvedAt: new Date().toISOString()
+  };
+  els.planPanel.hidden = true;
+  addTrail("plan", "Approved plan");
+  els.composer.requestSubmit();
+}
+
+function discardPlan() {
+  state.pendingPlan = null;
+  state.approvedPlan = null;
+  renderPlanPanel(null);
+  addTrail("plan", "Discarded plan");
+}
+
 async function sendMessage(event) {
   event.preventDefault();
   if (state.busy) {
@@ -1194,6 +1301,7 @@ async function sendMessage(event) {
 
   const userMessage = { role: "user", content, events: [] };
   const assistantMessage = { role: "assistant", content: "", events: [] };
+  const approvedPlan = state.approvedPlan;
   const requestMessages = [...state.messages, userMessage]
     .filter((message) => message.content && (message.role === "user" || message.role === "assistant"))
     .map((message) => ({ role: message.role, content: message.content }));
@@ -1219,7 +1327,8 @@ async function sendMessage(event) {
         messages: requestMessages,
         selectedFiles: Array.from(state.selectedFiles),
         permissions: state.permissions,
-        securityMode: state.securityMode
+        securityMode: state.securityMode,
+        approvedPlan
       })
     });
 
@@ -1272,6 +1381,9 @@ async function sendMessage(event) {
     renderMessages();
   } finally {
     state.busy = false;
+    state.approvedPlan = null;
+    state.pendingPlan = null;
+    renderPlanPanel(null);
     els.workspaceStatus.textContent = `${state.files.length} workspace file(s)`;
     updateSendState();
     await refreshFiles();
@@ -1913,7 +2025,9 @@ function resizePrompt() {
 }
 
 function updateSendState() {
-  els.sendButton.disabled = state.busy || !els.prompt.value.trim();
+  els.sendButton.disabled = state.busy || state.planning || !els.prompt.value.trim();
+  els.planButton.disabled = state.busy || state.planning || !els.prompt.value.trim();
+  els.approvePlan.disabled = state.busy || state.planning || !els.planText.value.trim();
 }
 
 async function getJson(url) {
@@ -1932,7 +2046,7 @@ async function postJson(url, data) {
   });
   if (!response.ok) {
     const error = await response.json().catch(() => ({}));
-    throw new Error(error.error || `HTTP ${response.status}`);
+    throw new Error(error.userMessage || error.error || `HTTP ${response.status}`);
   }
   return response.json();
 }

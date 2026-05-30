@@ -6,6 +6,7 @@ const ROUTE_CATALOG = [
   { area: "memory", module: "server.js", routes: ["/api/memory", "/api/memory/citations"] },
   { area: "reports", module: "server.js", routes: ["/api/reports", "/api/trust/badge"] },
   { area: "sessions", module: "server.js", routes: ["/api/sessions", "/api/replay/plan"] },
+  { area: "planner", module: "server.js + src/structured-output.js", routes: ["/api/agent/plan"] },
   { area: "tools", module: "src/permissions.js + src/tool-schemas.js", routes: ["/api/permissions", "/api/tools/schemas", "/api/tools/capability", "/api/mcp"] },
   { area: "structured-output", module: "src/structured-output.js", routes: ["/api/structured-output/schemas", "/api/structured-output", "/api/structured-output/recipe"] },
   { area: "security", module: "src/features/security.js", routes: ["/api/security/scan"] },
