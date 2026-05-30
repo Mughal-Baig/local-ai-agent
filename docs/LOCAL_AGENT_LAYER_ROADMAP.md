@@ -37,7 +37,7 @@ A long-horizon backlog (12+ months) for making AgentTrail the auditable agent la
 - [x] T019 Tool schema registry (JSON Schema per tool)
 - [x] T020 Fall back to prompt-JSON parsing when a model lacks tool support
 - [x] T021 Capability probe: detect per-model tool-calling support, cache result
-- [ ] T022 Multi-tool calls in a single step (parallel tool requests)
+- [x] T022 Multi-tool calls in a single step (parallel tool requests)
 - [x] T023 Tool-call retry with repair on malformed arguments
 - [x] T024 Unit + integration tests for native tool calling (mock backends)
 
@@ -55,7 +55,7 @@ A long-horizon backlog (12+ months) for making AgentTrail the auditable agent la
 - [ ] T033 Step budget + cost guardrails with user override
 - [ ] T034 Reflection step: self-check output against the request
 - [ ] T035 Loop-detection / no-progress abort
-- [ ] T036 Parallel independent tool execution within a step
+- [x] T036 Parallel independent tool execution within a step
 - [ ] T037 Cancellable runs (stop button → abort backend stream)
 - [ ] T038 Resume an interrupted run from its receipt
 

@@ -34,6 +34,7 @@ const OLLAMA_HOST = trimTrailingSlash(process.env.OLLAMA_HOST || "http://127.0.0
 const DEFAULT_MODEL = process.env.OLLAMA_MODEL || "llama3.2";
 const OLLAMA_EMBED_MODEL = process.env.OLLAMA_EMBED_MODEL || "nomic-embed-text";
 const MAX_TOOL_ITERATIONS = Number(process.env.MAX_TOOL_ITERATIONS || 4);
+const MAX_TOOL_CALLS_PER_STEP = Number(process.env.MAX_TOOL_CALLS_PER_STEP || 6);
 const NATIVE_TOOL_CALLS = String(process.env.AGENTTRAIL_NATIVE_TOOLS || "on").toLowerCase() !== "off";
 const TOOL_CAPABILITY_TTL_MS = Number(process.env.AGENTTRAIL_TOOL_CAPABILITY_TTL_MS || 10 * 60 * 1000);
 
@@ -1586,11 +1587,17 @@ async function runAgent(body, res) {
 
     // The gate only forwards prose; tool-call JSON is suppressed mid-stream.
     if (gate.decision !== "prose") {
-      const toolCall = extractToolCall(output);
-      if (toolCall) {
-        const result = await executeToolCall(toolCall, permissions);
-        toolHistory.push({ call: toolCall, result: compactToolResultForPrompt(result) });
-        sendEvent(res, "tool", formatToolEvent(toolCall, result));
+      const toolCalls = extractToolCalls(output);
+      if (toolCalls.length) {
+        const batch = await executeToolCallBatch(toolCalls, permissions);
+        for (const entry of batch) {
+          toolHistory.push({
+            call: entry.call,
+            result: compactToolResultForPrompt(entry.result),
+            batch: entry.batch
+          });
+          sendEvent(res, "tool", formatToolEvent(entry.call, entry.result, entry.batch));
+        }
         continue;
       }
     }
@@ -1662,6 +1669,7 @@ async function buildAgentPrompt(messages, selectedFiles, toolHistory, permission
     "",
     "You may use tools through native tool calling when the model supports it.",
     "If native tool calling is unavailable, fall back by replying with exactly one JSON object and no extra text.",
+    "Use {\"tool\":\"name\",\"arguments\":{...}} for one tool, or {\"tool_calls\":[...]} for multiple independent read/search/list tools.",
     "Available tool schemas:",
     formatToolSchemaPrompt(),
     "",
@@ -1697,6 +1705,71 @@ async function buildAgentPrompt(messages, selectedFiles, toolHistory, permission
     "",
     "Next response:"
   ].join("\n");
+}
+
+async function executeToolCallBatch(toolCalls, permissions) {
+  const calls = Array.isArray(toolCalls) ? toolCalls.filter(Boolean).slice(0, MAX_TOOL_CALLS_PER_STEP) : [];
+  if (!calls.length) {
+    return [];
+  }
+
+  const truncated = Array.isArray(toolCalls) && toolCalls.length > calls.length;
+  const mode = canRunToolBatchInParallel(calls) ? "parallel" : "sequential";
+  if (calls.length > 1 || truncated) {
+    await STORE.append("tool-batch", {
+      count: calls.length,
+      requested: Array.isArray(toolCalls) ? toolCalls.length : calls.length,
+      truncated,
+      mode,
+      tools: calls.map((call) => call.tool)
+    });
+  }
+
+  const runOne = async (call, index) => {
+    try {
+      return {
+        call,
+        result: await executeToolCall(call, permissions),
+        batch: {
+          index,
+          count: calls.length,
+          mode,
+          truncated
+        }
+      };
+    } catch (error) {
+      const result = {
+        error: error.message || "Tool execution failed.",
+        failed: true
+      };
+      await STORE.append("tool-error", { tool: call.tool, error: result.error });
+      return {
+        call,
+        result,
+        batch: {
+          index,
+          count: calls.length,
+          mode,
+          truncated
+        }
+      };
+    }
+  };
+
+  if (mode === "parallel") {
+    return Promise.all(calls.map((call, index) => runOne(call, index)));
+  }
+
+  const results = [];
+  for (const [index, call] of calls.entries()) {
+    results.push(await runOne(call, index));
+  }
+  return results;
+}
+
+function canRunToolBatchInParallel(toolCalls) {
+  const parallelSafeTools = new Set(["list_files", "search_workspace", "read_file"]);
+  return toolCalls.every((call) => parallelSafeTools.has(call.tool));
 }
 
 async function executeToolCall(toolCall, permissions) {
@@ -1770,7 +1843,7 @@ async function executeToolCall(toolCall, permissions) {
   return { error: `Unknown tool: ${toolCall.tool}` };
 }
 
-function extractToolCall(text) {
+function extractToolCalls(text) {
   const cleaned = text
     .trim()
     .replace(/^```(?:json)?/i, "")
@@ -1787,18 +1860,71 @@ function extractToolCall(text) {
   for (const candidate of candidates) {
     try {
       const parsed = JSON.parse(candidate);
-      if (parsed && typeof parsed.tool === "string") {
-        return {
-          tool: parsed.tool,
-          arguments: parsed.arguments && typeof parsed.arguments === "object" ? parsed.arguments : {}
-        };
+      const calls = normalizeParsedToolCalls(parsed);
+      if (calls.length) {
+        return calls;
       }
     } catch {
       // Keep trying candidates.
     }
   }
 
-  return null;
+  return [];
+}
+
+function extractToolCall(text) {
+  return extractToolCalls(text)[0] || null;
+}
+
+function normalizeParsedToolCalls(parsed) {
+  if (!parsed || typeof parsed !== "object") {
+    return [];
+  }
+
+  const values = Array.isArray(parsed)
+    ? parsed
+    : Array.isArray(parsed.tool_calls)
+      ? parsed.tool_calls
+      : Array.isArray(parsed.tools)
+        ? parsed.tools
+        : [parsed];
+
+  return values
+    .map((value) => normalizeToolCall(value))
+    .filter(Boolean);
+}
+
+function normalizeToolCall(value) {
+  if (!value || typeof value !== "object") {
+    return null;
+  }
+  if (typeof value.tool === "string") {
+    return {
+      tool: value.tool,
+      arguments: value.arguments && typeof value.arguments === "object" && !Array.isArray(value.arguments) ? value.arguments : {}
+    };
+  }
+  return nativeToolCallToToolCall(value);
+}
+
+function nativeToolCallToToolCall(call) {
+  const fn = call && (call.function || call);
+  const name = fn && (fn.name || fn.function_name);
+  if (!name) {
+    return null;
+  }
+  let args = (fn && fn.arguments) || {};
+  if (typeof args === "string") {
+    try {
+      args = JSON.parse(args || "{}");
+    } catch {
+      args = {};
+    }
+  }
+  return {
+    tool: String(name || ""),
+    arguments: args && typeof args === "object" && !Array.isArray(args) ? args : {}
+  };
 }
 
 function cleanAssistantOutput(text) {
@@ -2115,7 +2241,7 @@ async function generateOllamaChatStream(model, prompt, options, onToken) {
     }
   }
   if (!full && toolCalls.length) {
-    return nativeToolCallToPromptJson(toolCalls[0]);
+    return nativeToolCallsToPromptJson(toolCalls);
   }
   if (!full) {
     full = recoverNonStreamText(raw, "ollama");
@@ -2247,7 +2373,7 @@ async function generateOpenAIChatStream(model, prompt, options, onToken) {
     }
   }
   if (!full && toolCalls.size) {
-    return nativeToolCallToPromptJson([...toolCalls.values()][0]);
+    return nativeToolCallsToPromptJson([...toolCalls.values()]);
   }
   if (!full) {
     full = recoverNonStreamText(raw, "openai");
@@ -2264,13 +2390,13 @@ function recoverNonStreamText(raw, kind) {
     const obj = JSON.parse(text);
     if (kind === "ollama") {
       if (obj.message && Array.isArray(obj.message.tool_calls) && obj.message.tool_calls.length) {
-        return nativeToolCallToPromptJson(obj.message.tool_calls[0]);
+        return nativeToolCallsToPromptJson(obj.message.tool_calls);
       }
       return String(obj.response || "");
     }
     const choice = obj.choices && obj.choices[0];
     if (choice && choice.message && Array.isArray(choice.message.tool_calls) && choice.message.tool_calls.length) {
-      return nativeToolCallToPromptJson(choice.message.tool_calls[0]);
+      return nativeToolCallsToPromptJson(choice.message.tool_calls);
     }
     return String((choice && ((choice.message && choice.message.content) || choice.text)) || "");
   } catch {
@@ -2292,18 +2418,18 @@ function mergeOpenAIToolDeltas(toolCalls, deltas) {
   }
 }
 
-function nativeToolCallToPromptJson(call) {
-  const fn = call && (call.function || call);
-  const name = fn && (fn.name || fn.function_name);
-  let args = (fn && fn.arguments) || {};
-  if (typeof args === "string") {
-    try {
-      args = JSON.parse(args || "{}");
-    } catch {
-      args = {};
-    }
+function nativeToolCallsToPromptJson(calls) {
+  const normalized = (Array.isArray(calls) ? calls : [calls])
+    .map((call) => nativeToolCallToToolCall(call))
+    .filter(Boolean);
+  if (normalized.length === 1) {
+    return JSON.stringify(normalized[0]);
   }
-  return JSON.stringify({ tool: String(name || ""), arguments: args && typeof args === "object" ? args : {} });
+  return JSON.stringify({ tool_calls: normalized });
+}
+
+function nativeToolCallToPromptJson(call) {
+  return nativeToolCallsToPromptJson([call]);
 }
 
 function isNativeToolUnsupported(error) {
@@ -3167,7 +3293,7 @@ function summarizeToolResult(result) {
   return truncate(JSON.stringify(result), 280);
 }
 
-function formatToolEvent(toolCall, result) {
+function formatToolEvent(toolCall, result, batch) {
   const payload = {
     name: toolCall.tool,
     arguments: toolCall.arguments || {},
@@ -3191,6 +3317,10 @@ function formatToolEvent(toolCall, result) {
 
   if (result && result.repaired) {
     payload.repaired = true;
+  }
+
+  if (batch && batch.count > 1) {
+    payload.batch = batch;
   }
 
   return payload;

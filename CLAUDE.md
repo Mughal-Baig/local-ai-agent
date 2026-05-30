@@ -17,12 +17,14 @@ Codex completed the first hard engineering slice from Phase 1:
 - T019: shared tool schema registry in `src/tool-schemas.js`
 - T020: fallback to prompt-JSON tool calls when native tools are unsupported
 - T021: per-model native tool capability probe + cache (`/api/tools/capability`)
+- T022: multi-tool calls in one model step, with read-only batches running in parallel
 - T023: malformed tool-call argument repair before model retry
 - T024: mock-backend integration tests for native tool calling
 - T027: schema validation before tool execution
+- T036: parallel independent tool execution within a step, while write-like tools stay ordered
 
 Best next Claude tasks:
 
 - Work on docs and UI copy around native tool calling.
 - Do not rework `server.js` tool-calling internals unless you also run `npm run test:tools`.
-- Next code target should be T022 multi-tool calls or T025/T026 structured outputs, not the runtime moonshot.
+- Next code target should be T025/T026 structured outputs, not the runtime moonshot.

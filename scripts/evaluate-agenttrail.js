@@ -62,6 +62,8 @@ async function main() {
   checks.push(await check("macOS app bundle generator exists", async () => includes("scripts/package-mac-app.js", ["AgentTrail.app", "Info.plist", "MacOS"])));
   checks.push(await check("Native tool-calling tests exist", async () => includes("tests/integration/native-tool-calling.test.js", ["tool_calls", "read_file"])));
   checks.push(await check("Tool repair tests exist", async () => includes("tests/integration/tool-repair.test.js", ["repaired", "read_file"])));
+  checks.push(await check("Multi-tool batch execution exists", async () => includes("server.js", ["executeToolCallBatch", "MAX_TOOL_CALLS_PER_STEP", "tool-batch"])));
+  checks.push(await check("Multi-tool tests exist", async () => includes("tests/integration/multi-tool-calls.test.js", ["tool_calls", "batch", "parallel"])));
 
   const passed = checks.filter((item) => item.ok).length;
   const score = Math.round((passed / checks.length) * 100);

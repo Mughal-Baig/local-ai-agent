@@ -26,5 +26,6 @@ jobs:
       - run: node tests/integration/native-tool-calling.test.js
       - run: node tests/integration/ollama-native-tools.test.js
       - run: node tests/integration/tool-repair.test.js
+      - run: node tests/integration/multi-tool-calls.test.js
       - run: node scripts/smoke-test.js
       - run: node scripts/evaluate-agenttrail.js
