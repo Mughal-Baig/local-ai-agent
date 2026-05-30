@@ -84,6 +84,9 @@ async function main() {
   checks.push(await check("Structured project memory schema exists", async () => includes("src/schemas.js", ["projectMemory", "facts", "preferences", "decisions"])));
   checks.push(await check("Structured memory endpoint exists", async () => includes("server.js", ["/api/memory/structured", "normalizeStructuredMemory", "agenttrail.project-memory.v1"])));
   checks.push(await check("Structured memory tests exist", async () => includes("tests/integration/memory-structured.test.js", ["memory/project-memory.json", "preferences", "decisions"])));
+  checks.push(await check("Memory suggestion engine exists", async () => includes("server.js", ["buildMemorySuggestions", "memory-suggestions", "agenttrail.memory-suggestions.v1"])));
+  checks.push(await check("Memory suggestion apply endpoint exists", async () => includes("server.js", ["/api/memory/suggestions/apply", "mergeMemorySuggestions", "appendSuggestionsToMemoryMarkdown"])));
+  checks.push(await check("Memory suggestion tests exist", async () => includes("tests/integration/memory-suggestions.test.js", ["memory-suggestions", "suggestions/apply", "structured memory JSON"])));
 
   const passed = checks.filter((item) => item.ok).length;
   const score = Math.round((passed / checks.length) * 100);

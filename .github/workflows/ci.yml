@@ -32,5 +32,6 @@ jobs:
       - run: node tests/integration/run-guardrails.test.js
       - run: node tests/integration/reflection-loop.test.js
       - run: node tests/integration/memory-structured.test.js
+      - run: node tests/integration/memory-suggestions.test.js
       - run: node scripts/smoke-test.js
       - run: node scripts/evaluate-agenttrail.js

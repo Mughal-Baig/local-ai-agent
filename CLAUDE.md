@@ -34,9 +34,10 @@ Codex completed the first hard engineering slice from Phase 1:
 - T036: parallel independent tool execution within a step, while write-like tools stay ordered
 - T037: Stop button aborts the browser request and backend model stream
 - T039: structured project memory JSON with facts, preferences, decisions, citations, and tests
+- T040: automatic post-run memory suggestions with explicit user apply controls
 
 Best next Claude tasks:
 
-- Work on docs and UI copy around native tool calling, structured outputs, planner approval, run guardrails, reflection, loop safety, and structured memory.
-- Do not rework `server.js` tool-calling, structured-output, planner, run-cancellation, loop/reflection, or memory internals unless you also run `npm run test:tools`, `npm run test:structured`, `npm run test:planner`, `npm run test:guardrails`, `npm run test:reflection`, and `npm run test:memory`.
-- Next code target should be T038 resume interrupted run from receipt or T040 automatic memory capture suggestions after a run, not the runtime moonshot.
+- Work on docs and UI copy around native tool calling, structured outputs, planner approval, run guardrails, reflection, loop safety, structured memory, and memory suggestions.
+- Do not rework `server.js` tool-calling, structured-output, planner, run-cancellation, loop/reflection, or memory internals unless you also run `npm run test:tools`, `npm run test:structured`, `npm run test:planner`, `npm run test:guardrails`, `npm run test:reflection`, `npm run test:memory`, and `npm run test:memory-suggestions`.
+- Next code target should be T038 resume interrupted run from receipt or T041 memory retrieval ranked into the prompt budget, not the runtime moonshot.

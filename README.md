@@ -108,6 +108,7 @@ Open `http://127.0.0.1:4173`, build the semantic index, ask for a change, review
 - Agent Trail receipts for tool calls, selected context, model status, and errors
 - Receipt timeline, replayable saved sessions, and exportable Markdown/HTML reports
 - Project memory stored locally as Markdown plus structured facts/preferences/decisions JSON, with visible citations, revision history, and prompt context
+- Post-run memory suggestions that the user can review and apply; nothing is silently remembered
 - Recipe packs for coder, founder, and security workflows, plus marketplace manifest and import/export route
 - Real MCP stdio server with explicit per-tool approvals and receipts
 - Workspace profile templates with profile switching API/UI
@@ -330,6 +331,7 @@ npm run test:models
 npm run test:guardrails
 npm run test:reflection
 npm run test:memory
+npm run test:memory-suggestions
 npm run test:ui
 npm run eval
 npm run release:checksums

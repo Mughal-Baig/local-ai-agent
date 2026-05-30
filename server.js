@@ -268,6 +268,14 @@ const server = http.createServer(async (req, res) => {
       return handleStructuredMemory(res);
     }
 
+    if (url.pathname === "/api/memory/suggestions" && req.method === "POST") {
+      return handleMemorySuggestions(req, res);
+    }
+
+    if (url.pathname === "/api/memory/suggestions/apply" && req.method === "POST") {
+      return handleApplyMemorySuggestions(req, res);
+    }
+
     if (url.pathname === "/api/memory/citations" && req.method === "GET") {
       return handleMemoryCitations(url, res);
     }
@@ -1239,14 +1247,58 @@ async function handleSaveMemory(req, res) {
   const body = await readJsonBody(req);
   const content = typeof body.content === "string" ? body.content : "";
   const previous = await readWorkspaceFile(MEMORY_PATH, MAX_FILE_BYTES).catch(() => null);
-  const result = await writeWorkspaceFile(MEMORY_PATH, content);
   const structured = normalizeStructuredMemory(body.structured, content);
+  sendJson(res, 200, await persistMemoryDocuments(content, structured, previous, "manual-save"));
+}
+
+async function handleStructuredMemory(res) {
+  const structured = await readOrBuildStructuredMemory();
+  sendJson(res, 200, structured);
+}
+
+async function handleMemorySuggestions(req, res) {
+  const body = await readJsonBody(req);
+  const messages = normalizeMessages(body.messages || []);
+  const selectedFiles = Array.isArray(body.selectedFiles) ? body.selectedFiles.slice(0, 8) : [];
+  const suggestions = await buildMemorySuggestions({
+    messages,
+    finalText: String(body.finalText || body.answer || ""),
+    selectedFiles,
+    approvedPlan: normalizeApprovedPlan(body.approvedPlan),
+    toolHistory: Array.isArray(body.toolHistory) ? body.toolHistory : []
+  });
+  sendJson(res, 200, suggestions);
+}
+
+async function handleApplyMemorySuggestions(req, res) {
+  const body = await readJsonBody(req);
+  const suggestions = normalizeMemorySuggestions(body.suggestions || []);
+  if (!suggestions.length) {
+    return sendJson(res, 400, { error: "No valid memory suggestions to apply." });
+  }
+
+  const previous = await readWorkspaceFile(MEMORY_PATH, MAX_FILE_BYTES).catch(() => null);
+  const existingContent = previous ? previous.content : "# Project Memory\n";
+  const existingStructured = await readOrBuildStructuredMemory(existingContent);
+  const mergedStructured = mergeMemorySuggestions(existingStructured, suggestions);
+  const mergedContent = appendSuggestionsToMemoryMarkdown(existingContent, suggestions);
+  const result = await persistMemoryDocuments(mergedContent, mergedStructured, previous, "suggestion-apply");
+  sendJson(res, 200, {
+    ...result,
+    applied: suggestions.length,
+    suggestions
+  });
+}
+
+async function persistMemoryDocuments(content, structured, previous, reason) {
+  const result = await writeWorkspaceFile(MEMORY_PATH, content);
   const structuredResult = await writeWorkspaceFile(MEMORY_STRUCTURED_PATH, JSON.stringify(structured, null, 2));
   const stamp = new Date().toISOString().replace(/[:.]/g, "-");
   const history = await writeWorkspaceFile(`${MEMORY_HISTORY_DIR}/memory-${stamp}.md`, [
     "# Memory Revision",
     "",
     `Saved: ${new Date().toISOString()}`,
+    `Reason: ${reason || "manual-save"}`,
     previous ? `Previous size: ${previous.size} bytes` : "Previous size: 0 bytes",
     `New size: ${Buffer.byteLength(content, "utf8")} bytes`,
     "",
@@ -1257,16 +1309,12 @@ async function handleSaveMemory(req, res) {
   const structuredHistory = await writeWorkspaceFile(`${MEMORY_HISTORY_DIR}/memory-${stamp}.json`, JSON.stringify(structured, null, 2));
   await STORE.append("memory-structured", {
     path: structuredResult.path,
+    reason: reason || "manual-save",
     facts: structured.facts.length,
     preferences: structured.preferences.length,
     decisions: structured.decisions.length
   });
-  sendJson(res, 200, { ...result, history, structured: { ...structuredResult, memory: structured, history: structuredHistory } });
-}
-
-async function handleStructuredMemory(res) {
-  const structured = await readOrBuildStructuredMemory();
-  sendJson(res, 200, structured);
+  return { ...result, history, structured: { ...structuredResult, memory: structured, history: structuredHistory } };
 }
 
 async function readOrBuildStructuredMemory(content = null) {
@@ -1478,6 +1526,207 @@ function formatStructuredMemoryForPrompt(memory) {
     }
   }
   return rows.join("\n");
+}
+
+async function buildMemorySuggestions({ messages, finalText, selectedFiles = [], approvedPlan = null, toolHistory = [] }) {
+  const existing = await readOrBuildStructuredMemory();
+  const existingTexts = new Set([
+    ...(existing.facts || []),
+    ...(existing.preferences || []),
+    ...(existing.decisions || [])
+  ].map((item) => item.text.toLowerCase()));
+  const now = new Date().toISOString();
+  const sources = [
+    { kind: "user", text: latestUserPrompt(messages), confidence: "high" },
+    { kind: "assistant", text: finalText, confidence: "medium" },
+    { kind: "plan", text: approvedPlan ? formatApprovedPlanForPrompt(approvedPlan) : "", confidence: "medium" }
+  ];
+  const raw = [];
+  for (const source of sources) {
+    raw.push(...extractMemorySuggestionCandidates(source.text, source));
+  }
+  for (const entry of toolHistory.slice(-6)) {
+    const call = entry && entry.call ? entry.call : {};
+    const result = entry && entry.result ? entry.result : {};
+    if (call.tool === "preview_write_file" && result.path) {
+      raw.push({
+        type: "decision",
+        text: `Preview writes before applying changes to ${result.path}.`,
+        confidence: "medium",
+        source: { kind: "tool", path: result.path, line: 1 },
+        reason: "A write-like tool used preview mode."
+      });
+    }
+  }
+  if (selectedFiles.length && /remember|from now on|prefer|always|never/i.test(`${latestUserPrompt(messages)} ${finalText}`)) {
+    raw.push({
+      type: "fact",
+      text: `Recent run used selected workspace context: ${selectedFiles.slice(0, 4).join(", ")}.`,
+      confidence: "low",
+      source: { kind: "run", path: selectedFiles[0], line: 1 },
+      reason: "Selected files were part of a memory-like instruction."
+    });
+  }
+  const seen = new Set();
+  const suggestions = raw
+    .map((item, index) => normalizeMemorySuggestion(item, index, now))
+    .filter((item) => {
+      if (!item || existingTexts.has(item.text.toLowerCase()) || seen.has(item.text.toLowerCase())) {
+        return false;
+      }
+      seen.add(item.text.toLowerCase());
+      return true;
+    })
+    .slice(0, 6);
+  const result = {
+    schema: "agenttrail.memory-suggestions.v1",
+    createdAt: now,
+    suggestions,
+    source: {
+      prompt: truncate(latestUserPrompt(messages), 220),
+      selectedFiles
+    }
+  };
+  if (suggestions.length) {
+    await STORE.append("memory-suggestions", {
+      count: suggestions.length,
+      types: suggestions.map((item) => item.type)
+    });
+  }
+  return result;
+}
+
+function extractMemorySuggestionCandidates(text, source) {
+  const candidates = [];
+  for (const sentence of splitMemorySentences(text)) {
+    const explicit = sentence.match(/^(fact|preference|pref|decision)\s*:\s*(.+)$/i);
+    const clean = explicit ? explicit[2].trim() : sentence;
+    if (!clean || clean.length < 12 || clean.length > 260) {
+      continue;
+    }
+    const type = explicit
+      ? (explicit[1].toLowerCase().startsWith("pref") ? "preference" : explicit[1].toLowerCase())
+      : inferSuggestionType(clean);
+    if (!type) {
+      continue;
+    }
+    candidates.push({
+      type,
+      text: clean,
+      confidence: explicit ? "high" : source.confidence,
+      source: { kind: source.kind, path: source.path || null, line: source.line || 1 },
+      reason: suggestionReason(type, source.kind)
+    });
+  }
+  return candidates;
+}
+
+function splitMemorySentences(text) {
+  return String(text || "")
+    .replace(/\r/g, "")
+    .split(/\n|(?<=[.!?])\s+/)
+    .map((line) => line.replace(/^[-*]\s+/, "").replace(/^\d+[.)]\s+/, "").trim())
+    .filter(Boolean);
+}
+
+function inferSuggestionType(text) {
+  const lower = String(text || "").toLowerCase();
+  if (/\b(prefer|from now on|always|never|default to|avoid|remember to|keep .* local)\b/.test(lower)) {
+    return "preference";
+  }
+  if (/\b(decided|decision|we will|next target should|chose|standardize|ship|use .* because)\b/.test(lower)) {
+    return "decision";
+  }
+  if (/\b(agenttrail|workspace|project|repo|memory|receipt|mcp|ollama|model|security)\b.*\b(is|uses|runs|stores|supports|has|keeps)\b/.test(lower)) {
+    return "fact";
+  }
+  return "";
+}
+
+function suggestionReason(type, sourceKind) {
+  const source = sourceKind === "user" ? "user instruction" : sourceKind === "assistant" ? "assistant response" : "approved plan";
+  return `${type} candidate found in ${source}.`;
+}
+
+function normalizeMemorySuggestions(values) {
+  const seen = new Set();
+  return (Array.isArray(values) ? values : [])
+    .map((item, index) => normalizeMemorySuggestion(item, index, new Date().toISOString()))
+    .filter((item) => {
+      if (!item || seen.has(item.text.toLowerCase())) {
+        return false;
+      }
+      seen.add(item.text.toLowerCase());
+      return true;
+    })
+    .slice(0, 12);
+}
+
+function normalizeMemorySuggestion(item, index, now) {
+  const source = item && typeof item === "object" && !Array.isArray(item) ? item : { text: item };
+  const type = ["fact", "preference", "decision"].includes(source.type) ? source.type : inferMemoryType(source.text || "");
+  const normalized = normalizeMemoryItem({
+    text: source.text,
+    confidence: source.confidence || "medium",
+    source: {
+      path: source.source?.path || MEMORY_STRUCTURED_PATH,
+      line: source.source?.line || 1
+    },
+    updatedAt: now
+  }, type, index);
+  if (!normalized) {
+    return null;
+  }
+  return {
+    ...normalized,
+    id: String(source.id || memoryItemId(`suggestion-${type}`, normalized.text, index)),
+    source: {
+      kind: source.source?.kind || "suggestion",
+      path: source.source?.path || MEMORY_STRUCTURED_PATH,
+      line: source.source?.line || 1
+    },
+    reason: truncate(String(source.reason || suggestionReason(type, "assistant")), 180)
+  };
+}
+
+function mergeMemorySuggestions(memory, suggestions) {
+  const merged = normalizeStructuredMemory(memory, "");
+  const existing = new Set([
+    ...merged.facts,
+    ...merged.preferences,
+    ...merged.decisions
+  ].map((item) => item.text.toLowerCase()));
+  for (const suggestion of suggestions) {
+    if (existing.has(suggestion.text.toLowerCase())) {
+      continue;
+    }
+    existing.add(suggestion.text.toLowerCase());
+    merged[memoryCollectionName(suggestion.type)].push(normalizeMemoryItem({
+      ...suggestion,
+      source: {
+        path: MEMORY_STRUCTURED_PATH,
+        line: 1
+      },
+      updatedAt: new Date().toISOString()
+    }, suggestion.type, merged[memoryCollectionName(suggestion.type)].length));
+  }
+  merged.updatedAt = new Date().toISOString();
+  return merged;
+}
+
+function appendSuggestionsToMemoryMarkdown(content, suggestions) {
+  const existing = String(content || "# Project Memory\n").trimEnd();
+  const lines = [
+    existing,
+    "",
+    `## Suggested Memory - ${new Date().toISOString()}`,
+    ...suggestions.map((item) => `- ${memoryLabel(item.type)}: ${item.text}`)
+  ];
+  return `${lines.join("\n")}\n`;
+}
+
+function memoryLabel(type) {
+  return type === "preference" ? "Preference" : type === "decision" ? "Decision" : "Fact";
 }
 
 async function handleMemoryCitations(url, res) {
@@ -2127,6 +2376,16 @@ async function runAgent(body, res, context = {}) {
       warnings: reflection.warnings.length
     });
     sendEvent(res, "reflection", reflection);
+    const memorySuggestions = await buildMemorySuggestions({
+      messages,
+      finalText,
+      selectedFiles,
+      approvedPlan,
+      toolHistory
+    });
+    if (memorySuggestions.suggestions.length) {
+      sendEvent(res, "memory-suggestions", memorySuggestions);
+    }
     sendEvent(res, "done", { ok: true });
     return;
   }

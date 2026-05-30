@@ -23,6 +23,7 @@ const state = {
   evals: null,
   memoryLoaded: false,
   structuredMemory: null,
+  memorySuggestions: [],
   attachments: [],
   selectedFiles: new Set(),
   permissions: {
@@ -95,6 +96,7 @@ const els = {
   saveMemory: document.querySelector("#saveMemory"),
   memoryStatus: document.querySelector("#memoryStatus"),
   memoryCitations: document.querySelector("#memoryCitations"),
+  memorySuggestions: document.querySelector("#memorySuggestions"),
   packSelect: document.querySelector("#packSelect"),
   exportPack: document.querySelector("#exportPack"),
   runEval: document.querySelector("#runEval"),
@@ -464,6 +466,63 @@ function memoryCountSummary(memory) {
   const preferences = (memory.preferences || []).length;
   const decisions = (memory.decisions || []).length;
   return `${facts} facts, ${preferences} prefs, ${decisions} decisions`;
+}
+
+function renderMemorySuggestions() {
+  if (!els.memorySuggestions) {
+    return;
+  }
+  const suggestions = state.memorySuggestions || [];
+  if (!suggestions.length) {
+    els.memorySuggestions.innerHTML = "";
+    return;
+  }
+  els.memorySuggestions.innerHTML = `
+    <div class="mini-row muted">
+      <strong>Suggested memory</strong>
+      <span>${suggestions.length} item(s) from the latest run</span>
+      <button type="button" data-action="save-all">Save all</button>
+    </div>
+    ${suggestions.slice(0, 6).map((item) => `
+      <div class="mini-row memory-suggestion">
+        <strong>${escapeHtml(item.type)}</strong>
+        <span>${escapeHtml(item.text)}</span>
+        <button type="button" data-id="${escapeHtml(item.id)}">Save</button>
+      </div>
+    `).join("")}
+  `;
+  const saveAll = els.memorySuggestions.querySelector('[data-action="save-all"]');
+  if (saveAll) {
+    saveAll.addEventListener("click", () => applyMemorySuggestions(suggestions));
+  }
+  els.memorySuggestions.querySelectorAll("[data-id]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const match = suggestions.find((item) => item.id === button.dataset.id);
+      if (match) {
+        applyMemorySuggestions([match]);
+      }
+    });
+  });
+}
+
+async function applyMemorySuggestions(suggestions) {
+  if (!Array.isArray(suggestions) || !suggestions.length) {
+    return;
+  }
+  try {
+    const saved = await postJson("/api/memory/suggestions/apply", { suggestions });
+    state.memorySuggestions = state.memorySuggestions.filter((item) => !suggestions.some((suggestion) => suggestion.id === item.id));
+    state.structuredMemory = saved.structured?.memory || state.structuredMemory;
+    els.memoryStatus.textContent = `Saved ${saved.applied} suggestion(s); ${memoryCountSummary(state.structuredMemory)}`;
+    addTrail("memory", `Saved ${saved.applied} suggested memory item(s)`);
+    renderMemorySuggestions();
+    await refreshMemory();
+    await refreshMemoryCitations();
+    renderTrustScore();
+  } catch (error) {
+    els.memoryStatus.textContent = error.message;
+    addTrail("error", error.message);
+  }
 }
 
 async function refreshMemoryCitations(query = "") {
@@ -1439,6 +1498,16 @@ async function sendMessage(event) {
         });
         addTrail("guardrail", data.reason || "Run guardrail");
       }
+      if (eventName === "memory-suggestions") {
+        state.memorySuggestions = data.suggestions || [];
+        renderMemorySuggestions();
+        const label = `${state.memorySuggestions.length} memory suggestion(s)`;
+        assistantMessage.events.push({
+          type: "memory",
+          label
+        });
+        addTrail("memory", label);
+      }
       if (eventName === "cancelled") {
         assistantMessage.events.push({
           type: "error",
@@ -1963,7 +2032,7 @@ function renderMessages() {
           events.appendChild(renderPreviewEvent(item));
         } else {
           const chip = document.createElement("span");
-          chip.className = `tool-chip${item.type === "error" ? " error" : ""}${item.type === "reflection" ? " reflection" : ""}`;
+          chip.className = `tool-chip${item.type === "error" ? " error" : ""}${item.type === "reflection" ? " reflection" : ""}${item.type === "memory" ? " memory" : ""}`;
           chip.textContent = item.label;
           events.appendChild(chip);
         }
