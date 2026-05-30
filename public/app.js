@@ -56,6 +56,10 @@ const els = {
   refreshFiles: document.querySelector("#refreshFiles"),
   refreshRecipes: document.querySelector("#refreshRecipes"),
   modelScoreList: document.querySelector("#modelScoreList"),
+  pullModelName: document.querySelector("#pullModelName"),
+  pullModelButton: document.querySelector("#pullModelButton"),
+  pullModelStatus: document.querySelector("#pullModelStatus"),
+  installedModels: document.querySelector("#installedModels"),
   workspaceSearch: document.querySelector("#workspaceSearch"),
   semanticSearchMode: document.querySelector("#semanticSearchMode"),
   runSearch: document.querySelector("#runSearch"),
@@ -125,7 +129,8 @@ document.addEventListener("DOMContentLoaded", async () => {
     refreshProfilesAndMcp(),
     refreshMarketplace(),
     refreshSearchIndex(),
-    refreshEvalHistory()
+    refreshEvalHistory(),
+    refreshInstalledModels()
   ]);
   els.prompt.focus();
 });
@@ -159,6 +164,17 @@ function bindEvents() {
     addTrail("model", `Model set to ${state.model}`);
     renderLocalSignals();
   });
+  if (els.pullModelButton) {
+    els.pullModelButton.addEventListener("click", pullModel);
+  }
+  if (els.pullModelName) {
+    els.pullModelName.addEventListener("keydown", (event) => {
+      if (event.key === "Enter") {
+        event.preventDefault();
+        pullModel();
+      }
+    });
+  }
   els.newNote.addEventListener("click", createNewNote);
   els.attachFiles.addEventListener("click", () => els.attachmentInput.click());
   els.attachmentInput.addEventListener("change", attachSelectedFiles);
@@ -195,6 +211,34 @@ function bindEvents() {
     if (event.key === "Enter" && !event.shiftKey) {
       event.preventDefault();
       els.composer.requestSubmit();
+    }
+  });
+  bindShortcuts();
+}
+
+function bindShortcuts() {
+  document.addEventListener("keydown", (event) => {
+    // Cmd/Ctrl+Enter submits from anywhere.
+    if ((event.metaKey || event.ctrlKey) && event.key === "Enter") {
+      event.preventDefault();
+      els.composer.requestSubmit();
+      return;
+    }
+    const tag = (event.target && event.target.tagName) || "";
+    const typing = tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT";
+    if (typing) {
+      if (event.key === "Escape") {
+        event.target.blur();
+      }
+      return;
+    }
+    // "/" focuses workspace search; "i" focuses the prompt.
+    if (event.key === "/") {
+      event.preventDefault();
+      els.workspaceSearch.focus();
+    } else if (event.key === "i") {
+      event.preventDefault();
+      els.prompt.focus();
     }
   });
 }
@@ -821,10 +865,31 @@ function renderModels(defaultModel) {
   }
 
   if (!state.model || !models.includes(state.model)) {
-    state.model = models[0];
+    state.model = pickRecommendedModel(models);
+    const meta = state.models.find((model) => model.name === state.model);
+    if (meta && meta.scores) {
+      addTrail("model", `Auto-selected ${state.model} (best for ${meta.recommendation || "general use"})`);
+    }
   }
   els.modelSelect.value = state.model;
   renderModelScores();
+}
+
+function pickRecommendedModel(modelNames) {
+  let best = modelNames[0];
+  let bestScore = -1;
+  for (const name of modelNames) {
+    const meta = state.models.find((model) => model.name === name);
+    const scores = meta && meta.scores;
+    const total = scores
+      ? Number(scores.toolUse || 0) + Number(scores.coding || 0) + Number(scores.planning || 0) + Number(scores.longContext || 0)
+      : -1;
+    if (total > bestScore) {
+      bestScore = total;
+      best = name;
+    }
+  }
+  return best;
 }
 
 function renderModelScores() {
@@ -858,6 +923,105 @@ function renderModelScores() {
       )
       .join("")}
   `;
+}
+
+async function refreshInstalledModels() {
+  if (!els.installedModels) {
+    return;
+  }
+  try {
+    const data = await getJson("/api/models");
+    renderInstalledModels(data);
+  } catch (error) {
+    els.installedModels.innerHTML = `<div class="mini-row muted">${escapeHtml(error.message)}</div>`;
+  }
+}
+
+function renderInstalledModels(data) {
+  if (!data.canManage) {
+    els.installedModels.innerHTML = `<div class="mini-row muted">Model management is handled by ${escapeHtml((data.backend && data.backend.title) || "your backend")}.</div>`;
+    if (els.pullModelButton) els.pullModelButton.disabled = true;
+    if (els.pullModelName) els.pullModelName.disabled = true;
+    return;
+  }
+  const models = data.models || [];
+  if (!models.length) {
+    els.installedModels.innerHTML = `<div class="mini-row muted">No local models yet. Pull one above.</div>`;
+    return;
+  }
+  els.installedModels.innerHTML = "";
+  for (const model of models.slice(0, 12)) {
+    const row = document.createElement("div");
+    row.className = "mini-row model-row";
+    row.innerHTML = `<div class="mr-meta"><strong>${escapeHtml(model.name)}</strong><span>${escapeHtml(model.recommendation || "general chat")} · ${formatBytes(model.size || 0)}</span></div>`;
+    const remove = document.createElement("button");
+    remove.type = "button";
+    remove.className = "model-delete";
+    remove.title = `Remove ${model.name}`;
+    remove.textContent = "Remove";
+    remove.addEventListener("click", () => deleteModel(model.name));
+    row.appendChild(remove);
+    els.installedModels.appendChild(row);
+  }
+}
+
+async function pullModel() {
+  const name = els.pullModelName.value.trim();
+  if (!name) {
+    return;
+  }
+  els.pullModelButton.disabled = true;
+  els.pullModelStatus.textContent = `Pulling ${name}...`;
+  addTrail("model", `Pulling ${name}`);
+  try {
+    const response = await fetch("/api/models/pull", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name })
+    });
+    if (!response.ok || !response.body) {
+      const error = await response.json().catch(() => ({}));
+      throw new Error(error.error || `HTTP ${response.status}`);
+    }
+    await readEventStream(response.body, (eventName, data) => {
+      if (eventName === "progress") {
+        els.pullModelStatus.textContent = data.percent != null ? `${data.status} — ${data.percent}%` : (data.status || "pulling...");
+      }
+      if (eventName === "error") {
+        els.pullModelStatus.textContent = data.message || "Pull failed.";
+        addTrail("error", data.message || "Pull failed");
+      }
+      if (eventName === "done") {
+        els.pullModelStatus.textContent = `Pulled ${data.name}.`;
+        addTrail("model", `Pulled ${data.name}`);
+      }
+    });
+    els.pullModelName.value = "";
+    await refreshStatus();
+    await refreshInstalledModels();
+  } catch (error) {
+    els.pullModelStatus.textContent = error.message;
+    addTrail("error", error.message);
+  } finally {
+    els.pullModelButton.disabled = false;
+  }
+}
+
+async function deleteModel(name) {
+  if (!window.confirm(`Remove the local model "${name}"? This deletes it from disk.`)) {
+    return;
+  }
+  els.pullModelStatus.textContent = `Removing ${name}...`;
+  try {
+    await postJson("/api/models/delete", { name });
+    addTrail("model", `Removed ${name}`);
+    els.pullModelStatus.textContent = `Removed ${name}.`;
+    await refreshStatus();
+    await refreshInstalledModels();
+  } catch (error) {
+    els.pullModelStatus.textContent = error.message;
+    addTrail("error", error.message);
+  }
 }
 
 async function refreshFiles() {
@@ -1395,11 +1559,125 @@ async function exportShareableReport() {
       markdown
     });
     downloadText("agenttrail-report.md", markdown, "text/markdown");
-    addTrail("report", `Saved report ${saved.markdown.path}`);
+    downloadText("agenttrail-receipt.html", buildShareableHtml({
+      trustScore,
+      model: state.model || "not selected",
+      provider: state.searchIndex?.provider || "not built",
+      selectedFiles: Array.from(state.selectedFiles),
+      trail: state.trail,
+      citations: Array.from(els.memoryCitations?.querySelectorAll(".mini-row") || [])
+        .map((row) => row.textContent.trim().replace(/\s+/g, " ")),
+      previews: state.pendingPreviews.map((item) => ({
+        path: item.preview.path,
+        diff: item.preview.diff || "",
+        stats: item.preview.stats || { added: 0, removed: 0 },
+        applied: Boolean(item.applied)
+      }))
+    }), "text/html");
+    addTrail("report", `Saved report ${saved.markdown.path}; exported shareable HTML receipt`);
     await refreshFiles();
   } catch (error) {
     addTrail("error", error.message);
   }
+}
+
+function colorDiffLines(diff) {
+  return String(diff || "")
+    .split("\n")
+    .map((line) => {
+      const safe = escapeHtml(line);
+      if (line.startsWith("+")) {
+        return `<span class="add">${safe}</span>`;
+      }
+      if (line.startsWith("-")) {
+        return `<span class="del">${safe}</span>`;
+      }
+      return safe;
+    })
+    .join("\n");
+}
+
+function buildShareableHtml(data) {
+  const dotColor = (type) => {
+    if (type === "tool") return "#c2933b";
+    if (type === "error" || type === "warning") return "#b4543a";
+    if (type === "preview") return "#cc785c";
+    if (type === "file") return "#b35f43";
+    return "#5c7257";
+  };
+  const trailRows = (data.trail || [])
+    .slice()
+    .reverse()
+    .map(
+      (item) => `<li><span class="dot" style="background:${dotColor(item.type)}"></span>` +
+        `<span class="tm">${escapeHtml(item.time)}</span>` +
+        `<span class="ty">${escapeHtml(item.type)}</span>` +
+        `<span class="lb">${escapeHtml(item.label)}</span></li>`
+    )
+    .join("");
+  const diffBlocks = (data.previews || []).length
+    ? data.previews
+        .map(
+          (preview) => `<div class="diff"><div class="dh"><strong>${escapeHtml(preview.path)}</strong>` +
+            `<span>+${Number(preview.stats.added || 0)} −${Number(preview.stats.removed || 0)}${preview.applied ? " · applied" : ""}</span></div>` +
+            `<pre>${colorDiffLines(preview.diff)}</pre></div>`
+        )
+        .join("")
+    : `<p class="muted">No diffs captured in this run.</p>`;
+  const cites = (data.citations || []).length
+    ? `<ul class="cites">${data.citations.map((c) => `<li>${escapeHtml(c)}</li>`).join("")}</ul>`
+    : `<p class="muted">No memory citations captured.</p>`;
+  const files = data.selectedFiles && data.selectedFiles.length
+    ? data.selectedFiles.map((f) => `<code>${escapeHtml(f)}</code>`).join(" ")
+    : `<span class="muted">none</span>`;
+
+  return `<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>AgentTrail Receipt</title>
+<style>
+:root{--bg:#f0eee6;--panel:#faf9f5;--ink:#1f1e1d;--muted:#75716a;--line:#e2ddd0;--clay:#cc785c;--clayDeep:#b35f43;--sage:#5c7257}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;-webkit-font-smoothing:antialiased}
+.wrap{max-width:880px;margin:0 auto;padding:40px 24px 64px}
+.head{display:flex;align-items:center;gap:14px;border-bottom:1px solid var(--line);padding-bottom:20px;margin-bottom:24px}
+.mark{width:46px;height:46px;border-radius:13px;background:linear-gradient(135deg,#d58468,#b35f43);flex:0 0 auto}
+h1{font-family:"Iowan Old Style",Palatino,Georgia,serif;font-size:1.5rem;margin:0;font-weight:600}
+.sub{color:var(--muted);font-size:.85rem;margin-top:2px}
+.meta{display:flex;flex-wrap:wrap;gap:10px;margin:0 0 28px}
+.chip{padding:8px 12px;border:1px solid var(--line);border-radius:999px;background:var(--panel);font-size:.82rem}
+.chip b{color:var(--clayDeep)}
+.score{margin-left:auto;text-align:right}
+.score b{font-family:"Iowan Old Style",Palatino,Georgia,serif;font-size:2rem;color:var(--clayDeep);line-height:1}
+h2{font-size:.78rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin:32px 0 12px;display:flex;align-items:center;gap:8px}
+h2::before{content:"";width:5px;height:5px;border-radius:2px;background:var(--clay)}
+ul.trail{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+ul.trail li{display:grid;grid-template-columns:10px 70px 84px 1fr;gap:10px;align-items:center;padding:9px 12px;border:1px solid var(--line);border-radius:9px;background:var(--panel);font-size:.83rem}
+.dot{width:8px;height:8px;border-radius:50%}
+.tm{color:var(--muted);font-variant-numeric:tabular-nums}
+.ty{color:var(--clayDeep);font-weight:600;font-size:.72rem;text-transform:uppercase}
+.diff{border:1px solid var(--line);border-radius:11px;overflow:hidden;margin-bottom:14px}
+.dh{display:flex;justify-content:space-between;gap:12px;padding:10px 13px;background:#f8efe9;border-bottom:1px solid var(--line)}
+.dh strong{color:var(--clayDeep);font-size:.85rem}.dh span{color:var(--muted);font-size:.78rem}
+.diff pre{margin:0;padding:13px;background:#26241f;color:#f3f0e7;font-family:"SFMono-Regular",Consolas,monospace;font-size:.78rem;line-height:1.55;overflow-x:auto;white-space:pre-wrap}
+.diff .add{color:#9ed29a}.diff .del{color:#e88b74}
+.cites{margin:0;padding-left:18px;color:var(--muted);font-size:.84rem;display:grid;gap:4px}
+code{background:#ebe7da;padding:2px 6px;border-radius:5px;font-size:.82rem;color:var(--clayDeep)}
+.muted{color:var(--muted)}
+.foot{margin-top:40px;padding-top:18px;border-top:1px solid var(--line);color:var(--muted);font-size:.8rem}
+.foot a{color:var(--clayDeep)}
+</style></head>
+<body><div class="wrap">
+<div class="head"><div class="mark"></div><div><h1>AgentTrail Receipt</h1><div class="sub">A local agent that shows its work — exported ${escapeHtml(new Date().toLocaleString())}</div></div></div>
+<div class="meta">
+<span class="chip">Model <b>${escapeHtml(data.model)}</b></span>
+<span class="chip">Search index <b>${escapeHtml(data.provider)}</b></span>
+<span class="chip">Context files: ${files}</span>
+<span class="score"><div class="sub">Trust Score</div><b>${escapeHtml(String(data.trustScore))}</b></span>
+</div>
+<h2>Agent Trail</h2><ul class="trail">${trailRows || '<li><span class="lb muted">No events recorded.</span></li>'}</ul>
+<h2>Proposed &amp; Applied Diffs</h2>${diffBlocks}
+<h2>Memory Citations</h2>${cites}
+<div class="foot">Generated locally by AgentTrail. Nothing in this receipt left your machine. · <a href="https://github.com/Mughal-Baig/local-ai-agent">github.com/Mughal-Baig/local-ai-agent</a></div>
+</div></body></html>`;
 }
 
 async function readEventStream(body, onEvent) {
@@ -1466,6 +1744,14 @@ function renderMessages() {
     const bubble = document.createElement("div");
     bubble.className = "bubble";
     bubble.innerHTML = formatMessage(message.content || " ");
+
+    const isLast = message === state.messages[state.messages.length - 1];
+    if (state.busy && message.role === "assistant" && isLast) {
+      const caret = document.createElement("span");
+      caret.className = "stream-caret";
+      caret.setAttribute("aria-hidden", "true");
+      bubble.appendChild(caret);
+    }
 
     if (message.events && message.events.length) {
       const events = document.createElement("div");

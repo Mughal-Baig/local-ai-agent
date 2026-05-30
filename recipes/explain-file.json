@@ -1,0 +1,7 @@
+{
+  "id": "explain-file",
+  "title": "Explain This File",
+  "description": "Walk through a selected file in plain language: what it does, how it flows, and where the risks are.",
+  "tags": ["onboarding", "docs", "code", "review"],
+  "prompt": "Explain the selected file to someone seeing it for the first time. Cover: its single responsibility in one sentence, the key functions or sections and what each does, how data flows through it, any external dependencies or side effects, and the two places most likely to surprise a new reader or hide a bug. Quote short snippets as evidence. Do not rewrite the file."
+}

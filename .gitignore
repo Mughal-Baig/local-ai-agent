@@ -18,4 +18,5 @@ workspace/.agenttrail/
 build/AgentTrail.iconset/
 build/demo-frames/
 build/screens/
+build/social/
 *.bak

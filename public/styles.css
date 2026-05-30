@@ -331,6 +331,14 @@ select:hover, .search-input:hover { border-color: var(--line-strong); }
 
 .model-score-row meter { width: 100%; height: 9px; }
 
+.model-pull-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; align-items: center; }
+.model-pull-row .secondary-button { width: auto; margin-top: 0; padding: 0 16px; }
+.mini-row.model-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.mr-meta { display: grid; gap: 2px; min-width: 0; }
+.mr-meta strong, .mr-meta span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.model-delete { flex: 0 0 auto; padding: 5px 10px; border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--panel-2); color: var(--rose); font-size: 0.7rem; font-weight: 700; transition: all 0.13s ease; }
+.model-delete:hover { border-color: var(--rose); background: var(--rose-soft); }
+
 .files-panel, .recipes-panel, .search-panel, .trail-panel { min-height: 0; }
 .files-panel { flex: 0 1 auto; }
 .trail-panel { flex: 1; }
@@ -795,6 +803,22 @@ select:hover, .search-input:hover { border-color: var(--line-strong); }
 }
 
 .tool-chip.error { border-color: #ecd2c8; background: var(--rose-soft); color: #7c3623; }
+
+.stream-caret {
+  display: inline-block;
+  width: 7px;
+  height: 1.05em;
+  margin-left: 3px;
+  vertical-align: -2px;
+  border-radius: 2px;
+  background: var(--clay);
+  animation: caretBlink 1s steps(2, start) infinite;
+}
+
+@keyframes caretBlink {
+  0%, 50% { opacity: 1; }
+  50.01%, 100% { opacity: 0; }
+}
 
 /* ---------- Diff preview ---------- */
 .diff-preview {

@@ -14,7 +14,7 @@ const MODEL_ADAPTERS = [
     title: "LM Studio",
     env: "LMSTUDIO_HOST",
     defaultHost: "http://127.0.0.1:1234",
-    status: "planned",
+    status: "active",
     api: "openai-compatible"
   },
   {
@@ -22,7 +22,7 @@ const MODEL_ADAPTERS = [
     title: "llama.cpp server",
     env: "LLAMACPP_HOST",
     defaultHost: "http://127.0.0.1:8080",
-    status: "planned",
+    status: "active",
     api: "openai-compatible"
   },
   {
@@ -30,7 +30,7 @@ const MODEL_ADAPTERS = [
     title: "OpenAI-compatible local server",
     env: "OPENAI_COMPATIBLE_HOST",
     defaultHost: "http://127.0.0.1:8000/v1",
-    status: "planned",
+    status: "active",
     api: "openai-compatible"
   }
 ];

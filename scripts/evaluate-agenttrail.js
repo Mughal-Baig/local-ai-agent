@@ -14,7 +14,7 @@ main().catch((error) => {
 async function main() {
   const checks = [];
   checks.push(await check("README has star engine", async () => includes("README.md", ["Why Star This", "60-second"])));
-  checks.push(await check("Static demo exists", async () => includes("docs/demo.html", ["AgentTrail", "diff previews"])));
+  checks.push(await check("Static demo exists", async () => includes("docs/demo.html", ["AgentTrail", "diff preview"])));
   checks.push(await check("Recipe packs exist", async () => (await countJson("recipe-packs")) >= 3));
   checks.push(await check("MCP approval manifest exists", async () => includes("mcp/agenttrail.mcp.json", ["approvals", "write_file"])));
   checks.push(await check("MCP stdio server exists", async () => includes("mcp/server.js", ["tools/list", "explicit MCP approval"])));

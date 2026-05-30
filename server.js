@@ -33,6 +33,22 @@ const OLLAMA_HOST = trimTrailingSlash(process.env.OLLAMA_HOST || "http://127.0.0
 const DEFAULT_MODEL = process.env.OLLAMA_MODEL || "llama3.2";
 const OLLAMA_EMBED_MODEL = process.env.OLLAMA_EMBED_MODEL || "nomic-embed-text";
 const MAX_TOOL_ITERATIONS = Number(process.env.MAX_TOOL_ITERATIONS || 4);
+
+// Pluggable model backend: Ollama (native) or any OpenAI-compatible local server
+// (llama.cpp server, LM Studio, vLLM, Jan, ...). Select with AGENTTRAIL_MODEL_ADAPTER.
+const ACTIVE_BACKEND = activeModelAdapter(process.env);
+const BACKEND_IS_OPENAI = ACTIVE_BACKEND.api === "openai-compatible";
+const BACKEND_HOST = trimTrailingSlash(ACTIVE_BACKEND.host || OLLAMA_HOST);
+const BACKEND_API_KEY = process.env.OPENAI_API_KEY || process.env.AGENTTRAIL_API_KEY || "";
+// Keep the model warm between turns to cut cold-start latency (Ollama keep_alive).
+const OLLAMA_KEEP_ALIVE = process.env.OLLAMA_KEEP_ALIVE || "5m";
+// In-memory response cache: identical (model + prompt) returns instantly.
+const CACHE_ENABLED = String(process.env.AGENTTRAIL_CACHE || "on").toLowerCase() !== "off";
+const CACHE_TTL_MS = Number(process.env.AGENTTRAIL_CACHE_TTL_MS || 300000);
+const CACHE_MAX_ENTRIES = 200;
+const RESPONSE_CACHE = new Map();
+// Prompt budget: cap assembled context so long workspaces stay fast and never overflow.
+const MAX_PROMPT_CHARS = Number(process.env.AGENTTRAIL_MAX_PROMPT_CHARS || 24000);
 const PROJECT_ROOT = __dirname;
 const PUBLIC_DIR = path.join(PROJECT_ROOT, "public");
 const DOCS_DIR = path.join(PROJECT_ROOT, "docs");
@@ -300,6 +316,18 @@ const server = http.createServer(async (req, res) => {
       return handleModelCompare(res);
     }
 
+    if (url.pathname === "/api/models" && req.method === "GET") {
+      return handleListModels(res);
+    }
+
+    if (url.pathname === "/api/models/pull" && req.method === "POST") {
+      return handlePullModel(req, res);
+    }
+
+    if (url.pathname === "/api/models/delete" && req.method === "POST") {
+      return handleDeleteModel(req, res);
+    }
+
     if (url.pathname === "/api/security/scan" && req.method === "POST") {
       return handleSecurityScan(req, res);
     }
@@ -357,6 +385,7 @@ server.listen(PORT, HOST, () => {
   const displayHost = HOST === "0.0.0.0" ? "127.0.0.1" : HOST;
   console.log(`AgentTrail running at http://${displayHost}:${PORT}`);
   console.log(`Workspace root: ${WORKSPACE_ROOT}`);
+  console.log(`Model backend: ${ACTIVE_BACKEND.title} (${ACTIVE_BACKEND.api}) at ${BACKEND_HOST}`);
 });
 
 async function handleStatus(res) {
@@ -368,9 +397,15 @@ async function handleStatus(res) {
     version: packageMeta.version,
     adapter,
     adapters: listModelAdapters(process.env),
+    backend: {
+      id: ACTIVE_BACKEND.id,
+      title: ACTIVE_BACKEND.title,
+      api: ACTIVE_BACKEND.api,
+      host: BACKEND_HOST
+    },
     ollama: {
       available: models.available,
-      host: OLLAMA_HOST,
+      host: BACKEND_HOST,
       models: scoredModels,
       error: models.error || null
     },
@@ -385,6 +420,108 @@ async function handleStatus(res) {
 async function handleLogs(url, res) {
   const limit = Math.min(Math.max(Number(url.searchParams.get("limit") || 80), 1), 200);
   sendJson(res, 200, { logs: await LOGGER.list(limit) });
+}
+
+function isValidModelName(name) {
+  return typeof name === "string" && /^[A-Za-z0-9][A-Za-z0-9._:/-]{0,128}$/.test(name);
+}
+
+async function handleListModels(res) {
+  const status = await fetchOllamaModels();
+  sendJson(res, 200, {
+    backend: { id: ACTIVE_BACKEND.id, title: ACTIVE_BACKEND.title, api: ACTIVE_BACKEND.api },
+    available: status.available,
+    canManage: !BACKEND_IS_OPENAI,
+    models: status.models.map(scoreModel),
+    error: status.error || null
+  });
+}
+
+async function handlePullModel(req, res) {
+  const body = await readJsonBody(req);
+  const name = String(body.name || "").trim();
+  if (!isValidModelName(name)) {
+    return sendJson(res, 400, { error: "A valid model name is required (e.g. llama3.2)." });
+  }
+  if (BACKEND_IS_OPENAI) {
+    return sendJson(res, 501, {
+      error: `Model pulling is handled by ${ACTIVE_BACKEND.title}, not AgentTrail. Load the model in that app.`
+    });
+  }
+
+  res.writeHead(200, {
+    "Content-Type": "text/event-stream; charset=utf-8",
+    "Cache-Control": "no-cache, no-transform",
+    Connection: "keep-alive",
+    "X-Accel-Buffering": "no"
+  });
+
+  try {
+    const response = await fetch(`${OLLAMA_HOST}/api/pull`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name, stream: true })
+    });
+    if (!response.ok || !response.body) {
+      const details = await response.text().catch(() => "");
+      sendEvent(res, "error", { message: `Ollama pull failed: ${response.status} ${details}`.trim() });
+      return;
+    }
+    const decoder = new TextDecoder();
+    let buffer = "";
+    for await (const chunk of response.body) {
+      buffer += decoder.decode(chunk, { stream: true });
+      let nl;
+      while ((nl = buffer.indexOf("\n")) !== -1) {
+        const line = buffer.slice(0, nl).trim();
+        buffer = buffer.slice(nl + 1);
+        if (!line) continue;
+        let obj;
+        try { obj = JSON.parse(line); } catch { continue; }
+        if (obj.error) {
+          sendEvent(res, "error", { message: obj.error });
+        } else {
+          const percent = obj.total ? Math.round(((obj.completed || 0) / obj.total) * 100) : null;
+          sendEvent(res, "progress", { status: obj.status || "pulling", percent });
+        }
+      }
+    }
+    await STORE.append("model-pull", { name });
+    sendEvent(res, "done", { ok: true, name });
+  } catch (error) {
+    sendEvent(res, "error", { message: error.message || "Pull failed." });
+  } finally {
+    res.end();
+  }
+}
+
+async function handleDeleteModel(req, res) {
+  const body = await readJsonBody(req);
+  const name = String(body.name || "").trim();
+  if (!isValidModelName(name)) {
+    return sendJson(res, 400, { error: "A valid model name is required." });
+  }
+  if (BACKEND_IS_OPENAI) {
+    return sendJson(res, 501, {
+      error: `Model deletion is handled by ${ACTIVE_BACKEND.title}, not AgentTrail.`
+    });
+  }
+  try {
+    const response = await fetch(`${OLLAMA_HOST}/api/delete`, {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name }),
+      signal: AbortSignal.timeout(10000)
+    });
+    if (!response.ok) {
+      const details = await response.text().catch(() => "");
+      return sendJson(res, 502, { error: `Ollama delete failed: ${response.status} ${details}`.trim() });
+    }
+    await STORE.append("model-delete", { name });
+    sendJson(res, 200, { ok: true, name });
+  } catch (error) {
+    sendJson(res, 502, { error: error.message || "Delete failed." });
+  }
 }
 
 async function handleSqliteStatus(res) {
@@ -1376,7 +1513,9 @@ async function runAgent(body, res) {
 
   if (!status.available) {
     sendEvent(res, "error", {
-      message: `Ollama is not reachable at ${OLLAMA_HOST}. Install Ollama, start it, and pull a model such as ${DEFAULT_MODEL}.`
+      message: BACKEND_IS_OPENAI
+        ? `${ACTIVE_BACKEND.title} is not reachable at ${BACKEND_HOST}. Start your local OpenAI-compatible server (e.g. LM Studio or llama.cpp) and load a model.`
+        : `Ollama is not reachable at ${OLLAMA_HOST}. Install Ollama, start it, and pull a model such as ${DEFAULT_MODEL}.`
     });
     return;
   }
@@ -1393,20 +1532,34 @@ async function runAgent(body, res) {
     });
 
     const prompt = await buildAgentPrompt(messages, selectedFiles, toolHistory, permissions, securityMode);
-    const output = await generateWithOllama(model, prompt, {
-      temperature: typeof body.temperature === "number" ? body.temperature : 0.2
-    });
-
-    const toolCall = extractToolCall(output);
-    if (toolCall) {
-      const result = await executeToolCall(toolCall, permissions);
-      toolHistory.push({ call: toolCall, result: compactToolResultForPrompt(result) });
-      sendEvent(res, "tool", formatToolEvent(toolCall, result));
-      continue;
+    const gate = createProseGate(res);
+    const cacheKey = `${model}::${hashPrompt(prompt)}`;
+    let output = cacheGet(cacheKey);
+    if (output !== null) {
+      sendEvent(res, "status", { message: "Served from local cache" });
+      gate.push(output);
+    } else {
+      output = await generateStream(model, prompt, {
+        temperature: typeof body.temperature === "number" ? body.temperature : 0.2
+      }, (chunk) => gate.push(chunk));
+      cacheSet(cacheKey, output);
     }
 
-    const finalOutput = cleanAssistantOutput(output);
-    await streamText(res, finalOutput || "I did not get a usable response from the model.");
+    // The gate only forwards prose; tool-call JSON is suppressed mid-stream.
+    if (gate.decision !== "prose") {
+      const toolCall = extractToolCall(output);
+      if (toolCall) {
+        const result = await executeToolCall(toolCall, permissions);
+        toolHistory.push({ call: toolCall, result: compactToolResultForPrompt(result) });
+        sendEvent(res, "tool", formatToolEvent(toolCall, result));
+        continue;
+      }
+    }
+
+    // Final answer. Prose was already streamed live; otherwise emit the cleaned text.
+    if (!gate.emitted) {
+      await streamText(res, cleanAssistantOutput(output) || "I did not get a usable response from the model.");
+    }
     sendEvent(res, "done", { ok: true });
     return;
   }
@@ -1438,6 +1591,12 @@ async function buildAgentPrompt(messages, selectedFiles, toolHistory, permission
     } catch (error) {
       selectedFileBlocks.push(`--- ${filePath} ---\nCould not read file: ${error.message}`);
     }
+  }
+
+  let fileContext = selectedFileBlocks.length ? selectedFileBlocks.join("\n\n") : "No files selected.";
+  const fileBudget = Math.floor(MAX_PROMPT_CHARS * 0.6);
+  if (fileContext.length > fileBudget) {
+    fileContext = `${fileContext.slice(0, fileBudget)}\n\n[Context trimmed to fit the model window: showing the first ${fileBudget} characters of ${selectedFiles.length} selected file(s). Ask to focus on a specific file for full detail.]`;
   }
 
   const transcript = messages
@@ -1492,7 +1651,7 @@ async function buildAgentPrompt(messages, selectedFiles, toolHistory, permission
     memoryBlock,
     "",
     "Selected file context:",
-    selectedFileBlocks.length ? selectedFileBlocks.join("\n\n") : "No files selected.",
+    fileContext,
     "",
     "Tool history:",
     toolNotes,
@@ -1602,6 +1761,296 @@ function normalizePermissions(value) {
   };
 }
 
+function openaiUrl(pathname) {
+  const base = BACKEND_HOST.endsWith("/v1") ? BACKEND_HOST : `${BACKEND_HOST}/v1`;
+  return `${base}${pathname}`;
+}
+
+function openaiHeaders() {
+  const headers = { "Content-Type": "application/json" };
+  if (BACKEND_API_KEY) {
+    headers.Authorization = `Bearer ${BACKEND_API_KEY}`;
+  }
+  return headers;
+}
+
+// Dispatches generation to the active backend (Ollama native, or OpenAI-compatible).
+async function generateCompletion(model, prompt, options) {
+  if (BACKEND_IS_OPENAI) {
+    return generateWithOpenAI(model, prompt, options);
+  }
+  return generateWithOllama(model, prompt, options);
+}
+
+async function generateWithOpenAI(model, prompt, options) {
+  let response;
+  try {
+    response = await fetch(openaiUrl("/chat/completions"), {
+      method: "POST",
+      headers: openaiHeaders(),
+      body: JSON.stringify({
+        model,
+        messages: [{ role: "user", content: prompt }],
+        temperature: options.temperature,
+        stream: false
+      }),
+      signal: AbortSignal.timeout(120000)
+    });
+  } catch (error) {
+    throw new Error(`${ACTIVE_BACKEND.title} is not reachable at ${BACKEND_HOST}. ${error.message}`.trim());
+  }
+
+  if (!response.ok) {
+    const details = await response.text().catch(() => "");
+    throw new Error(`${ACTIVE_BACKEND.title} returned ${response.status}. ${details}`.trim());
+  }
+
+  const data = await response.json();
+  const text = (data && data.choices && data.choices[0] && ((data.choices[0].message && data.choices[0].message.content) || data.choices[0].text)) || "";
+  return String(text || "");
+}
+
+// ---- Response cache ----
+
+function hashPrompt(text) {
+  let hash = 2166136261;
+  const value = String(text);
+  for (let i = 0; i < value.length; i += 1) {
+    hash ^= value.charCodeAt(i);
+    hash = Math.imul(hash, 16777619);
+  }
+  return `${(hash >>> 0).toString(36)}.${value.length}`;
+}
+
+function cacheGet(key) {
+  if (!CACHE_ENABLED) return null;
+  const hit = RESPONSE_CACHE.get(key);
+  if (!hit) return null;
+  if (Date.now() > hit.expires) {
+    RESPONSE_CACHE.delete(key);
+    return null;
+  }
+  return hit.text;
+}
+
+function cacheSet(key, text) {
+  if (!CACHE_ENABLED || !text) return;
+  RESPONSE_CACHE.set(key, { text, expires: Date.now() + CACHE_TTL_MS });
+  if (RESPONSE_CACHE.size > CACHE_MAX_ENTRIES) {
+    const oldest = RESPONSE_CACHE.keys().next().value;
+    RESPONSE_CACHE.delete(oldest);
+  }
+}
+
+// ---- True token streaming (tokens forwarded to the client as generated) ----
+
+async function generateStream(model, prompt, options, onToken) {
+  if (BACKEND_IS_OPENAI) {
+    return generateOpenAIStream(model, prompt, options, onToken);
+  }
+  return generateOllamaStream(model, prompt, options, onToken);
+}
+
+async function generateOllamaStream(model, prompt, options, onToken) {
+  let response;
+  try {
+    response = await fetch(`${OLLAMA_HOST}/api/generate`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model,
+        prompt,
+        stream: true,
+        keep_alive: OLLAMA_KEEP_ALIVE,
+        options: { temperature: options.temperature, num_ctx: 8192 }
+      }),
+      signal: AbortSignal.timeout(120000)
+    });
+  } catch (error) {
+    throw new Error(`Ollama is not reachable at ${OLLAMA_HOST}. ${error.message}`.trim());
+  }
+  if (!response.ok || !response.body) {
+    const details = await response.text().catch(() => "");
+    throw new Error(`Ollama returned ${response.status}. ${details}`.trim());
+  }
+
+  let full = "";
+  let raw = "";
+  const decoder = new TextDecoder();
+  let buffer = "";
+  for await (const chunk of response.body) {
+    const piece = decoder.decode(chunk, { stream: true });
+    raw += piece;
+    buffer += piece;
+    let nl;
+    while ((nl = buffer.indexOf("\n")) !== -1) {
+      const line = buffer.slice(0, nl).trim();
+      buffer = buffer.slice(nl + 1);
+      if (!line) continue;
+      let obj;
+      try { obj = JSON.parse(line); } catch { continue; }
+      if (typeof obj.response === "string" && obj.response) {
+        full += obj.response;
+        onToken(obj.response);
+      }
+    }
+  }
+  if (!full) {
+    full = recoverNonStreamText(raw, "ollama");
+    if (full) onToken(full);
+  }
+  return full;
+}
+
+async function generateOpenAIStream(model, prompt, options, onToken) {
+  let response;
+  try {
+    response = await fetch(openaiUrl("/chat/completions"), {
+      method: "POST",
+      headers: openaiHeaders(),
+      body: JSON.stringify({
+        model,
+        messages: [{ role: "user", content: prompt }],
+        temperature: options.temperature,
+        stream: true
+      }),
+      signal: AbortSignal.timeout(120000)
+    });
+  } catch (error) {
+    throw new Error(`${ACTIVE_BACKEND.title} is not reachable at ${BACKEND_HOST}. ${error.message}`.trim());
+  }
+  if (!response.ok || !response.body) {
+    const details = await response.text().catch(() => "");
+    throw new Error(`${ACTIVE_BACKEND.title} returned ${response.status}. ${details}`.trim());
+  }
+
+  let full = "";
+  let raw = "";
+  const decoder = new TextDecoder();
+  let buffer = "";
+  for await (const chunk of response.body) {
+    const piece = decoder.decode(chunk, { stream: true });
+    raw += piece;
+    buffer += piece;
+    let nl;
+    while ((nl = buffer.indexOf("\n")) !== -1) {
+      const line = buffer.slice(0, nl).trim();
+      buffer = buffer.slice(nl + 1);
+      if (!line.startsWith("data:")) continue;
+      const payload = line.slice(5).trim();
+      if (!payload || payload === "[DONE]") continue;
+      let obj;
+      try { obj = JSON.parse(payload); } catch { continue; }
+      const choice = obj.choices && obj.choices[0];
+      const delta = (choice && ((choice.delta && choice.delta.content) || choice.text)) || "";
+      if (delta) {
+        full += delta;
+        onToken(delta);
+      }
+    }
+  }
+  if (!full) {
+    full = recoverNonStreamText(raw, "openai");
+    if (full) onToken(full);
+  }
+  return full;
+}
+
+// Fallback: some servers ignore stream:true and return one JSON body.
+function recoverNonStreamText(raw, kind) {
+  const text = String(raw || "").trim();
+  if (!text) return "";
+  try {
+    const obj = JSON.parse(text);
+    if (kind === "ollama") {
+      return String(obj.response || "");
+    }
+    const choice = obj.choices && obj.choices[0];
+    return String((choice && ((choice.message && choice.message.content) || choice.text)) || "");
+  } catch {
+    return "";
+  }
+}
+
+// Gates streamed tokens: suppresses tool-call JSON, forwards prose live.
+function createProseGate(res) {
+  let decision = "pending"; // pending | prose | tool
+  let lead = "";
+  let emitted = false;
+
+  function classify() {
+    let s = lead.replace(/^\s+/, "").replace(/^```(?:json)?\s*/i, "").replace(/^\s+/, "");
+    if (!s) return;
+    if (s[0] === "{") {
+      decision = "tool";
+      return;
+    }
+    decision = "prose";
+    const display = s
+      .replace(/^["“]/, "")
+      .replace(/^(Assistant|AgentTrail|Local Agent|AI):\s*/i, "");
+    if (display) {
+      sendEvent(res, "token", { text: display });
+      emitted = true;
+    }
+  }
+
+  return {
+    push(chunk) {
+      if (decision === "tool") return;
+      if (decision === "prose") {
+        sendEvent(res, "token", { text: chunk });
+        emitted = true;
+        return;
+      }
+      lead += chunk;
+      if (/\S/.test(lead)) classify();
+    },
+    get decision() { return decision; },
+    get emitted() { return emitted; }
+  };
+}
+
+async function fetchOpenAIModels() {
+  try {
+    const response = await fetch(openaiUrl("/models"), {
+      headers: openaiHeaders(),
+      signal: AbortSignal.timeout(2500)
+    });
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`);
+    }
+    const data = await response.json();
+    const list = Array.isArray(data.data) ? data.data : Array.isArray(data.models) ? data.models : [];
+    const models = list
+      .map((item) => ({ name: item.id || item.name, size: 0, modifiedAt: null }))
+      .filter((item) => item.name);
+    return { available: true, models };
+  } catch (error) {
+    return { available: false, models: [], error: error.message };
+  }
+}
+
+async function fetchOpenAIEmbedding(text, model) {
+  const input = String(text || "").slice(0, MAX_SEARCH_FILE_BYTES);
+  const response = await fetch(openaiUrl("/embeddings"), {
+    method: "POST",
+    headers: openaiHeaders(),
+    body: JSON.stringify({ model, input }),
+    signal: AbortSignal.timeout(8000)
+  });
+  if (!response.ok) {
+    const details = await response.text().catch(() => "");
+    throw new Error(`${ACTIVE_BACKEND.title} embeddings returned ${response.status}. ${details}`.trim());
+  }
+  const data = await response.json();
+  const vector = data && data.data && data.data[0] && data.data[0].embedding;
+  if (!Array.isArray(vector) || !vector.length) {
+    throw new Error(`${ACTIVE_BACKEND.title} did not return an embedding vector`);
+  }
+  return vector.map(Number);
+}
+
 async function generateWithOllama(model, prompt, options) {
   const response = await fetch(`${OLLAMA_HOST}/api/generate`, {
     method: "POST",
@@ -1610,6 +2059,7 @@ async function generateWithOllama(model, prompt, options) {
       model,
       prompt,
       stream: false,
+      keep_alive: OLLAMA_KEEP_ALIVE,
       options: {
         temperature: options.temperature,
         num_ctx: 8192
@@ -1628,6 +2078,9 @@ async function generateWithOllama(model, prompt, options) {
 }
 
 async function fetchOllamaModels() {
+  if (BACKEND_IS_OPENAI) {
+    return fetchOpenAIModels();
+  }
   try {
     const response = await fetch(`${OLLAMA_HOST}/api/tags`, {
       signal: AbortSignal.timeout(2500)
@@ -1650,6 +2103,9 @@ async function fetchOllamaModels() {
 }
 
 async function fetchOllamaEmbedding(text, model = OLLAMA_EMBED_MODEL) {
+  if (BACKEND_IS_OPENAI) {
+    return fetchOpenAIEmbedding(text, model);
+  }
   const input = String(text || "").slice(0, MAX_SEARCH_FILE_BYTES);
   const embedResponse = await fetch(`${OLLAMA_HOST}/api/embed`, {
     method: "POST",
@@ -2491,7 +2947,7 @@ async function runModelBenchmark(model) {
   for (const test of tests) {
     const started = Date.now();
     try {
-      const response = await generateWithOllama(model.name, test.prompt, { temperature: 0 }).catch((error) => {
+      const response = await generateCompletion(model.name, test.prompt, { temperature: 0 }).catch((error) => {
         throw error;
       });
       results.push({

@@ -1,0 +1,7 @@
+{
+  "id": "dependency-audit",
+  "title": "Dependency Audit",
+  "description": "Review dependencies and imports in the selected files for risk, bloat, and supply-chain exposure.",
+  "tags": ["security", "dependencies", "review", "local-first"],
+  "prompt": "Audit the dependencies and imports used in the selected files. For each notable dependency, note: what it is used for here, whether it is actually needed or could be replaced with the standard library, any maintenance or supply-chain risk signals you can infer from the code, and whether it pulls in network or filesystem access. Flag anything that conflicts with a zero-dependency, local-first goal. End with a short ranked list of dependencies to remove, replace, or pin. Do not invent version numbers or CVEs you cannot see."
+}

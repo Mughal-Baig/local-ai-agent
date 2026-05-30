@@ -50,6 +50,8 @@
     "test": "node scripts/smoke-test.js",
     "test:unit": "node tests/unit/foundation.test.js",
     "test:integration": "node tests/integration/api.test.js",
+    "test:backend": "node tests/integration/openai-backend.test.js",
+    "test:models": "node tests/integration/model-management.test.js",
     "test:ui": "node tests/ui/playwright-smoke.test.js",
     "eval": "node scripts/evaluate-agenttrail.js",
     "mcp": "node mcp/server.js",

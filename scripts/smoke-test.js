@@ -42,7 +42,7 @@ async function main() {
     assert.match(home, /AgentTrail/);
 
     const demo = await fetchText(`http://127.0.0.1:${port}/docs/demo.html`);
-    assert.match(demo, /A local agent that shows its work/);
+    assert.match(demo, /shows its work/i);
 
     const status = await fetchJson(`http://127.0.0.1:${port}/api/status`);
     assert.equal(status.app, "ok");

@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>AgentTrail Local</title>
     <link rel="icon" href="/logo.svg" />
-    <link rel="stylesheet" href="/styles.css?v=11" />
+    <link rel="stylesheet" href="/styles.css?v=13" />
   </head>
   <body>
     <div class="app-shell">
@@ -31,6 +31,13 @@
           <select id="modelSelect"></select>
           <p class="hint" id="modelHint">Local models appear here when Ollama is running.</p>
           <div id="modelScoreList" class="model-score-list"></div>
+          <label class="field-label tight-label" for="pullModelName">Manage models</label>
+          <div class="model-pull-row">
+            <input id="pullModelName" class="search-input" type="text" placeholder="Pull a model, e.g. llama3.2" />
+            <button id="pullModelButton" class="secondary-button compact-button" type="button">Pull</button>
+          </div>
+          <p id="pullModelStatus" class="hint">Pull, list, and remove local models without leaving the app.</p>
+          <div id="installedModels" class="mini-list"></div>
         </section>
 
         <section class="panel files-panel">
@@ -160,7 +167,7 @@
         <section class="panel receipt-panel" aria-label="Receipt timeline">
           <div class="panel-heading">
             <h2>Receipts</h2>
-            <button id="exportReport" class="icon-button" title="Export shareable report" aria-label="Export shareable report"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M9 13h6M9 17h6"/></svg></button>
+            <button id="exportReport" class="icon-button" title="Export shareable receipt (Markdown + standalone HTML)" aria-label="Export shareable receipt as Markdown and HTML"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M9 13h6M9 17h6"/></svg></button>
           </div>
           <input id="receiptFilter" class="search-input" type="search" placeholder="Filter receipt timeline..." />
           <label class="field-label tight-label" for="sessionSelect">Replay session</label>
@@ -291,7 +298,7 @@
       </main>
     </div>
 
-    <script src="/app.js?v=11"></script>
+    <script src="/app.js?v=14"></script>
     <script src="/modules/foundation.js?v=1"></script>
     <script src="/modules/product.js?v=1"></script>
   </body>

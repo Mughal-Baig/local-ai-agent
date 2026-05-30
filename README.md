@@ -57,7 +57,7 @@ Popular local AI tools are often full platforms. This project is intentionally s
 | Area | AgentTrail |
 | --- | --- |
 | Setup | One Node command, `npx`-ready package metadata, Docker Compose, Homebrew formula draft, desktop launchers |
-| Model backend | Ollama |
+| Model backend | Ollama, or any OpenAI-compatible local server (LM Studio, llama.cpp, vLLM, Jan) — see [Model Backends](docs/MODEL_BACKENDS.md) |
 | File access | Sandboxed workspace tools plus keyword search, local vector index, and Ollama embedding index |
 | Trust UX | Trust Score, local signals, security scan, reviewable diff previews, explicit apply buttons, exportable reports, replay sessions, receipts, and tool history |
 | Workflow system | Plain JSON recipes, role-based recipe packs, import/export UI, and marketplace manifest |
@@ -85,7 +85,9 @@ Open `http://127.0.0.1:4173`, build the semantic index, ask for a change, review
 
 ## Features
 
-- Chat UI with model picker and streaming-style responses
+- Chat UI with model picker and **true token streaming** (tokens stream from the backend as generated; models kept warm via keep-alive)
+- **In-app model management**: pull (with live progress), list, and remove local models without leaving the app
+- **Response cache** so repeated recipe runs return instantly, plus a prompt-budget guard that keeps long workspaces fast
 - Starter prompts for summarize, plan, review, and save-note workflows
 - Local recipe picker backed by plain JSON workflow files
 - Keyword search and semantic local search across workspace files, sessions, and saved receipts
@@ -296,6 +298,12 @@ Supported variables:
 - `OLLAMA_HOST`: Ollama API host
 - `OLLAMA_MODEL`: default model name
 - `OLLAMA_EMBED_MODEL`: local embedding model for semantic index, default `nomic-embed-text`
+- `AGENTTRAIL_MODEL_ADAPTER`: model backend — `ollama` (default), `lmstudio`, `llamacpp`, or `openai-compatible`. See [Model Backends](docs/MODEL_BACKENDS.md)
+- `LMSTUDIO_HOST` / `LLAMACPP_HOST` / `OPENAI_COMPATIBLE_HOST`: host for the chosen OpenAI-compatible backend
+- `OPENAI_API_KEY`: optional bearer token for OpenAI-compatible backends that require one
+- `OLLAMA_KEEP_ALIVE`: how long to keep the model warm between turns, default `5m` (cuts cold-start latency)
+- `AGENTTRAIL_CACHE`: set to `off` to disable the in-memory response cache (default on); `AGENTTRAIL_CACHE_TTL_MS` tunes the TTL
+- `AGENTTRAIL_MAX_PROMPT_CHARS`: prompt budget cap for assembled context, default `24000`
 - `WORKSPACE_ROOT`: folder the agent can access
 - `MAX_TOOL_ITERATIONS`: maximum tool loop steps per message
 
@@ -311,6 +319,8 @@ Supported variables:
 node scripts/smoke-test.js
 npm run test:unit
 npm run test:integration
+npm run test:backend
+npm run test:models
 npm run test:ui
 npm run eval
 npm run release:checksums
@@ -318,7 +328,15 @@ npm run package:desktop
 npm run package:mac-app
 ```
 
-The smoke test starts the server on a temporary port, checks the UI and API, writes a test file in a temporary workspace, reads it back, and shuts the server down.
+**What the suite proves.** Three layers run with no cloud and no Ollama required (the smoke test points at a dead Ollama host on purpose):
+
+- **Unit** — foundation modules (schemas, permissions, store, migrations) behave as specified.
+- **Integration** — the API contract holds across endpoints.
+- **End-to-end smoke** — boots a real server on a temp workspace and asserts the full trust loop: the UI serves, `/api/status` reports `ok` with Ollama correctly detected as unavailable, the foundation score is **≥ 90**, **≥ 10** stable schemas are exposed, `write_file` is a permissioned tool, recipes load (including `code-review`), and a write → read → **preview diff** → search round-trip all succeed. It then shuts the server down.
+
+In other words, "serious foundation" is checkable in one command — every claim above is an assertion in `scripts/smoke-test.js`.
+
+See also the [Receipt Spec](docs/RECEIPT_SPEC.md) (the auditable artifact format AgentTrail produces) and the honest [Security Posture](docs/SECURITY_POSTURE.md).
 
 ## Roadmap
 
