@@ -64,6 +64,9 @@ async function main() {
   checks.push(await check("Tool repair tests exist", async () => includes("tests/integration/tool-repair.test.js", ["repaired", "read_file"])));
   checks.push(await check("Multi-tool batch execution exists", async () => includes("server.js", ["executeToolCallBatch", "MAX_TOOL_CALLS_PER_STEP", "tool-batch"])));
   checks.push(await check("Multi-tool tests exist", async () => includes("tests/integration/multi-tool-calls.test.js", ["tool_calls", "batch", "parallel"])));
+  checks.push(await check("Structured output engine exists", async () => includes("src/structured-output.js", ["task-list", "validateStructuredOutput", "parseStructuredJson"])));
+  checks.push(await check("Structured output backend support exists", async () => includes("server.js", ["format: descriptor.schema", "response_format", "/api/structured-output"])));
+  checks.push(await check("Structured output tests exist", async () => includes("tests/integration/structured-output.test.js", ["response_format", "body.format", "task-list"])));
 
   const passed = checks.filter((item) => item.ok).length;
   const score = Math.round((passed / checks.length) * 100);

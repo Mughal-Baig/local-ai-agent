@@ -42,12 +42,12 @@ A long-horizon backlog (12+ months) for making AgentTrail the auditable agent la
 - [x] T024 Unit + integration tests for native tool calling (mock backends)
 
 ### Epic B — Structured outputs
-- [ ] T025 Pass JSON-schema `format` to Ollama for constrained output
-- [ ] T026 OpenAI `response_format` json_schema support
+- [x] T025 Pass JSON-schema `format` to Ollama for constrained output
+- [x] T026 OpenAI `response_format` json_schema support
 - [x] T027 Schema-validate every tool argument before execution
 - [ ] T028 Typed extraction recipes (e.g., "extract table → JSON")
 - [ ] T029 Graceful schema-violation handling + user-visible reason
-- [ ] T030 Tests for structured-output round-trips
+- [x] T030 Tests for structured-output round-trips
 
 ### Epic C — Planner & multi-step autonomy
 - [ ] T031 Explicit plan step: model proposes a plan before acting

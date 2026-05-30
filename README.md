@@ -99,6 +99,7 @@ Open `http://127.0.0.1:4173`, build the semantic index, ask for a change, review
 - Model capability scoring for coding, tool use, planning, and long context
 - Workspace-aware tools: list files, search files, read files, preview writes, and write files
 - Native tool calling for Ollama `/api/chat` and OpenAI-compatible local backends, with per-model capability probing, multi-tool batches, schema validation, and repair for malformed arguments
+- Structured JSON output endpoint for Ollama schema `format` and OpenAI-compatible `response_format.json_schema`
 - In-chat diff cards with explicit **Apply** buttons for proposed file changes
 - Diff Review center with pending-change apply/reject controls
 - Agent Trail receipts for tool calls, selected context, model status, and errors

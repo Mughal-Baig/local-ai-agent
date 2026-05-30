@@ -79,6 +79,10 @@ async function main() {
     assert.equal(toolCapability.schema, "agenttrail.tool-capability.v1");
     assert.equal(toolCapability.supported, false);
 
+    const structuredSchemas = await fetchJson(`http://127.0.0.1:${port}/api/structured-output/schemas`);
+    assert.equal(structuredSchemas.schema, "agenttrail.structured-output-schemas.v1");
+    assert.equal(structuredSchemas.schemas.some((item) => item.id === "task-list"), true);
+
     const plugins = await fetchJson(`http://127.0.0.1:${port}/api/plugins`);
     assert.equal(plugins.plugins.some((plugin) => plugin.id === "example-tool"), true);
 

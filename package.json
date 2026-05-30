@@ -53,6 +53,7 @@
     "test:backend": "node tests/integration/openai-backend.test.js",
     "test:models": "node tests/integration/model-management.test.js",
     "test:tools": "node tests/integration/native-tool-calling.test.js && node tests/integration/ollama-native-tools.test.js && node tests/integration/tool-repair.test.js && node tests/integration/multi-tool-calls.test.js",
+    "test:structured": "node tests/integration/structured-output.test.js",
     "test:ui": "node tests/ui/playwright-smoke.test.js",
     "eval": "node scripts/evaluate-agenttrail.js",
     "mcp": "node mcp/server.js",

@@ -10,6 +10,7 @@ const { SCHEMA_VERSION, listSchemaSummaries, validateSchema, withSchema } = requ
 const { permissionManifest, evaluateToolPermission } = require("./src/permissions");
 const { listModelAdapters, activeModelAdapter } = require("./src/model-adapters");
 const { listToolSchemas, toolDefinitionsForBackend, validateToolArguments, repairToolArguments, formatToolSchemaPrompt } = require("./src/tool-schemas");
+const { listStructuredOutputSchemas, selectStructuredOutputSchema, parseStructuredJson, validateStructuredOutput } = require("./src/structured-output");
 const { JsonLineStore } = require("./src/json-store");
 const { JobManager } = require("./src/jobs");
 const { runMigrations, migrationStatus } = require("./src/migrations");
@@ -155,6 +156,14 @@ const server = http.createServer(async (req, res) => {
 
     if (url.pathname === "/api/tools/capability" && req.method === "GET") {
       return handleToolCapability(url, res);
+    }
+
+    if (url.pathname === "/api/structured-output/schemas" && req.method === "GET") {
+      return handleStructuredOutputSchemas(res);
+    }
+
+    if (url.pathname === "/api/structured-output" && req.method === "POST") {
+      return handleStructuredOutput(req, res);
     }
 
     if (url.pathname === "/api/store/stats" && req.method === "GET") {
@@ -608,6 +617,42 @@ async function handleToolCapability(url, res) {
   const refresh = url.searchParams.get("refresh") === "1";
   const capability = await probeNativeToolSupport(model, { refresh });
   sendJson(res, 200, capability);
+}
+
+function handleStructuredOutputSchemas(res) {
+  sendJson(res, 200, {
+    schema: "agenttrail.structured-output-schemas.v1",
+    backend: ACTIVE_BACKEND.api,
+    schemas: listStructuredOutputSchemas()
+  });
+}
+
+async function handleStructuredOutput(req, res) {
+  const body = await readJsonBody(req);
+  const prompt = String(body.prompt || "").trim();
+  if (!prompt) {
+    return sendJson(res, 400, { error: "A prompt is required." });
+  }
+
+  let descriptor;
+  try {
+    descriptor = selectStructuredOutputSchema(body);
+  } catch (error) {
+    return sendJson(res, 400, { error: error.message });
+  }
+
+  const model = String(body.model || DEFAULT_MODEL).trim() || DEFAULT_MODEL;
+  const result = await generateStructuredOutput(model, prompt, descriptor, {
+    temperature: typeof body.temperature === "number" ? body.temperature : 0
+  });
+
+  await STORE.append("structured-output", {
+    model,
+    schemaId: descriptor.id,
+    ok: result.ok,
+    backend: ACTIVE_BACKEND.api
+  });
+  sendJson(res, result.ok ? 200 : 422, result);
 }
 
 async function handleStoreStats(res) {
@@ -2054,6 +2099,137 @@ async function generateCompletion(model, prompt, options) {
     return generateWithOpenAI(model, prompt, options);
   }
   return generateWithOllama(model, prompt, options);
+}
+
+async function generateStructuredOutput(model, prompt, descriptor, options = {}) {
+  const structuredPrompt = buildStructuredOutputPrompt(prompt, descriptor);
+  const raw = BACKEND_IS_OPENAI
+    ? await generateStructuredWithOpenAI(model, structuredPrompt, descriptor, options)
+    : await generateStructuredWithOllama(model, structuredPrompt, descriptor, options);
+
+  let output;
+  try {
+    output = parseStructuredJson(raw);
+  } catch (error) {
+    return structuredOutputResult(model, descriptor, false, null, raw, {
+      ok: false,
+      errors: [error.message]
+    });
+  }
+
+  const validation = validateStructuredOutput(output, descriptor.schema);
+  return structuredOutputResult(model, descriptor, validation.ok, output, raw, validation);
+}
+
+function buildStructuredOutputPrompt(prompt, descriptor) {
+  return [
+    "Return only valid JSON that matches the provided JSON Schema.",
+    "Do not include Markdown, commentary, or extra keys.",
+    `Schema id: ${descriptor.id}`,
+    `JSON Schema: ${JSON.stringify(descriptor.schema)}`,
+    "",
+    "Task:",
+    prompt
+  ].join("\n");
+}
+
+function structuredOutputResult(model, descriptor, ok, output, raw, validation) {
+  return {
+    schema: "agenttrail.structured-output.v1",
+    ok,
+    model,
+    backend: {
+      id: ACTIVE_BACKEND.id,
+      api: ACTIVE_BACKEND.api,
+      title: ACTIVE_BACKEND.title
+    },
+    outputSchema: {
+      id: descriptor.id,
+      title: descriptor.title,
+      schema: descriptor.schema
+    },
+    output,
+    raw,
+    validation
+  };
+}
+
+async function generateStructuredWithOllama(model, prompt, descriptor, options) {
+  let response;
+  try {
+    response = await fetch(`${OLLAMA_HOST}/api/generate`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model,
+        prompt,
+        stream: false,
+        format: descriptor.schema,
+        keep_alive: OLLAMA_KEEP_ALIVE,
+        options: {
+          temperature: options.temperature,
+          num_ctx: 8192
+        }
+      }),
+      signal: AbortSignal.timeout(120000)
+    });
+  } catch (error) {
+    throw new Error(`Ollama is not reachable at ${OLLAMA_HOST}. ${error.message}`.trim());
+  }
+
+  if (!response.ok) {
+    const details = await response.text().catch(() => "");
+    throw new Error(`Ollama structured output returned ${response.status}. ${details}`.trim());
+  }
+
+  const data = await response.json();
+  return String(data.response || "");
+}
+
+async function generateStructuredWithOpenAI(model, prompt, descriptor, options) {
+  let response;
+  try {
+    response = await fetch(openaiUrl("/chat/completions"), {
+      method: "POST",
+      headers: openaiHeaders(),
+      body: JSON.stringify({
+        model,
+        messages: [
+          { role: "system", content: "Return only JSON that matches the supplied JSON Schema." },
+          { role: "user", content: prompt }
+        ],
+        temperature: options.temperature,
+        stream: false,
+        response_format: {
+          type: "json_schema",
+          json_schema: {
+            name: openAISchemaName(descriptor.id),
+            strict: true,
+            schema: descriptor.schema
+          }
+        }
+      }),
+      signal: AbortSignal.timeout(120000)
+    });
+  } catch (error) {
+    throw new Error(`${ACTIVE_BACKEND.title} is not reachable at ${BACKEND_HOST}. ${error.message}`.trim());
+  }
+
+  if (!response.ok) {
+    const details = await response.text().catch(() => "");
+    throw new Error(`${ACTIVE_BACKEND.title} structured output returned ${response.status}. ${details}`.trim());
+  }
+
+  const data = await response.json();
+  const choice = data && data.choices && data.choices[0];
+  return String((choice && ((choice.message && choice.message.content) || choice.text)) || "");
+}
+
+function openAISchemaName(value) {
+  return String(value || "agenttrail_schema")
+    .replace(/[^A-Za-z0-9_-]+/g, "_")
+    .replace(/^_+|_+$/g, "")
+    .slice(0, 64) || "agenttrail_schema";
 }
 
 async function generateWithOpenAI(model, prompt, options) {

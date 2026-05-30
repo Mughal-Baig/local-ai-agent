@@ -8,6 +8,7 @@ const { listSchemaSummaries, validateSchema, withSchema } = require("../../src/s
 const { evaluateToolPermission } = require("../../src/permissions");
 const { listModelAdapters } = require("../../src/model-adapters");
 const { listToolSchemas, toolDefinitionsForBackend, validateToolArguments, repairToolArguments } = require("../../src/tool-schemas");
+const { listStructuredOutputSchemas, parseStructuredJson, validateStructuredOutput } = require("../../src/structured-output");
 const { JsonLineStore } = require("../../src/json-store");
 const { runMigrations, migrationStatus } = require("../../src/migrations");
 const { loadPlugins } = require("../../src/plugin-loader");
@@ -47,12 +48,17 @@ async function main() {
   assert.equal(routeCatalog().some((route) => route.area === "search"), true);
   assert.equal(routeCatalog().some((route) => route.area === "attachments"), true);
   assert.equal(routeCatalog().some((route) => route.routes.includes("/api/tools/schemas")), true);
+  assert.equal(routeCatalog().some((route) => route.routes.includes("/api/structured-output")), true);
   assert.equal(listToolSchemas().some((tool) => tool.name === "search_workspace"), true);
   assert.equal(toolDefinitionsForBackend("openai").some((tool) => tool.function.name === "read_file"), true);
   assert.equal(validateToolArguments("read_file", { path: "welcome.md" }).ok, true);
   assert.equal(validateToolArguments("read_file", {}).ok, false);
   assert.deepEqual(repairToolArguments("read_file", { file: "welcome.md" }), { path: "welcome.md" });
   assert.deepEqual(repairToolArguments("search_workspace", { q: "receipt", limit: "3" }), { query: "receipt", limit: 3 });
+  const taskSchema = listStructuredOutputSchemas().find((schema) => schema.id === "task-list").schema;
+  assert.deepEqual(parseStructuredJson("```json\n{\"tasks\":[{\"title\":\"Ship\",\"priority\":\"high\"}]}\n```").tasks[0].title, "Ship");
+  assert.equal(validateStructuredOutput({ tasks: [{ title: "Ship", priority: "high" }] }, taskSchema).ok, true);
+  assert.equal(validateStructuredOutput({ tasks: [{ title: "Ship", priority: "urgent" }] }, taskSchema).ok, false);
 
   const tempRoot = await fsp.mkdtemp(path.join(os.tmpdir(), "agenttrail-foundation-"));
   try {

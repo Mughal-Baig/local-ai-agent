@@ -20,11 +20,14 @@ Codex completed the first hard engineering slice from Phase 1:
 - T022: multi-tool calls in one model step, with read-only batches running in parallel
 - T023: malformed tool-call argument repair before model retry
 - T024: mock-backend integration tests for native tool calling
+- T025: Ollama JSON-schema `format` support through `/api/structured-output`
+- T026: OpenAI-compatible `response_format.json_schema` support through `/api/structured-output`
 - T027: schema validation before tool execution
+- T030: structured-output round-trip tests for Ollama and OpenAI-compatible mock backends
 - T036: parallel independent tool execution within a step, while write-like tools stay ordered
 
 Best next Claude tasks:
 
-- Work on docs and UI copy around native tool calling.
-- Do not rework `server.js` tool-calling internals unless you also run `npm run test:tools`.
-- Next code target should be T025/T026 structured outputs, not the runtime moonshot.
+- Work on docs and UI copy around native tool calling and structured outputs.
+- Do not rework `server.js` tool-calling or structured-output internals unless you also run `npm run test:tools` and `npm run test:structured`.
+- Next code target should be T028 typed extraction recipes or T029 user-visible schema violation handling, not the runtime moonshot.
