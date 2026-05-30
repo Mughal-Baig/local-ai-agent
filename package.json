@@ -12,7 +12,7 @@
     "url": "https://github.com/Mughal-Baig/local-ai-agent/issues"
   },
   "bin": {
-    "agenttrail": "./bin/agenttrail.js"
+    "agenttrail": "bin/agenttrail.js"
   },
   "files": [
     "bin",
