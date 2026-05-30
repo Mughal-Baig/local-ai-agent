@@ -19,7 +19,7 @@ AgentTrail is a tiny, auditable local AI agent kit for people who want a Claude/
 
 - **Transparent by default**: every tool call is shown as an Agent Trail receipt.
 - **Search before answer**: built-in local workspace search helps the agent find evidence before responding.
-- **Diff-safe writes**: preview mode returns a unified diff instead of touching files.
+- **Diff-safe writes**: preview mode shows a unified diff in chat and lets the user apply it deliberately.
 - **Recipe-driven**: reusable local workflows live in plain JSON files anyone can add.
 - **Demo-first**: the static demo lets visitors understand the project before installing Ollama.
 - **Permission-aware**: file reads are explicit and file writes are off by default.
@@ -37,7 +37,7 @@ Popular local AI tools are often full platforms. This project is intentionally s
 | Setup | One Node command, no package install required |
 | Model backend | Ollama |
 | File access | Sandboxed workspace tools plus local search |
-| Trust UX | Visible local signals, diff previews, exportable receipts, and tool history |
+| Trust UX | Visible local signals, reviewable diff previews, explicit apply buttons, exportable receipts, and tool history |
 | Workflow system | Plain JSON recipes in `recipes/` |
 | Best use | Personal workspace agent starter kit and auditable local workflow lab |
 
@@ -51,6 +51,7 @@ Popular local AI tools are often full platforms. This project is intentionally s
 - Permission toggles for file reads, file writes, and write preview mode
 - Ollama integration for local models
 - Workspace-aware tools: list files, search files, read files, preview writes, and write files
+- In-chat diff cards with explicit **Apply** buttons for proposed file changes
 - Agent Trail receipts for tool calls, selected context, model status, and errors
 - Exportable Markdown audit receipts
 - Saved receipt history in `workspace/receipts/`
@@ -129,7 +130,7 @@ Available tools:
 - `preview_write_file`: returns a diff preview without writing
 - `write_file`: creates or updates a workspace file
 
-When write preview mode is enabled, `write_file` returns a diff preview instead of changing the file. This keeps the default experience reviewable even when an LLM tries to write.
+When write preview mode is enabled, `write_file` returns a diff preview instead of changing the file. The browser shows that diff with an explicit **Apply** button, keeping the default experience reviewable even when an LLM tries to write.
 
 ## Workspace
 

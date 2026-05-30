@@ -9,6 +9,7 @@ Use this before making a release public.
 - [ ] Workspace search cannot escape `WORKSPACE_ROOT`.
 - [ ] Writes are off by default.
 - [ ] Write preview mode is on by default.
+- [ ] Previewed writes require an explicit Apply action.
 - [ ] Tool activity is visible in Agent Trail.
 - [ ] Receipts can be exported and saved.
 - [ ] Recipe files are prompt templates only.

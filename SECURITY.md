@@ -11,6 +11,7 @@ AgentTrail is designed to keep file access inside the configured workspace.
 - Agent Trail receipts make local tool activity visible to the user.
 - File writes are disabled by default in the chat agent.
 - Write preview mode is enabled by default, so agent write attempts return a diff preview before changing files.
+- Previewed changes require an explicit browser **Apply** action before the app writes the proposed content.
 - Local search only reads files inside `WORKSPACE_ROOT`.
 - Recipes are prompt templates only; they do not grant new tool permissions.
 

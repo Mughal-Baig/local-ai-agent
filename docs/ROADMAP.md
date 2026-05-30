@@ -22,6 +22,7 @@
 - Local workspace search tool.
 - Saved receipt history.
 - Agent write diff previews.
+- In-chat diff cards with explicit apply buttons.
 - 20 reusable JSON recipes.
 
 ## Not Planned

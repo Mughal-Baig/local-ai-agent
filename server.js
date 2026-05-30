@@ -225,12 +225,8 @@ async function runAgent(body, res) {
     const toolCall = extractToolCall(output);
     if (toolCall) {
       const result = await executeToolCall(toolCall, permissions);
-      toolHistory.push({ call: toolCall, result });
-      sendEvent(res, "tool", {
-        name: toolCall.tool,
-        arguments: toolCall.arguments || {},
-        result: summarizeToolResult(result)
-      });
+      toolHistory.push({ call: toolCall, result: compactToolResultForPrompt(result) });
+      sendEvent(res, "tool", formatToolEvent(toolCall, result));
       continue;
     }
 
@@ -667,6 +663,7 @@ async function previewWorkspaceFile(relativePath, content, options = {}) {
     exists,
     preview: true,
     blockedWrite: options.blockedWrite === true,
+    proposedContent: content,
     diff,
     stats: diff.stats
   };
@@ -793,6 +790,50 @@ function summarizeToolResult(result) {
     return result.error;
   }
   return truncate(JSON.stringify(result), 280);
+}
+
+function formatToolEvent(toolCall, result) {
+  const payload = {
+    name: toolCall.tool,
+    arguments: toolCall.arguments || {},
+    result: summarizeToolResult(result)
+  };
+
+  if (result && result.preview) {
+    payload.preview = {
+      path: result.path,
+      exists: result.exists,
+      blockedWrite: result.blockedWrite,
+      proposedContent: result.proposedContent,
+      diff: result.diff.text,
+      stats: result.stats
+    };
+  }
+
+  if (result && Array.isArray(result.results)) {
+    payload.results = result.results.slice(0, 5);
+  }
+
+  return payload;
+}
+
+function compactToolResultForPrompt(result) {
+  if (!result || typeof result !== "object") {
+    return result;
+  }
+
+  if (result.preview) {
+    return {
+      path: result.path,
+      exists: result.exists,
+      preview: true,
+      blockedWrite: result.blockedWrite,
+      diff: result.diff,
+      stats: result.stats
+    };
+  }
+
+  return result;
 }
 
 function countOccurrences(text, term) {

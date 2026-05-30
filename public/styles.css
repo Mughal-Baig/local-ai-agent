@@ -600,6 +600,73 @@ select {
   color: #7d2f1e;
 }
 
+.diff-preview {
+  flex: 1 0 100%;
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid rgba(36, 107, 98, 0.25);
+  border-radius: 8px;
+  background: #f8fbfa;
+}
+
+.diff-preview-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--line);
+  background: var(--soft-teal);
+}
+
+.diff-preview-heading strong,
+.diff-preview-heading span {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.diff-preview-heading strong {
+  color: var(--teal-dark);
+  font-size: 0.86rem;
+}
+
+.diff-preview-heading span {
+  margin-top: 2px;
+  color: var(--muted);
+  font-size: 0.76rem;
+  font-weight: 800;
+}
+
+.apply-preview-button {
+  flex: 0 0 auto;
+  min-height: 34px;
+  padding: 0 13px;
+  border: 0;
+  border-radius: 8px;
+  background: var(--teal);
+  color: white;
+  font-size: 0.8rem;
+  font-weight: 900;
+}
+
+.apply-preview-button:disabled {
+  cursor: default;
+  background: #91aaa4;
+}
+
+.diff-block {
+  max-height: 260px;
+  margin: 0;
+  overflow: auto;
+  padding: 12px;
+  background: #1f2430;
+  color: #f4f7f5;
+  font-size: 0.78rem;
+  line-height: 1.5;
+}
+
 .composer {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 110px;

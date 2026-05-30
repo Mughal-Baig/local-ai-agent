@@ -1,6 +1,6 @@
 {
   "name": "local-ai-agent",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "AgentTrail: an auditable local AI agent with Ollama, workspace search, recipes, diff previews, and receipts.",
   "main": "server.js",
   "type": "commonjs",

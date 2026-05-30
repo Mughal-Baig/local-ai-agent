@@ -424,11 +424,14 @@ async function sendMessage(event) {
       }
       if (eventName === "tool") {
         state.toolCount += 1;
+        const label = `${data.name}: ${data.result}`;
         assistantMessage.events.push({
-          type: "tool",
-          label: `${data.name}: ${data.result}`
+          type: data.preview ? "preview" : "tool",
+          label,
+          preview: data.preview || null,
+          id: data.preview ? `preview-${Date.now()}-${state.toolCount}` : null
         });
-        addTrail("tool", `${data.name}: ${data.result}`);
+        addTrail(data.preview ? "preview" : "tool", label);
       }
       if (eventName === "status") {
         els.workspaceStatus.textContent = data.message || "Working";
@@ -634,10 +637,14 @@ function renderMessages() {
       const events = document.createElement("div");
       events.className = "tool-events";
       for (const item of message.events) {
-        const chip = document.createElement("span");
-        chip.className = `tool-chip${item.type === "error" ? " error" : ""}`;
-        chip.textContent = item.label;
-        events.appendChild(chip);
+        if (item.type === "preview" && item.preview) {
+          events.appendChild(renderPreviewEvent(item));
+        } else {
+          const chip = document.createElement("span");
+          chip.className = `tool-chip${item.type === "error" ? " error" : ""}`;
+          chip.textContent = item.label;
+          events.appendChild(chip);
+        }
       }
       bubble.appendChild(events);
     }
@@ -647,6 +654,65 @@ function renderMessages() {
   }
 
   els.messages.scrollTop = els.messages.scrollHeight;
+}
+
+function renderPreviewEvent(item) {
+  const card = document.createElement("div");
+  card.className = "diff-preview";
+
+  const preview = item.preview;
+  const stats = preview.stats || { added: 0, removed: 0 };
+  const status = preview.blockedWrite ? "Write blocked by preview mode" : "Preview only";
+
+  const heading = document.createElement("div");
+  heading.className = "diff-preview-heading";
+  heading.innerHTML = `
+    <div>
+      <strong>${escapeHtml(preview.path)}</strong>
+      <span>${escapeHtml(status)} · +${Number(stats.added || 0)} -${Number(stats.removed || 0)}</span>
+    </div>
+  `;
+
+  const applyButton = document.createElement("button");
+  applyButton.type = "button";
+  applyButton.className = "apply-preview-button";
+  applyButton.textContent = item.applied ? "Applied" : "Apply";
+  applyButton.disabled = item.applied === true;
+  applyButton.addEventListener("click", () => applyPreview(item, applyButton));
+  heading.appendChild(applyButton);
+
+  const diff = document.createElement("pre");
+  diff.className = "diff-block";
+  diff.textContent = preview.diff || "No diff available";
+
+  card.append(heading, diff);
+  return card;
+}
+
+async function applyPreview(item, button) {
+  if (!item.preview || !item.preview.path) {
+    return;
+  }
+
+  button.disabled = true;
+  const originalLabel = button.textContent;
+  button.textContent = "Applying";
+
+  try {
+    const result = await postJson("/api/files/content", {
+      path: item.preview.path,
+      content: item.preview.proposedContent || ""
+    });
+    item.applied = true;
+    button.textContent = "Applied";
+    addTrail("file", `Applied preview ${result.path}`);
+    await refreshFiles();
+    await refreshReceipts();
+  } catch (error) {
+    button.disabled = false;
+    button.textContent = originalLabel;
+    addTrail("error", `Could not apply preview: ${error.message}`);
+  }
 }
 
 function formatMessage(text) {
