@@ -20,6 +20,7 @@ jobs:
       - run: node --check scripts/smoke-test.js
       - run: node --check scripts/evaluate-agenttrail.js
       - run: node tests/unit/foundation.test.js
+      - run: node tests/unit/search-chunking.test.js
       - run: node tests/integration/api.test.js
       - run: node tests/integration/openai-backend.test.js
       - run: node tests/integration/model-management.test.js

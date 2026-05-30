@@ -38,9 +38,10 @@ Codex completed the first hard engineering slice from Phase 1:
 - T041: ranked memory retrieval endpoint and prompt-budgeted structured memory injection
 - T042: memory history list, diff preview, and revert flow that records a new audit entry
 - T043: project/global memory scopes with prompt injection for both scopes and UI switching
+- T045: markdown-aware overlapping search chunks with section headings, chunk type, and line ranges in the saved index
 
 Best next Claude tasks:
 
-- Work on docs and UI copy around native tool calling, structured outputs, planner approval, run guardrails, reflection, loop safety, structured memory, memory suggestions, ranked memory retrieval, memory history, and scoped memory.
-- Do not rework `server.js` tool-calling, structured-output, planner, run-cancellation, loop/reflection, or memory internals unless you also run `npm run test:tools`, `npm run test:structured`, `npm run test:planner`, `npm run test:guardrails`, `npm run test:reflection`, `npm run test:memory`, `npm run test:memory-suggestions`, `npm run test:memory-retrieval`, `npm run test:memory-history`, and `npm run test:memory-scopes`.
-- Next code target should be T038 resume interrupted run from receipt or T044/T045 search hardening, not the runtime moonshot.
+- Work on docs and UI copy around native tool calling, structured outputs, planner approval, run guardrails, reflection, loop safety, structured memory, memory suggestions, ranked memory retrieval, memory history, scoped memory, and markdown-aware chunk citations.
+- Do not rework `server.js` tool-calling, structured-output, planner, run-cancellation, loop/reflection, memory internals, or search chunking unless you also run the matching scripts: `npm run test:tools`, `npm run test:structured`, `npm run test:planner`, `npm run test:guardrails`, `npm run test:reflection`, `npm run test:memory`, `npm run test:memory-suggestions`, `npm run test:memory-retrieval`, `npm run test:memory-history`, `npm run test:memory-scopes`, and `npm run test:search`.
+- Next code target should be T038 resume interrupted run from receipt, T046 hybrid search, or T052 search quality evals, not the runtime moonshot.

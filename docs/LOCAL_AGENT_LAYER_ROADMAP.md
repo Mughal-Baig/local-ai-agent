@@ -72,7 +72,7 @@ A long-horizon backlog (12+ months) for making AgentTrail the auditable agent la
 
 ### Epic E — Search quality
 - [~] T044 Local embedding index (exists; harden)
-- [ ] T045 Smarter chunking (semantic/markdown-aware) with overlap
+- [x] T045 Smarter chunking (semantic/markdown-aware) with overlap
 - [ ] T046 Hybrid search (BM25 keyword + vector) with score fusion
 - [ ] T047 Cross-encoder / LLM reranking of top-k
 - [ ] T048 Embedding cache keyed by content hash

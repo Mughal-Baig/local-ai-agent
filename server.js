@@ -19,7 +19,7 @@ const { generateChecksums } = require("./src/release");
 const { buildFoundationStatus } = require("./src/foundation");
 const { StructuredLogger } = require("./src/logger");
 const { validateConfig } = require("./src/config");
-const { hashContent, chunkText, rankChunks } = require("./src/features/search");
+const { hashContent, chunkTextDetailed, rankChunks } = require("./src/features/search");
 const { scanSecurityText } = require("./src/features/security");
 const { friendlyError } = require("./src/features/errors");
 const { SqliteStore } = require("./src/sqlite-store");
@@ -1218,6 +1218,7 @@ async function handleSearchChunks(url, res) {
     query,
     provider: index ? index.provider : "none",
     model: index ? index.model : null,
+    chunking: index ? index.chunking || null : null,
     chunks
   });
 }
@@ -1240,6 +1241,7 @@ async function handleGetSearchIndex(res) {
     provider: index.provider,
     model: index.model || null,
     dimensions: index.dimensions || 0,
+    chunking: index.chunking || null,
     itemCount: Array.isArray(index.items) ? index.items.length : 0,
     chunkCount: Array.isArray(index.chunks) ? index.chunks.length : 0,
     fileHashCount: index.fileHashes ? Object.keys(index.fileHashes).length : 0,
@@ -4369,6 +4371,11 @@ async function buildSearchIndex(requestedProvider) {
   let provider = requestedProvider === "local" || requestedProvider === "local-vector" ? "local-vector" : "ollama";
   let model = provider === "ollama" ? OLLAMA_EMBED_MODEL : `hash-${LOCAL_EMBED_DIMS}`;
   let dimensions = 0;
+  const chunking = {
+    strategy: "markdown-overlap-v1",
+    size: 1800,
+    overlap: 220
+  };
   const items = [];
   const chunks = [];
   const fileHashes = {};
@@ -4396,14 +4403,7 @@ async function buildSearchIndex(requestedProvider) {
 
     const hash = hashContent(content);
     fileHashes[file.path] = hash;
-    const fileChunks = chunkText(content).map((chunk, index) => ({
-      id: `${file.path}#${index + 1}`,
-      path: file.path,
-      index,
-      hash: hashContent(chunk),
-      size: Buffer.byteLength(chunk, "utf8"),
-      preview: truncate(chunk.replace(/\s+/g, " ").trim(), 120)
-    }));
+    const fileChunks = buildSearchChunks(file, content, chunking);
     const text = `${file.path}\n${content.slice(0, MAX_SEARCH_FILE_BYTES)}`;
     let embedding = null;
     if (provider === "ollama") {
@@ -4448,14 +4448,7 @@ async function buildSearchIndex(requestedProvider) {
       }
       const hash = hashContent(content);
       fileHashes[file.path] = hash;
-      const fileChunks = chunkText(content).map((chunk, index) => ({
-        id: `${file.path}#${index + 1}`,
-        path: file.path,
-        index,
-        hash: hashContent(chunk),
-        size: Buffer.byteLength(chunk, "utf8"),
-        preview: truncate(chunk.replace(/\s+/g, " ").trim(), 120)
-      }));
+      const fileChunks = buildSearchChunks(file, content, chunking);
       const embedding = embedTextDense(`${file.path}\n${content.slice(0, MAX_SEARCH_FILE_BYTES)}`);
       dimensions = embedding.length;
       items.push({
@@ -4477,6 +4470,7 @@ async function buildSearchIndex(requestedProvider) {
     dimensions,
     builtAt: new Date().toISOString(),
     workspaceRoot: WORKSPACE_ROOT,
+    chunking,
     fileHashes,
     chunks,
     items
@@ -4488,10 +4482,26 @@ async function buildSearchIndex(requestedProvider) {
     provider,
     model,
     dimensions,
+    chunking,
     itemCount: items.length,
     chunkCount: chunks.length,
     builtAt: index.builtAt
   };
+}
+
+function buildSearchChunks(file, content, chunking) {
+  return chunkTextDetailed(content, chunking).map((chunk, index) => ({
+    id: `${file.path}#${index + 1}`,
+    path: file.path,
+    index,
+    hash: hashContent(chunk.text),
+    size: Buffer.byteLength(chunk.text, "utf8"),
+    heading: chunk.heading || "",
+    kind: chunk.kind || "paragraph",
+    startLine: chunk.startLine || 1,
+    endLine: chunk.endLine || chunk.startLine || 1,
+    preview: truncate(chunk.preview || chunk.text.replace(/\s+/g, " ").trim(), 160)
+  }));
 }
 
 async function readSearchIndex() {

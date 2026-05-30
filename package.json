@@ -49,6 +49,7 @@
     "dev": "node server.js",
     "test": "node scripts/smoke-test.js",
     "test:unit": "node tests/unit/foundation.test.js",
+    "test:search": "node tests/unit/search-chunking.test.js",
     "test:integration": "node tests/integration/api.test.js",
     "test:backend": "node tests/integration/openai-backend.test.js",
     "test:models": "node tests/integration/model-management.test.js",

@@ -52,6 +52,12 @@ async function main() {
       assert.equal(response.ok, true, endpoint);
     }
 
+    const indexStatus = await get("/api/search-index");
+    assert.equal(indexStatus.chunking.strategy, "markdown-overlap-v1");
+
+    const chunkResults = await get("/api/search/chunks?query=receipt");
+    assert.equal(chunkResults.chunks.some((chunk) => chunk.heading === "API" && chunk.startLine >= 1 && chunk.endLine >= chunk.startLine), true);
+
     const badge = await post("/api/trust/badge", { score: 96, label: "run" });
     assert.match(badge.svg, /AgentTrail/);
 
@@ -90,6 +96,12 @@ async function post(endpoint, body) {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body || {})
   });
+  assert.equal(response.ok, true, endpoint);
+  return response.json();
+}
+
+async function get(endpoint) {
+  const response = await fetch(`http://127.0.0.1:${port}${endpoint}`);
   assert.equal(response.ok, true, endpoint);
   return response.json();
 }

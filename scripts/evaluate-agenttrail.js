@@ -38,6 +38,9 @@ async function main() {
   checks.push(await check("Replay sessions endpoint exists", async () => includes("server.js", ["/api/sessions", "handleSaveSession"])));
   checks.push(await check("True semantic index endpoint exists", async () => includes("server.js", ["/api/search-index", "fetchOllamaEmbedding", "local-vector"])));
   checks.push(await check("Semantic index stores hashes and chunks", async () => includes("server.js", ["fileHashes", "chunkText", "hashContent"])));
+  checks.push(await check("Markdown-aware chunking exists", async () => includes("src/features/search.js", ["chunkTextDetailed", "markdownBlocks", "overlapBlocks", "startLine"])));
+  checks.push(await check("Search index stores chunk metadata", async () => includes("server.js", ["markdown-overlap-v1", "heading", "startLine", "endLine"])));
+  checks.push(await check("Search chunking tests exist", async () => includes("tests/unit/search-chunking.test.js", ["chunkTextDetailed", "Install", "startLine"])));
   checks.push(await check("Recipe marketplace exists", async () => includes("marketplace/recipes.json", ["Recipe Marketplace", "submissionUrl"])));
   checks.push(await check("Student and writer packs exist", async () => (await countJson("recipe-packs")) >= 5));
   checks.push(await check("Frontend split foundation module exists", async () => includes("public/modules/foundation.js", ["/api/foundation", "/api/backup/export"])));
