@@ -1,19 +1,55 @@
 {
   "name": "agenttrail",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "description": "AgentTrail: an auditable local AI agent with Ollama, workspace search, recipes, diff previews, and receipts.",
   "main": "server.js",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Mughal-Baig/local-ai-agent.git"
+  },
+  "homepage": "https://github.com/Mughal-Baig/local-ai-agent#readme",
+  "bugs": {
+    "url": "https://github.com/Mughal-Baig/local-ai-agent/issues"
+  },
   "bin": {
     "agenttrail": "./bin/agenttrail.js"
+  },
+  "files": [
+    "bin",
+    "desktop",
+    "docs",
+    "marketplace",
+    "mcp",
+    "plugins",
+    "profiles",
+    "public",
+    "recipe-packs",
+    "recipes",
+    "scripts",
+    "src",
+    "workspace/welcome.md",
+    "Dockerfile",
+    "install.sh",
+    "server.js",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "publishConfig": {
+    "access": "public"
   },
   "type": "commonjs",
   "scripts": {
     "start": "node server.js",
     "dev": "node server.js",
     "test": "node scripts/smoke-test.js",
+    "test:unit": "node tests/unit/foundation.test.js",
     "eval": "node scripts/evaluate-agenttrail.js",
     "mcp": "node mcp/server.js",
     "demo:gif": "node scripts/generate-demo-gif.js",
+    "release:checksums": "node scripts/generate-release-checksums.js",
     "benchmark": "node scripts/evaluate-agenttrail.js"
   },
   "keywords": [
@@ -31,7 +67,9 @@
     "privacy",
     "mcp",
     "local-embeddings",
-    "ai-agent"
+    "ai-agent",
+    "mcp-server",
+    "diff-safe"
   ],
   "author": "",
   "license": "MIT"

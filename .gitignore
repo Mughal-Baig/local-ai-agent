@@ -11,4 +11,5 @@ workspace/reports/
 workspace/memory/
 workspace/sessions/
 workspace/evals/
+workspace/backups/
 workspace/.agenttrail/

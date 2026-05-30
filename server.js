@@ -2,9 +2,20 @@
 
 const fs = require("node:fs");
 const fsp = require("node:fs/promises");
+const crypto = require("node:crypto");
 const http = require("node:http");
 const path = require("node:path");
 const { URL } = require("node:url");
+const packageMeta = require("./package.json");
+const { SCHEMA_VERSION, listSchemaSummaries, validateSchema, withSchema } = require("./src/schemas");
+const { permissionManifest, evaluateToolPermission } = require("./src/permissions");
+const { listModelAdapters, activeModelAdapter } = require("./src/model-adapters");
+const { JsonLineStore } = require("./src/json-store");
+const { JobManager } = require("./src/jobs");
+const { runMigrations, migrationStatus } = require("./src/migrations");
+const { loadPlugins } = require("./src/plugin-loader");
+const { generateChecksums } = require("./src/release");
+const { buildFoundationStatus } = require("./src/foundation");
 
 loadDotEnv();
 
@@ -21,6 +32,7 @@ const RECIPES_DIR = path.join(PROJECT_ROOT, "recipes");
 const RECIPE_PACKS_DIR = path.join(PROJECT_ROOT, "recipe-packs");
 const PROFILES_DIR = path.join(PROJECT_ROOT, "profiles");
 const MARKETPLACE_DIR = path.join(PROJECT_ROOT, "marketplace");
+const PLUGINS_DIR = path.join(PROJECT_ROOT, "plugins");
 const MCP_MANIFEST_PATH = path.join(PROJECT_ROOT, "mcp", "agenttrail.mcp.json");
 const WORKSPACE_ROOT = path.resolve(PROJECT_ROOT, process.env.WORKSPACE_ROOT || "workspace");
 const RECEIPTS_DIR = "receipts";
@@ -30,6 +42,7 @@ const EVALS_DIR = "evals";
 const MEMORY_PATH = "memory/project-memory.md";
 const MEMORY_HISTORY_DIR = "memory/history";
 const SEARCH_INDEX_PATH = ".agenttrail/search-index.json";
+const BACKUPS_DIR = "backups";
 const MAX_BODY_BYTES = 1024 * 1024;
 const MAX_FILE_BYTES = 80 * 1024;
 const MAX_PROMPT_FILE_BYTES = 28 * 1024;
@@ -38,6 +51,12 @@ const LOCAL_EMBED_DIMS = 192;
 const STOP_WORDS = new Set(["the", "and", "for", "with", "that", "this", "from", "you", "your", "are", "was", "were", "have", "has", "not", "but", "can", "will"]);
 
 fs.mkdirSync(WORKSPACE_ROOT, { recursive: true });
+const STORE = new JsonLineStore(WORKSPACE_ROOT);
+const JOBS = new JobManager();
+const MIGRATIONS_READY = runMigrations(WORKSPACE_ROOT, SCHEMA_VERSION).catch((error) => {
+  console.error(`Migration warning: ${error.message}`);
+  return null;
+});
 
 const server = http.createServer(async (req, res) => {
   try {
@@ -45,6 +64,50 @@ const server = http.createServer(async (req, res) => {
 
     if (url.pathname === "/api/status" && req.method === "GET") {
       return handleStatus(res);
+    }
+
+    if (url.pathname === "/api/foundation" && req.method === "GET") {
+      return handleFoundation(res);
+    }
+
+    if (url.pathname === "/api/schemas" && req.method === "GET") {
+      return handleSchemas(res);
+    }
+
+    if (url.pathname === "/api/permissions" && req.method === "GET") {
+      return handlePermissions(res);
+    }
+
+    if (url.pathname === "/api/store/stats" && req.method === "GET") {
+      return handleStoreStats(res);
+    }
+
+    if (url.pathname === "/api/migrations" && req.method === "GET") {
+      return handleMigrationStatus(res);
+    }
+
+    if (url.pathname === "/api/migrations" && req.method === "POST") {
+      return handleRunMigrations(res);
+    }
+
+    if (url.pathname === "/api/jobs" && req.method === "GET") {
+      return handleListJobs(res);
+    }
+
+    if (url.pathname === "/api/jobs/start" && req.method === "POST") {
+      return handleStartJob(req, res);
+    }
+
+    if (url.pathname === "/api/plugins" && req.method === "GET") {
+      return handlePlugins(res);
+    }
+
+    if (url.pathname === "/api/backup/export" && req.method === "POST") {
+      return handleExportBackup(req, res);
+    }
+
+    if (url.pathname === "/api/releases/checksums" && req.method === "POST") {
+      return handleReleaseChecksums(res);
     }
 
     if (url.pathname === "/api/files" && req.method === "GET") {
@@ -177,7 +240,7 @@ const server = http.createServer(async (req, res) => {
     sendJson(res, 405, { error: "Method not allowed" });
   } catch (error) {
     if (!res.headersSent) {
-      sendJson(res, 500, { error: error.message || "Internal server error" });
+      sendJson(res, 500, friendlyError(error));
     } else {
       res.end();
     }
@@ -193,8 +256,12 @@ server.listen(PORT, HOST, () => {
 async function handleStatus(res) {
   const models = await fetchOllamaModels();
   const scoredModels = models.models.map(scoreModel);
+  const adapter = activeModelAdapter(process.env);
   sendJson(res, 200, {
     app: "ok",
+    version: packageMeta.version,
+    adapter,
+    adapters: listModelAdapters(process.env),
     ollama: {
       available: models.available,
       host: OLLAMA_HOST,
@@ -207,6 +274,194 @@ async function handleStatus(res) {
       workspaceRoot: WORKSPACE_ROOT
     }
   });
+}
+
+async function handleFoundation(res) {
+  await MIGRATIONS_READY;
+  const [migrations, plugins, storeStats] = await Promise.all([
+    migrationStatus(WORKSPACE_ROOT),
+    loadPlugins(PLUGINS_DIR),
+    STORE.stats()
+  ]);
+  sendJson(res, 200, buildFoundationStatus({
+    schemas: listSchemaSummaries(),
+    migrations,
+    plugins,
+    storeStats,
+    adapters: listModelAdapters(process.env),
+    packageVersion: packageMeta.version
+  }));
+}
+
+async function handleSchemas(res) {
+  sendJson(res, 200, {
+    version: SCHEMA_VERSION,
+    schemas: listSchemaSummaries()
+  });
+}
+
+async function handlePermissions(res) {
+  sendJson(res, 200, {
+    schema: "agenttrail.tool-permissions.v1",
+    permissions: permissionManifest()
+  });
+}
+
+async function handleStoreStats(res) {
+  sendJson(res, 200, await STORE.stats());
+}
+
+async function handleMigrationStatus(res) {
+  await MIGRATIONS_READY;
+  sendJson(res, 200, await migrationStatus(WORKSPACE_ROOT));
+}
+
+async function handleRunMigrations(res) {
+  const result = await runMigrations(WORKSPACE_ROOT, SCHEMA_VERSION);
+  await STORE.append("migration", result);
+  sendJson(res, 200, result);
+}
+
+async function handleListJobs(res) {
+  sendJson(res, 200, { jobs: JOBS.list() });
+}
+
+async function handleStartJob(req, res) {
+  const body = await readJsonBody(req);
+  const type = String(body.type || "").trim();
+  const job = JOBS.start(type || "foundation-audit", async ({ update }) => {
+    if (type === "search-index") {
+      update(30, "Building search index");
+      return buildSearchIndex(String(body.provider || "local-vector"));
+    }
+    if (type === "backup") {
+      update(40, "Exporting backup");
+      return exportBackup({ includeWorkspaceFiles: body.includeWorkspaceFiles === true });
+    }
+    if (type === "release-checksums") {
+      update(45, "Generating release checksums");
+      return generateChecksums(PROJECT_ROOT, `v${packageMeta.version}`);
+    }
+    update(35, "Auditing foundation");
+    return {
+      foundation: buildFoundationStatus({
+        schemas: listSchemaSummaries(),
+        migrations: await migrationStatus(WORKSPACE_ROOT),
+        plugins: await loadPlugins(PLUGINS_DIR),
+        storeStats: await STORE.stats(),
+        adapters: listModelAdapters(process.env),
+        packageVersion: packageMeta.version
+      })
+    };
+  });
+  await STORE.append("job", { id: job.id, type: job.type, status: job.status });
+  sendJson(res, 200, job);
+}
+
+async function handlePlugins(res) {
+  sendJson(res, 200, { plugins: await loadPlugins(PLUGINS_DIR) });
+}
+
+async function handleExportBackup(req, res) {
+  const body = await readJsonBody(req);
+  const result = await exportBackup({ includeWorkspaceFiles: body.includeWorkspaceFiles === true });
+  await STORE.append("backup", result);
+  sendJson(res, 200, result);
+}
+
+async function handleReleaseChecksums(res) {
+  const result = await generateChecksums(PROJECT_ROOT, `v${packageMeta.version}`);
+  await STORE.append("release-checksums", result);
+  sendJson(res, 200, result);
+}
+
+async function exportBackup(options = {}) {
+  const files = await listWorkspaceFiles();
+  const workspaceItems = [];
+  const includeWorkspaceFiles = options.includeWorkspaceFiles === true;
+  const allowedPrefixes = [`${RECEIPTS_DIR}/`, `${SESSIONS_DIR}/`, `${REPORTS_DIR}/`, "memory/", `${EVALS_DIR}/`, ".agenttrail/"];
+
+  for (const file of files) {
+    if (file.path.startsWith(`${BACKUPS_DIR}/`)) {
+      continue;
+    }
+    if (!includeWorkspaceFiles && !allowedPrefixes.some((prefix) => file.path.startsWith(prefix))) {
+      continue;
+    }
+    if (file.size > MAX_FILE_BYTES) {
+      continue;
+    }
+    try {
+      const content = await readWorkspaceFile(file.path, MAX_FILE_BYTES);
+      workspaceItems.push({
+        path: content.path,
+        size: content.size,
+        modifiedAt: content.modifiedAt,
+        content: content.content
+      });
+    } catch {
+      // Skip unreadable files.
+    }
+  }
+
+  const projectItems = await collectProjectBackupItems([
+    RECIPES_DIR,
+    RECIPE_PACKS_DIR,
+    PROFILES_DIR,
+    MARKETPLACE_DIR,
+    PLUGINS_DIR
+  ]);
+  const backup = withSchema("backup", {
+    createdAt: new Date().toISOString(),
+    appVersion: packageMeta.version,
+    paths: {
+      workspaceRoot: WORKSPACE_ROOT,
+      recipes: "recipes",
+      packs: "recipe-packs",
+      profiles: "profiles",
+      marketplace: "marketplace",
+      plugins: "plugins"
+    },
+    items: [...projectItems, ...workspaceItems.map((item) => ({ area: "workspace", ...item }))],
+    includeWorkspaceFiles
+  });
+  const stamp = new Date().toISOString().replace(/[:.]/g, "-");
+  const result = await writeWorkspaceFile(`${BACKUPS_DIR}/agenttrail-backup-${stamp}.json`, JSON.stringify(backup, null, 2));
+  return { ...result, itemCount: backup.items.length, includeWorkspaceFiles };
+}
+
+async function collectProjectBackupItems(directories) {
+  const items = [];
+  for (const directory of directories) {
+    const entries = await fsp.readdir(directory, { withFileTypes: true }).catch(() => []);
+    for (const entry of entries) {
+      const absolutePath = path.join(directory, entry.name);
+      if (entry.isDirectory()) {
+        const nested = await collectProjectBackupItems([absolutePath]);
+        items.push(...nested);
+        continue;
+      }
+      if (!entry.isFile() || entry.name === ".DS_Store") {
+        continue;
+      }
+      try {
+        const stat = await fsp.stat(absolutePath);
+        if (stat.size > MAX_FILE_BYTES) {
+          continue;
+        }
+        items.push({
+          area: path.relative(PROJECT_ROOT, directory).split(path.sep)[0] || "project",
+          path: path.relative(PROJECT_ROOT, absolutePath).replace(/\\/g, "/"),
+          size: stat.size,
+          modifiedAt: stat.mtime.toISOString(),
+          content: await fsp.readFile(absolutePath, "utf8")
+        });
+      } catch {
+        // Skip unreadable project files.
+      }
+    }
+  }
+  return items;
 }
 
 async function handleListFiles(res) {
@@ -247,6 +502,7 @@ async function handleSaveReceipt(req, res) {
 
   const stamp = new Date().toISOString().replace(/[:.]/g, "-");
   const result = await writeWorkspaceFile(`${RECEIPTS_DIR}/trail-${stamp}.md`, content);
+  await STORE.append("receipt", { path: result.path, size: result.size });
   sendJson(res, 200, result);
 }
 
@@ -278,6 +534,8 @@ async function handleGetSearchIndex(res) {
     model: index.model || null,
     dimensions: index.dimensions || 0,
     itemCount: Array.isArray(index.items) ? index.items.length : 0,
+    chunkCount: Array.isArray(index.chunks) ? index.chunks.length : 0,
+    fileHashCount: index.fileHashes ? Object.keys(index.fileHashes).length : 0,
     builtAt: index.builtAt || null
   });
 }
@@ -375,6 +633,7 @@ async function handleSaveReport(req, res) {
   const htmlPath = `${REPORTS_DIR}/${safeTitle}-${stamp}.html`;
   const mdResult = await writeWorkspaceFile(mdPath, markdown || htmlToMarkdownFallback(html, title));
   const htmlResult = await writeWorkspaceFile(htmlPath, html || reportHtml(title, markdown));
+  await STORE.append("report", { title, markdown: mdResult.path, html: htmlResult.path });
   sendJson(res, 200, { markdown: mdResult, html: htmlResult });
 }
 
@@ -425,8 +684,13 @@ async function handleSaveSession(req, res) {
       tools: Array.isArray(body.trail) ? body.trail.filter((item) => item && ["tool", "preview", "search"].includes(item.type)).slice(0, 30) : []
     }
   };
+  const schemaCheck = validateSchema("session", session);
+  if (!schemaCheck.ok) {
+    return sendJson(res, 400, { error: "Invalid session schema", details: schemaCheck.errors });
+  }
   const safeTitle = title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "session";
   const result = await writeWorkspaceFile(`${SESSIONS_DIR}/${safeTitle}-${stamp}.json`, JSON.stringify(session, null, 2));
+  await STORE.append("session", { path: result.path, title: session.title, model: session.model });
   sendJson(res, 200, { ...result, session });
 }
 
@@ -501,6 +765,7 @@ async function handleRunEvals(res) {
   const results = await runLocalEvals();
   const stamp = new Date().toISOString().replace(/[:.]/g, "-");
   const saved = await writeWorkspaceFile(`${EVALS_DIR}/eval-${stamp}.json`, JSON.stringify(results, null, 2));
+  await STORE.append("eval", { path: saved.path, score: results.score, passed: results.passed, total: results.total });
   sendJson(res, 200, { ...results, saved });
 }
 
@@ -565,12 +830,14 @@ async function handleSecurityScan(req, res) {
 
   const findings = scanned.flatMap((item) => item.findings.map((finding) => ({ ...finding, path: item.path })));
   const score = Math.max(0, 100 - findings.length * 12 - scanned.filter((item) => item.risk === "high").length * 18);
-  sendJson(res, 200, {
+  const result = {
     score,
     risk: score >= 85 ? "low" : score >= 65 ? "medium" : "high",
     scanned,
     findings
-  });
+  };
+  await STORE.append("security-scan", { score: result.score, risk: result.risk, findings: findings.length });
+  sendJson(res, 200, result);
 }
 
 async function handleReadFile(url, res) {
@@ -761,36 +1028,50 @@ async function buildAgentPrompt(messages, selectedFiles, toolHistory, permission
 
 async function executeToolCall(toolCall, permissions) {
   const args = toolCall.arguments || {};
+  const decision = evaluateToolPermission(toolCall.tool, permissions, args);
+  if (!decision.ok) {
+    await STORE.append("tool-denied", { tool: toolCall.tool, reason: decision.reason, risk: decision.definition.risk });
+    return { error: decision.reason, permission: decision.definition };
+  }
 
   if (toolCall.tool === "list_files") {
-    return { files: await listWorkspaceFiles() };
+    const result = { files: await listWorkspaceFiles(), permission: decision.definition };
+    await STORE.append("tool", { tool: toolCall.tool, result: "list_files", risk: decision.definition.risk });
+    return result;
   }
 
   if (toolCall.tool === "search_workspace") {
-    return { results: await searchWorkspace(String(args.query || ""), Number(args.limit || 5)) };
+    const result = {
+      results: await searchWorkspace(String(args.query || ""), Number(args.limit || 5)),
+      permission: decision.definition
+    };
+    await STORE.append("tool", { tool: toolCall.tool, query: String(args.query || ""), risk: decision.definition.risk });
+    return result;
   }
 
   if (toolCall.tool === "read_file") {
-    if (!permissions.readFiles) {
-      return { error: "read_file permission is disabled" };
-    }
-    return readWorkspaceFile(String(args.path || ""), MAX_FILE_BYTES);
+    const result = await readWorkspaceFile(String(args.path || ""), MAX_FILE_BYTES);
+    await STORE.append("tool", { tool: toolCall.tool, path: result.path, risk: decision.definition.risk });
+    return { ...result, permission: decision.definition };
   }
 
   if (toolCall.tool === "preview_write_file") {
-    return previewWorkspaceFile(String(args.path || ""), String(args.content || ""));
+    const result = await previewWorkspaceFile(String(args.path || ""), String(args.content || ""));
+    await STORE.append("tool", { tool: toolCall.tool, path: result.path, risk: decision.definition.risk });
+    return { ...result, permission: decision.definition };
   }
 
   if (toolCall.tool === "write_file") {
-    if (!permissions.writeFiles) {
-      return { error: "write_file permission is disabled" };
-    }
-    if (permissions.previewWrites) {
-      return previewWorkspaceFile(String(args.path || ""), String(args.content || ""), {
+    if (decision.action === "preview") {
+      const result = await previewWorkspaceFile(String(args.path || ""), String(args.content || ""), {
         blockedWrite: true
       });
+      await STORE.append("tool", { tool: toolCall.tool, path: result.path, convertedToPreview: true, risk: decision.definition.risk });
+      return { ...result, permission: decision.definition };
     }
-    return writeWorkspaceFile(String(args.path || ""), String(args.content || ""));
+    const result = await writeWorkspaceFile(String(args.path || ""), String(args.content || ""));
+    await STORE.append("tool", { tool: toolCall.tool, path: result.path, risk: decision.definition.risk });
+    return { ...result, permission: decision.definition };
   }
 
   return { error: `Unknown tool: ${toolCall.tool}` };
@@ -1075,6 +1356,8 @@ async function buildSearchIndex(requestedProvider) {
   let model = provider === "ollama" ? OLLAMA_EMBED_MODEL : `hash-${LOCAL_EMBED_DIMS}`;
   let dimensions = 0;
   const items = [];
+  const chunks = [];
+  const fileHashes = {};
 
   if (provider === "ollama") {
     const probe = await fetchOllamaEmbedding("AgentTrail semantic search probe", OLLAMA_EMBED_MODEL).catch(() => null);
@@ -1097,6 +1380,16 @@ async function buildSearchIndex(requestedProvider) {
       continue;
     }
 
+    const hash = hashContent(content);
+    fileHashes[file.path] = hash;
+    const fileChunks = chunkText(content).map((chunk, index) => ({
+      id: `${file.path}#${index + 1}`,
+      path: file.path,
+      index,
+      hash: hashContent(chunk),
+      size: Buffer.byteLength(chunk, "utf8"),
+      preview: truncate(chunk.replace(/\s+/g, " ").trim(), 120)
+    }));
     const text = `${file.path}\n${content.slice(0, MAX_SEARCH_FILE_BYTES)}`;
     let embedding = null;
     if (provider === "ollama") {
@@ -1106,6 +1399,10 @@ async function buildSearchIndex(requestedProvider) {
         model = `hash-${LOCAL_EMBED_DIMS}`;
         dimensions = LOCAL_EMBED_DIMS;
         items.length = 0;
+        chunks.length = 0;
+        for (const key of Object.keys(fileHashes)) {
+          delete fileHashes[key];
+        }
         break;
       }
       embedding = normalizeVector(embedding);
@@ -1117,8 +1414,11 @@ async function buildSearchIndex(requestedProvider) {
       path: file.path,
       size: file.size,
       modifiedAt: file.modifiedAt,
+      hash,
+      chunkCount: fileChunks.length,
       embedding
     });
+    chunks.push(...fileChunks);
   }
 
   if (provider === "local-vector" && !items.length) {
@@ -1132,14 +1432,27 @@ async function buildSearchIndex(requestedProvider) {
       if (content.includes("\u0000")) {
         continue;
       }
+      const hash = hashContent(content);
+      fileHashes[file.path] = hash;
+      const fileChunks = chunkText(content).map((chunk, index) => ({
+        id: `${file.path}#${index + 1}`,
+        path: file.path,
+        index,
+        hash: hashContent(chunk),
+        size: Buffer.byteLength(chunk, "utf8"),
+        preview: truncate(chunk.replace(/\s+/g, " ").trim(), 120)
+      }));
       const embedding = embedTextDense(`${file.path}\n${content.slice(0, MAX_SEARCH_FILE_BYTES)}`);
       dimensions = embedding.length;
       items.push({
         path: file.path,
         size: file.size,
         modifiedAt: file.modifiedAt,
+        hash,
+        chunkCount: fileChunks.length,
         embedding
       });
+      chunks.push(...fileChunks);
     }
   }
 
@@ -1150,6 +1463,8 @@ async function buildSearchIndex(requestedProvider) {
     dimensions,
     builtAt: new Date().toISOString(),
     workspaceRoot: WORKSPACE_ROOT,
+    fileHashes,
+    chunks,
     items
   };
   await writeWorkspaceFile(SEARCH_INDEX_PATH, JSON.stringify(index, null, 2));
@@ -1160,6 +1475,7 @@ async function buildSearchIndex(requestedProvider) {
     model,
     dimensions,
     itemCount: items.length,
+    chunkCount: chunks.length,
     builtAt: index.builtAt
   };
 }
@@ -1793,6 +2109,24 @@ function stableHash(value) {
   return hash >>> 0;
 }
 
+function hashContent(content) {
+  return crypto.createHash("sha256").update(String(content || ""), "utf8").digest("hex");
+}
+
+function chunkText(content, size = 1800, overlap = 180) {
+  const text = String(content || "");
+  if (!text) {
+    return [];
+  }
+  const chunks = [];
+  let index = 0;
+  while (index < text.length && chunks.length < 80) {
+    chunks.push(text.slice(index, index + size));
+    index += Math.max(1, size - overlap);
+  }
+  return chunks;
+}
+
 function cosineSimilarity(a, b) {
   if (Array.isArray(a) && Array.isArray(b)) {
     const length = Math.min(a.length, b.length);
@@ -1870,6 +2204,28 @@ function markdownToHtml(markdown) {
 function htmlToMarkdownFallback(html, title) {
   const text = String(html || "").replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
   return [`# ${title}`, "", text].join("\n");
+}
+
+function friendlyError(error) {
+  const message = error && error.message ? error.message : "Internal server error";
+  const lower = message.toLowerCase();
+  let hint = "Check the Agent Trail and retry the action.";
+  if (lower.includes("ollama")) {
+    hint = `Start Ollama, verify ${OLLAMA_HOST}, and pull ${DEFAULT_MODEL}.`;
+  } else if (lower.includes("embedding")) {
+    hint = `Pull the embedding model with: ollama pull ${OLLAMA_EMBED_MODEL}.`;
+  } else if (lower.includes("too large")) {
+    hint = "Select a smaller file or increase the local size limit deliberately.";
+  } else if (lower.includes("escapes the workspace")) {
+    hint = "Use a path inside the configured workspace folder.";
+  } else if (lower.includes("permission")) {
+    hint = "Review the permission toggles or use preview mode first.";
+  }
+  return {
+    error: message,
+    hint,
+    code: lower.includes("workspace") ? "WORKSPACE_BOUNDARY" : lower.includes("ollama") ? "MODEL_BACKEND" : "AGENTTRAIL_ERROR"
+  };
 }
 
 function escapeHtmlForReport(value) {

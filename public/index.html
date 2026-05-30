@@ -181,6 +181,23 @@
           <div id="marketplaceSummary" class="mini-list"></div>
           <p id="profileSummary" class="hint">Loading profiles and MCP manifest...</p>
         </section>
+
+        <section class="panel foundation-panel" aria-label="Foundation dashboard">
+          <div class="panel-heading">
+            <h2>Foundation</h2>
+            <button id="refreshFoundation" class="icon-button" title="Refresh foundation status" aria-label="Refresh foundation status">F</button>
+          </div>
+          <div id="foundationSummary" class="eval-summary"></div>
+          <div class="toolkit-grid">
+            <button id="runFoundationJob" class="secondary-button compact-button" type="button">Audit foundation</button>
+            <button id="exportBackup" class="secondary-button compact-button" type="button">Export backup</button>
+          </div>
+          <div class="toolkit-grid">
+            <button id="runMigrations" class="secondary-button compact-button" type="button">Run migrations</button>
+            <button id="releaseChecksums" class="secondary-button compact-button" type="button">Checksums</button>
+          </div>
+          <div id="foundationDetails" class="mini-list"></div>
+        </section>
       </aside>
 
       <main class="chat-area">
@@ -217,6 +234,7 @@
       </main>
     </div>
 
-    <script src="/app.js?v=9"></script>
+    <script src="/app.js?v=10"></script>
+    <script src="/modules/foundation.js?v=1"></script>
   </body>
 </html>

@@ -1,0 +1,23 @@
+# AgentTrail Schemas
+
+AgentTrail treats local artifacts as stable contracts, not random files.
+
+Current schema families:
+
+- `agenttrail.session.v1`
+- `agenttrail.receipt.v1`
+- `agenttrail.report.v1`
+- `agenttrail.recipe-pack.v1`
+- `agenttrail.profile.v1`
+- `agenttrail.memory-revision.v1`
+- `agenttrail.search-index.v1`
+- `agenttrail.tool-permission.v1`
+- `agenttrail.plugin.v1`
+- `agenttrail.job.v1`
+- `agenttrail.backup.v1`
+
+The running app exposes schema summaries at `/api/schemas`.
+
+## Migration Rule
+
+New versions should add fields instead of removing old ones. When old files need repair, add a migration under `src/migrations.js` and keep loading old artifacts.

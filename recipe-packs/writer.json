@@ -1,0 +1,12 @@
+{
+  "id": "writer",
+  "title": "Writer Pack",
+  "description": "Writing workflows for user docs, release notes, README polish, changelogs, and positioning.",
+  "recipes": [
+    "user-docs",
+    "release-notes",
+    "readme-polish",
+    "changelog",
+    "launch-readme"
+  ]
+}

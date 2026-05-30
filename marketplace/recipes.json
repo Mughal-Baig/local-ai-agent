@@ -29,6 +29,24 @@
       "recipes": ["prompt-injection-review", "threat-model", "local-agent-hardening", "mcp-readiness-review", "receipt-auditor"],
       "stars": 0,
       "source": "built-in"
+    },
+    {
+      "id": "student-pack",
+      "title": "Student Pack",
+      "role": "student",
+      "description": "Study notes, research briefs, meeting notes, test planning, and receipt summaries.",
+      "recipes": ["workspace-brief", "local-rag-brief", "meeting-notes", "test-plan", "receipt-summary"],
+      "stars": 0,
+      "source": "built-in"
+    },
+    {
+      "id": "writer-pack",
+      "title": "Writer Pack",
+      "role": "writer",
+      "description": "User docs, release notes, README polish, changelogs, and launch copy.",
+      "recipes": ["user-docs", "release-notes", "readme-polish", "changelog", "launch-readme"],
+      "stars": 0,
+      "source": "built-in"
     }
   ]
 }

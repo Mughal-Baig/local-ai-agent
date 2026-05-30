@@ -34,7 +34,7 @@ The demo loop: semantic local search -> diff preview -> explicit Apply -> receip
 - **Private by design**: the server only talks to Ollama and the local browser UI.
 - **Safe workspace boundary**: file reads and writes are blocked outside `workspace/`.
 - **Zero npm dependencies**: clone, run `node server.js`, and start building.
-- **Hackable core**: the agent loop is one readable Node server, not a framework maze.
+- **Serious foundation**: schemas, migrations, permission engine, background jobs, backups, plugins, checksums, and tests keep it from feeling like a toy.
 
 ## What Makes It Different
 
@@ -47,6 +47,7 @@ Popular local AI tools are often full platforms. This project is intentionally s
 | File access | Sandboxed workspace tools plus keyword search, local vector index, and Ollama embedding index |
 | Trust UX | Trust Score, local signals, security scan, reviewable diff previews, explicit apply buttons, exportable reports, replay sessions, receipts, and tool history |
 | Workflow system | Plain JSON recipes, role-based recipe packs, import/export UI, and marketplace manifest |
+| Foundation | Stable schemas, migrations, append-only store, permission engine, plugin manifests, backups, jobs, checksums |
 | Best use | Personal workspace agent starter kit and auditable local workflow lab |
 
 ## 60-second Quick Start
@@ -90,6 +91,14 @@ Open `http://127.0.0.1:4173`, build the semantic index, ask for a change, review
 - Workspace profile templates with profile switching API/UI
 - Local evaluation harness plus saved pass/fail history and model benchmark surface
 - Dockerfile, Docker Compose, `agenttrail` bin entry, install script, Homebrew formula draft, and desktop launchers
+- Stable schemas exposed at `/api/schemas`
+- Append-only local event store exposed at `/api/store/stats`
+- Migration system exposed at `/api/migrations`
+- Background jobs exposed at `/api/jobs`
+- Plugin manifests exposed at `/api/plugins`
+- Backup export exposed at `/api/backup/export`
+- Release checksums exposed at `/api/releases/checksums`
+- Separate frontend foundation module in `public/modules/foundation.js`
 - Saved receipt history in `workspace/receipts/`
 - Safe path handling so the agent stays inside `workspace/`
 - Smoke test and GitHub Actions CI included
@@ -208,6 +217,19 @@ When write preview mode is enabled, `write_file` returns a diff preview instead 
 - Shareable reports: polished Markdown/HTML exports in `workspace/reports/`
 - Community growth loop: issue templates, launch posts, marketplace submissions, and good-first contribution docs
 
+## Foundation Surfaces
+
+- Server modules: [src](src)
+- Stable schemas: [docs/SCHEMAS.md](docs/SCHEMAS.md)
+- Permission engine: [src/permissions.js](src/permissions.js)
+- Model adapters: [src/model-adapters.js](src/model-adapters.js)
+- Migration system: [src/migrations.js](src/migrations.js)
+- Append-only store: [src/json-store.js](src/json-store.js)
+- Background jobs: [src/jobs.js](src/jobs.js)
+- Plugin architecture: [plugins](plugins)
+- Release checksums: [docs/RELEASE_SIGNING.md](docs/RELEASE_SIGNING.md)
+- Backup export: `workspace/backups/`
+
 ## Workspace
 
 Put project notes, drafts, and files you want the agent to work with inside:
@@ -246,7 +268,9 @@ Supported variables:
 
 ```bash
 node scripts/smoke-test.js
+npm run test:unit
 npm run eval
+npm run release:checksums
 ```
 
 The smoke test starts the server on a temporary port, checks the UI and API, writes a test file in a temporary workspace, reads it back, and shuts the server down.
@@ -259,7 +283,7 @@ See [docs/ROADMAP.md](docs/ROADMAP.md).
 
 See [docs/GROWTH_RESEARCH.md](docs/GROWTH_RESEARCH.md) for research-backed positioning, [docs/LAUNCH_PLAN.md](docs/LAUNCH_PLAN.md) for the public launch checklist, and [docs/TOP_1_PERCENT_PLAYBOOK.md](docs/TOP_1_PERCENT_PLAYBOOK.md) for the focused growth path.
 
-The v0.5 implementation map is in [docs/TOP_1_PERCENT_IMPLEMENTATION.md](docs/TOP_1_PERCENT_IMPLEMENTATION.md).
+The v0.6 implementation map is in [docs/TOP_1_PERCENT_IMPLEMENTATION.md](docs/TOP_1_PERCENT_IMPLEMENTATION.md).
 
 ## Contributing
 

@@ -47,6 +47,23 @@ async function main() {
     const status = await fetchJson(`http://127.0.0.1:${port}/api/status`);
     assert.equal(status.app, "ok");
     assert.equal(status.ollama.available, false);
+    assert.equal(status.version, "0.6.0");
+    assert.equal(Array.isArray(status.adapters), true);
+
+    const foundation = await fetchJson(`http://127.0.0.1:${port}/api/foundation`);
+    assert.equal(foundation.score >= 90, true);
+
+    const schemas = await fetchJson(`http://127.0.0.1:${port}/api/schemas`);
+    assert.equal(schemas.schemas.length >= 10, true);
+
+    const permissions = await fetchJson(`http://127.0.0.1:${port}/api/permissions`);
+    assert.equal(permissions.permissions.some((item) => item.tool === "write_file"), true);
+
+    const plugins = await fetchJson(`http://127.0.0.1:${port}/api/plugins`);
+    assert.equal(plugins.plugins.some((plugin) => plugin.id === "example-tool"), true);
+
+    const migrations = await postJson(`http://127.0.0.1:${port}/api/migrations`, {});
+    assert.equal(migrations.pending.length, 0);
 
     const recipes = await fetchJson(`http://127.0.0.1:${port}/api/recipes`);
     assert.equal(Array.isArray(recipes.recipes), true);
@@ -79,9 +96,11 @@ async function main() {
     });
     assert.equal(searchIndex.ok, true);
     assert.equal(searchIndex.provider, "local-vector");
+    assert.equal(searchIndex.chunkCount >= 1, true);
 
     const indexStatus = await fetchJson(`http://127.0.0.1:${port}/api/search-index`);
     assert.equal(indexStatus.exists, true);
+    assert.equal(indexStatus.fileHashCount >= 1, true);
 
     const memory = await postJson(`http://127.0.0.1:${port}/api/memory`, {
       content: "# Project Memory\n\nPrefer preview-first writes.\n"
@@ -92,7 +111,7 @@ async function main() {
     assert.equal(citations.citations.length >= 1, true);
 
     const packs = await fetchJson(`http://127.0.0.1:${port}/api/packs`);
-    assert.equal(packs.packs.length >= 1, true);
+    assert.equal(packs.packs.length >= 5, true);
 
     const marketplace = await fetchJson(`http://127.0.0.1:${port}/api/marketplace`);
     assert.equal(marketplace.marketplace.packs.length >= 1, true);
@@ -122,6 +141,26 @@ async function main() {
       paths: ["notes/test.md"]
     });
     assert.equal(securityScan.findings.length >= 2, true);
+
+    const backup = await postJson(`http://127.0.0.1:${port}/api/backup/export`, {
+      includeWorkspaceFiles: false
+    });
+    assert.equal(backup.ok, true);
+    assert.equal(backup.itemCount >= 1, true);
+
+    const checksums = await postJson(`http://127.0.0.1:${port}/api/releases/checksums`, {});
+    assert.equal(checksums.count >= 5, true);
+
+    const job = await postJson(`http://127.0.0.1:${port}/api/jobs/start`, {
+      type: "foundation-audit"
+    });
+    assert.equal(job.status, "queued");
+
+    const jobs = await fetchJson(`http://127.0.0.1:${port}/api/jobs`);
+    assert.equal(jobs.jobs.length >= 1, true);
+
+    const storeStats = await fetchJson(`http://127.0.0.1:${port}/api/store/stats`);
+    assert.equal(storeStats.count >= 1, true);
 
     const report = await postJson(`http://127.0.0.1:${port}/api/reports`, {
       title: "Smoke Report",

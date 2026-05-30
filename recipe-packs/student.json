@@ -1,0 +1,12 @@
+{
+  "id": "student",
+  "title": "Student Pack",
+  "description": "Study-friendly workflows for notes, research briefs, summaries, and test plans.",
+  "recipes": [
+    "workspace-brief",
+    "local-rag-brief",
+    "meeting-notes",
+    "test-plan",
+    "receipt-summary"
+  ]
+}

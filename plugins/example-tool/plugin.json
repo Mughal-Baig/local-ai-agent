@@ -1,0 +1,23 @@
+{
+  "schema": "agenttrail.plugin.v1",
+  "id": "example-tool",
+  "title": "Example Tool",
+  "version": "0.1.0",
+  "description": "A safe starter manifest showing how community tools declare permissions before execution.",
+  "tools": [
+    {
+      "name": "example.echo",
+      "description": "Echo approved input for testing plugin wiring.",
+      "risk": "low",
+      "receipt": true
+    }
+  ],
+  "permissions": [
+    {
+      "tool": "example.echo",
+      "scope": "Read one provided string and return it.",
+      "risk": "low",
+      "receipt": true
+    }
+  ]
+}

@@ -1,6 +1,6 @@
 {
   "name": "agenttrail-local",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "status": "stdio-server-ready",
   "description": "MCP bridge contract for AgentTrail local tools. Run `npm run mcp`; medium/high-risk tools require explicit approval before execution.",
   "server": {
