@@ -13,3 +13,9 @@ workspace/sessions/
 workspace/evals/
 workspace/backups/
 workspace/.agenttrail/
+
+# Generated build intermediates (keep build/*.icns and build/*.js generators)
+build/AgentTrail.iconset/
+build/demo-frames/
+build/screens/
+*.bak

@@ -39,7 +39,18 @@ async function main() {
   await fsp.writeFile(executablePath, launcher(), "utf8");
   await fsp.chmod(executablePath, 0o755);
 
+  await installIcon(resourcesDir);
+
   console.log(`Built ${outputPath}`);
+}
+
+async function installIcon(resourcesDir) {
+  const iconSource = path.join(projectRoot, "build", "AgentTrail.icns");
+  try {
+    await fsp.copyFile(iconSource, path.join(resourcesDir, "AgentTrail.icns"));
+  } catch (error) {
+    console.warn(`Skipped app icon (missing ${iconSource}). Run "node build/make-icns.js" to regenerate.`);
+  }
 }
 
 function plist() {
@@ -58,6 +69,10 @@ function plist() {
   <key>CFBundleShortVersionString</key>
   <string>${escapePlist(packageMeta.version)}</string>
   <key>CFBundleExecutable</key>
+  <string>AgentTrail</string>
+  <key>CFBundleIconFile</key>
+  <string>AgentTrail</string>
+  <key>CFBundleIconName</key>
   <string>AgentTrail</string>
   <key>CFBundlePackageType</key>
   <string>APPL</string>

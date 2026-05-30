@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>AgentTrail Local</title>
     <link rel="icon" href="/logo.svg" />
-    <link rel="stylesheet" href="/styles.css?v=10" />
+    <link rel="stylesheet" href="/styles.css?v=11" />
   </head>
   <body>
     <div class="app-shell">
@@ -18,6 +18,10 @@
           </div>
         </div>
 
+        <details class="sidebar-group" open>
+          <summary class="group-head"><span>Essentials</span><svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></summary>
+          <div class="group-body">
+
         <section class="panel">
           <div class="panel-heading">
             <h2>Model</h2>
@@ -28,6 +32,33 @@
           <p class="hint" id="modelHint">Local models appear here when Ollama is running.</p>
           <div id="modelScoreList" class="model-score-list"></div>
         </section>
+
+        <section class="panel files-panel">
+          <div class="panel-heading">
+            <h2>Workspace</h2>
+            <button id="refreshFiles" class="icon-button" title="Refresh workspace files" aria-label="Refresh workspace files"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg></button>
+          </div>
+          <div id="fileList" class="file-list"></div>
+          <button id="newNote" class="secondary-button">New note</button>
+        </section>
+
+        <section class="panel trail-panel" aria-label="Agent trail">
+          <div class="panel-heading">
+            <h2>Agent Trail</h2>
+            <div class="panel-actions">
+              <button id="exportTrail" class="icon-button" title="Export agent trail as Markdown" aria-label="Export agent trail as Markdown"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg></button>
+              <button id="clearTrail" class="icon-button" title="Clear agent trail" aria-label="Clear agent trail"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg></button>
+            </div>
+          </div>
+          <div id="agentTrail" class="agent-trail"></div>
+        </section>
+
+          </div>
+        </details>
+
+        <details class="sidebar-group" open>
+          <summary class="group-head"><span>Trust &amp; Safety</span><svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></summary>
+          <div class="group-body">
 
         <section class="panel signal-panel" aria-label="Local safety signals">
           <div class="panel-heading">
@@ -53,13 +84,6 @@
           </div>
         </section>
 
-        <section class="panel setup-panel" aria-label="Setup checklist">
-          <div class="panel-heading">
-            <h2>Setup</h2>
-          </div>
-          <div id="setupChecklist" class="setup-list"></div>
-        </section>
-
         <section class="panel permissions-panel" aria-label="Agent permissions">
           <div class="panel-heading">
             <h2>Permissions</h2>
@@ -82,6 +106,21 @@
           </label>
           <p class="hint">Writes are off by default; preview mode returns a diff instead of touching files.</p>
         </section>
+
+        <section class="panel review-panel" aria-label="Diff review center">
+          <div class="panel-heading">
+            <h2>Diff Review</h2>
+            <button id="applyAllPreviews" class="icon-button" title="Apply all pending previews" aria-label="Apply all pending previews"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></button>
+          </div>
+          <div id="pendingChanges" class="pending-changes"></div>
+        </section>
+
+          </div>
+        </details>
+
+        <details class="sidebar-group">
+          <summary class="group-head"><span>Search &amp; Recipes</span><svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></summary>
+          <div class="group-body">
 
         <section class="panel search-panel" aria-label="Workspace search">
           <div class="panel-heading">
@@ -111,33 +150,12 @@
           <button id="useRecipe" class="secondary-button" type="button">Use recipe</button>
         </section>
 
-        <section class="panel files-panel">
-          <div class="panel-heading">
-            <h2>Workspace</h2>
-            <button id="refreshFiles" class="icon-button" title="Refresh workspace files" aria-label="Refresh workspace files"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg></button>
           </div>
-          <div id="fileList" class="file-list"></div>
-          <button id="newNote" class="secondary-button">New note</button>
-        </section>
+        </details>
 
-        <section class="panel trail-panel" aria-label="Agent trail">
-          <div class="panel-heading">
-            <h2>Agent Trail</h2>
-            <div class="panel-actions">
-              <button id="exportTrail" class="icon-button" title="Export agent trail as Markdown" aria-label="Export agent trail as Markdown"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg></button>
-              <button id="clearTrail" class="icon-button" title="Clear agent trail" aria-label="Clear agent trail"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg></button>
-            </div>
-          </div>
-          <div id="agentTrail" class="agent-trail"></div>
-        </section>
-
-        <section class="panel review-panel" aria-label="Diff review center">
-          <div class="panel-heading">
-            <h2>Diff Review</h2>
-            <button id="applyAllPreviews" class="icon-button" title="Apply all pending previews" aria-label="Apply all pending previews"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></button>
-          </div>
-          <div id="pendingChanges" class="pending-changes"></div>
-        </section>
+        <details class="sidebar-group">
+          <summary class="group-head"><span>History</span><svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></summary>
+          <div class="group-body">
 
         <section class="panel receipt-panel" aria-label="Receipt timeline">
           <div class="panel-heading">
@@ -161,6 +179,27 @@
           <p id="memoryStatus" class="hint">Memory is stored locally in the workspace.</p>
           <div id="memoryCitations" class="mini-list"></div>
         </section>
+
+          </div>
+        </details>
+
+        <details class="sidebar-group">
+          <summary class="group-head"><span>Setup</span><svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></summary>
+          <div class="group-body">
+
+        <section class="panel setup-panel" aria-label="Setup checklist">
+          <div class="panel-heading">
+            <h2>Setup</h2>
+          </div>
+          <div id="setupChecklist" class="setup-list"></div>
+        </section>
+
+          </div>
+        </details>
+
+        <details class="sidebar-group">
+          <summary class="group-head"><span>Labs</span><svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></summary>
+          <div class="group-body">
 
         <section class="panel toolkit-panel" aria-label="Top one percent toolkit">
           <div class="panel-heading">
@@ -210,6 +249,9 @@
           </div>
           <div id="foundationDetails" class="mini-list"></div>
         </section>
+
+          </div>
+        </details>
       </aside>
 
       <main class="chat-area">

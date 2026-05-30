@@ -117,6 +117,49 @@ button { cursor: pointer; }
   font-size: 0.82rem;
 }
 
+/* ---------- Sidebar groups (collapsible) ---------- */
+.sidebar-group { border-top: 1px solid var(--line); }
+.sidebar-group:first-of-type { border-top: 0; }
+
+.group-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 11px 6px;
+  cursor: pointer;
+  list-style: none;
+  user-select: none;
+}
+
+.group-head::-webkit-details-marker { display: none; }
+
+.group-head span {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  color: var(--muted);
+  transition: color 0.15s ease;
+}
+
+.group-head:hover span { color: var(--clay-deep); }
+
+.chevron {
+  width: 16px;
+  height: 16px;
+  color: var(--faint);
+  transition: transform 0.22s ease;
+}
+
+details[open] > .group-head .chevron { transform: rotate(180deg); }
+
+.group-body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 2px 0 8px;
+}
+
 /* ---------- Panels ---------- */
 .panel {
   padding: 15px 16px;

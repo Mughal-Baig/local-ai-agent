@@ -1,25 +1,31 @@
 # AgentTrail Local AI Agent
 
 [![CI](https://github.com/Mughal-Baig/local-ai-agent/actions/workflows/ci.yml/badge.svg)](https://github.com/Mughal-Baig/local-ai-agent/actions/workflows/ci.yml)
-![No npm dependencies](https://img.shields.io/badge/runtime-zero%20npm%20deps-246B62)
-![Local first](https://img.shields.io/badge/privacy-local--first-C35B43)
-![Ollama](https://img.shields.io/badge/models-Ollama-D99B2B)
+![No npm dependencies](https://img.shields.io/badge/runtime-zero%20npm%20deps-B35F43)
+![Local first](https://img.shields.io/badge/privacy-local--first-5C7257)
+![Ollama](https://img.shields.io/badge/models-Ollama-C2933B)
+![Auditable](https://img.shields.io/badge/every%20action-auditable%20receipt-CC785C)
 
-AgentTrail is a tiny, auditable local AI agent kit for people who want a Claude/ChatGPT/Gemini-style workspace assistant without sending files to a cloud service.
+> ### A local AI agent that shows its work.
+> Every search, every edit, every reason — on your machine. Nothing leaves.
 
-![AgentTrail search diff apply receipt demo](docs/agenttrail-demo.gif)
+![AgentTrail core loop: ask, search before answer, diff preview, explicit Apply, replayable receipt](docs/agenttrail-demo.gif)
 
-The demo loop: semantic local search -> diff preview -> explicit Apply -> receipt/report/replay.
+*The loop: **ask → search before answer → diff preview → you click Apply → replayable receipt.** Every step is shown. Writes are off by default.*
 
-![AgentTrail trust loop](docs/top1-demo.svg)
+**▶ Live demo, zero install:** [mughal-baig.github.io/local-ai-agent/demo.html](https://mughal-baig.github.io/local-ai-agent/demo.html)
 
-![Local AI Agent preview](docs/preview.svg)
+ChatGPT and Claude are great — until you need them to touch private files. AgentTrail gives you that same chat-and-workspace workflow, but it runs entirely on your machine with Ollama, and it turns every action into an auditable, replayable receipt. It is the only local agent built so you can verify exactly what it did and why.
 
-![Local AI Agent demo flow](docs/demo-flow.svg)
+## A Look Inside
 
-**Live demo:** [mughal-baig.github.io/local-ai-agent/demo.html](https://mughal-baig.github.io/local-ai-agent/demo.html)
+![AgentTrail redesigned interface — grouped sidebar, trust dashboard, and chat with tool receipts](docs/preview-app.png)
 
-**Core promise:** a local agent should show what it searched, what it read, what it planned to write, and why you can trust it.
+A calm, grouped workspace: model and files up top, every tool call logged in the Agent Trail, and a live Trust Score — collapsible sections keep the power tools one click away instead of in your face.
+
+![Diff preview with explicit Apply, and the replayable receipt it produces](docs/preview-diff.png)
+
+Writes are off by default. The agent proposes a unified diff; you click **Apply**; the run becomes a receipt you can reopen, export, and replay.
 
 ## Why Star This
 
@@ -115,13 +121,17 @@ Open `http://127.0.0.1:4173`, build the semantic index, ask for a change, review
 
 ## Comparison
 
-| Tool | Main strength | AgentTrail difference |
+Other local tools let an AI *do* things. AgentTrail is the one that makes the AI **prove** what it did. Auditability and replay are the category it owns.
+
+| Tool | Main strength | What AgentTrail does that it doesn't |
 | --- | --- | --- |
-| Open WebUI | Broad self-hosted chat platform | Smaller, auditable agent kit with receipts and diff apply flow |
-| AnythingLLM | Document chat and workspaces | Lighter starter kit focused on transparent local tool use |
-| Jan | Polished offline chat app | Adds workspace tools, recipes, Trust Score, and receipts |
-| Aider | Terminal coding agent | Browser UI with explicit diff approval and reports |
-| OpenHands | Full coding-agent platform | Tiny local-first lab you can read and fork quickly |
+| Open WebUI | Broad self-hosted chat platform | Turns every tool call into a receipt; writes gated behind an explicit diff Apply |
+| AnythingLLM | Document chat and workspaces | Shows the search evidence *before* the answer, then logs it |
+| Jan | Polished offline chat app | Adds workspace edits, a live Trust Score, and replayable runs |
+| Aider | Terminal coding agent | Same diff-approval safety in a readable browser UI, plus exportable receipts |
+| OpenHands | Full coding-agent platform | A tiny, zero-dependency lab you can read and fork in an afternoon |
+
+**The one-line wedge:** every other tool asks you to trust the output. AgentTrail hands you the receipt.
 
 ## Quick Start
 
@@ -211,7 +221,7 @@ When write preview mode is enabled, `write_file` returns a diff preview instead 
 
 ## Top 1% Surfaces
 
-- Visual demo proof: [docs/agenttrail-demo.gif](docs/agenttrail-demo.gif), [docs/top1-demo.svg](docs/top1-demo.svg)
+- Visual demo proof: [docs/agenttrail-demo.gif](docs/agenttrail-demo.gif), [docs/preview-app.png](docs/preview-app.png), [docs/preview-diff.png](docs/preview-diff.png)
 - True semantic search: `/api/search-index`, `/api/search?mode=semantic`, Ollama embeddings with local-vector fallback
 - Receipt timeline and replay: saved Markdown receipts in `workspace/receipts/`, JSON sessions in `workspace/sessions/`
 - Diff Review center: pending preview apply/reject UI

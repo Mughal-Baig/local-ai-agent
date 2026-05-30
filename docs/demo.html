@@ -3,408 +3,110 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>AgentTrail Local Demo</title>
+    <title>AgentTrail — Live Demo</title>
     <style>
       :root {
-        --bg: #f4f7f5;
-        --panel: #ffffff;
-        --ink: #1f2430;
-        --muted: #6b6f7a;
-        --line: #d6ded9;
-        --teal: #246b62;
-        --teal-dark: #174c46;
-        --coral: #c35b43;
-        --amber: #d99b2b;
-        --soft-teal: #e4f0ed;
-        --soft-coral: #f7e7e2;
+        --bg: #f0eee6; --tint: #ebe8dd; --panel: #faf9f5; --panel2: #ffffff;
+        --ink: #1f1e1d; --inkSoft: #3c3a36; --muted: #75716a; --faint: #9b968c;
+        --line: #e2ddd0; --lineS: #d6d0c0;
+        --clay: #cc785c; --clayDeep: #b35f43; --claySoft: #f3e4dc; --clayFaint: #f8efe9;
+        --sage: #5c7257; --sageSoft: #e7eee2; --amber: #c2933b; --amberSoft: #f6ecd5;
+        --radius: 12px; --radius-sm: 9px;
+        --font-ui: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif;
+        --font-display: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, ui-serif, serif;
+        --font-mono: "SFMono-Regular", "JetBrains Mono", Consolas, monospace;
       }
+      * { box-sizing: border-box; }
+      body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--font-ui); -webkit-font-smoothing: antialiased; }
+      button { cursor: pointer; font: inherit; }
+      h1, h2, p { margin: 0; }
 
-      * {
-        box-sizing: border-box;
-      }
+      .demo-shell { display: grid; grid-template-columns: minmax(300px, 366px) minmax(0, 1fr); min-height: 100vh; }
+      .sidebar { display: flex; flex-direction: column; gap: 14px; padding: 24px 20px; border-right: 1px solid var(--line); background: linear-gradient(180deg, var(--tint), var(--bg)); }
 
-      body {
-        margin: 0;
-        background: var(--bg);
-        color: var(--ink);
-        font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      }
+      .brand { display: grid; grid-template-columns: 46px 1fr; gap: 13px; align-items: center; }
+      .brand h1 { font-family: var(--font-display); font-size: 1.32rem; font-weight: 600; letter-spacing: -0.01em; }
+      .brand p, .hint { color: var(--muted); font-size: 0.82rem; }
+      .brand p { margin-top: 3px; }
 
-      button {
-        cursor: pointer;
-        font: inherit;
-      }
+      .panel { padding: 15px 16px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel); box-shadow: 0 1px 2px rgba(31,30,29,0.05); }
+      .panel-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 13px; }
+      .panel h2 { display: flex; align-items: center; gap: 8px; font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; color: var(--muted); }
+      .panel h2::before { content: ""; width: 5px; height: 5px; border-radius: 2px; background: var(--clay); }
 
-      .demo-shell {
-        display: grid;
-        grid-template-columns: minmax(300px, 360px) minmax(0, 1fr);
-        min-height: 100vh;
-      }
+      .signal-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; }
+      .signal-card { padding: 11px 12px; border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--panel2); }
+      .signal-card span { display: block; color: var(--faint); font-size: 0.66rem; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; }
+      .signal-card strong { display: block; margin-top: 5px; font-size: 0.95rem; font-weight: 600; }
 
-      .sidebar {
-        display: flex;
-        flex-direction: column;
-        gap: 16px;
-        padding: 22px;
-        border-right: 1px solid var(--line);
-        background: #e7eeeb;
-      }
+      .recipe-card { display: grid; gap: 8px; }
+      .recipe-card strong { color: var(--clayDeep); }
+      .tag-row { display: flex; flex-wrap: wrap; gap: 6px; }
+      .tag-row span { padding: 4px 9px; border-radius: 999px; background: var(--clayFaint); color: var(--clayDeep); font-size: 0.7rem; font-weight: 700; }
 
-      .brand {
-        display: grid;
-        grid-template-columns: 52px 1fr;
-        gap: 12px;
-        align-items: center;
-      }
+      .file-item { display: flex; justify-content: space-between; gap: 12px; padding: 10px 12px; border: 1px solid var(--clay); border-radius: var(--radius-sm); background: var(--clayFaint); font-weight: 600; box-shadow: inset 2px 0 0 var(--clay); }
+      .file-item small { color: var(--faint); font-weight: 500; }
 
-      .mark {
-        display: grid;
-        place-items: center;
-        width: 52px;
-        height: 52px;
-        border-radius: 14px;
-        background: var(--teal);
-        color: white;
-        font-weight: 900;
-      }
+      .search-card { display: grid; gap: 5px; padding: 10px 12px; border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--panel2); }
+      .search-card strong { color: var(--clayDeep); font-size: 0.84rem; }
+      .search-card span { color: var(--muted); font-size: 0.77rem; }
 
-      h1,
-      h2,
-      p {
-        margin: 0;
-      }
+      .trail-list { display: grid; gap: 8px; }
+      .trail-item { display: grid; grid-template-columns: 10px minmax(0,1fr) auto; gap: 9px; align-items: center; padding: 9px 10px; border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--panel2); }
+      .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--sage); }
+      .trail-item.tool .dot { background: var(--amber); }
+      .trail-item.write .dot { background: var(--clay); }
+      .trail-item span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.79rem; font-weight: 600; color: var(--inkSoft); }
+      .trail-item time { color: var(--faint); font-size: 0.71rem; }
 
-      h1 {
-        font-size: 1.15rem;
-      }
+      main { display: grid; grid-template-rows: auto auto minmax(0,1fr) auto; min-width: 0; min-height: 100vh; background: radial-gradient(1200px 480px at 80% -8%, rgba(204,120,92,0.06), transparent 60%), var(--bg); }
+      .topbar { display: flex; align-items: center; justify-content: space-between; gap: 18px; padding: 22px 30px; border-bottom: 1px solid var(--line); background: rgba(240,238,230,0.82); }
+      .eyebrow { color: var(--clayDeep); font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.13em; }
+      .topbar h2 { margin-top: 6px; font-family: var(--font-display); font-weight: 600; font-size: clamp(1.2rem, 2vw, 1.7rem); letter-spacing: -0.015em; line-height: 1.2; }
+      .pill { flex: 0 0 auto; padding: 8px 14px; border: 1px solid #cfe0c6; border-radius: 999px; background: var(--sageSoft); color: #3c5238; font-size: 0.8rem; font-weight: 600; }
+      .pill.clay { border-color: var(--claySoft); background: var(--clayFaint); color: var(--clayDeep); }
 
-      .brand p,
-      .hint {
-        color: var(--muted);
-        font-size: 0.86rem;
-      }
+      .prompt-strip { display: flex; gap: 9px; overflow-x: auto; padding: 13px 30px; border-bottom: 1px solid var(--line); background: rgba(250,249,245,0.5); }
+      .prompt-strip button { flex: 0 0 auto; min-height: 36px; padding: 0 15px; border: 1px solid var(--line); border-radius: 999px; background: var(--panel); color: var(--inkSoft); font-size: 0.83rem; font-weight: 600; transition: all .15s ease; }
+      .prompt-strip button:hover { border-color: var(--clay); color: var(--clayDeep); background: var(--clayFaint); }
 
-      .panel {
-        padding: 14px;
-        border: 1px solid rgba(31, 36, 48, 0.08);
-        border-radius: 8px;
-        background: rgba(255, 255, 255, 0.72);
-      }
+      .messages { display: flex; flex-direction: column; gap: 20px; overflow: auto; padding: 30px; }
+      .message { display: grid; grid-template-columns: 36px minmax(0,760px); gap: 13px; align-items: start; }
+      .message.user { justify-content: end; grid-template-columns: minmax(0,620px) 36px; }
+      .avatar { display: grid; place-items: center; width: 36px; height: 36px; border-radius: 10px; background: var(--ink); color: var(--bg); font-size: 0.78rem; font-weight: 700; }
+      .message.user .avatar { grid-column: 2; background: var(--clay); color: #fff; }
+      .bubble { padding: 16px 19px; border: 1px solid var(--line); border-radius: 14px; border-top-left-radius: 4px; background: var(--panel); box-shadow: 0 1px 2px rgba(31,30,29,0.05); }
+      .message.user .bubble { grid-column: 1; grid-row: 1; border-top-left-radius: 14px; border-top-right-radius: 4px; background: var(--clayFaint); border-color: var(--claySoft); }
+      .bubble p { margin-bottom: 0.8rem; line-height: 1.65; }
+      .bubble p:last-child { margin-bottom: 0; }
 
-      .panel-heading {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 12px;
-        margin-bottom: 12px;
-      }
+      .chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 13px; }
+      .chips span { padding: 7px 11px; border: 1px solid #e6d4a6; border-radius: 999px; background: var(--amberSoft); color: #6b4f17; font-size: 0.77rem; font-weight: 600; }
+      .chips span.ok { border-color: #cfe0c6; background: var(--sageSoft); color: #3c5238; }
 
-      .panel h2 {
-        color: var(--muted);
-        font-size: 0.86rem;
-        letter-spacing: 0;
-        text-transform: uppercase;
-      }
+      .diff { margin-top: 14px; border: 1px solid var(--lineS); border-radius: var(--radius); overflow: hidden; }
+      .diff-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 11px 13px; border-bottom: 1px solid var(--line); background: var(--clayFaint); transition: background .2s ease; }
+      .diff-head strong { color: var(--clayDeep); font-size: 0.85rem; }
+      .diff.applied .diff-head { background: var(--sageSoft); }
+      .diff.applied .diff-head strong { color: #3c5238; }
+      .apply-btn { min-height: 32px; padding: 0 16px; border: 0; border-radius: var(--radius-sm); background: var(--clay); color: #fff; font-size: 0.79rem; font-weight: 700; transition: background .15s ease; }
+      .apply-btn:hover { background: var(--clayDeep); }
+      .apply-btn.done { background: var(--sage); cursor: default; }
+      .diff pre { margin: 0; padding: 14px; background: #26241f; color: #f3f0e7; font-family: var(--font-mono); font-size: 0.78rem; line-height: 1.6; overflow-x: auto; }
+      .diff pre .add { color: #9ed29a; }
+      .diff pre .del { color: #e88b74; }
 
-      .signal-grid {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 8px;
-      }
-
-      .signal-card,
-      .file-item,
-      .search-card,
-      .trail-item,
-      .recipe-card {
-        border: 1px solid var(--line);
-        border-radius: 8px;
-        background: var(--panel);
-      }
-
-      .signal-card {
-        padding: 10px;
-      }
-
-      .signal-card span {
-        display: block;
-        color: var(--muted);
-        font-size: 0.72rem;
-        font-weight: 800;
-        text-transform: uppercase;
-      }
-
-      .signal-card strong {
-        display: block;
-        margin-top: 4px;
-        font-size: 0.88rem;
-      }
-
-      .recipe-card {
-        display: grid;
-        gap: 8px;
-        padding: 12px;
-      }
-
-      .recipe-card strong {
-        color: var(--teal-dark);
-      }
-
-      .tag-row {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 6px;
-      }
-
-      .tag-row span {
-        padding: 4px 7px;
-        border-radius: 999px;
-        background: var(--soft-teal);
-        color: var(--teal-dark);
-        font-size: 0.72rem;
-        font-weight: 800;
-      }
-
-      .file-item {
-        display: flex;
-        justify-content: space-between;
-        gap: 12px;
-        padding: 10px;
-        background: var(--soft-teal);
-        font-weight: 800;
-      }
-
-      .search-card {
-        display: grid;
-        gap: 5px;
-        padding: 10px;
-      }
-
-      .search-card strong {
-        color: var(--teal-dark);
-        font-size: 0.86rem;
-      }
-
-      .search-card span {
-        overflow: hidden;
-        color: var(--muted);
-        font-size: 0.78rem;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-      }
-
-      .trail-list {
-        display: grid;
-        gap: 8px;
-      }
-
-      .trail-item {
-        display: grid;
-        grid-template-columns: 10px minmax(0, 1fr) auto;
-        gap: 8px;
-        align-items: center;
-        padding: 8px 9px;
-      }
-
-      .dot {
-        width: 8px;
-        height: 8px;
-        border-radius: 50%;
-        background: var(--teal);
-      }
-
-      .trail-item.tool .dot {
-        background: var(--amber);
-      }
-
-      .trail-item.write .dot {
-        background: var(--coral);
-      }
-
-      .trail-item span {
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-        font-size: 0.8rem;
-        font-weight: 800;
-      }
-
-      .trail-item time {
-        color: var(--muted);
-        font-size: 0.72rem;
-      }
-
-      main {
-        display: grid;
-        grid-template-rows: auto auto minmax(0, 1fr) auto;
-        min-width: 0;
-        min-height: 100vh;
-      }
-
-      .topbar {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 18px;
-        padding: 22px 28px;
-        border-bottom: 1px solid var(--line);
-      }
-
-      .eyebrow {
-        color: var(--coral);
-        font-size: 0.78rem;
-        font-weight: 900;
-        text-transform: uppercase;
-      }
-
-      .topbar h2 {
-        margin-top: 4px;
-        font-size: clamp(1.25rem, 2vw, 1.8rem);
-      }
-
-      .pill {
-        flex: 0 0 auto;
-        padding: 9px 12px;
-        border: 1px solid rgba(36, 107, 98, 0.25);
-        border-radius: 999px;
-        background: var(--soft-teal);
-        color: var(--teal-dark);
-        font-size: 0.84rem;
-        font-weight: 800;
-      }
-
-      .prompt-strip {
-        display: flex;
-        gap: 10px;
-        overflow-x: auto;
-        padding: 12px 28px;
-        border-bottom: 1px solid var(--line);
-        background: rgba(255, 255, 255, 0.45);
-      }
-
-      .prompt-strip button {
-        flex: 0 0 auto;
-        min-height: 38px;
-        padding: 0 13px;
-        border: 1px solid var(--line);
-        border-radius: 999px;
-        background: var(--panel);
-        color: var(--teal-dark);
-        font-weight: 900;
-      }
-
-      .messages {
-        display: flex;
-        flex-direction: column;
-        gap: 18px;
-        padding: 28px;
-      }
-
-      .message {
-        display: grid;
-        grid-template-columns: 38px minmax(0, 760px);
-        gap: 12px;
-        align-items: start;
-      }
-
-      .avatar {
-        display: grid;
-        place-items: center;
-        width: 38px;
-        height: 38px;
-        border-radius: 8px;
-        background: var(--teal);
-        color: white;
-        font-size: 0.82rem;
-        font-weight: 900;
-      }
-
-      .bubble {
-        padding: 16px 18px;
-        border: 1px solid var(--line);
-        border-radius: 8px;
-        background: var(--panel);
-        box-shadow: 0 12px 34px rgba(31, 36, 48, 0.07);
-      }
-
-      .bubble p {
-        margin-bottom: 0.8rem;
-        line-height: 1.58;
-      }
-
-      .bubble p:last-child {
-        margin-bottom: 0;
-      }
-
-      .receipt {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 8px;
-        margin-top: 12px;
-      }
-
-      .receipt span {
-        padding: 7px 9px;
-        border: 1px solid rgba(217, 155, 43, 0.4);
-        border-radius: 999px;
-        background: #fff4d8;
-        color: #654814;
-        font-size: 0.78rem;
-        font-weight: 800;
-      }
-
-      .composer {
-        display: grid;
-        grid-template-columns: minmax(0, 1fr) 140px;
-        gap: 12px;
-        padding: 20px 28px 24px;
-        border-top: 1px solid var(--line);
-      }
-
-      .composer div {
-        min-height: 52px;
-        padding: 15px 16px;
-        border: 2px solid rgba(217, 155, 43, 0.8);
-        border-radius: 8px;
-        background: var(--panel);
-        color: var(--muted);
-      }
-
-      .composer a {
-        display: grid;
-        place-items: center;
-        min-height: 52px;
-        border-radius: 8px;
-        background: var(--teal);
-        color: white;
-        font-weight: 900;
-        text-decoration: none;
-      }
+      .composer { display: grid; grid-template-columns: minmax(0,1fr) 150px; gap: 12px; padding: 18px 30px 24px; border-top: 1px solid var(--line); background: rgba(240,238,230,0.92); }
+      .composer div { min-height: 52px; padding: 15px 16px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel2); color: var(--muted); }
+      .composer a { display: grid; place-items: center; min-height: 52px; border-radius: var(--radius); background: var(--ink); color: var(--bg); font-weight: 700; text-decoration: none; transition: background .15s ease; }
+      .composer a:hover { background: var(--clayDeep); }
 
       @media (max-width: 860px) {
-        .demo-shell {
-          grid-template-columns: 1fr;
-        }
-
-        .sidebar {
-          border-right: 0;
-          border-bottom: 1px solid var(--line);
-        }
-
-        .topbar {
-          align-items: flex-start;
-          flex-direction: column;
-          padding: 18px;
-        }
-
-        .messages {
-          padding: 18px;
-        }
-
-        .composer {
-          grid-template-columns: 1fr;
-          padding: 14px 18px 18px;
-        }
+        .demo-shell { grid-template-columns: 1fr; }
+        .sidebar { border-right: 0; border-bottom: 1px solid var(--line); }
+        .topbar { align-items: flex-start; flex-direction: column; padding: 18px; }
+        .messages { padding: 18px; }
+        .composer { grid-template-columns: 1fr; padding: 14px 18px 18px; }
       }
     </style>
   </head>
@@ -412,98 +114,55 @@
     <div class="demo-shell">
       <aside class="sidebar" aria-label="Demo workspace">
         <div class="brand">
-          <div class="mark">AI</div>
+          <svg width="46" height="46" viewBox="0 0 96 96" fill="none" xmlns="http://www.w3.org/2000/svg" aria-label="AgentTrail">
+            <defs><linearGradient id="t" x1="12" y1="10" x2="84" y2="86" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#D58468"/><stop offset="1" stop-color="#B35F43"/></linearGradient></defs>
+            <rect x="8" y="8" width="80" height="80" rx="22" fill="url(#t)"/>
+            <rect x="38" y="24" width="34" height="48" rx="8" fill="#F7F4EC"/>
+            <path d="M46 36H64M46 46H64M46 56H57" stroke="#2A2723" stroke-width="4.2" stroke-linecap="round"/>
+            <path d="M27 33V63" stroke="#F7F4EC" stroke-opacity="0.85" stroke-width="3" stroke-linecap="round"/>
+            <circle cx="27" cy="33" r="6.5" fill="#E0AE54"/><circle cx="27" cy="48" r="5.5" fill="#F7F4EC"/><circle cx="27" cy="63" r="5.5" fill="#6E8568"/>
+          </svg>
           <div>
             <h1>AgentTrail</h1>
-            <p>Static demo, no backend needed</p>
+            <p>Live demo — runs in your browser, no backend</p>
           </div>
         </div>
 
         <section class="panel">
-          <div class="panel-heading">
-            <h2>Signals</h2>
-          </div>
+          <div class="panel-heading"><h2>Signals</h2></div>
           <div class="signal-grid">
-            <div class="signal-card">
-              <span>Privacy</span>
-              <strong>Offline-ready</strong>
-            </div>
-            <div class="signal-card">
-              <span>Boundary</span>
-              <strong>Workspace</strong>
-            </div>
-            <div class="signal-card">
-              <span>Context</span>
-              <strong>1 file</strong>
-            </div>
-            <div class="signal-card">
-              <span>Tools</span>
-              <strong>3 calls</strong>
-            </div>
+            <div class="signal-card"><span>Privacy</span><strong>Local</strong></div>
+            <div class="signal-card"><span>Boundary</span><strong>Workspace</strong></div>
+            <div class="signal-card"><span>Context</span><strong>1 file</strong></div>
+            <div class="signal-card"><span>Tools</span><strong id="toolCount">3 calls</strong></div>
           </div>
         </section>
 
         <section class="panel">
-          <div class="panel-heading">
-            <h2>Recipe</h2>
-          </div>
+          <div class="panel-heading"><h2>Recipe</h2></div>
           <div class="recipe-card">
-            <strong>AgentTrail Hardening</strong>
-            <p class="hint">Audit path traversal, hidden network calls, unsafe writes, prompt injection, and missing receipts.</p>
-            <div class="tag-row">
-              <span>security</span>
-              <span>agents</span>
-              <span>local-first</span>
-            </div>
+            <strong>README Trust Pass</strong>
+            <p class="hint">Search the repo, draft a tighter intro, and show a diff before changing anything.</p>
+            <div class="tag-row"><span>docs</span><span>local-first</span><span>auditable</span></div>
           </div>
         </section>
 
         <section class="panel">
-          <div class="panel-heading">
-            <h2>Find Context</h2>
-          </div>
-          <div class="search-card">
-            <strong>local-agent-hardening.json</strong>
-            <span>unsafe writes, prompt injection, missing receipts</span>
-          </div>
+          <div class="panel-heading"><h2>Find Context</h2></div>
+          <div class="search-card"><strong>README.md</strong><span>intro paragraph · positioning · promise line</span></div>
         </section>
 
         <section class="panel">
-          <div class="panel-heading">
-            <h2>Workspace</h2>
-          </div>
-          <div class="file-item">
-            <span>welcome.md</span>
-            <small>293 B</small>
-          </div>
+          <div class="panel-heading"><h2>Workspace</h2></div>
+          <div class="file-item"><span>README.md</span><small>4 KB</small></div>
         </section>
 
         <section class="panel">
-          <div class="panel-heading">
-            <h2>Agent Trail</h2>
-            <span class="pill">Export .md</span>
-          </div>
-          <div class="trail-list">
-            <div class="trail-item">
-              <span class="dot"></span>
-              <span>Workspace boundary active</span>
-              <time>00:01</time>
-            </div>
-            <div class="trail-item tool">
-              <span class="dot"></span>
-              <span>search_workspace: security receipts</span>
-              <time>00:02</time>
-            </div>
-            <div class="trail-item tool">
-              <span class="dot"></span>
-              <span>preview_write_file: hardening.md</span>
-              <time>00:03</time>
-            </div>
-            <div class="trail-item write">
-              <span class="dot"></span>
-              <span>Receipt exported</span>
-              <time>00:04</time>
-            </div>
+          <div class="panel-heading"><h2>Agent Trail</h2><span class="pill clay">Export .md</span></div>
+          <div class="trail-list" id="trail">
+            <div class="trail-item"><span class="dot"></span><span>Workspace boundary active</span><time>00:01</time></div>
+            <div class="trail-item tool"><span class="dot"></span><span>search_workspace · 3 hits</span><time>00:02</time></div>
+            <div class="trail-item tool"><span class="dot"></span><span>preview_write_file · README.md</span><time>00:03</time></div>
           </div>
         </section>
       </aside>
@@ -511,8 +170,8 @@
       <main>
         <header class="topbar">
           <div>
-            <p class="eyebrow">Evaluate before installing</p>
-            <h2>Tiny local agent kit with Trust Score, search, diff previews, and receipts</h2>
+            <p class="eyebrow">A local agent that shows its work</p>
+            <h2>Ask &rarr; search &rarr; diff preview &rarr; you Apply &rarr; receipt</h2>
           </div>
           <div class="pill">Zero npm dependencies</div>
         </header>
@@ -525,29 +184,66 @@
         </section>
 
         <section class="messages" aria-label="Demo transcript">
+          <article class="message user">
+            <div class="avatar">B</div>
+            <div class="bubble"><p>Update the README intro to lead with trust. Show me the diff first.</p></div>
+          </article>
+
           <article class="message">
-            <div class="avatar">AI</div>
+            <div class="avatar">A</div>
             <div class="bubble">
-              <p><strong>What makes this different?</strong></p>
-              <p>AgentTrail is intentionally small: a readable Node server, local semantic search, workspace-safe file tools, Trust Score, recipe packs, diff previews, shareable reports, and user-visible receipts for every tool action.</p>
-              <p>It is built for people who want to learn, fork, and trust a local agent without adopting a giant platform.</p>
-              <div class="receipt">
-                <span>Recipe loaded: AgentTrail Hardening</span>
-                <span>search_workspace: 4 matches</span>
-                <span>preview_write_file: +12 -3</span>
-                <span>Trust Score: 88</span>
-                <span>Apply requires user click</span>
-                <span>Exported audit receipt</span>
+              <p>I searched the workspace, read <strong>README.md</strong>, and drafted a tighter intro. Nothing has changed on disk — here is the proposed diff. Click <strong>Apply</strong> to write it and generate a receipt.</p>
+              <div class="chips">
+                <span>search_workspace</span>
+                <span>read_file</span>
+                <span class="ok">preview_write_file</span>
+              </div>
+              <div class="diff" id="diff">
+                <div class="diff-head">
+                  <strong id="diffTitle">Diff preview — README.md</strong>
+                  <button class="apply-btn" id="applyBtn" type="button">Apply</button>
+                </div>
+                <pre><span class="del">− AgentTrail is a tiny, auditable local AI agent kit.</span>
+<span class="add">+ A local AI agent that shows its work — every search,</span>
+<span class="add">+ edit, and reason. On your machine. Nothing leaves.</span>
+<span class="add">+</span>
+<span class="add">+ Search before answer · diff before write · a receipt for every run.</span></pre>
               </div>
             </div>
           </article>
         </section>
 
         <section class="composer" aria-label="Try locally">
-          <div>Clone the repo, run <strong>node server.js</strong>, and connect your local Ollama model.</div>
-          <a href="https://github.com/Mughal-Baig/local-ai-agent">View GitHub</a>
+          <div>Like what you see? Clone the repo, run <strong>node server.js</strong>, and point it at your local Ollama model.</div>
+          <a href="https://github.com/Mughal-Baig/local-ai-agent">View on GitHub</a>
         </section>
       </main>
     </div>
+
+    <script>
+      (function () {
+        var btn = document.getElementById("applyBtn");
+        var diff = document.getElementById("diff");
+        var title = document.getElementById("diffTitle");
+        var trail = document.getElementById("trail");
+        var toolCount = document.getElementById("toolCount");
+        btn.addEventListener("click", function () {
+          if (diff.classList.contains("applied")) return;
+          diff.classList.add("applied");
+          title.textContent = "README.md — change applied";
+          btn.textContent = "Applied ✓";
+          btn.classList.add("done");
+          var write = document.createElement("div");
+          write.className = "trail-item write";
+          write.innerHTML = '<span class="dot"></span><span>write_file · README.md (+4 −1)</span><time>00:04</time>';
+          trail.appendChild(write);
+          var receipt = document.createElement("div");
+          receipt.className = "trail-item";
+          receipt.innerHTML = '<span class="dot"></span><span>Receipt saved · replayable</span><time>00:05</time>';
+          trail.appendChild(receipt);
+          toolCount.textContent = "5 calls";
+        });
+      })();
+    </script>
   </body>
 </html>
