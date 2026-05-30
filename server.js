@@ -1769,6 +1769,7 @@ async function runAgent(body, res, context = {}) {
   const requestedModel = String(body.model || "").trim();
   const model = requestedModel || status.models[0]?.name || DEFAULT_MODEL;
   const toolHistory = [];
+  const loopGuard = createLoopGuard();
 
   sendEvent(res, "status", { message: `Using ${model}` });
   sendEvent(res, "budget", {
@@ -1825,6 +1826,31 @@ async function runAgent(body, res, context = {}) {
     if (gate.decision !== "prose") {
       const toolCalls = extractToolCalls(output);
       if (toolCalls.length) {
+        const loopCheck = loopGuard.inspect(toolCalls);
+        if (loopCheck.abort) {
+          await STORE.append("loop-abort", {
+            reason: loopCheck.reason,
+            repeated: loopCheck.repeatCount,
+            signature: loopCheck.signature,
+            tools: loopCheck.tools
+          });
+          await LOGGER.log("warn", "agent.loop-abort", {
+            reason: loopCheck.reason,
+            repeated: loopCheck.repeatCount,
+            tools: loopCheck.tools
+          });
+          const message = "I stopped because the model repeated the same tool call without making progress.";
+          sendEvent(res, "guardrail", {
+            schema: "agenttrail.loop-guard.v1",
+            reason: "loop-detected",
+            message,
+            repeated: loopCheck.repeatCount,
+            tools: loopCheck.tools
+          });
+          await streamText(res, `${message}\n\nTry a narrower prompt, select the exact file, or use the deep-run budget only if the repeated step is intentional.`);
+          sendEvent(res, "done", { ok: false, reason: "loop-detected", guardrail: loopCheck });
+          return;
+        }
         throwIfAborted(signal);
         const batch = await executeToolCallBatch(toolCalls, permissions);
         throwIfAborted(signal);
@@ -1841,9 +1867,26 @@ async function runAgent(body, res, context = {}) {
     }
 
     // Final answer. Prose was already streamed live; otherwise emit the cleaned text.
+    const finalText = cleanAssistantOutput(output) || "I did not get a usable response from the model.";
     if (!gate.emitted) {
-      await streamText(res, cleanAssistantOutput(output) || "I did not get a usable response from the model.");
+      await streamText(res, finalText);
     }
+    const reflection = buildRunReflection({
+      messages,
+      finalText,
+      toolHistory,
+      selectedFiles,
+      approvedPlan,
+      stepBudget,
+      loopGuard
+    });
+    await STORE.append("run-reflection", reflection);
+    await LOGGER.log("info", "agent.reflection", {
+      score: reflection.score,
+      verdict: reflection.verdict,
+      warnings: reflection.warnings.length
+    });
+    sendEvent(res, "reflection", reflection);
     sendEvent(res, "done", { ok: true });
     return;
   }
@@ -2027,6 +2070,58 @@ async function executeToolCallBatch(toolCalls, permissions) {
 function canRunToolBatchInParallel(toolCalls) {
   const parallelSafeTools = new Set(["list_files", "search_workspace", "read_file"]);
   return toolCalls.every((call) => parallelSafeTools.has(call.tool));
+}
+
+function createLoopGuard() {
+  let lastSignature = "";
+  let repeatCount = 0;
+  let inspected = 0;
+  return {
+    inspect(toolCalls) {
+      inspected += 1;
+      const calls = Array.isArray(toolCalls) ? toolCalls.filter(Boolean) : [];
+      const signature = signatureToolCalls(calls);
+      if (signature && signature === lastSignature) {
+        repeatCount += 1;
+      } else {
+        repeatCount = 0;
+      }
+      lastSignature = signature;
+      const tools = calls.map((call) => call.tool).filter(Boolean);
+      return {
+        abort: repeatCount >= 1,
+        reason: repeatCount >= 1 ? "repeated-identical-tool-batch" : "progressing",
+        signature,
+        repeatCount,
+        inspected,
+        tools
+      };
+    },
+    status() {
+      return {
+        inspected,
+        repeatCount,
+        lastSignature
+      };
+    }
+  };
+}
+
+function signatureToolCalls(toolCalls) {
+  return (Array.isArray(toolCalls) ? toolCalls : [])
+    .map((call) => `${call.tool || "unknown"}:${stableStringify(call.arguments || {})}`)
+    .sort()
+    .join("|");
+}
+
+function stableStringify(value) {
+  if (Array.isArray(value)) {
+    return `[${value.map((item) => stableStringify(item)).join(",")}]`;
+  }
+  if (value && typeof value === "object") {
+    return `{${Object.keys(value).sort().map((key) => `${JSON.stringify(key)}:${stableStringify(value[key])}`).join(",")}}`;
+  }
+  return JSON.stringify(value);
 }
 
 function normalizeApprovedPlan(value) {
@@ -3817,6 +3912,85 @@ function throwIfAborted(signal) {
   if (signal && signal.aborted) {
     throw makeAbortError("Run cancelled by the user.");
   }
+}
+
+function buildRunReflection({ messages, finalText, toolHistory, selectedFiles, approvedPlan, stepBudget, loopGuard }) {
+  const request = latestUserPrompt(messages);
+  const answer = String(finalText || "").trim();
+  const requestTerms = significantTerms(request);
+  const answerTerms = significantTerms(answer);
+  const overlap = requestTerms.filter((term) => answerTerms.includes(term));
+  const toolNames = toolHistory.map((entry) => entry && entry.call && entry.call.tool).filter(Boolean);
+  const writeEntries = toolHistory.filter((entry) => entry && entry.call && /write_file/.test(entry.call.tool || ""));
+  const previewedWrites = writeEntries.every((entry) => {
+    const result = entry.result || {};
+    return entry.call.tool === "preview_write_file" || result.preview === true || result.blockedWrite === true;
+  });
+  const loopStatus = loopGuard && typeof loopGuard.status === "function"
+    ? loopGuard.status()
+    : { inspected: 0, repeatCount: 0 };
+  const checks = [
+    {
+      id: "answered",
+      label: "Final answer is non-empty prose",
+      ok: answer.length >= 12 && extractToolCalls(answer).length === 0
+    },
+    {
+      id: "request-coverage",
+      label: "Answer overlaps the user's request",
+      ok: requestTerms.length < 3 || overlap.length >= Math.min(2, requestTerms.length),
+      details: `${overlap.length}/${requestTerms.length} request terms reflected`
+    },
+    {
+      id: "evidence-or-context",
+      label: "Selected files or tools were considered when context existed",
+      ok: selectedFiles.length === 0 || toolNames.length > 0 || answer.length > 80
+    },
+    {
+      id: "write-safety",
+      label: "Write-like actions stayed preview-safe",
+      ok: previewedWrites
+    },
+    {
+      id: "plan-awareness",
+      label: "Approved plan was available when required",
+      ok: !approvedPlan || Boolean(approvedPlan.approvedAt || approvedPlan.editedText || approvedPlan.summary)
+    },
+    {
+      id: "loop-safety",
+      label: "No repeated identical tool batch reached final answer",
+      ok: loopStatus.repeatCount === 0
+    }
+  ];
+  const passed = checks.filter((check) => check.ok).length;
+  const score = Math.round((passed / checks.length) * 100);
+  const warnings = checks
+    .filter((check) => !check.ok)
+    .map((check) => check.details ? `${check.label}: ${check.details}` : check.label);
+  return {
+    schema: "agenttrail.run-reflection.v1",
+    score,
+    verdict: score >= 84 ? "pass" : score >= 67 ? "warn" : "fail",
+    request: truncate(request, 240),
+    answerPreview: truncate(answer, 360),
+    checks,
+    warnings,
+    toolSteps: toolHistory.length,
+    stepBudget: stepBudget ? {
+      maxSteps: stepBudget.maxSteps,
+      override: stepBudget.override
+    } : null,
+    createdAt: new Date().toISOString()
+  };
+}
+
+function significantTerms(text) {
+  return Array.from(new Set(String(text || "")
+    .toLowerCase()
+    .replace(/[^a-z0-9_\-\s]/g, " ")
+    .split(/\s+/)
+    .filter((term) => term.length >= 4 && !STOP_WORDS.has(term))
+    .slice(0, 24)));
 }
 
 function summarizeToolResult(result) {

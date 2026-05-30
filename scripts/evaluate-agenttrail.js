@@ -78,6 +78,9 @@ async function main() {
   checks.push(await check("Cancellable runs exist", async () => includes("server.js", ["AbortController", "run-cancelled", "abortSignalWithTimeout"])));
   checks.push(await check("Stop button UI exists", async () => includes("public/index.html", ["stopButton", "stepBudgetSelect", "Deep 4"])));
   checks.push(await check("Run guardrail tests exist", async () => includes("tests/integration/run-guardrails.test.js", ["step-budget-exhausted", "backend stream should close"])));
+  checks.push(await check("Reflection self-check exists", async () => includes("server.js", ["buildRunReflection", "run-reflection", "agenttrail.run-reflection.v1"])));
+  checks.push(await check("Loop guard exists", async () => includes("server.js", ["createLoopGuard", "loop-abort", "loop-detected"])));
+  checks.push(await check("Reflection and loop tests exist", async () => includes("tests/integration/reflection-loop.test.js", ["reflection", "loop-detected", "duplicate tool batch should not execute twice"])));
 
   const passed = checks.filter((item) => item.ok).length;
   const score = Math.round((passed / checks.length) * 100);

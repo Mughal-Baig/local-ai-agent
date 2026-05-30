@@ -1409,6 +1409,21 @@ async function sendMessage(event) {
           addTrail("budget", `Run budget ${data.maxSteps} step(s)${data.override ? " with override" : ""}`);
         }
       }
+      if (eventName === "reflection") {
+        const label = `Self-check ${data.score}/100 · ${data.verdict}`;
+        assistantMessage.events.push({
+          type: data.verdict === "fail" ? "error" : "reflection",
+          label
+        });
+        addTrail("reflection", label);
+      }
+      if (eventName === "guardrail") {
+        assistantMessage.events.push({
+          type: "error",
+          label: data.message || "Run guardrail stopped the agent"
+        });
+        addTrail("guardrail", data.reason || "Run guardrail");
+      }
       if (eventName === "cancelled") {
         assistantMessage.events.push({
           type: "error",
@@ -1933,7 +1948,7 @@ function renderMessages() {
           events.appendChild(renderPreviewEvent(item));
         } else {
           const chip = document.createElement("span");
-          chip.className = `tool-chip${item.type === "error" ? " error" : ""}`;
+          chip.className = `tool-chip${item.type === "error" ? " error" : ""}${item.type === "reflection" ? " reflection" : ""}`;
           chip.textContent = item.label;
           events.appendChild(chip);
         }

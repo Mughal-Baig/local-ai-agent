@@ -102,6 +102,7 @@ Open `http://127.0.0.1:4173`, build the semantic index, ask for a change, review
 - Structured JSON output endpoint for Ollama schema `format` and OpenAI-compatible `response_format.json_schema`, plus typed extraction recipes with readable schema-error reasons
 - Planner approval flow: generate a structured plan, edit it, approve it, then run the agent with that plan in context
 - Run guardrails: choose a step budget, use a deep-run override deliberately, and stop an active run so the backend stream aborts
+- Reflection and loop safety: every final answer gets a self-check score, and repeated identical tool loops abort before wasting another step
 - In-chat diff cards with explicit **Apply** buttons for proposed file changes
 - Diff Review center with pending-change apply/reject controls
 - Agent Trail receipts for tool calls, selected context, model status, and errors
@@ -327,6 +328,7 @@ npm run test:integration
 npm run test:backend
 npm run test:models
 npm run test:guardrails
+npm run test:reflection
 npm run test:ui
 npm run eval
 npm run release:checksums

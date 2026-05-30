@@ -803,6 +803,7 @@ select:hover, .search-input:hover { border-color: var(--line-strong); }
 }
 
 .tool-chip.error { border-color: #ecd2c8; background: var(--rose-soft); color: #7c3623; }
+.tool-chip.reflection { border-color: #cfe0c6; background: var(--sage-soft); color: #3c5238; }
 
 .stream-caret {
   display: inline-block;
