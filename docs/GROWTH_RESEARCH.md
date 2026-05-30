@@ -28,6 +28,10 @@ Do not compete as a giant platform. Compete as:
 
 > the smallest readable local AI agent kit with recipes, workspace-safe tools, and exportable audit receipts.
 
+After the AgentTrail upgrade, sharpen that further:
+
+> the smallest readable local agent with search, diff previews, recipes, and receipts.
+
 This creates a sharper reason to star:
 
 - developers can learn from the code quickly
@@ -40,7 +44,7 @@ This creates a sharper reason to star:
 1. Make the repo public only when ready.
 2. Pin a short demo GIF or screenshot above the README fold.
 3. Enable GitHub Pages so the static demo is live.
-4. Add 10-15 recipes before launch.
+4. Add 20+ recipes before launch.
 5. Create GitHub issues labeled `good first issue` for new recipes.
 6. Post to communities with a concrete hook: "tiny local agent recipe kit with audit receipts."
 7. Submit to awesome lists for Ollama, MCP, local-first AI, and self-hosted tools.
@@ -49,8 +53,8 @@ This creates a sharper reason to star:
 
 ## Next Differentiators
 
-- Searchable local receipt history using JSONL or SQLite.
+- Semantic local search with embeddings.
+- Receipt replay using JSONL or SQLite.
 - Import/export recipe packs.
 - Optional MCP bridge with strict per-tool approval.
-- GitHub Pages demo that does not require Ollama.
 - A one-file desktop launcher for non-technical users.

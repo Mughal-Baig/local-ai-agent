@@ -1,6 +1,6 @@
 # Security Policy
 
-Local AI Agent is designed to keep file access inside the configured workspace.
+AgentTrail is designed to keep file access inside the configured workspace.
 
 ## Current Safety Boundaries
 
@@ -10,6 +10,8 @@ Local AI Agent is designed to keep file access inside the configured workspace.
 - `.env` and private workspace folders are ignored by git.
 - Agent Trail receipts make local tool activity visible to the user.
 - File writes are disabled by default in the chat agent.
+- Write preview mode is enabled by default, so agent write attempts return a diff preview before changing files.
+- Local search only reads files inside `WORKSPACE_ROOT`.
 - Recipes are prompt templates only; they do not grant new tool permissions.
 
 ## Reporting A Vulnerability

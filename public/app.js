@@ -10,10 +10,12 @@ const state = {
   files: [],
   recipes: [],
   receipts: [],
+  searchResults: [],
   selectedFiles: new Set(),
   permissions: {
     readFiles: true,
-    writeFiles: false
+    writeFiles: false,
+    previewWrites: true
   },
   models: [],
   model: "",
@@ -34,9 +36,13 @@ const els = {
   setupChecklist: document.querySelector("#setupChecklist"),
   readPermission: document.querySelector("#readPermission"),
   writePermission: document.querySelector("#writePermission"),
+  previewWritePermission: document.querySelector("#previewWritePermission"),
   refreshStatus: document.querySelector("#refreshStatus"),
   refreshFiles: document.querySelector("#refreshFiles"),
   refreshRecipes: document.querySelector("#refreshRecipes"),
+  workspaceSearch: document.querySelector("#workspaceSearch"),
+  runSearch: document.querySelector("#runSearch"),
+  searchResults: document.querySelector("#searchResults"),
   recipeSelect: document.querySelector("#recipeSelect"),
   recipeHint: document.querySelector("#recipeHint"),
   useRecipe: document.querySelector("#useRecipe"),
@@ -54,6 +60,7 @@ const els = {
 document.addEventListener("DOMContentLoaded", async () => {
   bindEvents();
   renderMessages();
+  renderSearchResults();
   addTrail("system", "Workspace boundary active");
   updateSendState();
   await Promise.all([refreshStatus(), refreshFiles(), refreshRecipes(), refreshReceipts()]);
@@ -66,6 +73,14 @@ function bindEvents() {
   els.refreshRecipes.addEventListener("click", refreshRecipes);
   els.readPermission.addEventListener("change", syncPermissions);
   els.writePermission.addEventListener("change", syncPermissions);
+  els.previewWritePermission.addEventListener("change", syncPermissions);
+  els.runSearch.addEventListener("click", searchWorkspace);
+  els.workspaceSearch.addEventListener("keydown", (event) => {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      searchWorkspace();
+    }
+  });
   els.modelSelect.addEventListener("change", () => {
     state.model = els.modelSelect.value;
     addTrail("model", `Model set to ${state.model}`);
@@ -101,10 +116,15 @@ function bindEvents() {
 function syncPermissions() {
   state.permissions = {
     readFiles: els.readPermission.checked,
-    writeFiles: els.writePermission.checked
+    writeFiles: els.writePermission.checked,
+    previewWrites: els.previewWritePermission.checked
   };
-  addTrail("permission", `Reads ${state.permissions.readFiles ? "on" : "off"}, writes ${state.permissions.writeFiles ? "on" : "off"}`);
+  addTrail(
+    "permission",
+    `Reads ${state.permissions.readFiles ? "on" : "off"}, writes ${state.permissions.writeFiles ? "on" : "off"}, previews ${state.permissions.previewWrites ? "on" : "off"}`
+  );
   renderLocalSignals();
+  renderSetupChecklist();
 }
 
 async function refreshRecipes() {
@@ -182,6 +202,60 @@ function applySelectedRecipe() {
 function selectedRecipe() {
   const id = els.recipeSelect.value;
   return state.recipes.find((recipe) => recipe.id === id) || null;
+}
+
+async function searchWorkspace() {
+  const query = els.workspaceSearch.value.trim();
+  if (!query) {
+    state.searchResults = [];
+    renderSearchResults();
+    return;
+  }
+
+  els.searchResults.innerHTML = `<div class="empty-state">Searching workspace...</div>`;
+
+  try {
+    const data = await getJson(`/api/search?query=${encodeURIComponent(query)}&limit=8`);
+    state.searchResults = data.results || [];
+    renderSearchResults();
+    addTrail("search", `${state.searchResults.length} result(s) for "${query}"`);
+  } catch (error) {
+    state.searchResults = [];
+    els.searchResults.innerHTML = `<div class="empty-state">${escapeHtml(error.message)}</div>`;
+    addTrail("error", error.message);
+  }
+}
+
+function renderSearchResults() {
+  els.searchResults.innerHTML = "";
+
+  if (!state.searchResults.length) {
+    const empty = document.createElement("div");
+    empty.className = "empty-state compact";
+    empty.textContent = els.workspaceSearch.value.trim() ? "No matching workspace files." : "Search files and receipts without leaving the browser.";
+    els.searchResults.appendChild(empty);
+    return;
+  }
+
+  for (const result of state.searchResults) {
+    const item = document.createElement("button");
+    item.type = "button";
+    item.className = `search-result${state.selectedFiles.has(result.path) ? " selected" : ""}`;
+    item.title = result.path;
+    item.innerHTML = `
+      <span class="search-path">${escapeHtml(result.path)}</span>
+      <span class="search-snippet">${escapeHtml(result.snippet || "No preview available")}</span>
+    `;
+    item.addEventListener("click", () => {
+      state.selectedFiles.add(result.path);
+      renderFiles();
+      renderSearchResults();
+      els.workspaceStatus.textContent = `${state.selectedFiles.size} selected`;
+      addTrail("context", `Selected ${result.path} from search`);
+      renderLocalSignals();
+    });
+    els.searchResults.appendChild(item);
+  }
 }
 
 async function refreshStatus() {
@@ -293,7 +367,7 @@ async function createNewNote() {
   const path = `notes/note-${stamp}.md`;
   await postJson("/api/files/content", {
     path,
-    content: `# Local Agent Note\n\nCreated ${new Date().toLocaleString()}.\n`
+    content: `# AgentTrail Note\n\nCreated ${new Date().toLocaleString()}.\n`
   });
   await refreshFiles();
   state.selectedFiles.add(path);
@@ -388,7 +462,7 @@ function addTrail(type, label) {
     label,
     time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" })
   });
-  state.trail = state.trail.slice(0, 18);
+  state.trail = state.trail.slice(0, 24);
   renderTrail();
 }
 
@@ -400,11 +474,12 @@ async function exportTrailReceipt() {
     .map((item) => `- ${item.time} [${item.type}] ${item.label}`)
     .join("\n");
   const content = [
-    "# Local Agent Trail Receipt",
+    "# AgentTrail Receipt",
     "",
     `Exported: ${new Date().toISOString()}`,
     `Model: ${state.model || "not selected"}`,
     `Selected files: ${Array.from(state.selectedFiles).join(", ") || "none"}`,
+    `Permissions: reads ${state.permissions.readFiles ? "on" : "off"}, writes ${state.permissions.writeFiles ? "on" : "off"}, previews ${state.permissions.previewWrites ? "on" : "off"}`,
     `Tool calls: ${state.toolCount}`,
     "",
     "## Events",
@@ -474,6 +549,10 @@ function renderSetupChecklist() {
     {
       ok: state.recipes.length >= 10,
       text: `${state.recipes.length} recipe(s) loaded`
+    },
+    {
+      ok: state.permissions.previewWrites,
+      text: state.permissions.previewWrites ? "Write previews are enabled" : "Enable previews before direct writes"
     },
     {
       ok: state.receipts.length > 0,

@@ -38,13 +38,13 @@ async function main() {
   try {
     await waitForServer(port, () => output);
 
-  const home = await fetchText(`http://127.0.0.1:${port}/`);
-  assert.match(home, /Local AI Agent/);
+    const home = await fetchText(`http://127.0.0.1:${port}/`);
+    assert.match(home, /AgentTrail/);
 
-  const demo = await fetchText(`http://127.0.0.1:${port}/docs/demo.html`);
-  assert.match(demo, /Tiny local agent kit/);
+    const demo = await fetchText(`http://127.0.0.1:${port}/docs/demo.html`);
+    assert.match(demo, /Tiny local agent kit/);
 
-  const status = await fetchJson(`http://127.0.0.1:${port}/api/status`);
+    const status = await fetchJson(`http://127.0.0.1:${port}/api/status`);
     assert.equal(status.app, "ok");
     assert.equal(status.ollama.available, false);
 
@@ -60,6 +60,16 @@ async function main() {
 
     const file = await fetchJson(`http://127.0.0.1:${port}/api/files/content?path=notes/test.md`);
     assert.match(file.content, /Smoke test content/);
+
+    const preview = await postJson(`http://127.0.0.1:${port}/api/files/preview`, {
+      path: "notes/test.md",
+      content: "# Test\n\nUpdated smoke test content.\n"
+    });
+    assert.equal(preview.preview, true);
+    assert.match(preview.diff.text, /Updated smoke test content/);
+
+    const search = await fetchJson(`http://127.0.0.1:${port}/api/search?query=smoke&limit=5`);
+    assert.equal(search.results.some((item) => item.path === "notes/test.md"), true);
 
     const files = await fetchJson(`http://127.0.0.1:${port}/api/files`);
     assert.equal(files.files.some((item) => item.path === "notes/test.md"), true);

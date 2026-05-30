@@ -1,0 +1,7 @@
+{
+  "id": "github-star-teardown",
+  "title": "GitHub Star Teardown",
+  "description": "Critique a repo like a visitor deciding whether to star it in 30 seconds.",
+  "tags": ["growth", "github", "readme", "launch"],
+  "prompt": "Act like a brutally honest GitHub visitor with 30 seconds. Review the selected README, docs, or project notes. Score: name, above-the-fold clarity, demo proof, install friction, uniqueness, trust, and contribution path. Then give the 10 highest-impact changes, ordered by expected star impact."
+}

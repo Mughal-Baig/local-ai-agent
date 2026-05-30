@@ -3,9 +3,9 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Local AI Agent</title>
+    <title>AgentTrail Local</title>
     <link rel="icon" href="/logo.svg" />
-    <link rel="stylesheet" href="/styles.css?v=5" />
+    <link rel="stylesheet" href="/styles.css?v=6" />
   </head>
   <body>
     <div class="app-shell">
@@ -13,7 +13,7 @@
         <div class="brand">
           <img src="/logo.svg" alt="" class="brand-mark" />
           <div>
-            <h1>Local Agent</h1>
+            <h1>AgentTrail</h1>
             <p id="connectionStatus">Checking local model...</p>
           </div>
         </div>
@@ -71,7 +71,21 @@
             <input id="writePermission" type="checkbox" />
             <span>Allow file writes</span>
           </label>
-          <p class="hint">Writes are off by default; receipts always show tool activity.</p>
+          <label class="toggle-row">
+            <input id="previewWritePermission" type="checkbox" checked />
+            <span>Preview writes first</span>
+          </label>
+          <p class="hint">Writes are off by default; preview mode returns a diff instead of touching files.</p>
+        </section>
+
+        <section class="panel search-panel" aria-label="Workspace search">
+          <div class="panel-heading">
+            <h2>Find Context</h2>
+            <button id="runSearch" class="icon-button" title="Search workspace files and receipts" aria-label="Search workspace files and receipts">S</button>
+          </div>
+          <label class="field-label" for="workspaceSearch">Local search</label>
+          <input id="workspaceSearch" class="search-input" type="search" placeholder="Search files, notes, receipts..." />
+          <div id="searchResults" class="search-results"></div>
         </section>
 
         <section class="panel recipes-panel" aria-label="Agent recipes">
@@ -110,7 +124,7 @@
         <header class="topbar">
           <div>
             <p class="eyebrow">Private local assistant</p>
-            <h2>Chat with your files and local model</h2>
+            <h2>Auditable local agent with recipes, search, and receipts</h2>
           </div>
           <div class="status-pill" id="workspaceStatus">Workspace ready</div>
         </header>
@@ -119,6 +133,7 @@
           <button type="button" data-prompt="Summarize the selected files and list the next useful action.">Summarize</button>
           <button type="button" data-prompt="Create a practical implementation plan using the selected files as context.">Plan</button>
           <button type="button" data-prompt="Find risks, missing pieces, and quick improvements in the selected files.">Review</button>
+          <button type="button" data-prompt="Search the workspace for relevant files, then explain what evidence supports your answer.">Search</button>
           <button type="button" data-prompt="Create or update a workspace note with the key decisions from this chat.">Save note</button>
         </section>
 
@@ -131,6 +146,6 @@
       </main>
     </div>
 
-    <script src="/app.js?v=5"></script>
+    <script src="/app.js?v=6"></script>
   </body>
 </html>

@@ -2,7 +2,7 @@
 
 ## One-Line Pitch
 
-Tiny local AI agent kit with Ollama, workspace-safe tools, reusable recipes, and exportable audit receipts.
+AgentTrail is a tiny local AI agent kit with Ollama, workspace search, diff-safe writes, reusable recipes, and exportable audit receipts.
 
 ## Public Launch Steps
 
@@ -18,12 +18,14 @@ Tiny local AI agent kit with Ollama, workspace-safe tools, reusable recipes, and
 
 ## Demo Post Draft
 
-I built a tiny local AI agent kit for Ollama.
+I built AgentTrail, a tiny local AI agent kit for Ollama.
 
 It is not trying to be a giant platform. It is a readable starter agent with:
 
 - zero npm dependencies
 - a static demo before install
+- local workspace search before answers
+- diff previews before writes
 - workspace-safe file tools
 - reusable JSON recipes
 - visible tool receipts
@@ -39,5 +41,5 @@ GitHub: https://github.com/Mughal-Baig/local-ai-agent
 - Add a recipe for README cleanup.
 - Add a recipe for test planning.
 - Add a recipe for prompt-injection review.
-- Add a static GitHub Pages demo.
-- Add JSON schema validation for recipes.
+- Add a recipe pack import/export flow.
+- Add semantic local search.

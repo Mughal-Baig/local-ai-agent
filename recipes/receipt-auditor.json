@@ -1,0 +1,7 @@
+{
+  "id": "receipt-auditor",
+  "title": "Receipt Auditor",
+  "description": "Review saved Agent Trail receipts for risky tool use, missing context, and reproducibility gaps.",
+  "tags": ["receipts", "audit", "security", "trust"],
+  "prompt": "Search the workspace for saved receipts related to the user's topic. Review the trail for risky writes, missing read context, unclear model behavior, and unverified claims. Return a risk table with severity, evidence path, and fix. Keep the answer practical and specific."
+}

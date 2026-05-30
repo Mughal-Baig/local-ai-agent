@@ -1,0 +1,7 @@
+{
+  "id": "local-rag-brief",
+  "title": "Local RAG Brief",
+  "description": "Search local files and receipts, cite the strongest evidence, and produce a grounded answer.",
+  "tags": ["search", "rag", "evidence", "brief"],
+  "prompt": "Use search_workspace to find the most relevant local files for the user's question. Read only the strongest matches. Answer with: 1. short conclusion, 2. evidence from files with paths, 3. gaps or uncertainty, 4. next action. Do not invent facts that are not supported by workspace evidence."
+}

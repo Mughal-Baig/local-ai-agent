@@ -1,21 +1,25 @@
-# Local AI Agent
+# AgentTrail Local AI Agent
 
 [![CI](https://github.com/Mughal-Baig/local-ai-agent/actions/workflows/ci.yml/badge.svg)](https://github.com/Mughal-Baig/local-ai-agent/actions/workflows/ci.yml)
 ![No npm dependencies](https://img.shields.io/badge/runtime-zero%20npm%20deps-246B62)
 ![Local first](https://img.shields.io/badge/privacy-local--first-C35B43)
 ![Ollama](https://img.shields.io/badge/models-Ollama-D99B2B)
 
-A tiny, transparent local AI agent and recipe kit for people who want a Claude/ChatGPT/Gemini-style workspace assistant without sending files to a cloud service.
+AgentTrail is a tiny, auditable local AI agent kit for people who want a Claude/ChatGPT/Gemini-style workspace assistant without sending files to a cloud service.
 
 ![Local AI Agent preview](docs/preview.svg)
 
 ![Local AI Agent demo flow](docs/demo-flow.svg)
 
-**Static demo:** open [docs/demo.html](docs/demo.html) locally, or enable GitHub Pages after making the repo public.
+**Live demo:** [mughal-baig.github.io/local-ai-agent/demo.html](https://mughal-baig.github.io/local-ai-agent/demo.html)
+
+**Core promise:** a local agent should show what it searched, what it read, what it planned to write, and why you can trust it.
 
 ## Why Star This
 
 - **Transparent by default**: every tool call is shown as an Agent Trail receipt.
+- **Search before answer**: built-in local workspace search helps the agent find evidence before responding.
+- **Diff-safe writes**: preview mode returns a unified diff instead of touching files.
 - **Recipe-driven**: reusable local workflows live in plain JSON files anyone can add.
 - **Demo-first**: the static demo lets visitors understand the project before installing Ollama.
 - **Permission-aware**: file reads are explicit and file writes are off by default.
@@ -28,24 +32,25 @@ A tiny, transparent local AI agent and recipe kit for people who want a Claude/C
 
 Popular local AI tools are often full platforms. This project is intentionally smaller: it is a starter agent you can read, modify, and trust in an afternoon.
 
-| Area | Local AI Agent |
+| Area | AgentTrail |
 | --- | --- |
 | Setup | One Node command, no package install required |
 | Model backend | Ollama |
-| File access | Sandboxed workspace tools |
-| Trust UX | Visible local signals, exportable receipts, and tool history |
+| File access | Sandboxed workspace tools plus local search |
+| Trust UX | Visible local signals, diff previews, exportable receipts, and tool history |
 | Workflow system | Plain JSON recipes in `recipes/` |
-| Best use | Personal workspace agent starter kit |
+| Best use | Personal workspace agent starter kit and auditable local workflow lab |
 
 ## Features
 
 - Chat UI with model picker and streaming-style responses
 - Starter prompts for summarize, plan, review, and save-note workflows
 - Local recipe picker backed by plain JSON workflow files
+- Local search across workspace files and saved receipts
 - First-run setup checklist for Ollama, models, workspace files, recipes, and receipts
-- Permission toggles for file reads and file writes
+- Permission toggles for file reads, file writes, and write preview mode
 - Ollama integration for local models
-- Workspace-aware tools: list files, read files, and write files
+- Workspace-aware tools: list files, search files, read files, preview writes, and write files
 - Agent Trail receipts for tool calls, selected context, model status, and errors
 - Exportable Markdown audit receipts
 - Saved receipt history in `workspace/receipts/`
@@ -119,8 +124,12 @@ The browser sends messages to the local Node server. The server sends a prompt t
 Available tools:
 
 - `list_files`: shows files in the workspace
+- `search_workspace`: searches local files and receipts for relevant context
 - `read_file`: reads a workspace file
+- `preview_write_file`: returns a diff preview without writing
 - `write_file`: creates or updates a workspace file
+
+When write preview mode is enabled, `write_file` returns a diff preview instead of changing the file. This keeps the default experience reviewable even when an LLM tries to write.
 
 ## Workspace
 
@@ -168,7 +177,7 @@ See [docs/ROADMAP.md](docs/ROADMAP.md).
 
 ## Growth Research
 
-See [docs/GROWTH_RESEARCH.md](docs/GROWTH_RESEARCH.md) for research-backed positioning and [docs/LAUNCH_PLAN.md](docs/LAUNCH_PLAN.md) for the public launch checklist.
+See [docs/GROWTH_RESEARCH.md](docs/GROWTH_RESEARCH.md) for research-backed positioning, [docs/LAUNCH_PLAN.md](docs/LAUNCH_PLAN.md) for the public launch checklist, and [docs/TOP_1_PERCENT_PLAYBOOK.md](docs/TOP_1_PERCENT_PLAYBOOK.md) for the focused growth path.
 
 ## Contributing
 

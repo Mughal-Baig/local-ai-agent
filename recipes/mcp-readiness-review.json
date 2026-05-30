@@ -1,0 +1,7 @@
+{
+  "id": "mcp-readiness-review",
+  "title": "MCP Readiness Review",
+  "description": "Assess what would be needed to expose a local workflow as an MCP-safe tool surface.",
+  "tags": ["mcp", "agents", "tools", "security"],
+  "prompt": "Review the selected files or search the workspace for tool-related code. Identify which actions could become MCP tools, which permissions each tool needs, what data leaves the workspace, and what approval UX is required. Return a checklist grouped by tool, risk, and implementation effort."
+}

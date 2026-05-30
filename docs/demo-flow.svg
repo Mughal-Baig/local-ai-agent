@@ -1,8 +1,8 @@
 <svg width="960" height="540" viewBox="0 0 960 540" fill="none" xmlns="http://www.w3.org/2000/svg">
   <style>
-    .bg { fill: #f7f5ef; }
-    .side { fill: #ebe5d8; }
-    .panel { fill: #fff; stroke: #ddd8cc; }
+    .bg { fill: #f4f7f5; }
+    .side { fill: #e7eeeb; }
+    .panel { fill: #fff; stroke: #d6ded9; }
     .ink { fill: #1f2430; font-family: Arial, sans-serif; }
     .muted { fill: #6b6f7a; font-family: Arial, sans-serif; }
     .teal { fill: #246b62; }
@@ -20,8 +20,8 @@
   </style>
   <rect class="bg" width="960" height="540"/>
   <rect class="side" width="300" height="540"/>
-  <text class="ink" x="36" y="46" font-size="24" font-weight="700">Local AI Agent</text>
-  <text class="muted" x="36" y="70" font-size="14">Recipe kit with audit receipts</text>
+  <text class="ink" x="36" y="46" font-size="24" font-weight="700">AgentTrail</text>
+  <text class="muted" x="36" y="70" font-size="14">Local agent with search, diffs, receipts</text>
 
   <g id="step1" class="step">
     <rect class="panel" x="28" y="104" width="244" height="82" rx="8"/>
@@ -33,15 +33,15 @@
   <g id="step2" class="step">
     <rect class="panel" x="28" y="208" width="244" height="82" rx="8"/>
     <circle class="amber" cx="52" cy="236" r="7"/>
-    <text class="ink" x="70" y="241" font-size="16" font-weight="700">Select workspace files</text>
-    <text class="muted" x="70" y="266" font-size="13">Reads stay inside workspace/</text>
+    <text class="ink" x="70" y="241" font-size="16" font-weight="700">Search local context</text>
+    <text class="muted" x="70" y="266" font-size="13">Files and receipts stay local</text>
   </g>
 
   <g id="step3" class="step">
     <rect class="panel" x="28" y="312" width="244" height="82" rx="8"/>
     <circle class="coral" cx="52" cy="340" r="7"/>
-    <text class="ink" x="70" y="345" font-size="16" font-weight="700">Control permissions</text>
-    <text class="muted" x="70" y="370" font-size="13">Writes are off by default</text>
+    <text class="ink" x="70" y="345" font-size="16" font-weight="700">Preview file writes</text>
+    <text class="muted" x="70" y="370" font-size="13">Diffs before touching files</text>
   </g>
 
   <g id="step4" class="step">
@@ -58,9 +58,9 @@
   <rect class="panel" x="336" y="164" width="564" height="236" rx="8"/>
   <text class="ink" x="364" y="204" font-size="18" font-weight="700">What visitors see in 30 seconds</text>
   <text class="muted" x="364" y="238" font-size="15">1. Tiny readable Node agent loop</text>
-  <text class="muted" x="364" y="268" font-size="15">2. Plain JSON recipes anyone can add</text>
+  <text class="muted" x="364" y="268" font-size="15">2. Workspace search before answers</text>
   <text class="muted" x="364" y="298" font-size="15">3. Workspace-safe tools with visible trail</text>
-  <text class="muted" x="364" y="328" font-size="15">4. Local receipts saved to workspace/receipts</text>
+  <text class="muted" x="364" y="328" font-size="15">4. Diff previews and saved receipts</text>
   <rect x="364" y="352" width="176" height="32" rx="16" fill="#e4f0ed"/>
   <text class="ink" x="386" y="373" font-size="13" font-weight="700">Zero npm dependencies</text>
   <rect x="552" y="352" width="156" height="32" rx="16" fill="#fff4d8"/>

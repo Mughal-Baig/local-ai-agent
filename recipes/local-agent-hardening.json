@@ -1,6 +1,6 @@
 {
   "id": "local-agent-hardening",
-  "title": "Local Agent Hardening",
+  "title": "AgentTrail Hardening",
   "description": "Audit a local AI agent for permission boundaries, prompt injection exposure, and unsafe tool behavior.",
   "tags": ["security", "agents", "local-first"],
   "prompt": "Audit the selected files for local-agent safety. Focus on path traversal, hidden network calls, unsafe writes, prompt injection, missing user-visible receipts, and confusing permission boundaries. Return a prioritized hardening checklist with exact file references when possible."

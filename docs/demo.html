@@ -3,20 +3,20 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Local AI Agent Demo</title>
+    <title>AgentTrail Local Demo</title>
     <style>
       :root {
-        --bg: #f7f5ef;
+        --bg: #f4f7f5;
         --panel: #ffffff;
         --ink: #1f2430;
         --muted: #6b6f7a;
-        --line: #ddd8cc;
+        --line: #d6ded9;
         --teal: #246b62;
         --teal-dark: #174c46;
         --coral: #c35b43;
         --amber: #d99b2b;
         --soft-teal: #e4f0ed;
-        --soft-coral: #f6e5df;
+        --soft-coral: #f7e7e2;
       }
 
       * {
@@ -47,7 +47,7 @@
         gap: 16px;
         padding: 22px;
         border-right: 1px solid var(--line);
-        background: #ebe5d8;
+        background: #e7eeeb;
       }
 
       .brand {
@@ -114,6 +114,7 @@
 
       .signal-card,
       .file-item,
+      .search-card,
       .trail-item,
       .recipe-card {
         border: 1px solid var(--line);
@@ -171,6 +172,25 @@
         padding: 10px;
         background: var(--soft-teal);
         font-weight: 800;
+      }
+
+      .search-card {
+        display: grid;
+        gap: 5px;
+        padding: 10px;
+      }
+
+      .search-card strong {
+        color: var(--teal-dark);
+        font-size: 0.86rem;
+      }
+
+      .search-card span {
+        overflow: hidden;
+        color: var(--muted);
+        font-size: 0.78rem;
+        text-overflow: ellipsis;
+        white-space: nowrap;
       }
 
       .trail-list {
@@ -394,7 +414,7 @@
         <div class="brand">
           <div class="mark">AI</div>
           <div>
-            <h1>Local Agent</h1>
+            <h1>AgentTrail</h1>
             <p>Static demo, no backend needed</p>
           </div>
         </div>
@@ -418,7 +438,7 @@
             </div>
             <div class="signal-card">
               <span>Tools</span>
-              <strong>2 calls</strong>
+              <strong>3 calls</strong>
             </div>
           </div>
         </section>
@@ -428,13 +448,23 @@
             <h2>Recipe</h2>
           </div>
           <div class="recipe-card">
-            <strong>Local Agent Hardening</strong>
+            <strong>AgentTrail Hardening</strong>
             <p class="hint">Audit path traversal, hidden network calls, unsafe writes, prompt injection, and missing receipts.</p>
             <div class="tag-row">
               <span>security</span>
               <span>agents</span>
               <span>local-first</span>
             </div>
+          </div>
+        </section>
+
+        <section class="panel">
+          <div class="panel-heading">
+            <h2>Find Context</h2>
+          </div>
+          <div class="search-card">
+            <strong>local-agent-hardening.json</strong>
+            <span>unsafe writes, prompt injection, missing receipts</span>
           </div>
         </section>
 
@@ -461,13 +491,18 @@
             </div>
             <div class="trail-item tool">
               <span class="dot"></span>
-              <span>read_file: welcome.md</span>
+              <span>search_workspace: security receipts</span>
               <time>00:02</time>
+            </div>
+            <div class="trail-item tool">
+              <span class="dot"></span>
+              <span>preview_write_file: hardening.md</span>
+              <time>00:03</time>
             </div>
             <div class="trail-item write">
               <span class="dot"></span>
               <span>Receipt exported</span>
-              <time>00:03</time>
+              <time>00:04</time>
             </div>
           </div>
         </section>
@@ -477,7 +512,7 @@
         <header class="topbar">
           <div>
             <p class="eyebrow">Evaluate before installing</p>
-            <h2>Tiny local agent kit with recipes and receipts</h2>
+            <h2>Tiny local agent kit with search, diff previews, and receipts</h2>
           </div>
           <div class="pill">Zero npm dependencies</div>
         </header>
@@ -494,11 +529,12 @@
             <div class="avatar">AI</div>
             <div class="bubble">
               <p><strong>What makes this different?</strong></p>
-              <p>Local AI Agent is intentionally small: a readable Node server, workspace-safe file tools, plain JSON recipes, and user-visible receipts for every tool action.</p>
+              <p>AgentTrail is intentionally small: a readable Node server, local workspace search, workspace-safe file tools, plain JSON recipes, diff previews, and user-visible receipts for every tool action.</p>
               <p>It is built for people who want to learn, fork, and trust a local agent without adopting a giant platform.</p>
               <div class="receipt">
-                <span>Recipe loaded: Local Agent Hardening</span>
-                <span>read_file: welcome.md</span>
+                <span>Recipe loaded: AgentTrail Hardening</span>
+                <span>search_workspace: 4 matches</span>
+                <span>preview_write_file: +12 -3</span>
                 <span>Exported audit receipt</span>
               </div>
             </div>

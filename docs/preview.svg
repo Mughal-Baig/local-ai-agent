@@ -1,10 +1,10 @@
 <svg width="1280" height="720" viewBox="0 0 1280 720" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <rect width="1280" height="720" fill="#F7F5EF"/>
-  <rect width="340" height="720" fill="#EBE5D8"/>
+  <rect width="1280" height="720" fill="#F4F7F5"/>
+  <rect width="340" height="720" fill="#E7EEEB"/>
   <rect x="24" y="28" width="44" height="44" rx="12" fill="#246B62"/>
-  <rect x="35" y="38" width="22" height="24" rx="4" fill="#F7F5EF"/>
+  <rect x="35" y="38" width="22" height="24" rx="4" fill="#F4F7F5"/>
   <circle cx="61" cy="35" r="6" fill="#D99B2B"/>
-  <text x="84" y="46" fill="#1F2430" font-family="Arial, sans-serif" font-size="18" font-weight="700">Local Agent</text>
+  <text x="84" y="46" fill="#1F2430" font-family="Arial, sans-serif" font-size="18" font-weight="700">AgentTrail</text>
   <text x="84" y="66" fill="#6B6F7A" font-family="Arial, sans-serif" font-size="13">2 local model(s) found</text>
 
   <rect x="22" y="90" width="294" height="168" rx="8" fill="white" fill-opacity="0.72" stroke="#DDD8CC"/>
@@ -26,23 +26,23 @@
   <text x="50" y="412" fill="#1F2430" font-family="Arial, sans-serif" font-size="12" font-weight="700">1 file</text>
   <rect x="176" y="380" width="122" height="38" rx="8" fill="white" stroke="#DDD8CC"/>
   <text x="188" y="396" fill="#6B6F7A" font-family="Arial, sans-serif" font-size="10" font-weight="700">TOOLS</text>
-  <text x="188" y="412" fill="#1F2430" font-family="Arial, sans-serif" font-size="12" font-weight="700">2 calls</text>
+  <text x="188" y="412" fill="#1F2430" font-family="Arial, sans-serif" font-size="12" font-weight="700">3 calls</text>
 
   <rect x="22" y="448" width="294" height="218" rx="8" fill="white" fill-opacity="0.72" stroke="#DDD8CC"/>
   <text x="38" y="484" fill="#6B6F7A" font-family="Arial, sans-serif" font-size="13" font-weight="700">AGENT TRAIL</text>
   <rect x="38" y="506" width="262" height="38" rx="8" fill="white" stroke="#DDD8CC"/>
   <circle cx="52" cy="525" r="4" fill="#D99B2B"/>
-  <text x="64" y="529" fill="#1F2430" font-family="Arial, sans-serif" font-size="12" font-weight="700">read_file: welcome.md</text>
+  <text x="64" y="529" fill="#1F2430" font-family="Arial, sans-serif" font-size="12" font-weight="700">search_workspace: notes</text>
   <rect x="38" y="554" width="262" height="38" rx="8" fill="white" stroke="#DDD8CC"/>
   <circle cx="52" cy="573" r="4" fill="#246B62"/>
-  <text x="64" y="577" fill="#1F2430" font-family="Arial, sans-serif" font-size="12" font-weight="700">Workspace boundary active</text>
+  <text x="64" y="577" fill="#1F2430" font-family="Arial, sans-serif" font-size="12" font-weight="700">preview_write_file: +12 -3</text>
   <rect x="38" y="602" width="262" height="38" rx="8" fill="white" stroke="#DDD8CC"/>
   <circle cx="52" cy="621" r="4" fill="#246B62"/>
   <text x="64" y="625" fill="#1F2430" font-family="Arial, sans-serif" font-size="12" font-weight="700">2 local model(s) available</text>
 
-  <rect x="340" y="0" width="940" height="92" fill="#F7F5EF" stroke="#DDD8CC"/>
+  <rect x="340" y="0" width="940" height="92" fill="#F4F7F5" stroke="#D6DED9"/>
   <text x="368" y="34" fill="#C35B43" font-family="Arial, sans-serif" font-size="12" font-weight="700">PRIVATE LOCAL ASSISTANT</text>
-  <text x="368" y="66" fill="#1F2430" font-family="Arial, sans-serif" font-size="28" font-weight="800">Chat with your files and local model</text>
+  <text x="368" y="66" fill="#1F2430" font-family="Arial, sans-serif" font-size="28" font-weight="800">Auditable local agent with search and receipts</text>
   <rect x="1098" y="29" width="154" height="36" rx="18" fill="#E4F0ED" stroke="#A7CBC4"/>
   <text x="1118" y="52" fill="#174C46" font-family="Arial, sans-serif" font-size="13" font-weight="700">1 workspace file(s)</text>
 

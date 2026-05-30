@@ -21,6 +21,7 @@ const RECEIPTS_DIR = "receipts";
 const MAX_BODY_BYTES = 1024 * 1024;
 const MAX_FILE_BYTES = 80 * 1024;
 const MAX_PROMPT_FILE_BYTES = 28 * 1024;
+const MAX_SEARCH_FILE_BYTES = 160 * 1024;
 
 fs.mkdirSync(WORKSPACE_ROOT, { recursive: true });
 
@@ -48,12 +49,20 @@ const server = http.createServer(async (req, res) => {
       return handleSaveReceipt(req, res);
     }
 
+    if (url.pathname === "/api/search" && req.method === "GET") {
+      return handleSearch(url, res);
+    }
+
     if (url.pathname === "/api/files/content" && req.method === "GET") {
       return handleReadFile(url, res);
     }
 
     if (url.pathname === "/api/files/content" && req.method === "POST") {
       return handleWriteFile(req, res);
+    }
+
+    if (url.pathname === "/api/files/preview" && req.method === "POST") {
+      return handlePreviewFile(req, res);
     }
 
     if (url.pathname === "/api/chat" && req.method === "POST") {
@@ -78,7 +87,7 @@ const server = http.createServer(async (req, res) => {
 });
 
 server.listen(PORT, "127.0.0.1", () => {
-  console.log(`Local AI Agent running at http://127.0.0.1:${PORT}`);
+  console.log(`AgentTrail running at http://127.0.0.1:${PORT}`);
   console.log(`Workspace root: ${WORKSPACE_ROOT}`);
 });
 
@@ -128,6 +137,13 @@ async function handleSaveReceipt(req, res) {
   sendJson(res, 200, result);
 }
 
+async function handleSearch(url, res) {
+  const query = url.searchParams.get("query") || "";
+  const limit = Math.min(Math.max(Number(url.searchParams.get("limit") || 8), 1), 20);
+  const results = await searchWorkspace(query, limit);
+  sendJson(res, 200, { query, results });
+}
+
 async function handleReadFile(url, res) {
   const relativePath = url.searchParams.get("path") || "";
   const file = await readWorkspaceFile(relativePath, MAX_FILE_BYTES);
@@ -143,6 +159,18 @@ async function handleWriteFile(req, res) {
   }
 
   const result = await writeWorkspaceFile(relativePath, content);
+  sendJson(res, 200, result);
+}
+
+async function handlePreviewFile(req, res) {
+  const body = await readJsonBody(req);
+  const relativePath = String(body.path || "").trim();
+  const content = typeof body.content === "string" ? body.content : "";
+  if (!relativePath) {
+    return sendJson(res, 400, { error: "Missing file path" });
+  }
+
+  const result = await previewWorkspaceFile(relativePath, content);
   sendJson(res, 200, result);
 }
 
@@ -251,22 +279,28 @@ async function buildAgentPrompt(messages, selectedFiles, toolHistory, permission
     : "No tools have been used yet.";
 
   return [
-    "You are Local Agent, a private AI assistant running on the user's computer.",
+    "You are AgentTrail, a private AI assistant running on the user's computer.",
     "You are inspired by modern assistants, but you are not Claude, ChatGPT, or Gemini.",
     "You help with coding, writing, planning, and workspace files.",
     "",
     "You may use tools by replying with exactly one JSON object and no extra text.",
     "Tool call format:",
     "{\"tool\":\"list_files\",\"arguments\":{}}",
+    "{\"tool\":\"search_workspace\",\"arguments\":{\"query\":\"search terms\",\"limit\":5}}",
     "{\"tool\":\"read_file\",\"arguments\":{\"path\":\"relative/path.txt\"}}",
+    "{\"tool\":\"preview_write_file\",\"arguments\":{\"path\":\"relative/path.txt\",\"content\":\"complete file content\"}}",
     "{\"tool\":\"write_file\",\"arguments\":{\"path\":\"relative/path.txt\",\"content\":\"complete file content\"}}",
     "",
     "Tool rules:",
     "- Use paths relative to the workspace.",
+    "- Use search_workspace when you need the most relevant local files before asking the user to pick context.",
     "- Read a file before changing it when existing content matters.",
     `- read_file permission is ${permissions.readFiles ? "enabled" : "disabled"}.`,
     `- write_file permission is ${permissions.writeFiles ? "enabled" : "disabled"}.`,
+    `- write preview mode is ${permissions.previewWrites ? "enabled" : "disabled"}.`,
+    "- Use preview_write_file before changing existing files.",
     "- Use write_file only when write permission is enabled and the user asks you to create or update a file.",
+    "- When write preview mode is enabled, write_file returns a diff preview instead of changing the file.",
     "- Do not call read_file for a selected file when its content already appears in selected file context.",
     "- If no tool is needed, answer normally in helpful Markdown.",
     "- Never claim you used a tool unless the tool result appears below.",
@@ -293,6 +327,10 @@ async function executeToolCall(toolCall, permissions) {
     return { files: await listWorkspaceFiles() };
   }
 
+  if (toolCall.tool === "search_workspace") {
+    return { results: await searchWorkspace(String(args.query || ""), Number(args.limit || 5)) };
+  }
+
   if (toolCall.tool === "read_file") {
     if (!permissions.readFiles) {
       return { error: "read_file permission is disabled" };
@@ -300,9 +338,18 @@ async function executeToolCall(toolCall, permissions) {
     return readWorkspaceFile(String(args.path || ""), MAX_FILE_BYTES);
   }
 
+  if (toolCall.tool === "preview_write_file") {
+    return previewWorkspaceFile(String(args.path || ""), String(args.content || ""));
+  }
+
   if (toolCall.tool === "write_file") {
     if (!permissions.writeFiles) {
       return { error: "write_file permission is disabled" };
+    }
+    if (permissions.previewWrites) {
+      return previewWorkspaceFile(String(args.path || ""), String(args.content || ""), {
+        blockedWrite: true
+      });
     }
     return writeWorkspaceFile(String(args.path || ""), String(args.content || ""));
   }
@@ -344,7 +391,7 @@ function extractToolCall(text) {
 function cleanAssistantOutput(text) {
   let value = String(text || "").trim();
   value = value.replace(/^["“]([\s\S]*)["”]$/g, "$1").trim();
-  value = value.replace(/^(Assistant|Local Agent|AI):\s*/i, "").trim();
+  value = value.replace(/^(Assistant|AgentTrail|Local Agent|AI):\s*/i, "").trim();
   return value;
 }
 
@@ -352,7 +399,8 @@ function normalizePermissions(value) {
   const permissions = value && typeof value === "object" ? value : {};
   return {
     readFiles: permissions.readFiles !== false,
-    writeFiles: permissions.writeFiles === true
+    writeFiles: permissions.writeFiles === true,
+    previewWrites: permissions.previewWrites !== false
   };
 }
 
@@ -439,6 +487,67 @@ async function listWorkspaceFiles() {
   return files;
 }
 
+async function searchWorkspace(query, limit) {
+  const normalizedQuery = String(query || "").trim().toLowerCase();
+  const terms = normalizedQuery
+    .split(/[^a-z0-9_.-]+/i)
+    .map((term) => term.trim().toLowerCase())
+    .filter((term) => term.length >= 2)
+    .slice(0, 8);
+  const files = await listWorkspaceFiles();
+  const candidates = [];
+
+  for (const file of files) {
+    if (file.size > MAX_SEARCH_FILE_BYTES) {
+      continue;
+    }
+
+    let content = "";
+    try {
+      content = await fsp.readFile(resolveWorkspacePath(file.path), "utf8");
+    } catch {
+      continue;
+    }
+
+    if (content.includes("\u0000")) {
+      continue;
+    }
+
+    const haystack = `${file.path}\n${content}`.toLowerCase();
+    let score = 0;
+
+    if (!terms.length) {
+      score = Date.parse(file.modifiedAt) || 0;
+    } else {
+      for (const term of terms) {
+        if (file.path.toLowerCase().includes(term)) {
+          score += 8;
+        }
+        score += countOccurrences(haystack, term);
+      }
+    }
+
+    if (score > 0 || !terms.length) {
+      candidates.push({
+        path: file.path,
+        size: file.size,
+        modifiedAt: file.modifiedAt,
+        score,
+        snippet: createSnippet(content, terms)
+      });
+    }
+  }
+
+  candidates.sort((a, b) => {
+    if (b.score !== a.score) {
+      return b.score - a.score;
+    }
+    return b.modifiedAt.localeCompare(a.modifiedAt);
+  });
+
+  return candidates.slice(0, Math.min(Math.max(Number(limit) || 8, 1), 20));
+}
+
 async function listRecipes() {
   const entries = await fsp.readdir(RECIPES_DIR, { withFileTypes: true }).catch(() => []);
   const recipes = [];
@@ -522,6 +631,44 @@ async function writeWorkspaceFile(relativePath, content) {
     size: stat.size,
     modifiedAt: stat.mtime.toISOString(),
     ok: true
+  };
+}
+
+async function previewWorkspaceFile(relativePath, content, options = {}) {
+  if (!relativePath || relativePath.endsWith("/") || relativePath.endsWith("\\")) {
+    throw new Error("A file path is required");
+  }
+
+  const normalized = normalizeRelativePath(relativePath);
+  const absolutePath = resolveWorkspacePath(normalized);
+  let current = "";
+  let exists = false;
+
+  try {
+    const stat = await fsp.stat(absolutePath);
+    if (!stat.isFile()) {
+      throw new Error("Path is not a file");
+    }
+    if (stat.size > MAX_FILE_BYTES) {
+      throw new Error(`File is too large to preview here (${stat.size} bytes)`);
+    }
+    current = await fsp.readFile(absolutePath, "utf8");
+    exists = true;
+  } catch (error) {
+    if (error.code !== "ENOENT") {
+      throw error;
+    }
+  }
+
+  const diff = createUnifiedDiff(normalized, current, content);
+  return {
+    path: normalized,
+    size: Buffer.byteLength(content, "utf8"),
+    exists,
+    preview: true,
+    blockedWrite: options.blockedWrite === true,
+    diff,
+    stats: diff.stats
   };
 }
 
@@ -629,6 +776,13 @@ function summarizeToolResult(result) {
   if (result && Array.isArray(result.files)) {
     return `${result.files.length} file(s) found`;
   }
+  if (result && Array.isArray(result.results)) {
+    return `${result.results.length} search result(s)`;
+  }
+  if (result && result.preview) {
+    const action = result.blockedWrite ? "Previewed instead of writing" : "Previewed";
+    return `${action} ${result.path} (+${result.stats.added}, -${result.stats.removed})`;
+  }
   if (result && result.content) {
     return `Read ${result.path} (${result.size} bytes)`;
   }
@@ -639,6 +793,92 @@ function summarizeToolResult(result) {
     return result.error;
   }
   return truncate(JSON.stringify(result), 280);
+}
+
+function countOccurrences(text, term) {
+  let count = 0;
+  let index = text.indexOf(term);
+  while (index !== -1) {
+    count += 1;
+    index = text.indexOf(term, index + term.length);
+  }
+  return count;
+}
+
+function createSnippet(content, terms) {
+  const lines = String(content || "").split(/\r?\n/);
+  const fallback = lines.find((line) => line.trim()) || "";
+  if (!terms.length) {
+    return truncate(fallback.trim(), 180);
+  }
+
+  const found = lines.find((line) => {
+    const lower = line.toLowerCase();
+    return terms.some((term) => lower.includes(term));
+  });
+
+  return truncate((found || fallback).trim(), 180);
+}
+
+function createUnifiedDiff(filePath, before, after) {
+  const beforeLines = splitLines(before);
+  const afterLines = splitLines(after);
+  const stats = {
+    added: afterLines.length,
+    removed: beforeLines.length
+  };
+
+  if (before === after) {
+    return {
+      text: [`--- a/${filePath}`, `+++ b/${filePath}`, " no changes"].join("\n"),
+      stats: { added: 0, removed: 0 }
+    };
+  }
+
+  let prefix = 0;
+  while (
+    prefix < beforeLines.length &&
+    prefix < afterLines.length &&
+    beforeLines[prefix] === afterLines[prefix]
+  ) {
+    prefix += 1;
+  }
+
+  let suffix = 0;
+  while (
+    suffix < beforeLines.length - prefix &&
+    suffix < afterLines.length - prefix &&
+    beforeLines[beforeLines.length - 1 - suffix] === afterLines[afterLines.length - 1 - suffix]
+  ) {
+    suffix += 1;
+  }
+
+  const contextBefore = beforeLines.slice(Math.max(0, prefix - 3), prefix);
+  const removed = beforeLines.slice(prefix, beforeLines.length - suffix);
+  const added = afterLines.slice(prefix, afterLines.length - suffix);
+  const contextAfter = beforeLines.slice(beforeLines.length - suffix, Math.min(beforeLines.length, beforeLines.length - suffix + 3));
+
+  stats.added = added.length;
+  stats.removed = removed.length;
+
+  const lines = [
+    `--- a/${filePath}`,
+    `+++ b/${filePath}`,
+    ...contextBefore.map((line) => ` ${line}`),
+    ...removed.map((line) => `-${line}`),
+    ...added.map((line) => `+${line}`),
+    ...contextAfter.map((line) => ` ${line}`)
+  ];
+
+  return {
+    text: truncate(lines.join("\n"), 6000),
+    stats
+  };
+}
+
+function splitLines(text) {
+  const value = String(text || "");
+  return value ? value.split(/\r?\n/) : [];
 }
 
 function truncate(value, maxLength) {
