@@ -9,3 +9,6 @@ workspace/private/
 workspace/receipts/
 workspace/reports/
 workspace/memory/
+workspace/sessions/
+workspace/evals/
+workspace/.agenttrail/

@@ -1,0 +1,13 @@
+services:
+  agenttrail:
+    build: .
+    ports:
+      - "4173:4173"
+    environment:
+      PORT: "4173"
+      HOST: "0.0.0.0"
+      OLLAMA_HOST: "http://host.docker.internal:11434"
+      OLLAMA_MODEL: "llama3.2"
+      OLLAMA_EMBED_MODEL: "nomic-embed-text"
+    volumes:
+      - ./workspace:/app/workspace

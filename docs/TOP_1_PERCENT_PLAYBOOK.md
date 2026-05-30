@@ -17,7 +17,7 @@ AgentTrail should not try to beat Open WebUI, Dify, AnythingLLM, Jan, Aider, or 
 
 - Zero npm dependencies.
 - Plain JSON recipes.
-- Keyword and semantic-lite search across files and receipts.
+- Keyword search plus local vector search across files, sessions, and receipts.
 - Agent Trail receipts.
 - Write preview mode with explicit Apply.
 - Trust Score dashboard.
@@ -28,7 +28,7 @@ AgentTrail should not try to beat Open WebUI, Dify, AnythingLLM, Jan, Aider, or 
 ## Next Star Drivers
 
 1. Record a real 20-second GIF using the v0.4 trust loop.
-2. Add optional true local embeddings for semantic search.
+2. Keep improving local embedding quality and model-specific search benchmarks.
 3. Add receipt replay so users can rerun a prior session with the same context.
 4. Add real MCP server transport behind the approval manifest.
 5. Add recipe pack import UI and community gallery.

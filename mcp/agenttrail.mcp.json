@@ -1,8 +1,13 @@
 {
   "name": "agenttrail-local",
-  "version": "0.4.0",
-  "status": "approval-required-manifest",
-  "description": "Draft MCP bridge contract for AgentTrail local tools. Every tool must declare scope, risk, and receipt behavior before execution.",
+  "version": "0.5.0",
+  "status": "stdio-server-ready",
+  "description": "MCP bridge contract for AgentTrail local tools. Run `npm run mcp`; medium/high-risk tools require explicit approval before execution.",
+  "server": {
+    "command": "node",
+    "args": ["mcp/server.js"],
+    "transport": "stdio"
+  },
   "approvals": [
     {
       "tool": "search_workspace",

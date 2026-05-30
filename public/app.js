@@ -14,6 +14,11 @@ const state = {
   pendingPreviews: [],
   packs: [],
   profiles: [],
+  sessions: [],
+  marketplace: null,
+  searchIndex: null,
+  benchmarks: null,
+  evalHistory: [],
   mcp: null,
   evals: null,
   memoryLoaded: false,
@@ -53,6 +58,8 @@ const els = {
   workspaceSearch: document.querySelector("#workspaceSearch"),
   semanticSearchMode: document.querySelector("#semanticSearchMode"),
   runSearch: document.querySelector("#runSearch"),
+  buildSearchIndex: document.querySelector("#buildSearchIndex"),
+  searchIndexSummary: document.querySelector("#searchIndexSummary"),
   searchResults: document.querySelector("#searchResults"),
   recipeSelect: document.querySelector("#recipeSelect"),
   recipeHint: document.querySelector("#recipeHint"),
@@ -65,15 +72,25 @@ const els = {
   pendingChanges: document.querySelector("#pendingChanges"),
   applyAllPreviews: document.querySelector("#applyAllPreviews"),
   receiptFilter: document.querySelector("#receiptFilter"),
+  sessionSelect: document.querySelector("#sessionSelect"),
+  replaySession: document.querySelector("#replaySession"),
   receiptTimeline: document.querySelector("#receiptTimeline"),
   exportReport: document.querySelector("#exportReport"),
   memoryInput: document.querySelector("#memoryInput"),
   saveMemory: document.querySelector("#saveMemory"),
   memoryStatus: document.querySelector("#memoryStatus"),
+  memoryCitations: document.querySelector("#memoryCitations"),
   packSelect: document.querySelector("#packSelect"),
   exportPack: document.querySelector("#exportPack"),
   runEval: document.querySelector("#runEval"),
   evalSummary: document.querySelector("#evalSummary"),
+  profileSelect: document.querySelector("#profileSelect"),
+  applyProfile: document.querySelector("#applyProfile"),
+  runBenchmark: document.querySelector("#runBenchmark"),
+  benchmarkSummary: document.querySelector("#benchmarkSummary"),
+  securityScan: document.querySelector("#securityScan"),
+  securitySummary: document.querySelector("#securitySummary"),
+  marketplaceSummary: document.querySelector("#marketplaceSummary"),
   profileSummary: document.querySelector("#profileSummary"),
   trustScore: document.querySelector("#trustScore"),
   trustReasons: document.querySelector("#trustReasons"),
@@ -92,7 +109,20 @@ document.addEventListener("DOMContentLoaded", async () => {
   renderTrustScore();
   addTrail("system", "Workspace boundary active");
   updateSendState();
-  await Promise.all([refreshStatus(), refreshFiles(), refreshRecipes(), refreshReceipts(), refreshMemory(), refreshPacks(), refreshProfilesAndMcp()]);
+  await Promise.all([
+    refreshStatus(),
+    refreshFiles(),
+    refreshRecipes(),
+    refreshReceipts(),
+    refreshSessions(),
+    refreshMemory(),
+    refreshMemoryCitations(),
+    refreshPacks(),
+    refreshProfilesAndMcp(),
+    refreshMarketplace(),
+    refreshSearchIndex(),
+    refreshEvalHistory()
+  ]);
   els.prompt.focus();
 });
 
@@ -110,9 +140,10 @@ function bindEvents() {
   });
   els.semanticSearchMode.addEventListener("change", () => {
     state.semanticSearch = els.semanticSearchMode.checked;
-    addTrail("search", `Semantic-lite search ${state.semanticSearch ? "on" : "off"}`);
+    addTrail("search", `Semantic search ${state.semanticSearch ? "on" : "off"}`);
   });
   els.runSearch.addEventListener("click", searchWorkspace);
+  els.buildSearchIndex.addEventListener("click", buildSearchIndex);
   els.workspaceSearch.addEventListener("keydown", (event) => {
     if (event.key === "Enter") {
       event.preventDefault();
@@ -130,10 +161,14 @@ function bindEvents() {
   els.exportTrail.addEventListener("click", exportTrailReceipt);
   els.applyAllPreviews.addEventListener("click", applyAllPreviews);
   els.receiptFilter.addEventListener("input", renderReceiptTimeline);
+  els.replaySession.addEventListener("click", replaySelectedSession);
   els.exportReport.addEventListener("click", exportShareableReport);
   els.saveMemory.addEventListener("click", saveMemory);
   els.exportPack.addEventListener("click", exportSelectedPack);
   els.runEval.addEventListener("click", runEvals);
+  els.applyProfile.addEventListener("click", applySelectedProfile);
+  els.runBenchmark.addEventListener("click", runBenchmarks);
+  els.securityScan.addEventListener("click", runSecurityScan);
   els.clearTrail.addEventListener("click", () => {
     state.trail = [];
     state.toolCount = 0;
@@ -201,6 +236,124 @@ async function refreshReceipts() {
   renderTrustScore();
 }
 
+async function refreshSessions() {
+  try {
+    const data = await getJson("/api/sessions");
+    state.sessions = data.sessions || [];
+  } catch {
+    state.sessions = [];
+  }
+  renderSessions();
+  renderSetupChecklist();
+  renderTrustScore();
+}
+
+function renderSessions() {
+  if (!els.sessionSelect) {
+    return;
+  }
+  els.sessionSelect.innerHTML = "";
+  if (!state.sessions.length) {
+    const option = document.createElement("option");
+    option.value = "";
+    option.textContent = "No replay sessions";
+    els.sessionSelect.appendChild(option);
+    els.replaySession.disabled = true;
+    return;
+  }
+
+  for (const session of state.sessions.slice(0, 25)) {
+    const option = document.createElement("option");
+    option.value = session.path;
+    option.textContent = session.title || session.path.replace(/^sessions\//, "");
+    els.sessionSelect.appendChild(option);
+  }
+  els.replaySession.disabled = false;
+}
+
+async function replaySelectedSession() {
+  const path = els.sessionSelect.value;
+  if (!path) {
+    return;
+  }
+
+  try {
+    const file = await getJson(`/api/sessions/content?path=${encodeURIComponent(path)}`);
+    const session = JSON.parse(file.content || "{}");
+    state.messages = normalizeUiMessages(session.messages || []);
+    state.selectedFiles = new Set((session.selectedFiles || []).filter(Boolean));
+    state.pendingPreviews = Array.isArray(session.pendingPreviews) ? session.pendingPreviews : [];
+    state.trail = Array.isArray(session.trail) ? session.trail.slice(0, 24) : [];
+    state.permissions = {
+      ...state.permissions,
+      ...(session.permissions || {})
+    };
+    els.readPermission.checked = state.permissions.readFiles !== false;
+    els.writePermission.checked = state.permissions.writeFiles === true;
+    els.previewWritePermission.checked = state.permissions.previewWrites !== false;
+    if (session.model) {
+      state.model = session.model;
+      if ([...els.modelSelect.options].some((option) => option.value === session.model)) {
+        els.modelSelect.value = session.model;
+      }
+    }
+    if (session.replay && session.replay.prompt) {
+      els.prompt.value = session.replay.prompt;
+      resizePrompt();
+    }
+    addTrail("replay", `Replayed ${path}`);
+    renderFiles();
+    renderMessages();
+    renderTrail();
+    renderPendingChanges();
+    renderLocalSignals();
+    renderTrustScore();
+  } catch (error) {
+    addTrail("error", `Could not replay session: ${error.message}`);
+  }
+}
+
+async function refreshSearchIndex() {
+  try {
+    const data = await getJson("/api/search-index");
+    state.searchIndex = data;
+    renderSearchIndex();
+    renderSetupChecklist();
+    renderTrustScore();
+  } catch (error) {
+    els.searchIndexSummary.textContent = `Search index unavailable: ${error.message}`;
+  }
+}
+
+async function buildSearchIndex() {
+  els.searchIndexSummary.textContent = "Building local vector index...";
+  try {
+    const data = await postJson("/api/search-index", { provider: "auto" });
+    state.searchIndex = data;
+    renderSearchIndex();
+    addTrail("search", `Built ${data.provider} index over ${data.itemCount} file(s)`);
+    renderSetupChecklist();
+    renderTrustScore();
+  } catch (error) {
+    els.searchIndexSummary.textContent = error.message;
+    addTrail("error", error.message);
+  }
+}
+
+function renderSearchIndex() {
+  if (!state.searchIndex || !els.searchIndexSummary) {
+    return;
+  }
+  if (!state.searchIndex.exists && !state.searchIndex.ok) {
+    els.searchIndexSummary.textContent = `No index yet. Embedding model: ${state.searchIndex.embedModel || "nomic-embed-text"}.`;
+    return;
+  }
+  const provider = state.searchIndex.provider || "local-vector";
+  const count = state.searchIndex.itemCount || 0;
+  const model = state.searchIndex.model || state.searchIndex.embedModel || "hash";
+  els.searchIndexSummary.textContent = `${provider} index: ${count} item(s), model ${model}.`;
+}
+
 async function refreshMemory() {
   try {
     const data = await getJson("/api/memory");
@@ -216,13 +369,44 @@ async function saveMemory() {
   try {
     const saved = await postJson("/api/memory", { content: els.memoryInput.value });
     state.memoryLoaded = true;
-    els.memoryStatus.textContent = `Saved ${saved.path}`;
+    els.memoryStatus.textContent = `Saved ${saved.path}; history ${saved.history?.path || "recorded"}`;
     addTrail("memory", `Saved ${saved.path}`);
+    await refreshMemoryCitations();
     renderTrustScore();
   } catch (error) {
     els.memoryStatus.textContent = error.message;
     addTrail("error", error.message);
   }
+}
+
+async function refreshMemoryCitations(query = "") {
+  if (!els.memoryCitations) {
+    return;
+  }
+  try {
+    const data = await getJson(`/api/memory/citations?query=${encodeURIComponent(query)}`);
+    renderMemoryCitations(data.citations || []);
+  } catch {
+    els.memoryCitations.innerHTML = "";
+  }
+}
+
+function renderMemoryCitations(citations) {
+  if (!citations.length) {
+    els.memoryCitations.innerHTML = `<div class="mini-row muted">No memory citations yet.</div>`;
+    return;
+  }
+  els.memoryCitations.innerHTML = citations
+    .slice(0, 4)
+    .map(
+      (item) => `
+        <div class="mini-row">
+          <strong>${escapeHtml(item.path)}:${Number(item.line) || 1}</strong>
+          <span>${escapeHtml(item.text)}</span>
+        </div>
+      `
+    )
+    .join("");
 }
 
 async function refreshPacks() {
@@ -237,16 +421,102 @@ async function refreshPacks() {
   }
 }
 
+async function refreshMarketplace() {
+  try {
+    const data = await getJson("/api/marketplace");
+    state.marketplace = data.marketplace || null;
+    renderMarketplace();
+  } catch (error) {
+    els.marketplaceSummary.innerHTML = `<div class="mini-row muted">${escapeHtml(error.message)}</div>`;
+  }
+}
+
 async function refreshProfilesAndMcp() {
   try {
     const [profileData, mcpData] = await Promise.all([getJson("/api/profiles"), getJson("/api/mcp")]);
     state.profiles = profileData.profiles || [];
     state.mcp = mcpData;
     const approvalCount = Array.isArray(mcpData.approvals) ? mcpData.approvals.length : 0;
+    renderProfiles();
     els.profileSummary.textContent = `${state.profiles.length} profile(s), ${approvalCount} MCP approval rule(s).`;
   } catch (error) {
     els.profileSummary.textContent = `Toolkit metadata unavailable: ${error.message}`;
   }
+}
+
+function renderProfiles() {
+  if (!els.profileSelect) {
+    return;
+  }
+  els.profileSelect.innerHTML = "";
+  if (!state.profiles.length) {
+    const option = document.createElement("option");
+    option.value = "";
+    option.textContent = "No profiles found";
+    els.profileSelect.appendChild(option);
+    els.applyProfile.disabled = true;
+    return;
+  }
+  for (const profile of state.profiles) {
+    const option = document.createElement("option");
+    option.value = profile.id;
+    option.textContent = profile.title;
+    els.profileSelect.appendChild(option);
+  }
+  els.applyProfile.disabled = false;
+}
+
+async function applySelectedProfile() {
+  const id = els.profileSelect.value;
+  if (!id) {
+    return;
+  }
+  try {
+    const data = await postJson("/api/profiles/apply", { id });
+    const applied = data.applied || {};
+    state.permissions = {
+      readFiles: applied.permissions?.readFiles !== false,
+      writeFiles: applied.permissions?.writeFiles === true,
+      previewWrites: applied.permissions?.previewWrites !== false
+    };
+    els.readPermission.checked = state.permissions.readFiles;
+    els.writePermission.checked = state.permissions.writeFiles;
+    els.previewWritePermission.checked = state.permissions.previewWrites;
+    if (applied.model) {
+      state.model = applied.model;
+      if ([...els.modelSelect.options].some((option) => option.value === applied.model)) {
+        els.modelSelect.value = applied.model;
+      }
+    }
+    addTrail("profile", `Applied ${data.activeProfile.title}`);
+    renderLocalSignals();
+    renderSetupChecklist();
+    renderTrustScore();
+  } catch (error) {
+    addTrail("error", error.message);
+  }
+}
+
+function renderMarketplace() {
+  if (!state.marketplace || !els.marketplaceSummary) {
+    return;
+  }
+  const packs = state.marketplace.packs || [];
+  if (!packs.length) {
+    els.marketplaceSummary.innerHTML = `<div class="mini-row muted">Marketplace manifest is ready for community packs.</div>`;
+    return;
+  }
+  els.marketplaceSummary.innerHTML = packs
+    .slice(0, 3)
+    .map(
+      (pack) => `
+        <div class="mini-row">
+          <strong>${escapeHtml(pack.title)}</strong>
+          <span>${escapeHtml(pack.role)} · ${pack.recipes.length} recipe(s)</span>
+        </div>
+      `
+    )
+    .join("");
 }
 
 function renderPacks() {
@@ -296,9 +566,91 @@ async function runEvals() {
         .join("")}</div>
     `;
     addTrail("eval", `Evaluation score ${data.score}/100`);
+    await refreshEvalHistory();
     renderTrustScore();
   } catch (error) {
     els.evalSummary.innerHTML = `<div class="empty-state compact">${escapeHtml(error.message)}</div>`;
+    addTrail("error", error.message);
+  }
+}
+
+async function refreshEvalHistory() {
+  try {
+    const data = await getJson("/api/evals/history");
+    state.evalHistory = data.history || [];
+    renderEvalHistory();
+  } catch {
+    state.evalHistory = [];
+  }
+}
+
+function renderEvalHistory() {
+  if (!els.evalSummary || state.evals) {
+    return;
+  }
+  if (!state.evalHistory.length) {
+    els.evalSummary.innerHTML = `<div class="empty-state compact">Eval history appears after the first run.</div>`;
+    return;
+  }
+  const latest = state.evalHistory[0];
+  els.evalSummary.innerHTML = `
+    <div class="eval-score">${Number(latest.score || 0)}/100</div>
+    <div class="eval-list"><span class="ok">${state.evalHistory.length} saved eval run(s)</span></div>
+  `;
+}
+
+async function runBenchmarks() {
+  els.benchmarkSummary.innerHTML = `<div class="mini-row muted">Benchmarking installed models...</div>`;
+  try {
+    const data = await getJson("/api/benchmarks");
+    state.benchmarks = data;
+    const rows = (data.benchmarks || []).slice(0, 4);
+    if (!rows.length) {
+      els.benchmarkSummary.innerHTML = `<div class="mini-row muted">No local models found. Pull one with Ollama.</div>`;
+    } else {
+      els.benchmarkSummary.innerHTML = rows
+        .map(
+          (item) => `
+            <div class="mini-row">
+              <strong>${escapeHtml(item.model)} · ${Number(item.score || 0)}/100</strong>
+              <span>${escapeHtml(item.recommendation || "general chat")}</span>
+            </div>
+          `
+        )
+        .join("");
+    }
+    addTrail("eval", `Benchmarked ${rows.length} local model(s)`);
+  } catch (error) {
+    els.benchmarkSummary.innerHTML = `<div class="mini-row muted">${escapeHtml(error.message)}</div>`;
+    addTrail("error", error.message);
+  }
+}
+
+async function runSecurityScan() {
+  els.securitySummary.innerHTML = `<div class="mini-row muted">Scanning selected context...</div>`;
+  try {
+    const data = await postJson("/api/security/scan", {
+      paths: Array.from(state.selectedFiles),
+      content: els.prompt.value
+    });
+    const findings = data.findings || [];
+    els.securitySummary.innerHTML = findings.length
+      ? findings
+          .slice(0, 4)
+          .map(
+            (finding) => `
+              <div class="mini-row">
+                <strong>${escapeHtml(finding.severity || "risk")} · ${escapeHtml(finding.label)}</strong>
+                <span>${escapeHtml(finding.path || "prompt")}${finding.line ? `:${Number(finding.line)}` : ""}</span>
+              </div>
+            `
+          )
+          .join("")
+      : `<div class="mini-row"><strong>Security score ${Number(data.score || 0)}/100</strong><span>No suspicious instructions found.</span></div>`;
+    addTrail("security", `Security scan ${data.risk} risk (${data.score}/100)`);
+    renderTrustScore();
+  } catch (error) {
+    els.securitySummary.innerHTML = `<div class="mini-row muted">${escapeHtml(error.message)}</div>`;
     addTrail("error", error.message);
   }
 }
@@ -369,7 +721,9 @@ async function searchWorkspace() {
     const data = await getJson(`/api/search?query=${encodeURIComponent(query)}&limit=8&mode=${mode}`);
     state.searchResults = data.results || [];
     renderSearchResults();
-    addTrail("search", `${state.searchResults.length} ${mode} result(s) for "${query}"`);
+    const provider = data.semanticProvider ? ` via ${data.semanticProvider}` : "";
+    addTrail("search", `${state.searchResults.length} ${mode} result(s)${provider} for "${query}"`);
+    await refreshMemoryCitations(query);
     renderTrustScore();
   } catch (error) {
     state.searchResults = [];
@@ -397,6 +751,7 @@ function renderSearchResults() {
     item.innerHTML = `
       <span class="search-path">${escapeHtml(result.path)}</span>
       <span class="search-snippet">${escapeHtml(result.snippet || "No preview available")}</span>
+      ${result.semanticProvider ? `<span class="search-provider">${escapeHtml(result.semanticProvider)}</span>` : ""}
     `;
     item.addEventListener("click", () => {
       state.selectedFiles.add(result.path);
@@ -707,7 +1062,19 @@ async function exportTrailReceipt() {
   try {
     const saved = await postJson("/api/receipts", { content });
     addTrail("file", `Saved receipt ${saved.path}`);
+    const session = await postJson("/api/sessions", {
+      title: "AgentTrail replay session",
+      model: state.model,
+      messages: state.messages,
+      selectedFiles: Array.from(state.selectedFiles),
+      permissions: state.permissions,
+      trustScore: els.trustScore.textContent,
+      trail: state.trail,
+      pendingPreviews: state.pendingPreviews
+    });
+    addTrail("replay", `Saved replay session ${session.path}`);
     await refreshReceipts();
+    await refreshSessions();
   } catch (error) {
     addTrail("error", `Could not save receipt: ${error.message}`);
   }
@@ -767,6 +1134,14 @@ function renderSetupChecklist() {
     {
       ok: state.receipts.length > 0,
       text: state.receipts.length ? `${state.receipts.length} saved receipt(s)` : "Export a receipt after a run"
+    },
+    {
+      ok: state.searchIndex && (state.searchIndex.exists || state.searchIndex.ok),
+      text: state.searchIndex && (state.searchIndex.exists || state.searchIndex.ok) ? "Semantic index ready" : "Build semantic index"
+    },
+    {
+      ok: state.sessions.length > 0,
+      text: state.sessions.length ? `${state.sessions.length} replay session(s)` : "Save a replay session"
     }
   ];
 
@@ -850,6 +1225,8 @@ function renderTrustScore() {
     { ok: state.receipts.length > 0, label: "Receipt saved" },
     { ok: state.securityMode, label: "Hardening mode" },
     { ok: state.memoryLoaded, label: "Project memory" },
+    { ok: state.searchIndex && (state.searchIndex.exists || state.searchIndex.ok), label: "Semantic index" },
+    { ok: state.sessions.length > 0, label: "Replay saved" },
     { ok: !state.permissions.writeFiles || state.permissions.previewWrites, label: "No direct writes" },
     { ok: state.evals && state.evals.score >= 80, label: "Eval harness passed" }
   ];
@@ -871,17 +1248,25 @@ async function exportShareableReport() {
   const diffs = state.pendingPreviews
     .map((item) => `## ${item.preview.path}\n\n\`\`\`diff\n${item.preview.diff || ""}\n\`\`\``)
     .join("\n\n");
+  const citations = Array.from(els.memoryCitations?.querySelectorAll(".mini-row") || [])
+    .map((row) => `- ${row.textContent.trim().replace(/\s+/g, " ")}`)
+    .join("\n");
   const markdown = [
     "# AgentTrail Shareable Report",
     "",
     `Exported: ${new Date().toISOString()}`,
     `Trust score: ${trustScore}/100`,
     `Model: ${state.model || "not selected"}`,
+    `Search index: ${state.searchIndex?.provider || "not built"}`,
     `Selected files: ${Array.from(state.selectedFiles).join(", ") || "none"}`,
     "",
     "## Trail",
     "",
     rows || "- No events",
+    "",
+    "## Memory Citations",
+    "",
+    citations || "- No memory citations captured.",
     "",
     "## Pending And Applied Diffs",
     "",
@@ -1170,6 +1555,26 @@ function detectSuspiciousPrompt(content) {
     ["outside workspace", "workspace escape"]
   ];
   return patterns.filter(([needle]) => text.includes(needle)).map(([, label]) => label);
+}
+
+function normalizeUiMessages(messages) {
+  const normalized = Array.isArray(messages) ? messages : [];
+  if (!normalized.length) {
+    return [
+      {
+        role: "assistant",
+        content: "Replayed session loaded. Review the selected files, prompt, pending previews, and trail.",
+        events: []
+      }
+    ];
+  }
+  return normalized
+    .filter((message) => message && (message.role === "user" || message.role === "assistant"))
+    .map((message) => ({
+      role: message.role,
+      content: message.content || "",
+      events: Array.isArray(message.events) ? message.events : []
+    }));
 }
 
 function setConnection(text) {

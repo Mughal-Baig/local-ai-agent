@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=AgentTrail
+Comment=Auditable local AI agent
+Exec=sh -lc 'cd "$HOME/local-ai-agent" && PORT=4173 node server.js'
+Path=%h/local-ai-agent
+Terminal=true
+Categories=Development;Utility;

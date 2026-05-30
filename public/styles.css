@@ -143,6 +143,10 @@ button {
   font-weight: 700;
 }
 
+.tight-label {
+  margin-top: 12px;
+}
+
 .setup-list {
   display: grid;
   gap: 8px;
@@ -387,7 +391,8 @@ select {
 }
 
 .search-path,
-.search-snippet {
+.search-snippet,
+.search-provider {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -404,6 +409,16 @@ select {
   font-size: 0.78rem;
 }
 
+.search-provider {
+  width: fit-content;
+  padding: 3px 7px;
+  border-radius: 999px;
+  background: var(--soft-teal);
+  color: var(--teal-dark);
+  font-size: 0.68rem;
+  font-weight: 900;
+}
+
 .secondary-button {
   width: 100%;
   min-height: 42px;
@@ -413,6 +428,12 @@ select {
   background: var(--panel);
   color: var(--teal-dark);
   font-weight: 800;
+}
+
+.compact-button {
+  min-height: 34px;
+  margin-top: 8px;
+  font-size: 0.78rem;
 }
 
 .agent-trail {
@@ -525,6 +546,52 @@ select {
 .eval-list span.ok {
   background: var(--soft-teal);
   color: var(--teal-dark);
+}
+
+.toolkit-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.mini-list {
+  display: grid;
+  gap: 7px;
+  margin-top: 10px;
+}
+
+.mini-row {
+  display: grid;
+  gap: 3px;
+  min-height: 38px;
+  padding: 8px 9px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel);
+}
+
+.mini-row strong,
+.mini-row span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mini-row strong {
+  color: var(--teal-dark);
+  font-size: 0.76rem;
+}
+
+.mini-row span {
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 800;
+}
+
+.mini-row.muted {
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 800;
 }
 
 .trail-item {

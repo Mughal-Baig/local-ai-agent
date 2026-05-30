@@ -1,0 +1,26 @@
+name: Submit a recipe pack
+description: Propose a role-based AgentTrail recipe pack for the marketplace.
+title: "[Recipe pack]: "
+labels: ["recipe", "community"]
+body:
+  - type: input
+    id: role
+    attributes:
+      label: Role
+      placeholder: coder, founder, student, writer, security, researcher
+    validations:
+      required: true
+  - type: textarea
+    id: recipes
+    attributes:
+      label: Recipes
+      description: List the recipe titles and what each one helps users do.
+    validations:
+      required: true
+  - type: textarea
+    id: safety
+    attributes:
+      label: Safety and receipt behavior
+      description: Explain what files/tools the recipes should use and what receipts they should leave.
+    validations:
+      required: true

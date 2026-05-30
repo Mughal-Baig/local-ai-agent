@@ -1,0 +1,34 @@
+{
+  "title": "AgentTrail Recipe Marketplace",
+  "description": "Curated importable recipe packs for auditable local agents. Community submissions should be small, reviewable, and receipt-friendly.",
+  "submissionUrl": "https://github.com/Mughal-Baig/local-ai-agent/issues/new?template=recipe_pack.yml",
+  "packs": [
+    {
+      "id": "coder-pack",
+      "title": "Coder Pack",
+      "role": "developer",
+      "description": "Diff-safe coding, code review, bug triage, changelog, release notes, and test plans.",
+      "recipes": ["diff-safe-coder", "code-review", "bug-triage", "test-plan", "changelog", "release-notes"],
+      "stars": 0,
+      "source": "built-in"
+    },
+    {
+      "id": "founder-pack",
+      "title": "Founder Pack",
+      "role": "founder",
+      "description": "Launch README, positioning, meeting notes, user docs, and growth teardown workflows.",
+      "recipes": ["launch-readme", "readme-polish", "meeting-notes", "user-docs", "github-star-teardown"],
+      "stars": 0,
+      "source": "built-in"
+    },
+    {
+      "id": "security-pack",
+      "title": "Security Pack",
+      "role": "security",
+      "description": "Prompt-injection review, threat model, local agent hardening, and MCP readiness checks.",
+      "recipes": ["prompt-injection-review", "threat-model", "local-agent-hardening", "mcp-readiness-review", "receipt-auditor"],
+      "stars": 0,
+      "source": "built-in"
+    }
+  ]
+}

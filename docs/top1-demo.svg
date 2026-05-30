@@ -27,7 +27,7 @@
     <circle class="teal" cx="82" cy="170" r="12"/>
     <text class="ink" x="110" y="176" font-size="20" font-weight="800">1. Search</text>
     <rect x="78" y="210" width="200" height="36" rx="8" fill="#f4f7f5" stroke="#d6ded9"/>
-    <text class="muted" x="94" y="234" font-size="14">semantic-lite: receipts</text>
+    <text class="muted" x="94" y="234" font-size="14">semantic index: receipts</text>
     <rect x="78" y="266" width="200" height="54" rx="8" fill="#e4f0ed"/>
     <text class="ink" x="94" y="289" font-size="13" font-weight="700">welcome.md</text>
     <text class="muted" x="94" y="309" font-size="12">safe diffs and receipts</text>

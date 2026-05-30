@@ -7,6 +7,10 @@
 
 AgentTrail is a tiny, auditable local AI agent kit for people who want a Claude/ChatGPT/Gemini-style workspace assistant without sending files to a cloud service.
 
+![AgentTrail search diff apply receipt demo](docs/agenttrail-demo.gif)
+
+The demo loop: semantic local search -> diff preview -> explicit Apply -> receipt/report/replay.
+
 ![AgentTrail trust loop](docs/top1-demo.svg)
 
 ![Local AI Agent preview](docs/preview.svg)
@@ -20,12 +24,12 @@ AgentTrail is a tiny, auditable local AI agent kit for people who want a Claude/
 ## Why Star This
 
 - **Transparent by default**: every tool call is shown as an Agent Trail receipt.
-- **Search before answer**: keyword and semantic-lite local search help the agent find evidence before responding.
+- **Search before answer**: keyword search plus real local vector search with Ollama embeddings when available.
 - **Diff-safe writes**: preview mode shows a unified diff in chat and lets the user apply it deliberately.
 - **Trust Score dashboard**: each run shows evidence, preview, receipt, memory, hardening, and eval signals.
-- **Receipt timeline and reports**: inspect saved sessions and export shareable Markdown/HTML reports.
+- **Receipt timeline, replay, and reports**: reopen a saved run, restore prompt/files/model/diffs, and export Markdown/HTML reports.
 - **Recipe-driven**: reusable local workflows live in plain JSON files anyone can add.
-- **Demo-first**: the static demo lets visitors understand the project before installing Ollama.
+- **Demo-first**: the GIF and static demo let visitors understand the project before installing Ollama.
 - **Permission-aware**: file reads are explicit and file writes are off by default.
 - **Private by design**: the server only talks to Ollama and the local browser UI.
 - **Safe workspace boundary**: file reads and writes are blocked outside `workspace/`.
@@ -38,11 +42,11 @@ Popular local AI tools are often full platforms. This project is intentionally s
 
 | Area | AgentTrail |
 | --- | --- |
-| Setup | One Node command, no package install required |
+| Setup | One Node command, `npx`-ready package metadata, Docker Compose, Homebrew formula draft, desktop launchers |
 | Model backend | Ollama |
-| File access | Sandboxed workspace tools plus keyword and semantic-lite search |
-| Trust UX | Trust Score, local signals, reviewable diff previews, explicit apply buttons, exportable reports, receipts, and tool history |
-| Workflow system | Plain JSON recipes plus role-based recipe packs |
+| File access | Sandboxed workspace tools plus keyword search, local vector index, and Ollama embedding index |
+| Trust UX | Trust Score, local signals, security scan, reviewable diff previews, explicit apply buttons, exportable reports, replay sessions, receipts, and tool history |
+| Workflow system | Plain JSON recipes, role-based recipe packs, import/export UI, and marketplace manifest |
 | Best use | Personal workspace agent starter kit and auditable local workflow lab |
 
 ## 60-second Quick Start
@@ -51,17 +55,26 @@ Popular local AI tools are often full platforms. This project is intentionally s
 git clone https://github.com/Mughal-Baig/local-ai-agent.git
 cd local-ai-agent
 ollama pull llama3.2
+npx github:Mughal-Baig/local-ai-agent
+```
+
+Or clone and run:
+
+```bash
+git clone https://github.com/Mughal-Baig/local-ai-agent.git
+cd local-ai-agent
 node server.js
 ```
 
-Open `http://127.0.0.1:4173`, enable semantic-lite search, ask for a change, review the diff, click **Apply**, then export the receipt/report.
+Open `http://127.0.0.1:4173`, build the semantic index, ask for a change, review the diff, click **Apply**, then export the receipt/report/replay session.
 
 ## Features
 
 - Chat UI with model picker and streaming-style responses
 - Starter prompts for summarize, plan, review, and save-note workflows
 - Local recipe picker backed by plain JSON workflow files
-- Keyword and semantic-lite local search across workspace files and saved receipts
+- Keyword search and semantic local search across workspace files, sessions, and saved receipts
+- Ollama embedding index using `OLLAMA_EMBED_MODEL=nomic-embed-text`, with local-vector fallback
 - First-run setup checklist for Ollama, models, workspace files, recipes, and receipts
 - Permission toggles for file reads, file writes, write preview mode, and security hardening mode
 - Ollama integration for local models
@@ -70,13 +83,13 @@ Open `http://127.0.0.1:4173`, enable semantic-lite search, ask for a change, rev
 - In-chat diff cards with explicit **Apply** buttons for proposed file changes
 - Diff Review center with pending-change apply/reject controls
 - Agent Trail receipts for tool calls, selected context, model status, and errors
-- Receipt timeline, searchable saved sessions, and exportable Markdown/HTML reports
-- Project memory stored locally with visible citation context in the agent prompt
-- Recipe packs for coder, founder, and security workflows
-- MCP approval manifest for future tool bridge integrations
-- Workspace profile templates
-- Local evaluation harness for safety, search, recipe packs, MCP manifest, and report surfaces
-- Dockerfile and `agenttrail` bin entry for one-command install paths
+- Receipt timeline, replayable saved sessions, and exportable Markdown/HTML reports
+- Project memory stored locally with visible citations, revision history, and prompt context
+- Recipe packs for coder, founder, and security workflows, plus marketplace manifest and import/export route
+- Real MCP stdio server with explicit per-tool approvals and receipts
+- Workspace profile templates with profile switching API/UI
+- Local evaluation harness plus saved pass/fail history and model benchmark surface
+- Dockerfile, Docker Compose, `agenttrail` bin entry, install script, Homebrew formula draft, and desktop launchers
 - Saved receipt history in `workspace/receipts/`
 - Safe path handling so the agent stays inside `workspace/`
 - Smoke test and GitHub Actions CI included
@@ -131,6 +144,8 @@ npm link
 agenttrail
 docker build -t agenttrail .
 docker run --rm -p 4173:4173 -v "$PWD/workspace:/app/workspace" agenttrail
+docker compose up --build
+./install.sh
 ```
 
 ## Try It
@@ -167,7 +182,7 @@ The browser sends messages to the local Node server. The server sends a prompt t
 Available tools:
 
 - `list_files`: shows files in the workspace
-- `search_workspace`: searches local files and receipts for relevant context
+- `search_workspace`: searches local files, sessions, receipts, and memory for relevant context
 - `read_file`: reads a workspace file
 - `preview_write_file`: returns a diff preview without writing
 - `write_file`: creates or updates a workspace file
@@ -176,21 +191,22 @@ When write preview mode is enabled, `write_file` returns a diff preview instead 
 
 ## Top 1% Surfaces
 
-- Visual demo proof: [docs/top1-demo.svg](docs/top1-demo.svg)
-- Semantic-lite local search: `/api/search?mode=semantic`
-- Receipt timeline: saved Markdown receipts in `workspace/receipts/`
+- Visual demo proof: [docs/agenttrail-demo.gif](docs/agenttrail-demo.gif), [docs/top1-demo.svg](docs/top1-demo.svg)
+- True semantic search: `/api/search-index`, `/api/search?mode=semantic`, Ollama embeddings with local-vector fallback
+- Receipt timeline and replay: saved Markdown receipts in `workspace/receipts/`, JSON sessions in `workspace/sessions/`
 - Diff Review center: pending preview apply/reject UI
-- MCP bridge manifest: [mcp/agenttrail.mcp.json](mcp/agenttrail.mcp.json)
-- Recipe packs: [recipe-packs](recipe-packs)
-- One-command install surfaces: `bin/agenttrail.js` and [Dockerfile](Dockerfile)
-- Model scoring: `/api/status`
-- Agent eval harness: `npm run eval` and `/api/evals`
-- Project memory: `workspace/memory/project-memory.md`
-- Workspace profiles: [profiles](profiles)
+- MCP bridge: [mcp/server.js](mcp/server.js) and [mcp/agenttrail.mcp.json](mcp/agenttrail.mcp.json)
+- Recipe marketplace: [marketplace/recipes.json](marketplace/recipes.json), [recipe-packs](recipe-packs), `/api/packs/import`
+- One-command install surfaces: `bin/agenttrail.js`, [Dockerfile](Dockerfile), [docker-compose.yml](docker-compose.yml), [install.sh](install.sh), [Formula/agenttrail.rb](Formula/agenttrail.rb), [desktop](desktop)
+- Model scoring and benchmarking: `/api/status`, `/api/benchmarks`
+- Agent eval harness and history: `npm run eval`, `/api/evals`, `/api/evals/history`
+- Project memory: `workspace/memory/project-memory.md`, citations, and revision history
+- Workspace profiles: [profiles](profiles), `/api/profiles/apply`
 - Trust Score dashboard: browser UI
 - README star engine: demo, comparison, 60-second quick start, roadmap
-- Security hardening mode: prompt flags and safe-write enforcement
-- Shareable reports: `workspace/reports/`
+- Security hardening engine: prompt flags, path escape checks, exfiltration patterns, `/api/security/scan`
+- Shareable reports: polished Markdown/HTML exports in `workspace/reports/`
+- Community growth loop: issue templates, launch posts, marketplace submissions, and good-first contribution docs
 
 ## Workspace
 
@@ -213,8 +229,10 @@ PORT=4173 OLLAMA_MODEL=llama3.2 node server.js
 Supported variables:
 
 - `PORT`: local web server port
+- `HOST`: bind address, default `127.0.0.1`; Docker uses `0.0.0.0`
 - `OLLAMA_HOST`: Ollama API host
 - `OLLAMA_MODEL`: default model name
+- `OLLAMA_EMBED_MODEL`: local embedding model for semantic index, default `nomic-embed-text`
 - `WORKSPACE_ROOT`: folder the agent can access
 - `MAX_TOOL_ITERATIONS`: maximum tool loop steps per message
 
@@ -241,7 +259,7 @@ See [docs/ROADMAP.md](docs/ROADMAP.md).
 
 See [docs/GROWTH_RESEARCH.md](docs/GROWTH_RESEARCH.md) for research-backed positioning, [docs/LAUNCH_PLAN.md](docs/LAUNCH_PLAN.md) for the public launch checklist, and [docs/TOP_1_PERCENT_PLAYBOOK.md](docs/TOP_1_PERCENT_PLAYBOOK.md) for the focused growth path.
 
-The v0.4 implementation map is in [docs/TOP_1_PERCENT_IMPLEMENTATION.md](docs/TOP_1_PERCENT_IMPLEMENTATION.md).
+The v0.5 implementation map is in [docs/TOP_1_PERCENT_IMPLEMENTATION.md](docs/TOP_1_PERCENT_IMPLEMENTATION.md).
 
 ## Contributing
 

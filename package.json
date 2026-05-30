@@ -1,6 +1,6 @@
 {
-  "name": "local-ai-agent",
-  "version": "0.4.0",
+  "name": "agenttrail",
+  "version": "0.5.0",
   "description": "AgentTrail: an auditable local AI agent with Ollama, workspace search, recipes, diff previews, and receipts.",
   "main": "server.js",
   "bin": {
@@ -11,7 +11,10 @@
     "start": "node server.js",
     "dev": "node server.js",
     "test": "node scripts/smoke-test.js",
-    "eval": "node scripts/evaluate-agenttrail.js"
+    "eval": "node scripts/evaluate-agenttrail.js",
+    "mcp": "node mcp/server.js",
+    "demo:gif": "node scripts/generate-demo-gif.js",
+    "benchmark": "node scripts/evaluate-agenttrail.js"
   },
   "keywords": [
     "ai",
@@ -25,7 +28,10 @@
     "local-rag",
     "tool-use",
     "self-hosted",
-    "privacy"
+    "privacy",
+    "mcp",
+    "local-embeddings",
+    "ai-agent"
   ],
   "author": "",
   "license": "MIT"

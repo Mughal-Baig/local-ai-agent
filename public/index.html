@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>AgentTrail Local</title>
     <link rel="icon" href="/logo.svg" />
-    <link rel="stylesheet" href="/styles.css?v=8" />
+    <link rel="stylesheet" href="/styles.css?v=9" />
   </head>
   <body>
     <div class="app-shell">
@@ -91,9 +91,11 @@
           <label class="field-label" for="workspaceSearch">Local search</label>
           <label class="toggle-row compact-toggle">
             <input id="semanticSearchMode" type="checkbox" />
-            <span>Semantic-lite search</span>
+            <span>Semantic search</span>
           </label>
           <input id="workspaceSearch" class="search-input" type="search" placeholder="Search files, notes, receipts..." />
+          <button id="buildSearchIndex" class="secondary-button compact-button" type="button">Build search index</button>
+          <p id="searchIndexSummary" class="hint">Search index has not been checked yet.</p>
           <div id="searchResults" class="search-results"></div>
         </section>
 
@@ -142,6 +144,9 @@
             <button id="exportReport" class="icon-button" title="Export shareable report" aria-label="Export shareable report">H</button>
           </div>
           <input id="receiptFilter" class="search-input" type="search" placeholder="Filter receipt timeline..." />
+          <label class="field-label tight-label" for="sessionSelect">Replay session</label>
+          <select id="sessionSelect"></select>
+          <button id="replaySession" class="secondary-button compact-button" type="button">Replay selected run</button>
           <div id="receiptTimeline" class="receipt-timeline"></div>
         </section>
 
@@ -152,6 +157,7 @@
           </div>
           <textarea id="memoryInput" class="memory-input" rows="4" placeholder="Stable project facts, preferences, and recurring decisions..."></textarea>
           <p id="memoryStatus" class="hint">Memory is stored locally in the workspace.</p>
+          <div id="memoryCitations" class="mini-list"></div>
         </section>
 
         <section class="panel toolkit-panel" aria-label="Top one percent toolkit">
@@ -162,7 +168,17 @@
           <label class="field-label" for="packSelect">Recipe pack</label>
           <select id="packSelect"></select>
           <button id="exportPack" class="secondary-button" type="button">Export pack</button>
+          <label class="field-label tight-label" for="profileSelect">Workspace profile</label>
+          <select id="profileSelect"></select>
+          <button id="applyProfile" class="secondary-button compact-button" type="button">Apply profile</button>
+          <div class="toolkit-grid">
+            <button id="runBenchmark" class="secondary-button compact-button" type="button">Benchmark models</button>
+            <button id="securityScan" class="secondary-button compact-button" type="button">Security scan</button>
+          </div>
           <div id="evalSummary" class="eval-summary"></div>
+          <div id="benchmarkSummary" class="mini-list"></div>
+          <div id="securitySummary" class="mini-list"></div>
+          <div id="marketplaceSummary" class="mini-list"></div>
           <p id="profileSummary" class="hint">Loading profiles and MCP manifest...</p>
         </section>
       </aside>
@@ -201,6 +217,6 @@
       </main>
     </div>
 
-    <script src="/app.js?v=8"></script>
+    <script src="/app.js?v=9"></script>
   </body>
 </html>
