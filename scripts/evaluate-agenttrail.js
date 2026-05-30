@@ -90,6 +90,9 @@ async function main() {
   checks.push(await check("Ranked memory retrieval exists", async () => includes("server.js", ["/api/memory/retrieve", "rankStructuredMemory", "agenttrail.memory-retrieval.v1"])));
   checks.push(await check("Memory retrieval prompt budget exists", async () => includes("server.js", ["MEMORY_PROMPT_CHARS", "Ranked structured memory", "RAW_MEMORY_PROMPT_CHARS"])));
   checks.push(await check("Memory retrieval tests exist", async () => includes("tests/integration/memory-retrieval.test.js", ["memory-retrieval.v1", "Ranked structured memory", "preview-first writes"])));
+  checks.push(await check("Memory history endpoints exist", async () => includes("server.js", ["/api/memory/history", "handleMemoryHistoryRevert", "agenttrail.memory-history.v1"])));
+  checks.push(await check("Memory history UI exists", async () => includes("public/index.html", ["memoryHistory", "refreshMemoryHistory", "memoryHistoryDiff"])));
+  checks.push(await check("Memory history tests exist", async () => includes("tests/integration/memory-history.test.js", ["memory-history.v1", "history/revert", "Original local fact"])));
 
   const passed = checks.filter((item) => item.ok).length;
   const score = Math.round((passed / checks.length) * 100);

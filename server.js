@@ -274,6 +274,18 @@ const server = http.createServer(async (req, res) => {
       return handleMemoryRetrieve(url, res);
     }
 
+    if (url.pathname === "/api/memory/history" && req.method === "GET") {
+      return handleMemoryHistory(res);
+    }
+
+    if (url.pathname === "/api/memory/history/diff" && req.method === "GET") {
+      return handleMemoryHistoryDiff(url, res);
+    }
+
+    if (url.pathname === "/api/memory/history/revert" && req.method === "POST") {
+      return handleMemoryHistoryRevert(req, res);
+    }
+
     if (url.pathname === "/api/memory/suggestions" && req.method === "POST") {
       return handleMemorySuggestions(req, res);
     }
@@ -1269,6 +1281,45 @@ async function handleMemoryRetrieve(url, res) {
   sendJson(res, 200, rankStructuredMemory(structured, query, budget));
 }
 
+async function handleMemoryHistory(res) {
+  const revisions = await listMemoryHistory();
+  sendJson(res, 200, {
+    schema: "agenttrail.memory-history.v1",
+    path: MEMORY_HISTORY_DIR,
+    revisions
+  });
+}
+
+async function handleMemoryHistoryDiff(url, res) {
+  const id = normalizeMemoryHistoryId(url.searchParams.get("id"));
+  const revision = await readMemoryRevision(id);
+  const current = await readWorkspaceFile(MEMORY_PATH, MAX_BODY_BYTES).catch(() => ({ content: "" }));
+  const diff = createUnifiedDiff(MEMORY_PATH, current.content, revision.content);
+  sendJson(res, 200, {
+    schema: "agenttrail.memory-history-diff.v1",
+    revision: revision.metadata,
+    diff
+  });
+}
+
+async function handleMemoryHistoryRevert(req, res) {
+  const body = await readJsonBody(req);
+  const id = normalizeMemoryHistoryId(body.id);
+  const revision = await readMemoryRevision(id);
+  const structured = await readMemoryRevisionStructured(id).catch(() => normalizeStructuredMemory(null, revision.content));
+  const previous = await readWorkspaceFile(MEMORY_PATH, MAX_BODY_BYTES).catch(() => null);
+  const result = await persistMemoryDocuments(revision.content, structured, previous, `revert:${id}`);
+  await STORE.append("memory-revert", {
+    id,
+    restoredFrom: revision.metadata.path,
+    newHistory: result.history?.path || null
+  });
+  sendJson(res, 200, {
+    ...result,
+    restoredFrom: revision.metadata
+  });
+}
+
 async function handleMemorySuggestions(req, res) {
   const body = await readJsonBody(req);
   const messages = normalizeMessages(body.messages || []);
@@ -1328,6 +1379,100 @@ async function persistMemoryDocuments(content, structured, previous, reason) {
     decisions: structured.decisions.length
   });
   return { ...result, history, structured: { ...structuredResult, memory: structured, history: structuredHistory } };
+}
+
+async function listMemoryHistory(limit = 24) {
+  const files = (await listWorkspaceFiles())
+    .filter((file) => /^memory\/history\/memory-.+\.md$/.test(file.path))
+    .sort((a, b) => String(b.modifiedAt || "").localeCompare(String(a.modifiedAt || "")))
+    .slice(0, limit);
+
+  const revisions = [];
+  for (const file of files) {
+    try {
+      const revision = await readMemoryRevision(path.basename(file.path, ".md"));
+      const structured = await readMemoryRevisionStructured(revision.metadata.id).catch(() => normalizeStructuredMemory(null, revision.content));
+      revisions.push({
+        ...revision.metadata,
+        size: file.size,
+        modifiedAt: file.modifiedAt,
+        counts: structuredMemoryCounts(structured),
+        preview: memoryRevisionPreview(revision.content)
+      });
+    } catch {
+      // Ignore malformed or partially-written history files.
+    }
+  }
+  return revisions.sort((a, b) => String(b.savedAt || b.modifiedAt || "").localeCompare(String(a.savedAt || a.modifiedAt || "")));
+}
+
+async function readMemoryRevision(id) {
+  const cleanId = normalizeMemoryHistoryId(id);
+  const file = await readWorkspaceFile(`${MEMORY_HISTORY_DIR}/${cleanId}.md`, MAX_BODY_BYTES);
+  const parsed = parseMemoryRevisionMarkdown(file.content);
+  return {
+    content: parsed.content,
+    metadata: {
+      id: cleanId,
+      path: file.path,
+      structuredPath: `${MEMORY_HISTORY_DIR}/${cleanId}.json`,
+      savedAt: parsed.savedAt,
+      reason: parsed.reason,
+      previousSize: parsed.previousSize,
+      newSize: parsed.newSize,
+      modifiedAt: file.modifiedAt,
+      size: file.size
+    }
+  };
+}
+
+async function readMemoryRevisionStructured(id) {
+  const cleanId = normalizeMemoryHistoryId(id);
+  const file = await readWorkspaceFile(`${MEMORY_HISTORY_DIR}/${cleanId}.json`, MAX_BODY_BYTES);
+  return normalizeStructuredMemory(JSON.parse(file.content), null);
+}
+
+function parseMemoryRevisionMarkdown(content) {
+  const text = String(content || "");
+  const lines = text.split(/\r?\n/);
+  const findValue = (label) => {
+    const line = lines.find((item) => item.toLowerCase().startsWith(`${label.toLowerCase()}:`));
+    return line ? line.slice(label.length + 1).trim() : null;
+  };
+  const contentIndex = lines.findIndex((line) => /^##\s+Content\s*$/i.test(line.trim()));
+  let revisionContent = contentIndex >= 0 ? lines.slice(contentIndex + 1).join("\n") : "";
+  revisionContent = revisionContent.replace(/^\s*\n/, "");
+  return {
+    savedAt: findValue("Saved"),
+    reason: findValue("Reason") || "manual-save",
+    previousSize: Number.parseInt(findValue("Previous size") || "0", 10) || 0,
+    newSize: Number.parseInt(findValue("New size") || "0", 10) || Buffer.byteLength(revisionContent, "utf8"),
+    content: revisionContent
+  };
+}
+
+function normalizeMemoryHistoryId(value) {
+  const id = path.basename(String(value || "").trim(), ".md");
+  if (!/^memory-\d{4}-\d{2}-\d{2}T[\d-]+Z$/.test(id)) {
+    throw new Error("A valid memory revision id is required");
+  }
+  return id;
+}
+
+function structuredMemoryCounts(memory) {
+  return {
+    facts: (memory.facts || []).length,
+    preferences: (memory.preferences || []).length,
+    decisions: (memory.decisions || []).length
+  };
+}
+
+function memoryRevisionPreview(content) {
+  const line = String(content || "")
+    .split(/\r?\n/)
+    .map((item) => item.replace(/^[-*#\s]+/, "").trim())
+    .find((item) => item && !/^(project memory|facts?|preferences?|prefs?|decisions?)$/i.test(item));
+  return truncate(line || "Empty project memory revision.", 120);
 }
 
 async function readOrBuildStructuredMemory(content = null) {

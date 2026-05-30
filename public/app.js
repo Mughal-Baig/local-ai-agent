@@ -24,6 +24,8 @@ const state = {
   memoryLoaded: false,
   structuredMemory: null,
   memorySuggestions: [],
+  memoryHistory: [],
+  selectedMemoryRevision: null,
   attachments: [],
   selectedFiles: new Set(),
   permissions: {
@@ -97,6 +99,9 @@ const els = {
   memoryStatus: document.querySelector("#memoryStatus"),
   memoryCitations: document.querySelector("#memoryCitations"),
   memorySuggestions: document.querySelector("#memorySuggestions"),
+  refreshMemoryHistory: document.querySelector("#refreshMemoryHistory"),
+  memoryHistory: document.querySelector("#memoryHistory"),
+  memoryHistoryDiff: document.querySelector("#memoryHistoryDiff"),
   packSelect: document.querySelector("#packSelect"),
   exportPack: document.querySelector("#exportPack"),
   runEval: document.querySelector("#runEval"),
@@ -144,6 +149,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     refreshSessions(),
     refreshMemory(),
     refreshMemoryCitations(),
+    refreshMemoryHistory(),
     refreshPacks(),
     refreshProfilesAndMcp(),
     refreshMarketplace(),
@@ -211,6 +217,7 @@ function bindEvents() {
   els.replaySession.addEventListener("click", replaySelectedSession);
   els.exportReport.addEventListener("click", exportShareableReport);
   els.saveMemory.addEventListener("click", saveMemory);
+  els.refreshMemoryHistory.addEventListener("click", refreshMemoryHistory);
   els.exportPack.addEventListener("click", exportSelectedPack);
   els.runEval.addEventListener("click", runEvals);
   els.applyProfile.addEventListener("click", applySelectedProfile);
@@ -451,6 +458,7 @@ async function saveMemory() {
     els.memoryStatus.textContent = `Saved ${saved.path}; ${memoryCountSummary(state.structuredMemory)}; history ${saved.history?.path || "recorded"}`;
     addTrail("memory", `Saved ${saved.path}`);
     await refreshMemoryCitations();
+    await refreshMemoryHistory();
     renderTrustScore();
   } catch (error) {
     els.memoryStatus.textContent = error.message;
@@ -518,6 +526,7 @@ async function applyMemorySuggestions(suggestions) {
     renderMemorySuggestions();
     await refreshMemory();
     await refreshMemoryCitations();
+    await refreshMemoryHistory();
     renderTrustScore();
   } catch (error) {
     els.memoryStatus.textContent = error.message;
@@ -553,6 +562,110 @@ function renderMemoryCitations(citations) {
       `
     )
     .join("");
+}
+
+async function refreshMemoryHistory() {
+  if (!els.memoryHistory) {
+    return;
+  }
+  try {
+    const data = await getJson("/api/memory/history");
+    state.memoryHistory = data.revisions || [];
+    renderMemoryHistory();
+  } catch (error) {
+    els.memoryHistory.innerHTML = `<div class="mini-row muted">${escapeHtml(error.message)}</div>`;
+  }
+}
+
+function renderMemoryHistory() {
+  if (!els.memoryHistory) {
+    return;
+  }
+  const revisions = state.memoryHistory || [];
+  if (!revisions.length) {
+    els.memoryHistory.innerHTML = `<div class="mini-row muted">No memory revisions yet.</div>`;
+    if (els.memoryHistoryDiff) {
+      els.memoryHistoryDiff.innerHTML = "";
+    }
+    return;
+  }
+  els.memoryHistory.innerHTML = revisions.slice(0, 6).map((item) => `
+    <div class="mini-row memory-history-row">
+      <strong>${escapeHtml(memoryRevisionLabel(item))}</strong>
+      <span>${escapeHtml(memoryRevisionSummary(item))}</span>
+      <div class="memory-history-actions">
+        <button type="button" data-action="diff" data-id="${escapeHtml(item.id)}">View diff</button>
+        <button type="button" data-action="revert" data-id="${escapeHtml(item.id)}">Revert</button>
+      </div>
+    </div>
+  `).join("");
+  els.memoryHistory.querySelectorAll("[data-action='diff']").forEach((button) => {
+    button.addEventListener("click", () => showMemoryRevisionDiff(button.dataset.id));
+  });
+  els.memoryHistory.querySelectorAll("[data-action='revert']").forEach((button) => {
+    button.addEventListener("click", () => revertMemoryRevision(button.dataset.id));
+  });
+}
+
+function memoryRevisionLabel(item) {
+  const date = item.savedAt ? new Date(item.savedAt) : null;
+  const label = date && !Number.isNaN(date.valueOf()) ? date.toLocaleString() : item.id;
+  return `${label} · ${item.reason || "manual-save"}`;
+}
+
+function memoryRevisionSummary(item) {
+  const counts = item.counts || {};
+  const total = (Number(counts.facts) || 0) + (Number(counts.preferences) || 0) + (Number(counts.decisions) || 0);
+  return `${total} item(s), ${Number(item.newSize || item.size || 0)} bytes · ${item.preview || ""}`;
+}
+
+async function showMemoryRevisionDiff(id) {
+  if (!id || !els.memoryHistoryDiff) {
+    return;
+  }
+  try {
+    const data = await getJson(`/api/memory/history/diff?id=${encodeURIComponent(id)}`);
+    state.selectedMemoryRevision = data.revision || null;
+    const revision = data.revision || {};
+    els.memoryHistoryDiff.innerHTML = `
+      <div class="diff-preview memory-diff-preview">
+        <div class="diff-preview-heading">
+          <strong>${escapeHtml(revision.path || id)}</strong>
+          <span>${escapeHtml(`Revert preview: +${data.diff?.stats?.added || 0}, -${data.diff?.stats?.removed || 0}`)}</span>
+        </div>
+        <pre class="diff-block">${colorDiffLines(data.diff?.text || "")}</pre>
+      </div>
+    `;
+  } catch (error) {
+    els.memoryHistoryDiff.innerHTML = `<div class="mini-row muted">${escapeHtml(error.message)}</div>`;
+  }
+}
+
+async function revertMemoryRevision(id) {
+  if (!id) {
+    return;
+  }
+  const revision = (state.memoryHistory || []).find((item) => item.id === id);
+  const label = revision ? memoryRevisionLabel(revision) : id;
+  if (!window.confirm(`Revert project memory to ${label}? A new history entry will be created.`)) {
+    return;
+  }
+  try {
+    const saved = await postJson("/api/memory/history/revert", { id });
+    state.structuredMemory = saved.structured?.memory || state.structuredMemory;
+    els.memoryStatus.textContent = `Restored ${saved.restoredFrom?.path || id}; ${memoryCountSummary(state.structuredMemory)}`;
+    addTrail("memory", `Reverted memory to ${id}`);
+    await refreshMemory();
+    await refreshMemoryCitations();
+    await refreshMemoryHistory();
+    if (els.memoryHistoryDiff) {
+      els.memoryHistoryDiff.innerHTML = "";
+    }
+    renderTrustScore();
+  } catch (error) {
+    els.memoryStatus.textContent = error.message;
+    addTrail("error", error.message);
+  }
 }
 
 async function refreshPacks() {

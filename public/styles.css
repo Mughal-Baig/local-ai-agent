@@ -524,6 +524,28 @@ select:hover, .search-input:hover { border-color: var(--line-strong); }
 
 .memory-input { min-height: 96px; max-height: 180px; padding: 11px; font-size: 0.83rem; }
 
+.memory-history-row { gap: 7px; }
+
+.memory-history-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 7px;
+}
+
+.memory-history-actions button {
+  min-height: 30px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--panel);
+  color: var(--clay-deep);
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.memory-history-diff { margin-top: 10px; }
+
+.memory-diff-preview .diff-block { max-height: 180px; }
+
 /* ---------- Eval ---------- */
 .eval-score {
   display: grid;
