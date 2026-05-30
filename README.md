@@ -91,7 +91,7 @@ Open `http://127.0.0.1:4173`, build the semantic index, ask for a change, review
 - **Response cache** so repeated recipe runs return instantly, plus prompt and step-budget guards that keep long workspaces fast
 - Starter prompts for summarize, plan, review, and save-note workflows
 - Local recipe picker backed by plain JSON workflow files
-- Keyword search and semantic local search across workspace files, sessions, and saved receipts, with markdown-aware overlapping chunks for better citations
+- BM25 keyword search and hybrid semantic local search across workspace files, sessions, and saved receipts, with markdown-aware overlapping chunks for better citations
 - Ollama embedding index using `OLLAMA_EMBED_MODEL=nomic-embed-text`, with local-vector fallback
 - First-run setup checklist for Ollama, models, workspace files, recipes, and receipts
 - Attachment picker that copies local files into `workspace/attachments/` and selects them for agent context
@@ -240,7 +240,7 @@ When write preview mode is enabled, `write_file` returns a diff preview instead 
 ## Top 1% Surfaces
 
 - Visual demo proof: [docs/agenttrail-demo.gif](docs/agenttrail-demo.gif), [docs/preview-app.png](docs/preview-app.png), [docs/preview-diff.png](docs/preview-diff.png)
-- True semantic search: `/api/search-index`, `/api/search?mode=semantic`, Ollama embeddings with local-vector fallback
+- True semantic search: `/api/search-index`, `/api/search?mode=semantic`, Ollama embeddings with local-vector fallback, and BM25 + vector score fusion
 - Receipt timeline and replay: saved Markdown receipts in `workspace/receipts/`, JSON sessions in `workspace/sessions/`
 - Diff Review center: pending preview apply/reject UI
 - Local attachments: `/api/attachments` plus browser file picker that saves files into the workspace

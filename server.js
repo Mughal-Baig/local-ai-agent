@@ -19,7 +19,7 @@ const { generateChecksums } = require("./src/release");
 const { buildFoundationStatus } = require("./src/foundation");
 const { StructuredLogger } = require("./src/logger");
 const { validateConfig } = require("./src/config");
-const { hashContent, chunkTextDetailed, rankChunks } = require("./src/features/search");
+const { hashContent, chunkTextDetailed, rankChunks, scoreBm25Documents, fuseHybridScores } = require("./src/features/search");
 const { scanSecurityText } = require("./src/features/security");
 const { friendlyError } = require("./src/features/errors");
 const { SqliteStore } = require("./src/sqlite-store");
@@ -1206,7 +1206,13 @@ async function handleSearch(url, res) {
   const mode = url.searchParams.get("mode") || "keyword";
   const results = await searchWorkspace(query, limit, { semantic: mode === "semantic" });
   const semanticProvider = results.find((item) => item.semanticProvider)?.semanticProvider || null;
-  sendJson(res, 200, { query, mode, semanticProvider, results });
+  sendJson(res, 200, {
+    query,
+    mode,
+    ranker: mode === "semantic" ? "hybrid-bm25-vector" : "bm25",
+    semanticProvider,
+    results
+  });
 }
 
 async function handleSearchChunks(url, res) {
@@ -4267,8 +4273,8 @@ async function searchWorkspace(query, limit, options = {}) {
     .filter((term) => term.length >= 2)
     .slice(0, 8);
   const files = await listWorkspaceFiles();
-  const candidates = [];
   const semanticContext = options.semantic ? await getSemanticContext(normalizedQuery) : null;
+  const documents = [];
 
   for (const file of files) {
     if (file.size > MAX_SEARCH_FILE_BYTES) {
@@ -4286,40 +4292,69 @@ async function searchWorkspace(query, limit, options = {}) {
       continue;
     }
 
-    const haystack = `${file.path}\n${content}`.toLowerCase();
-    let score = 0;
-
-    if (!terms.length) {
-      score = Date.parse(file.modifiedAt) || 0;
-    } else {
-      for (const term of terms) {
-        if (file.path.toLowerCase().includes(term)) {
-          score += 8;
-        }
-        score += countOccurrences(haystack, term);
-      }
-    }
-
-    if (semanticContext && semanticContext.queryVector) {
-      const indexedVector = semanticContext.fileVectors.get(file.path);
-      const fileVector = indexedVector || (semanticContext.provider === "local-vector" ? embedTextDense(`${file.path}\n${content}`) : null);
-      const semanticScore = fileVector ? cosineSimilarity(semanticContext.queryVector, fileVector) : 0;
-      score += Math.round(semanticScore * 40);
-    }
-
-    if (score > 0 || !terms.length) {
-      candidates.push({
-        path: file.path,
-        size: file.size,
-        modifiedAt: file.modifiedAt,
-        score,
-        mode: options.semantic ? "semantic" : "keyword",
-        semanticProvider: semanticContext ? semanticContext.provider : null,
-        embeddingModel: semanticContext ? semanticContext.model : null,
-        snippet: createSnippet(content, terms)
-      });
-    }
+    documents.push({
+      id: file.path,
+      path: file.path,
+      file,
+      content,
+      text: `${file.path}\n${content.slice(0, MAX_SEARCH_FILE_BYTES)}`
+    });
   }
+
+  const keywordScores = new Map(scoreBm25Documents(normalizedQuery, documents).map((item) => [item.path, item]));
+  const scored = documents.map((document) => {
+    const keyword = keywordScores.get(document.path) || {};
+    let semanticScore = 0;
+    if (semanticContext && semanticContext.queryVector) {
+      const indexedVector = semanticContext.fileVectors.get(document.path);
+      const fileVector = indexedVector || (semanticContext.provider === "local-vector" ? embedTextDense(document.text) : null);
+      semanticScore = fileVector ? cosineSimilarity(semanticContext.queryVector, fileVector) : 0;
+    }
+    return {
+      path: document.path,
+      size: document.file.size,
+      modifiedAt: document.file.modifiedAt,
+      keywordScore: keyword.keywordScore || 0,
+      keywordMatches: keyword.keywordMatches || [],
+      semanticScore,
+      semanticProvider: semanticContext ? semanticContext.provider : null,
+      embeddingModel: semanticContext ? semanticContext.model : null,
+      snippet: createSnippet(document.content, terms)
+    };
+  });
+
+  const fused = fuseHybridScores(scored);
+  const candidates = fused
+    .filter((item) => {
+      if (!terms.length) {
+        return true;
+      }
+      if (semanticContext) {
+        return item.keywordScore > 0 || item.semanticScore > 0;
+      }
+      return item.keywordScore > 0;
+    })
+    .map((item) => {
+      const score = !terms.length
+        ? Date.parse(item.modifiedAt) || 0
+        : semanticContext
+          ? Math.round(item.hybridScore * 1000)
+          : Math.round((item.scoreParts.keywordNormalized || 0) * 1000);
+      return {
+        path: item.path,
+        size: item.size,
+        modifiedAt: item.modifiedAt,
+        score,
+        mode: semanticContext ? "hybrid" : "keyword",
+        semanticProvider: item.semanticProvider,
+        embeddingModel: item.embeddingModel,
+        scoreParts: {
+          ...item.scoreParts,
+          matches: item.keywordMatches
+        },
+        snippet: item.snippet
+      };
+    });
 
   candidates.sort((a, b) => {
     if (b.score !== a.score) {

@@ -39,9 +39,10 @@ Codex completed the first hard engineering slice from Phase 1:
 - T042: memory history list, diff preview, and revert flow that records a new audit entry
 - T043: project/global memory scopes with prompt injection for both scopes and UI switching
 - T045: markdown-aware overlapping search chunks with section headings, chunk type, and line ranges in the saved index
+- T046: hybrid search ranking with BM25 keyword scoring, vector similarity, normalized score fusion, and exposed score parts
 
 Best next Claude tasks:
 
-- Work on docs and UI copy around native tool calling, structured outputs, planner approval, run guardrails, reflection, loop safety, structured memory, memory suggestions, ranked memory retrieval, memory history, scoped memory, and markdown-aware chunk citations.
-- Do not rework `server.js` tool-calling, structured-output, planner, run-cancellation, loop/reflection, memory internals, or search chunking unless you also run the matching scripts: `npm run test:tools`, `npm run test:structured`, `npm run test:planner`, `npm run test:guardrails`, `npm run test:reflection`, `npm run test:memory`, `npm run test:memory-suggestions`, `npm run test:memory-retrieval`, `npm run test:memory-history`, `npm run test:memory-scopes`, and `npm run test:search`.
-- Next code target should be T038 resume interrupted run from receipt, T046 hybrid search, or T052 search quality evals, not the runtime moonshot.
+- Work on docs and UI copy around native tool calling, structured outputs, planner approval, run guardrails, reflection, loop safety, structured memory, memory suggestions, ranked memory retrieval, memory history, scoped memory, markdown-aware chunk citations, and hybrid search score parts.
+- Do not rework `server.js` tool-calling, structured-output, planner, run-cancellation, loop/reflection, memory internals, search chunking, or hybrid ranking unless you also run the matching scripts: `npm run test:tools`, `npm run test:structured`, `npm run test:planner`, `npm run test:guardrails`, `npm run test:reflection`, `npm run test:memory`, `npm run test:memory-suggestions`, `npm run test:memory-retrieval`, `npm run test:memory-history`, `npm run test:memory-scopes`, and `npm run test:search`.
+- Next code target should be T038 resume interrupted run from receipt, T047 reranking, T048 embedding cache, or T052 search quality evals, not the runtime moonshot.

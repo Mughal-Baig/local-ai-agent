@@ -55,6 +55,10 @@ async function main() {
     const indexStatus = await get("/api/search-index");
     assert.equal(indexStatus.chunking.strategy, "markdown-overlap-v1");
 
+    const hybridSearch = await get("/api/search?query=semantic&mode=semantic");
+    assert.equal(hybridSearch.ranker, "hybrid-bm25-vector");
+    assert.equal(hybridSearch.results.some((result) => result.mode === "hybrid" && result.scoreParts && typeof result.scoreParts.bm25 === "number"), true);
+
     const chunkResults = await get("/api/search/chunks?query=receipt");
     assert.equal(chunkResults.chunks.some((chunk) => chunk.heading === "API" && chunk.startLine >= 1 && chunk.endLine >= chunk.startLine), true);
 

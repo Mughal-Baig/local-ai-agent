@@ -10,6 +10,18 @@ function chunkText(content, size = 1800, overlap = 180) {
   return chunkTextDetailed(content, { size, overlap }).map((chunk) => chunk.text);
 }
 
+function tokenizeSearchText(text, limit = 50000) {
+  return String(text || "")
+    .toLowerCase()
+    .split(/[^a-z0-9_.-]+/)
+    .filter((term) => term.length >= 2)
+    .slice(0, Math.max(1, Number(limit) || 50000));
+}
+
+function uniqueSearchTerms(text, limit = 12) {
+  return Array.from(new Set(tokenizeSearchText(text, 200))).slice(0, Math.max(1, Number(limit) || 12));
+}
+
 function chunkTextDetailed(content, options = {}) {
   const size = clampNumber(options.size, 320, 6000, 1800);
   const overlap = clampNumber(options.overlap, 0, Math.floor(size / 2), 220);
@@ -205,24 +217,136 @@ function buildChunk(blocks, index) {
 }
 
 function rankChunks(query, chunks, limit = 8) {
-  const terms = String(query || "")
-    .toLowerCase()
-    .split(/[^a-z0-9_.-]+/)
-    .filter((term) => term.length >= 2)
-    .slice(0, 12);
-  return (Array.isArray(chunks) ? chunks : [])
-    .map((chunk) => {
-      const haystack = `${chunk.path || ""} ${chunk.heading || ""} ${chunk.kind || ""} ${chunk.preview || ""}`.toLowerCase();
-      const score = terms.reduce((sum, term) => sum + (haystack.includes(term) ? (String(chunk.heading || "").toLowerCase().includes(term) ? 2 : 1) : 0), 0);
-      return {
-        ...chunk,
-        score,
-        citation: `${chunk.path || "workspace"}#chunk-${Number(chunk.index || 0) + 1}`
-      };
-    })
-    .filter((chunk) => !terms.length || chunk.score > 0)
-    .sort((a, b) => b.score - a.score || String(a.path).localeCompare(String(b.path)))
+  const terms = uniqueSearchTerms(query);
+  const documents = (Array.isArray(chunks) ? chunks : []).map((chunk) => ({
+    ...chunk,
+    id: `${chunk.path || "workspace"}#${Number(chunk.index || 0) + 1}`,
+    text: `${chunk.path || ""}\n${chunk.heading || ""}\n${chunk.kind || ""}\n${chunk.preview || ""}`
+  }));
+  return scoreBm25Documents(query, documents)
+    .filter((chunk) => !terms.length || chunk.keywordScore > 0)
+    .sort((a, b) => b.keywordScore - a.keywordScore || String(a.path).localeCompare(String(b.path)))
+    .map((chunk) => ({
+      ...chunk,
+      score: roundScore(chunk.keywordScore),
+      scoreParts: {
+        bm25: roundScore(chunk.keywordScore),
+        matches: chunk.keywordMatches || []
+      },
+      citation: `${chunk.path || "workspace"}#chunk-${Number(chunk.index || 0) + 1}`
+    }))
     .slice(0, Math.min(Math.max(Number(limit) || 8, 1), 30));
+}
+
+function scoreBm25Documents(query, documents, options = {}) {
+  const queryTerms = uniqueSearchTerms(query, options.termLimit || 12);
+  const docs = (Array.isArray(documents) ? documents : []).map((document, index) => {
+    const pathText = String(document.path || document.id || "");
+    const headingText = String(document.heading || "");
+    const previewText = String(document.preview || "");
+    const bodyText = String(document.text || document.content || "");
+    const tokens = tokenizeSearchText(`${pathText}\n${headingText}\n${previewText}\n${bodyText}`);
+    const frequencies = new Map();
+    for (const token of tokens) {
+      if (queryTerms.includes(token)) {
+        frequencies.set(token, (frequencies.get(token) || 0) + 1);
+      }
+    }
+    return {
+      document,
+      index,
+      pathText: pathText.toLowerCase(),
+      headingText: headingText.toLowerCase(),
+      previewText: previewText.toLowerCase(),
+      length: Math.max(tokens.length, 1),
+      frequencies
+    };
+  });
+
+  if (!queryTerms.length || !docs.length) {
+    return docs.map((entry) => ({
+      ...entry.document,
+      keywordScore: 0,
+      keywordMatches: []
+    }));
+  }
+
+  const averageLength = docs.reduce((sum, entry) => sum + entry.length, 0) / docs.length || 1;
+  const documentFrequency = new Map();
+  for (const term of queryTerms) {
+    documentFrequency.set(term, docs.filter((entry) => entry.frequencies.has(term)).length);
+  }
+
+  const k1 = Math.max(0.5, Math.min(3, Number.isFinite(Number(options.k1)) ? Number(options.k1) : 1.45));
+  const b = Math.max(0, Math.min(1, Number.isFinite(Number(options.b)) ? Number(options.b) : 0.72));
+  const totalDocuments = docs.length;
+
+  return docs.map((entry) => {
+    let keywordScore = 0;
+    const keywordMatches = [];
+    for (const term of queryTerms) {
+      const termFrequency = entry.frequencies.get(term) || 0;
+      if (!termFrequency) {
+        continue;
+      }
+      const df = documentFrequency.get(term) || 0;
+      const idf = Math.log(1 + ((totalDocuments - df + 0.5) / (df + 0.5)));
+      const lengthPenalty = k1 * (1 - b + b * (entry.length / averageLength));
+      const bm25 = idf * ((termFrequency * (k1 + 1)) / (termFrequency + lengthPenalty));
+      const fieldBoost = fieldMatchBoost(term, entry);
+      keywordScore += bm25 + fieldBoost;
+      keywordMatches.push(term);
+    }
+    return {
+      ...entry.document,
+      keywordScore,
+      keywordMatches
+    };
+  });
+}
+
+function fuseHybridScores(documents, options = {}) {
+  const docs = Array.isArray(documents) ? documents : [];
+  const keywordWeight = Number.isFinite(Number(options.keywordWeight)) ? Number(options.keywordWeight) : 0.62;
+  const semanticWeight = Number.isFinite(Number(options.semanticWeight)) ? Number(options.semanticWeight) : 0.38;
+  const totalWeight = Math.max(keywordWeight + semanticWeight, 0.001);
+  const maxKeyword = Math.max(0, ...docs.map((item) => Number(item.keywordScore || 0)));
+  const maxSemantic = Math.max(0, ...docs.map((item) => Number(item.semanticScore || 0)));
+
+  return docs.map((item) => {
+    const keywordNormalized = maxKeyword > 0 ? Number(item.keywordScore || 0) / maxKeyword : 0;
+    const semanticNormalized = maxSemantic > 0 ? Number(item.semanticScore || 0) / maxSemantic : 0;
+    const hybridNormalized = ((keywordNormalized * keywordWeight) + (semanticNormalized * semanticWeight)) / totalWeight;
+    return {
+      ...item,
+      hybridScore: hybridNormalized,
+      scoreParts: {
+        bm25: roundScore(item.keywordScore || 0),
+        semantic: roundScore(item.semanticScore || 0),
+        keywordNormalized: roundScore(keywordNormalized),
+        semanticNormalized: roundScore(semanticNormalized),
+        hybrid: roundScore(hybridNormalized)
+      }
+    };
+  });
+}
+
+function fieldMatchBoost(term, entry) {
+  let boost = 0;
+  if (entry.pathText.includes(term)) {
+    boost += 2.4;
+  }
+  if (entry.headingText.includes(term)) {
+    boost += 1.8;
+  }
+  if (entry.previewText.includes(term)) {
+    boost += 0.6;
+  }
+  return boost;
+}
+
+function roundScore(value) {
+  return Math.round(Number(value || 0) * 10000) / 10000;
 }
 
 function clampNumber(value, min, max, fallback) {
@@ -235,5 +359,9 @@ module.exports = {
   hashContent,
   chunkText,
   chunkTextDetailed,
+  tokenizeSearchText,
+  uniqueSearchTerms,
+  scoreBm25Documents,
+  fuseHybridScores,
   rankChunks
 };

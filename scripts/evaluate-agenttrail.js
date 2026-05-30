@@ -41,6 +41,8 @@ async function main() {
   checks.push(await check("Markdown-aware chunking exists", async () => includes("src/features/search.js", ["chunkTextDetailed", "markdownBlocks", "overlapBlocks", "startLine"])));
   checks.push(await check("Search index stores chunk metadata", async () => includes("server.js", ["markdown-overlap-v1", "heading", "startLine", "endLine"])));
   checks.push(await check("Search chunking tests exist", async () => includes("tests/unit/search-chunking.test.js", ["chunkTextDetailed", "Install", "startLine"])));
+  checks.push(await check("Hybrid search fusion exists", async () => includes("src/features/search.js", ["scoreBm25Documents", "fuseHybridScores", "keywordNormalized", "semanticNormalized"])));
+  checks.push(await check("Hybrid search API exposes score parts", async () => includes("server.js", ["hybrid-bm25-vector", "scoreParts", "keywordMatches"])));
   checks.push(await check("Recipe marketplace exists", async () => includes("marketplace/recipes.json", ["Recipe Marketplace", "submissionUrl"])));
   checks.push(await check("Student and writer packs exist", async () => (await countJson("recipe-packs")) >= 5));
   checks.push(await check("Frontend split foundation module exists", async () => includes("public/modules/foundation.js", ["/api/foundation", "/api/backup/export"])));

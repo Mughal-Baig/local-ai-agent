@@ -1,7 +1,13 @@
 #!/usr/bin/env node
 
 const assert = require("node:assert/strict");
-const { chunkText, chunkTextDetailed, rankChunks } = require("../../src/features/search");
+const {
+  chunkText,
+  chunkTextDetailed,
+  fuseHybridScores,
+  rankChunks,
+  scoreBm25Documents
+} = require("../../src/features/search");
 
 const markdown = [
   "# AgentTrail",
@@ -40,5 +46,22 @@ const ranked = rankChunks("install npx", chunks.map((chunk) => ({ ...chunk, path
 assert.equal(ranked.length, 1);
 assert.equal(ranked[0].heading.includes("Install"), true);
 assert.match(ranked[0].citation, /^README\.md#chunk-\d+$/);
+assert.equal(ranked[0].scoreParts.matches.includes("install"), true);
+
+const bm25 = scoreBm25Documents("install npx", [
+  { id: "install", path: "docs/install.md", text: "npx agenttrail install local agent local agent" },
+  { id: "receipts", path: "docs/receipts.md", text: "receipts reports replay timeline" }
+]).sort((a, b) => b.keywordScore - a.keywordScore);
+
+assert.equal(bm25[0].id, "install");
+assert.equal(bm25[0].keywordMatches.includes("npx"), true);
+
+const fused = fuseHybridScores([
+  { id: "keyword", keywordScore: 10, semanticScore: 0.2 },
+  { id: "semantic", keywordScore: 1, semanticScore: 0.9 }
+], { keywordWeight: 0.35, semanticWeight: 0.65 }).sort((a, b) => b.hybridScore - a.hybridScore);
+
+assert.equal(fused[0].id, "semantic");
+assert.equal(fused[0].scoreParts.semanticNormalized, 1);
 
 console.log("Search chunking tests passed");
