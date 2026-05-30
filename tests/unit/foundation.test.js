@@ -48,6 +48,7 @@ async function main() {
   assert.equal(routeCatalog().some((route) => route.area === "search"), true);
   assert.equal(routeCatalog().some((route) => route.area === "attachments"), true);
   assert.equal(routeCatalog().some((route) => route.area === "planner"), true);
+  assert.equal(routeCatalog().some((route) => route.routes.includes("/api/chat")), true);
   assert.equal(routeCatalog().some((route) => route.routes.includes("/api/tools/schemas")), true);
   assert.equal(routeCatalog().some((route) => route.routes.includes("/api/structured-output")), true);
   assert.equal(listToolSchemas().some((tool) => tool.name === "search_workspace"), true);

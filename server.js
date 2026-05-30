@@ -36,6 +36,7 @@ const DEFAULT_MODEL = process.env.OLLAMA_MODEL || "llama3.2";
 const OLLAMA_EMBED_MODEL = process.env.OLLAMA_EMBED_MODEL || "nomic-embed-text";
 const MAX_TOOL_ITERATIONS = Number(process.env.MAX_TOOL_ITERATIONS || 4);
 const MAX_TOOL_CALLS_PER_STEP = Number(process.env.MAX_TOOL_CALLS_PER_STEP || 6);
+const DEFAULT_STEP_BUDGET = clampInt(process.env.AGENTTRAIL_DEFAULT_STEP_BUDGET, 1, MAX_TOOL_ITERATIONS, Math.min(3, MAX_TOOL_ITERATIONS));
 const NATIVE_TOOL_CALLS = String(process.env.AGENTTRAIL_NATIVE_TOOLS || "on").toLowerCase() !== "off";
 const TOOL_CAPABILITY_TTL_MS = Number(process.env.AGENTTRAIL_TOOL_CAPABILITY_TTL_MS || 10 * 60 * 1000);
 
@@ -743,6 +744,7 @@ async function handleAgentPlan(req, res) {
   const selectedFiles = Array.isArray(body.selectedFiles) ? body.selectedFiles.slice(0, 8) : [];
   const permissions = normalizePermissions(body.permissions);
   const securityMode = body.securityMode !== false;
+  const stepBudget = normalizeStepBudget(body.stepBudget);
   const latestPrompt = latestUserPrompt(messages);
   if (!latestPrompt) {
     return sendJson(res, 400, { error: "A user prompt is required to create a plan." });
@@ -756,19 +758,20 @@ async function handleAgentPlan(req, res) {
   }
 
   const model = String(body.model || DEFAULT_MODEL).trim() || DEFAULT_MODEL;
-  const prompt = await buildPlannerPrompt(messages, selectedFiles, permissions, securityMode);
+  const prompt = await buildPlannerPrompt(messages, selectedFiles, permissions, securityMode, stepBudget);
   const result = await generateStructuredOutput(model, prompt, descriptor, {
     temperature: typeof body.temperature === "number" ? body.temperature : 0
   });
   await STORE.append("agent-plan", {
     model,
     ok: result.ok,
-    stepCount: result.output && Array.isArray(result.output.steps) ? result.output.steps.length : 0
+    stepCount: result.output && Array.isArray(result.output.steps) ? result.output.steps.length : 0,
+    budget: stepBudget
   });
   sendJson(res, result.ok ? 200 : 422, result);
 }
 
-async function buildPlannerPrompt(messages, selectedFiles, permissions, securityMode) {
+async function buildPlannerPrompt(messages, selectedFiles, permissions, securityMode, stepBudget = null) {
   const fileBlocks = [];
   for (const filePath of selectedFiles) {
     try {
@@ -792,6 +795,7 @@ async function buildPlannerPrompt(messages, selectedFiles, permissions, security
     `write_file permission: ${permissions.writeFiles ? "enabled" : "disabled"}`,
     `preview writes: ${permissions.previewWrites ? "enabled" : "disabled"}`,
     `security hardening mode: ${securityMode ? "enabled" : "disabled"}`,
+    stepBudget ? `tool step budget: ${stepBudget.maxSteps}${stepBudget.override ? " (user override enabled)" : ""}` : "",
     "",
     "Conversation:",
     transcript,
@@ -1710,6 +1714,14 @@ async function handlePreviewFile(req, res) {
 
 async function handleChat(req, res) {
   const body = await readJsonBody(req);
+  const runAbort = new AbortController();
+  let completed = false;
+
+  res.on("close", () => {
+    if (!completed && !runAbort.signal.aborted) {
+      runAbort.abort(makeAbortError("Run cancelled by the user."));
+    }
+  });
 
   res.writeHead(200, {
     "Content-Type": "text/event-stream; charset=utf-8",
@@ -1719,22 +1731,32 @@ async function handleChat(req, res) {
   });
 
   try {
-    await runAgent(body, res);
+    await runAgent(body, res, { signal: runAbort.signal });
   } catch (error) {
-    sendEvent(res, "error", { message: error.message || "The agent stopped unexpectedly." });
+    if (isRunAbort(error, runAbort.signal)) {
+      await STORE.append("run-cancelled", { reason: error.message || "Run cancelled by the user." });
+      await LOGGER.log("info", "agent.cancelled", { reason: error.message || "cancelled" });
+      sendEvent(res, "cancelled", { message: "Run stopped by user." });
+    } else {
+      sendEvent(res, "error", { message: error.message || "The agent stopped unexpectedly." });
+    }
   } finally {
+    completed = true;
     res.end();
   }
 }
 
-async function runAgent(body, res) {
+async function runAgent(body, res, context = {}) {
   const messages = normalizeMessages(body.messages);
   const selectedFiles = Array.isArray(body.selectedFiles) ? body.selectedFiles.slice(0, 8) : [];
   const permissions = normalizePermissions(body.permissions);
   const securityMode = body.securityMode !== false;
   const approvedPlan = normalizeApprovedPlan(body.approvedPlan);
+  const stepBudget = normalizeStepBudget(body.stepBudget);
+  const signal = context.signal;
   const status = await fetchOllamaModels();
 
+  throwIfAborted(signal);
   if (!status.available) {
     sendEvent(res, "error", {
       message: BACKEND_IS_OPENAI
@@ -1749,13 +1771,31 @@ async function runAgent(body, res) {
   const toolHistory = [];
 
   sendEvent(res, "status", { message: `Using ${model}` });
+  sendEvent(res, "budget", {
+    maxSteps: stepBudget.maxSteps,
+    defaultMaxSteps: stepBudget.defaultMaxSteps,
+    serverMaxSteps: stepBudget.serverMaxSteps,
+    override: stepBudget.override,
+    capped: stepBudget.capped,
+    reason: stepBudget.reason
+  });
+  await STORE.append("run-budget", {
+    model,
+    maxSteps: stepBudget.maxSteps,
+    override: stepBudget.override,
+    capped: stepBudget.capped,
+    reason: stepBudget.reason
+  });
 
-  for (let step = 0; step < MAX_TOOL_ITERATIONS; step += 1) {
+  for (let step = 0; step < stepBudget.maxSteps; step += 1) {
+    throwIfAborted(signal);
     sendEvent(res, "status", {
-      message: step === 0 ? "Thinking with local context" : "Reviewing tool result"
+      message: step === 0
+        ? `Thinking with local context · step ${step + 1}/${stepBudget.maxSteps}`
+        : `Reviewing tool result · step ${step + 1}/${stepBudget.maxSteps}`
     });
 
-    const prompt = await buildAgentPrompt(messages, selectedFiles, toolHistory, permissions, securityMode, approvedPlan);
+    const prompt = await buildAgentPrompt(messages, selectedFiles, toolHistory, permissions, securityMode, approvedPlan, stepBudget);
     const gate = createProseGate(res);
     const cacheKey = `${model}::${hashPrompt(prompt)}`;
     const nativeCapability = await probeNativeToolSupport(model);
@@ -1774,16 +1814,20 @@ async function runAgent(body, res) {
     } else {
       output = await generateStream(model, prompt, {
         temperature: typeof body.temperature === "number" ? body.temperature : 0.2,
-        tools: nativeTools
+        tools: nativeTools,
+        signal
       }, (chunk) => gate.push(chunk));
       cacheSet(cacheKey, output);
     }
+    throwIfAborted(signal);
 
     // The gate only forwards prose; tool-call JSON is suppressed mid-stream.
     if (gate.decision !== "prose") {
       const toolCalls = extractToolCalls(output);
       if (toolCalls.length) {
+        throwIfAborted(signal);
         const batch = await executeToolCallBatch(toolCalls, permissions);
+        throwIfAborted(signal);
         for (const entry of batch) {
           toolHistory.push({
             call: entry.call,
@@ -1805,15 +1849,19 @@ async function runAgent(body, res) {
   }
 
   const fallback = [
-    "I reached the tool step limit before producing a final answer.",
+    `I reached the tool step budget (${stepBudget.maxSteps}) before producing a final answer.`,
+    stepBudget.override
+      ? "You can raise MAX_TOOL_ITERATIONS in the local environment for a deeper run."
+      : "Choose the deep-run budget override if you want me to spend more tool steps.",
     "Here is the latest tool context I gathered:",
     truncate(JSON.stringify(toolHistory, null, 2), 1600)
   ].join("\n\n");
+  sendEvent(res, "budget", { ...stepBudget, exhausted: true, stepsUsed: stepBudget.maxSteps });
   await streamText(res, fallback);
-  sendEvent(res, "done", { ok: true });
+  sendEvent(res, "done", { ok: false, reason: "step-budget-exhausted", budget: stepBudget });
 }
 
-async function buildAgentPrompt(messages, selectedFiles, toolHistory, permissions, securityMode, approvedPlan = null) {
+async function buildAgentPrompt(messages, selectedFiles, toolHistory, permissions, securityMode, approvedPlan = null, stepBudget = null) {
   const selectedFileBlocks = [];
   let memoryBlock = "No project memory saved.";
 
@@ -1896,6 +1944,11 @@ async function buildAgentPrompt(messages, selectedFiles, toolHistory, permission
     "",
     "Tool history:",
     toolNotes,
+    "",
+    "Run guardrails:",
+    stepBudget
+      ? `Tool step budget: ${stepBudget.maxSteps} model/tool loop step(s). Finish early when possible. Ask for a higher budget instead of looping.`
+      : "Use the smallest number of tool steps needed.",
     "",
     "Approved user plan:",
     planNotes,
@@ -2002,6 +2055,28 @@ function normalizeApprovedPlan(value) {
     steps,
     editedText,
     approvedAt: value.approvedAt || new Date().toISOString()
+  };
+}
+
+function normalizeStepBudget(value) {
+  const input = value && typeof value === "object" && !Array.isArray(value) ? value : {};
+  const requested = clampInt(input.maxSteps, 1, MAX_TOOL_ITERATIONS, DEFAULT_STEP_BUDGET);
+  const override = Boolean(input.override);
+  const allowedMax = override ? MAX_TOOL_ITERATIONS : DEFAULT_STEP_BUDGET;
+  const maxSteps = Math.min(requested, allowedMax);
+  const capped = requested !== maxSteps;
+  const reason = capped
+    ? (override ? "server-max" : "override-required")
+    : (override ? "user-override" : "default-guardrail");
+  return {
+    schema: "agenttrail.step-budget.v1",
+    maxSteps,
+    requestedMaxSteps: requested,
+    defaultMaxSteps: DEFAULT_STEP_BUDGET,
+    serverMaxSteps: MAX_TOOL_ITERATIONS,
+    override,
+    capped,
+    reason
   };
 }
 
@@ -2519,6 +2594,9 @@ async function generateOllamaStream(model, prompt, options, onToken) {
     try {
       return await generateOllamaChatStream(model, prompt, options, onToken);
     } catch (error) {
+      if (isRunAbort(error, options.signal)) {
+        throw error;
+      }
       if (!isNativeToolUnsupported(error)) {
         throw error;
       }
@@ -2538,9 +2616,12 @@ async function generateOllamaStream(model, prompt, options, onToken) {
         keep_alive: OLLAMA_KEEP_ALIVE,
         options: { temperature: options.temperature, num_ctx: 8192 }
       }),
-      signal: AbortSignal.timeout(120000)
+      signal: abortSignalWithTimeout(options.signal, 120000)
     });
   } catch (error) {
+    if (isRunAbort(error, options.signal)) {
+      throw makeAbortError("Run cancelled by the user.");
+    }
     throw new Error(`Ollama is not reachable at ${OLLAMA_HOST}. ${error.message}`.trim());
   }
   if (!response.ok || !response.body) {
@@ -2590,9 +2671,12 @@ async function generateOllamaChatStream(model, prompt, options, onToken) {
         keep_alive: OLLAMA_KEEP_ALIVE,
         options: { temperature: options.temperature, num_ctx: 8192 }
       }),
-      signal: AbortSignal.timeout(120000)
+      signal: abortSignalWithTimeout(options.signal, 120000)
     });
   } catch (error) {
+    if (isRunAbort(error, options.signal)) {
+      throw makeAbortError("Run cancelled by the user.");
+    }
     throw new Error(`Ollama is not reachable at ${OLLAMA_HOST}. ${error.message}`.trim());
   }
   if (!response.ok || !response.body) {
@@ -2644,6 +2728,9 @@ async function generateOpenAIStream(model, prompt, options, onToken) {
     try {
       return await generateOpenAIChatStream(model, prompt, options, onToken);
     } catch (error) {
+      if (isRunAbort(error, options.signal)) {
+        throw error;
+      }
       if (!isNativeToolUnsupported(error)) {
         throw error;
       }
@@ -2662,9 +2749,12 @@ async function generateOpenAIStream(model, prompt, options, onToken) {
         temperature: options.temperature,
         stream: true
       }),
-      signal: AbortSignal.timeout(120000)
+      signal: abortSignalWithTimeout(options.signal, 120000)
     });
   } catch (error) {
+    if (isRunAbort(error, options.signal)) {
+      throw makeAbortError("Run cancelled by the user.");
+    }
     throw new Error(`${ACTIVE_BACKEND.title} is not reachable at ${BACKEND_HOST}. ${error.message}`.trim());
   }
   if (!response.ok || !response.body) {
@@ -2718,9 +2808,12 @@ async function generateOpenAIChatStream(model, prompt, options, onToken) {
         temperature: options.temperature,
         stream: true
       }),
-      signal: AbortSignal.timeout(120000)
+      signal: abortSignalWithTimeout(options.signal, 120000)
     });
   } catch (error) {
+    if (isRunAbort(error, options.signal)) {
+      throw makeAbortError("Run cancelled by the user.");
+    }
     throw new Error(`${ACTIVE_BACKEND.title} is not reachable at ${BACKEND_HOST}. ${error.message}`.trim());
   }
   if (!response.ok || !response.body) {
@@ -3669,13 +3762,61 @@ async function streamText(res, text) {
 }
 
 function sendEvent(res, event, data) {
-  res.write(`event: ${event}\n`);
-  res.write(`data: ${JSON.stringify(data)}\n\n`);
+  if (res.destroyed || res.writableEnded) {
+    return;
+  }
+  try {
+    res.write(`event: ${event}\n`);
+    res.write(`data: ${JSON.stringify(data)}\n\n`);
+  } catch {
+    // Client has already closed the event stream.
+  }
 }
 
 function sendJson(res, status, data) {
   res.writeHead(status, { "Content-Type": "application/json; charset=utf-8" });
   res.end(JSON.stringify(data, null, 2));
+}
+
+function abortSignalWithTimeout(parentSignal, timeoutMs) {
+  const timeoutSignal = AbortSignal.timeout(timeoutMs);
+  if (!parentSignal) {
+    return timeoutSignal;
+  }
+  if (parentSignal.aborted) {
+    return parentSignal;
+  }
+  if (typeof AbortSignal.any === "function") {
+    return AbortSignal.any([parentSignal, timeoutSignal]);
+  }
+  const controller = new AbortController();
+  const abort = (event) => {
+    const source = event && event.target;
+    controller.abort(source && source.reason ? source.reason : makeAbortError("Run cancelled."));
+  };
+  parentSignal.addEventListener("abort", abort, { once: true });
+  timeoutSignal.addEventListener("abort", abort, { once: true });
+  return controller.signal;
+}
+
+function makeAbortError(message) {
+  const error = new Error(message || "Run cancelled.");
+  error.name = "AbortError";
+  error.code = "ABORT_ERR";
+  return error;
+}
+
+function isRunAbort(error, signal) {
+  if (signal && signal.aborted) {
+    return true;
+  }
+  return Boolean(error && (error.name === "AbortError" || error.code === "ABORT_ERR"));
+}
+
+function throwIfAborted(signal) {
+  if (signal && signal.aborted) {
+    throw makeAbortError("Run cancelled by the user.");
+  }
 }
 
 function summarizeToolResult(result) {
@@ -3898,6 +4039,12 @@ function recommendModelUse(scores) {
 
 function clampScore(value) {
   return Math.max(0, Math.min(100, Math.round(value)));
+}
+
+function clampInt(value, min, max, fallback) {
+  const parsed = Number.parseInt(value, 10);
+  const clean = Number.isFinite(parsed) ? parsed : fallback;
+  return Math.max(min, Math.min(max, clean));
 }
 
 async function runLocalEvals() {

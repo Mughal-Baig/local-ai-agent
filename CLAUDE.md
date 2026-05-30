@@ -28,10 +28,12 @@ Codex completed the first hard engineering slice from Phase 1:
 - T030: structured-output round-trip tests for Ollama and OpenAI-compatible mock backends
 - T031: `/api/agent/plan` generates a structured model plan before acting
 - T032: UI plan panel lets the user edit/approve the plan before chat execution
+- T033: step-budget guardrails with explicit deep-run override and budget receipts
 - T036: parallel independent tool execution within a step, while write-like tools stay ordered
+- T037: Stop button aborts the browser request and backend model stream
 
 Best next Claude tasks:
 
-- Work on docs and UI copy around native tool calling, structured outputs, and planner approval.
-- Do not rework `server.js` tool-calling, structured-output, or planner internals unless you also run `npm run test:tools`, `npm run test:structured`, and `npm run test:planner`.
-- Next code target should be T033 step budget guardrails or T037 cancellable runs, not the runtime moonshot.
+- Work on docs and UI copy around native tool calling, structured outputs, planner approval, and run guardrails.
+- Do not rework `server.js` tool-calling, structured-output, planner, or run-cancellation internals unless you also run `npm run test:tools`, `npm run test:structured`, `npm run test:planner`, and `npm run test:guardrails`.
+- Next code target should be T034 reflection step or T035 loop-detection/no-progress abort, not the runtime moonshot.

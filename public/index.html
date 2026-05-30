@@ -307,13 +307,19 @@
           <input id="attachmentInput" type="file" multiple hidden />
           <button id="attachFiles" class="attach-button" type="button" title="Attach files to the workspace" aria-label="Attach files">Attach</button>
           <textarea id="prompt" rows="1" placeholder="Ask the agent to explain, draft, code, or work with selected files..."></textarea>
+          <select id="stepBudgetSelect" class="step-budget-select" aria-label="Step budget">
+            <option value="2">2 steps</option>
+            <option value="3" selected>3 steps</option>
+            <option value="override:4">Deep 4</option>
+          </select>
           <button id="planButton" class="secondary-button" type="button">Plan first</button>
+          <button id="stopButton" class="icon-button run-stop" type="button" title="Stop current run" aria-label="Stop current run" disabled><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="7" y="7" width="10" height="10" rx="1.5"/></svg></button>
           <button id="sendButton" type="submit">Send</button>
         </form>
       </main>
     </div>
 
-    <script src="/app.js?v=15"></script>
+    <script src="/app.js?v=16"></script>
     <script src="/modules/foundation.js?v=1"></script>
     <script src="/modules/product.js?v=1"></script>
   </body>

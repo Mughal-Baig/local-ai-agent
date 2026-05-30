@@ -52,11 +52,11 @@ A long-horizon backlog (12+ months) for making AgentTrail the auditable agent la
 ### Epic C — Planner & multi-step autonomy
 - [x] T031 Explicit plan step: model proposes a plan before acting
 - [x] T032 Plan shown in UI; user can edit/approve before execution
-- [ ] T033 Step budget + cost guardrails with user override
+- [x] T033 Step budget + cost guardrails with user override
 - [ ] T034 Reflection step: self-check output against the request
 - [ ] T035 Loop-detection / no-progress abort
 - [x] T036 Parallel independent tool execution within a step
-- [ ] T037 Cancellable runs (stop button → abort backend stream)
+- [x] T037 Cancellable runs (stop button → abort backend stream)
 - [ ] T038 Resume an interrupted run from its receipt
 
 ### Epic D — Agent memory

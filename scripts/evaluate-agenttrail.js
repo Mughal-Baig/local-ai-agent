@@ -74,6 +74,10 @@ async function main() {
   checks.push(await check("Planner approval endpoint exists", async () => includes("server.js", ["/api/agent/plan", "handleAgentPlan", "Approved user plan"])));
   checks.push(await check("Planner UI exists", async () => includes("public/index.html", ["planPanel", "approvePlan", "planButton"])));
   checks.push(await check("Planner tests exist", async () => includes("tests/integration/agent-plan.test.js", ["agent-plan", "approvedPlan", "sawApprovedPlan"])));
+  checks.push(await check("Run guardrails exist", async () => includes("server.js", ["normalizeStepBudget", "run-budget", "step-budget-exhausted"])));
+  checks.push(await check("Cancellable runs exist", async () => includes("server.js", ["AbortController", "run-cancelled", "abortSignalWithTimeout"])));
+  checks.push(await check("Stop button UI exists", async () => includes("public/index.html", ["stopButton", "stepBudgetSelect", "Deep 4"])));
+  checks.push(await check("Run guardrail tests exist", async () => includes("tests/integration/run-guardrails.test.js", ["step-budget-exhausted", "backend stream should close"])));
 
   const passed = checks.filter((item) => item.ok).length;
   const score = Math.round((passed / checks.length) * 100);

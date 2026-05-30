@@ -38,6 +38,12 @@ const state = {
   ollamaAvailable: false,
   busy: false,
   planning: false,
+  cancelRequested: false,
+  chatAbortController: null,
+  stepBudget: {
+    maxSteps: 3,
+    override: false
+  },
   pendingPlan: null,
   approvedPlan: null
 };
@@ -108,7 +114,9 @@ const els = {
   messages: document.querySelector("#messages"),
   planPanel: document.querySelector("#planPanel"),
   planText: document.querySelector("#planText"),
+  stepBudgetSelect: document.querySelector("#stepBudgetSelect"),
   planButton: document.querySelector("#planButton"),
+  stopButton: document.querySelector("#stopButton"),
   approvePlan: document.querySelector("#approvePlan"),
   discardPlan: document.querySelector("#discardPlan"),
   composer: document.querySelector("#composer"),
@@ -188,7 +196,9 @@ function bindEvents() {
   els.attachmentInput.addEventListener("change", attachSelectedFiles);
   els.useRecipe.addEventListener("click", applySelectedRecipe);
   els.recipeSelect.addEventListener("change", updateRecipeHint);
+  els.stepBudgetSelect.addEventListener("change", updateStepBudget);
   els.planButton.addEventListener("click", generatePlan);
+  els.stopButton.addEventListener("click", stopCurrentRun);
   els.approvePlan.addEventListener("click", approvePlanAndRun);
   els.discardPlan.addEventListener("click", discardPlan);
   els.planText.addEventListener("input", updateSendState);
@@ -1193,6 +1203,25 @@ function renderAttachments() {
   }
 }
 
+function updateStepBudget() {
+  const raw = els.stepBudgetSelect.value || "3";
+  const override = raw.startsWith("override:");
+  const maxSteps = Number.parseInt(raw.replace("override:", ""), 10) || 3;
+  state.stepBudget = { maxSteps, override };
+  addTrail("budget", `${override ? "Deep override" : "Step budget"} set to ${maxSteps}`);
+}
+
+function stopCurrentRun() {
+  if (!state.busy || !state.chatAbortController || state.cancelRequested) {
+    return;
+  }
+  state.cancelRequested = true;
+  els.workspaceStatus.textContent = "Stopping run";
+  addTrail("run", "Stop requested");
+  state.chatAbortController.abort();
+  updateSendState();
+}
+
 async function generatePlan() {
   if (state.busy || state.planning) {
     return;
@@ -1217,7 +1246,8 @@ async function generatePlan() {
       messages: requestMessages,
       selectedFiles: Array.from(state.selectedFiles),
       permissions: state.permissions,
-      securityMode: state.securityMode
+      securityMode: state.securityMode,
+      stepBudget: state.stepBudget
     });
     state.pendingPlan = data.output;
     state.approvedPlan = null;
@@ -1308,6 +1338,8 @@ async function sendMessage(event) {
 
   state.messages.push(userMessage, assistantMessage);
   state.busy = true;
+  state.cancelRequested = false;
+  state.chatAbortController = new AbortController();
   const suspicious = detectSuspiciousPrompt(content);
   if (suspicious.length) {
     addTrail("security", `Suspicious instruction flagged: ${suspicious[0]}`);
@@ -1328,8 +1360,10 @@ async function sendMessage(event) {
         selectedFiles: Array.from(state.selectedFiles),
         permissions: state.permissions,
         securityMode: state.securityMode,
-        approvedPlan
-      })
+        approvedPlan,
+        stepBudget: state.stepBudget
+      }),
+      signal: state.chatAbortController.signal
     });
 
     if (!response.ok || !response.body) {
@@ -1364,6 +1398,24 @@ async function sendMessage(event) {
       if (eventName === "status") {
         els.workspaceStatus.textContent = data.message || "Working";
       }
+      if (eventName === "budget") {
+        if (data.exhausted) {
+          assistantMessage.events.push({
+            type: "error",
+            label: `Step budget reached (${data.maxSteps})`
+          });
+          addTrail("budget", `Step budget reached (${data.maxSteps})`);
+        } else {
+          addTrail("budget", `Run budget ${data.maxSteps} step(s)${data.override ? " with override" : ""}`);
+        }
+      }
+      if (eventName === "cancelled") {
+        assistantMessage.events.push({
+          type: "error",
+          label: data.message || "Run stopped"
+        });
+        addTrail("run", data.message || "Run stopped");
+      }
       if (eventName === "error") {
         assistantMessage.events.push({
           type: "error",
@@ -1376,11 +1428,18 @@ async function sendMessage(event) {
       renderMessages();
     });
   } catch (error) {
-    assistantMessage.events.push({ type: "error", label: error.message });
-    addTrail("error", error.message);
+    if (state.cancelRequested || error.name === "AbortError") {
+      assistantMessage.events.push({ type: "error", label: "Run stopped by user" });
+      addTrail("run", "Run stopped");
+    } else {
+      assistantMessage.events.push({ type: "error", label: error.message });
+      addTrail("error", error.message);
+    }
     renderMessages();
   } finally {
     state.busy = false;
+    state.cancelRequested = false;
+    state.chatAbortController = null;
     state.approvedPlan = null;
     state.pendingPlan = null;
     renderPlanPanel(null);
@@ -2027,6 +2086,8 @@ function resizePrompt() {
 function updateSendState() {
   els.sendButton.disabled = state.busy || state.planning || !els.prompt.value.trim();
   els.planButton.disabled = state.busy || state.planning || !els.prompt.value.trim();
+  els.stepBudgetSelect.disabled = state.busy || state.planning;
+  els.stopButton.disabled = !state.busy || state.cancelRequested;
   els.approvePlan.disabled = state.busy || state.planning || !els.planText.value.trim();
 }
 

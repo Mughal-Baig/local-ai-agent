@@ -87,7 +87,7 @@ Open `http://127.0.0.1:4173`, build the semantic index, ask for a change, review
 
 - Chat UI with model picker and **true token streaming** (tokens stream from the backend as generated; models kept warm via keep-alive)
 - **In-app model management**: pull (with live progress), list, and remove local models without leaving the app
-- **Response cache** so repeated recipe runs return instantly, plus a prompt-budget guard that keeps long workspaces fast
+- **Response cache** so repeated recipe runs return instantly, plus prompt and step-budget guards that keep long workspaces fast
 - Starter prompts for summarize, plan, review, and save-note workflows
 - Local recipe picker backed by plain JSON workflow files
 - Keyword search and semantic local search across workspace files, sessions, and saved receipts
@@ -101,6 +101,7 @@ Open `http://127.0.0.1:4173`, build the semantic index, ask for a change, review
 - Native tool calling for Ollama `/api/chat` and OpenAI-compatible local backends, with per-model capability probing, multi-tool batches, schema validation, and repair for malformed arguments
 - Structured JSON output endpoint for Ollama schema `format` and OpenAI-compatible `response_format.json_schema`, plus typed extraction recipes with readable schema-error reasons
 - Planner approval flow: generate a structured plan, edit it, approve it, then run the agent with that plan in context
+- Run guardrails: choose a step budget, use a deep-run override deliberately, and stop an active run so the backend stream aborts
 - In-chat diff cards with explicit **Apply** buttons for proposed file changes
 - Diff Review center with pending-change apply/reject controls
 - Agent Trail receipts for tool calls, selected context, model status, and errors
@@ -307,6 +308,7 @@ Supported variables:
 - `OLLAMA_KEEP_ALIVE`: how long to keep the model warm between turns, default `5m` (cuts cold-start latency)
 - `AGENTTRAIL_CACHE`: set to `off` to disable the in-memory response cache (default on); `AGENTTRAIL_CACHE_TTL_MS` tunes the TTL
 - `AGENTTRAIL_MAX_PROMPT_CHARS`: prompt budget cap for assembled context, default `24000`
+- `AGENTTRAIL_DEFAULT_STEP_BUDGET`: default model/tool loop budget, default `3`
 - `WORKSPACE_ROOT`: folder the agent can access
 - `MAX_TOOL_ITERATIONS`: maximum tool loop steps per message
 
@@ -324,6 +326,7 @@ npm run test:unit
 npm run test:integration
 npm run test:backend
 npm run test:models
+npm run test:guardrails
 npm run test:ui
 npm run eval
 npm run release:checksums

@@ -916,7 +916,7 @@ select:hover, .search-input:hover { border-color: var(--line-strong); }
 /* ---------- Composer ---------- */
 .composer {
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  grid-template-columns: auto minmax(0, 1fr) auto auto auto auto;
   gap: 11px;
   padding: 18px 30px 24px;
   border-top: 1px solid var(--line);
@@ -986,6 +986,33 @@ textarea:focus, select:focus, input:focus, button:focus-visible {
 }
 
 .attach-button:hover { border-color: var(--clay); color: var(--clay-deep); }
+
+.step-budget-select {
+  min-height: 52px;
+  min-width: 112px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--panel-2);
+  color: var(--ink);
+  font-weight: 700;
+  padding: 0 12px;
+}
+
+.run-stop {
+  align-self: stretch;
+  width: 52px;
+  min-height: 52px;
+  border-color: #e7c9be;
+  color: #8d3d27;
+  background: var(--rose-soft);
+}
+
+.run-stop:disabled {
+  cursor: not-allowed;
+  opacity: 0.46;
+  color: var(--muted);
+  background: var(--panel-2);
+}
 
 #sendButton { background: var(--ink); color: var(--bg); transition: background 0.15s ease; }
 #sendButton:hover { background: var(--clay-deep); }
