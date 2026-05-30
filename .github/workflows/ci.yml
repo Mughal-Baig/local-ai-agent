@@ -16,11 +16,14 @@ jobs:
       - run: node --check server.js
       - run: node --check public/app.js
       - run: node --check src/model-adapters.js
+      - run: node --check src/tool-schemas.js
       - run: node --check scripts/smoke-test.js
       - run: node --check scripts/evaluate-agenttrail.js
       - run: node tests/unit/foundation.test.js
       - run: node tests/integration/api.test.js
       - run: node tests/integration/openai-backend.test.js
       - run: node tests/integration/model-management.test.js
+      - run: node tests/integration/native-tool-calling.test.js
+      - run: node tests/integration/ollama-native-tools.test.js
       - run: node scripts/smoke-test.js
       - run: node scripts/evaluate-agenttrail.js

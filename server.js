@@ -9,6 +9,7 @@ const packageMeta = require("./package.json");
 const { SCHEMA_VERSION, listSchemaSummaries, validateSchema, withSchema } = require("./src/schemas");
 const { permissionManifest, evaluateToolPermission } = require("./src/permissions");
 const { listModelAdapters, activeModelAdapter } = require("./src/model-adapters");
+const { listToolSchemas, toolDefinitionsForBackend, validateToolArguments, formatToolSchemaPrompt } = require("./src/tool-schemas");
 const { JsonLineStore } = require("./src/json-store");
 const { JobManager } = require("./src/jobs");
 const { runMigrations, migrationStatus } = require("./src/migrations");
@@ -33,6 +34,7 @@ const OLLAMA_HOST = trimTrailingSlash(process.env.OLLAMA_HOST || "http://127.0.0
 const DEFAULT_MODEL = process.env.OLLAMA_MODEL || "llama3.2";
 const OLLAMA_EMBED_MODEL = process.env.OLLAMA_EMBED_MODEL || "nomic-embed-text";
 const MAX_TOOL_ITERATIONS = Number(process.env.MAX_TOOL_ITERATIONS || 4);
+const NATIVE_TOOL_CALLS = String(process.env.AGENTTRAIL_NATIVE_TOOLS || "on").toLowerCase() !== "off";
 
 // Pluggable model backend: Ollama (native) or any OpenAI-compatible local server
 // (llama.cpp server, LM Studio, vLLM, Jan, ...). Select with AGENTTRAIL_MODEL_ADAPTER.
@@ -142,6 +144,10 @@ const server = http.createServer(async (req, res) => {
 
     if (url.pathname === "/api/permissions" && req.method === "GET") {
       return handlePermissions(res);
+    }
+
+    if (url.pathname === "/api/tools/schemas" && req.method === "GET") {
+      return handleToolSchemas(res);
     }
 
     if (url.pathname === "/api/store/stats" && req.method === "GET") {
@@ -577,6 +583,16 @@ async function handlePermissions(res) {
   sendJson(res, 200, {
     schema: "agenttrail.tool-permissions.v1",
     permissions: permissionManifest()
+  });
+}
+
+async function handleToolSchemas(res) {
+  sendJson(res, 200, {
+    schema: "agenttrail.tool-schemas.v1",
+    nativeToolCalling: NATIVE_TOOL_CALLS,
+    backend: ACTIVE_BACKEND.api,
+    tools: listToolSchemas(),
+    definitions: toolDefinitionsForBackend(BACKEND_IS_OPENAI ? "openai" : "ollama")
   });
 }
 
@@ -1534,13 +1550,15 @@ async function runAgent(body, res) {
     const prompt = await buildAgentPrompt(messages, selectedFiles, toolHistory, permissions, securityMode);
     const gate = createProseGate(res);
     const cacheKey = `${model}::${hashPrompt(prompt)}`;
+    const nativeTools = nativeToolDefinitions();
     let output = cacheGet(cacheKey);
     if (output !== null) {
       sendEvent(res, "status", { message: "Served from local cache" });
       gate.push(output);
     } else {
       output = await generateStream(model, prompt, {
-        temperature: typeof body.temperature === "number" ? body.temperature : 0.2
+        temperature: typeof body.temperature === "number" ? body.temperature : 0.2,
+        tools: nativeTools
       }, (chunk) => gate.push(chunk));
       cacheSet(cacheKey, output);
     }
@@ -1621,13 +1639,10 @@ async function buildAgentPrompt(messages, selectedFiles, toolHistory, permission
     "You are inspired by modern assistants, but you are not Claude, ChatGPT, or Gemini.",
     "You help with coding, writing, planning, and workspace files.",
     "",
-    "You may use tools by replying with exactly one JSON object and no extra text.",
-    "Tool call format:",
-    "{\"tool\":\"list_files\",\"arguments\":{}}",
-    "{\"tool\":\"search_workspace\",\"arguments\":{\"query\":\"search terms\",\"limit\":5}}",
-    "{\"tool\":\"read_file\",\"arguments\":{\"path\":\"relative/path.txt\"}}",
-    "{\"tool\":\"preview_write_file\",\"arguments\":{\"path\":\"relative/path.txt\",\"content\":\"complete file content\"}}",
-    "{\"tool\":\"write_file\",\"arguments\":{\"path\":\"relative/path.txt\",\"content\":\"complete file content\"}}",
+    "You may use tools through native tool calling when the model supports it.",
+    "If native tool calling is unavailable, fall back by replying with exactly one JSON object and no extra text.",
+    "Available tool schemas:",
+    formatToolSchemaPrompt(),
     "",
     "Tool rules:",
     "- Use paths relative to the workspace.",
@@ -1665,6 +1680,14 @@ async function buildAgentPrompt(messages, selectedFiles, toolHistory, permission
 
 async function executeToolCall(toolCall, permissions) {
   const args = toolCall.arguments || {};
+  const schemaCheck = validateToolArguments(toolCall.tool, args);
+  if (!schemaCheck.ok) {
+    await STORE.append("tool-invalid", { tool: toolCall.tool, errors: schemaCheck.errors });
+    return {
+      error: "Tool arguments failed schema validation.",
+      schemaErrors: schemaCheck.errors
+    };
+  }
   const decision = evaluateToolPermission(toolCall.tool, permissions, args);
   if (!decision.ok) {
     await STORE.append("tool-denied", { tool: toolCall.tool, reason: decision.reason, risk: decision.definition.risk });
@@ -1774,6 +1797,13 @@ function openaiHeaders() {
   return headers;
 }
 
+function nativeToolDefinitions() {
+  if (!NATIVE_TOOL_CALLS) {
+    return [];
+  }
+  return toolDefinitionsForBackend(BACKEND_IS_OPENAI ? "openai" : "ollama");
+}
+
 // Dispatches generation to the active backend (Ollama native, or OpenAI-compatible).
 async function generateCompletion(model, prompt, options) {
   if (BACKEND_IS_OPENAI) {
@@ -1852,6 +1882,17 @@ async function generateStream(model, prompt, options, onToken) {
 }
 
 async function generateOllamaStream(model, prompt, options, onToken) {
+  if (Array.isArray(options.tools) && options.tools.length) {
+    try {
+      return await generateOllamaChatStream(model, prompt, options, onToken);
+    } catch (error) {
+      if (!isNativeToolUnsupported(error)) {
+        throw error;
+      }
+      await LOGGER.log("warn", "native-tools.fallback", { backend: "ollama", model, message: error.message });
+    }
+  }
+
   let response;
   try {
     response = await fetch(`${OLLAMA_HOST}/api/generate`, {
@@ -1902,7 +1943,81 @@ async function generateOllamaStream(model, prompt, options, onToken) {
   return full;
 }
 
+async function generateOllamaChatStream(model, prompt, options, onToken) {
+  let response;
+  try {
+    response = await fetch(`${OLLAMA_HOST}/api/chat`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model,
+        messages: [{ role: "user", content: prompt }],
+        tools: options.tools,
+        stream: true,
+        keep_alive: OLLAMA_KEEP_ALIVE,
+        options: { temperature: options.temperature, num_ctx: 8192 }
+      }),
+      signal: AbortSignal.timeout(120000)
+    });
+  } catch (error) {
+    throw new Error(`Ollama is not reachable at ${OLLAMA_HOST}. ${error.message}`.trim());
+  }
+  if (!response.ok || !response.body) {
+    const details = await response.text().catch(() => "");
+    const error = new Error(`Ollama chat returned ${response.status}. ${details}`.trim());
+    error.status = response.status;
+    error.details = details;
+    throw error;
+  }
+
+  let full = "";
+  let raw = "";
+  const toolCalls = [];
+  const decoder = new TextDecoder();
+  let buffer = "";
+  for await (const chunk of response.body) {
+    const piece = decoder.decode(chunk, { stream: true });
+    raw += piece;
+    buffer += piece;
+    let nl;
+    while ((nl = buffer.indexOf("\n")) !== -1) {
+      const line = buffer.slice(0, nl).trim();
+      buffer = buffer.slice(nl + 1);
+      if (!line) continue;
+      let obj;
+      try { obj = JSON.parse(line); } catch { continue; }
+      const content = obj.message && obj.message.content;
+      if (typeof content === "string" && content) {
+        full += content;
+        onToken(content);
+      }
+      if (obj.message && Array.isArray(obj.message.tool_calls)) {
+        toolCalls.push(...obj.message.tool_calls);
+      }
+    }
+  }
+  if (!full && toolCalls.length) {
+    return nativeToolCallToPromptJson(toolCalls[0]);
+  }
+  if (!full) {
+    full = recoverNonStreamText(raw, "ollama");
+    if (full) onToken(full);
+  }
+  return full;
+}
+
 async function generateOpenAIStream(model, prompt, options, onToken) {
+  if (Array.isArray(options.tools) && options.tools.length) {
+    try {
+      return await generateOpenAIChatStream(model, prompt, options, onToken);
+    } catch (error) {
+      if (!isNativeToolUnsupported(error)) {
+        throw error;
+      }
+      await LOGGER.log("warn", "native-tools.fallback", { backend: "openai-compatible", model, message: error.message });
+    }
+  }
+
   let response;
   try {
     response = await fetch(openaiUrl("/chat/completions"), {
@@ -1956,6 +2071,73 @@ async function generateOpenAIStream(model, prompt, options, onToken) {
   return full;
 }
 
+async function generateOpenAIChatStream(model, prompt, options, onToken) {
+  let response;
+  try {
+    response = await fetch(openaiUrl("/chat/completions"), {
+      method: "POST",
+      headers: openaiHeaders(),
+      body: JSON.stringify({
+        model,
+        messages: [{ role: "user", content: prompt }],
+        tools: options.tools,
+        tool_choice: "auto",
+        temperature: options.temperature,
+        stream: true
+      }),
+      signal: AbortSignal.timeout(120000)
+    });
+  } catch (error) {
+    throw new Error(`${ACTIVE_BACKEND.title} is not reachable at ${BACKEND_HOST}. ${error.message}`.trim());
+  }
+  if (!response.ok || !response.body) {
+    const details = await response.text().catch(() => "");
+    const error = new Error(`${ACTIVE_BACKEND.title} returned ${response.status}. ${details}`.trim());
+    error.status = response.status;
+    error.details = details;
+    throw error;
+  }
+
+  let full = "";
+  let raw = "";
+  const toolCalls = new Map();
+  const decoder = new TextDecoder();
+  let buffer = "";
+  for await (const chunk of response.body) {
+    const piece = decoder.decode(chunk, { stream: true });
+    raw += piece;
+    buffer += piece;
+    let nl;
+    while ((nl = buffer.indexOf("\n")) !== -1) {
+      const line = buffer.slice(0, nl).trim();
+      buffer = buffer.slice(nl + 1);
+      if (!line.startsWith("data:")) continue;
+      const payload = line.slice(5).trim();
+      if (!payload || payload === "[DONE]") continue;
+      let obj;
+      try { obj = JSON.parse(payload); } catch { continue; }
+      const choice = obj.choices && obj.choices[0];
+      const delta = (choice && choice.delta) || {};
+      const content = delta.content || choice?.text || "";
+      if (content) {
+        full += content;
+        onToken(content);
+      }
+      if (Array.isArray(delta.tool_calls)) {
+        mergeOpenAIToolDeltas(toolCalls, delta.tool_calls);
+      }
+    }
+  }
+  if (!full && toolCalls.size) {
+    return nativeToolCallToPromptJson([...toolCalls.values()][0]);
+  }
+  if (!full) {
+    full = recoverNonStreamText(raw, "openai");
+    if (full) onToken(full);
+  }
+  return full;
+}
+
 // Fallback: some servers ignore stream:true and return one JSON body.
 function recoverNonStreamText(raw, kind) {
   const text = String(raw || "").trim();
@@ -1963,13 +2145,52 @@ function recoverNonStreamText(raw, kind) {
   try {
     const obj = JSON.parse(text);
     if (kind === "ollama") {
+      if (obj.message && Array.isArray(obj.message.tool_calls) && obj.message.tool_calls.length) {
+        return nativeToolCallToPromptJson(obj.message.tool_calls[0]);
+      }
       return String(obj.response || "");
     }
     const choice = obj.choices && obj.choices[0];
+    if (choice && choice.message && Array.isArray(choice.message.tool_calls) && choice.message.tool_calls.length) {
+      return nativeToolCallToPromptJson(choice.message.tool_calls[0]);
+    }
     return String((choice && ((choice.message && choice.message.content) || choice.text)) || "");
   } catch {
     return "";
   }
+}
+
+function mergeOpenAIToolDeltas(toolCalls, deltas) {
+  for (const delta of deltas) {
+    const index = Number.isInteger(delta.index) ? delta.index : toolCalls.size;
+    const entry = toolCalls.get(index) || { type: "function", function: { name: "", arguments: "" } };
+    if (delta.id) entry.id = delta.id;
+    if (delta.type) entry.type = delta.type;
+    if (delta.function) {
+      if (delta.function.name) entry.function.name += delta.function.name;
+      if (delta.function.arguments) entry.function.arguments += delta.function.arguments;
+    }
+    toolCalls.set(index, entry);
+  }
+}
+
+function nativeToolCallToPromptJson(call) {
+  const fn = call && (call.function || call);
+  const name = fn && (fn.name || fn.function_name);
+  let args = (fn && fn.arguments) || {};
+  if (typeof args === "string") {
+    try {
+      args = JSON.parse(args || "{}");
+    } catch {
+      args = {};
+    }
+  }
+  return JSON.stringify({ tool: String(name || ""), arguments: args && typeof args === "object" ? args : {} });
+}
+
+function isNativeToolUnsupported(error) {
+  const text = `${error && error.message ? error.message : ""} ${error && error.details ? error.details : ""}`;
+  return [400, 404, 422].includes(error && error.status) && /tool|function|schema|unknown|unsupported|invalid/i.test(text);
 }
 
 // Gates streamed tokens: suppresses tool-call JSON, forwards prose live.

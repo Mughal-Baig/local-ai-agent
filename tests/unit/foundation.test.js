@@ -7,6 +7,7 @@ const path = require("node:path");
 const { listSchemaSummaries, validateSchema, withSchema } = require("../../src/schemas");
 const { evaluateToolPermission } = require("../../src/permissions");
 const { listModelAdapters } = require("../../src/model-adapters");
+const { listToolSchemas, toolDefinitionsForBackend, validateToolArguments } = require("../../src/tool-schemas");
 const { JsonLineStore } = require("../../src/json-store");
 const { runMigrations, migrationStatus } = require("../../src/migrations");
 const { loadPlugins } = require("../../src/plugin-loader");
@@ -45,6 +46,11 @@ async function main() {
   assert.equal(friendlyError(new Error("Path escapes the workspace")).code, "WORKSPACE_BOUNDARY");
   assert.equal(routeCatalog().some((route) => route.area === "search"), true);
   assert.equal(routeCatalog().some((route) => route.area === "attachments"), true);
+  assert.equal(routeCatalog().some((route) => route.routes.includes("/api/tools/schemas")), true);
+  assert.equal(listToolSchemas().some((tool) => tool.name === "search_workspace"), true);
+  assert.equal(toolDefinitionsForBackend("openai").some((tool) => tool.function.name === "read_file"), true);
+  assert.equal(validateToolArguments("read_file", { path: "welcome.md" }).ok, true);
+  assert.equal(validateToolArguments("read_file", {}).ok, false);
 
   const tempRoot = await fsp.mkdtemp(path.join(os.tmpdir(), "agenttrail-foundation-"));
   try {

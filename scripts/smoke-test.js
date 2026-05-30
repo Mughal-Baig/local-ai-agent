@@ -71,6 +71,10 @@ async function main() {
     const permissions = await fetchJson(`http://127.0.0.1:${port}/api/permissions`);
     assert.equal(permissions.permissions.some((item) => item.tool === "write_file"), true);
 
+    const toolSchemas = await fetchJson(`http://127.0.0.1:${port}/api/tools/schemas`);
+    assert.equal(toolSchemas.tools.some((item) => item.name === "read_file"), true);
+    assert.equal(toolSchemas.definitions.some((item) => item.function.name === "search_workspace"), true);
+
     const plugins = await fetchJson(`http://127.0.0.1:${port}/api/plugins`);
     assert.equal(plugins.plugins.some((plugin) => plugin.id === "example-tool"), true);
 

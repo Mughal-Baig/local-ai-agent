@@ -33,6 +33,7 @@ async function main() {
       "/api/config",
       "/api/schemas",
       "/api/permissions",
+      "/api/tools/schemas",
       "/api/sqlite/status",
       "/api/watch/status",
       "/api/plugins",

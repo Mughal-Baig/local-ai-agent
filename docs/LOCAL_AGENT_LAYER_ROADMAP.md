@@ -32,19 +32,19 @@ A long-horizon backlog (12+ months) for making AgentTrail the auditable agent la
 ## Phase 1 — Agent reliability & tool-calling (the wedge, hardened)
 
 ### Epic A — Native tool calling
-- [ ] T017 Add native tool-calling via Ollama `/api/chat` `tools` field
-- [ ] T018 Add OpenAI `tools`/function-calling for OpenAI-compatible backends
-- [ ] T019 Tool schema registry (JSON Schema per tool)
-- [ ] T020 Fall back to prompt-JSON parsing when a model lacks tool support
+- [x] T017 Add native tool-calling via Ollama `/api/chat` `tools` field
+- [x] T018 Add OpenAI `tools`/function-calling for OpenAI-compatible backends
+- [x] T019 Tool schema registry (JSON Schema per tool)
+- [x] T020 Fall back to prompt-JSON parsing when a model lacks tool support
 - [ ] T021 Capability probe: detect per-model tool-calling support, cache result
 - [ ] T022 Multi-tool calls in a single step (parallel tool requests)
 - [ ] T023 Tool-call retry with repair on malformed arguments
-- [ ] T024 Unit + integration tests for native tool calling (mock backends)
+- [x] T024 Unit + integration tests for native tool calling (mock backends)
 
 ### Epic B — Structured outputs
 - [ ] T025 Pass JSON-schema `format` to Ollama for constrained output
 - [ ] T026 OpenAI `response_format` json_schema support
-- [ ] T027 Schema-validate every tool argument before execution
+- [x] T027 Schema-validate every tool argument before execution
 - [ ] T028 Typed extraction recipes (e.g., "extract table → JSON")
 - [ ] T029 Graceful schema-violation handling + user-visible reason
 - [ ] T030 Tests for structured-output round-trips
