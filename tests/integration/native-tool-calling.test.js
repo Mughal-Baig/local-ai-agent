@@ -61,10 +61,13 @@ function startMockOpenAI(port, state) {
     if (req.method === "POST" && req.url.startsWith("/v1/chat/completions")) {
       const body = await readBody(req);
       const parsed = JSON.parse(body || "{}");
-      state.requests += 1;
       state.sawNativeTools = state.sawNativeTools || Array.isArray(parsed.tools) && parsed.tools.some((tool) => tool.function && tool.function.name === "read_file");
       res.writeHead(200, { "Content-Type": "text/event-stream" });
-      if (state.requests === 1) {
+      const isProbe = JSON.stringify(parsed.messages || []).includes("Capability probe");
+      if (isProbe) {
+        res.write(`data: ${JSON.stringify({ choices: [{ delta: { content: "OK" } }] })}\n\n`);
+      } else if (state.requests === 0) {
+        state.requests += 1;
         const args = JSON.stringify({ path: "notes/tool.md" });
         const toolCall = {
           choices: [{
@@ -80,6 +83,7 @@ function startMockOpenAI(port, state) {
         };
         res.write(`data: ${JSON.stringify(toolCall)}\n\n`);
       } else {
+        state.requests += 1;
         for (const token of ["I read the file", " with native tools."]) {
           res.write(`data: ${JSON.stringify({ choices: [{ delta: { content: token } }] })}\n\n`);
         }

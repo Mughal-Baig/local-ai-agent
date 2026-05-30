@@ -7,7 +7,7 @@ const path = require("node:path");
 const { listSchemaSummaries, validateSchema, withSchema } = require("../../src/schemas");
 const { evaluateToolPermission } = require("../../src/permissions");
 const { listModelAdapters } = require("../../src/model-adapters");
-const { listToolSchemas, toolDefinitionsForBackend, validateToolArguments } = require("../../src/tool-schemas");
+const { listToolSchemas, toolDefinitionsForBackend, validateToolArguments, repairToolArguments } = require("../../src/tool-schemas");
 const { JsonLineStore } = require("../../src/json-store");
 const { runMigrations, migrationStatus } = require("../../src/migrations");
 const { loadPlugins } = require("../../src/plugin-loader");
@@ -51,6 +51,8 @@ async function main() {
   assert.equal(toolDefinitionsForBackend("openai").some((tool) => tool.function.name === "read_file"), true);
   assert.equal(validateToolArguments("read_file", { path: "welcome.md" }).ok, true);
   assert.equal(validateToolArguments("read_file", {}).ok, false);
+  assert.deepEqual(repairToolArguments("read_file", { file: "welcome.md" }), { path: "welcome.md" });
+  assert.deepEqual(repairToolArguments("search_workspace", { q: "receipt", limit: "3" }), { query: "receipt", limit: 3 });
 
   const tempRoot = await fsp.mkdtemp(path.join(os.tmpdir(), "agenttrail-foundation-"));
   try {

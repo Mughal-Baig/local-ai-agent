@@ -116,6 +116,46 @@ function validateToolArguments(toolName, args = {}) {
   return validateObject(args && typeof args === "object" ? args : {}, schema.parameters, toolName);
 }
 
+function repairToolArguments(toolName, args = {}) {
+  const repaired = { ...(args && typeof args === "object" && !Array.isArray(args) ? args : {}) };
+
+  if (toolName === "search_workspace") {
+    if (repaired.query === undefined) {
+      repaired.query = firstDefined(repaired.q, repaired.term, repaired.terms, repaired.search, repaired.text);
+    }
+    if (typeof repaired.query !== "string" && repaired.query !== undefined) {
+      repaired.query = String(repaired.query);
+    }
+    if (repaired.limit !== undefined) {
+      const limit = Number(repaired.limit);
+      if (Number.isFinite(limit)) {
+        repaired.limit = Math.max(1, Math.min(20, limit));
+      }
+    }
+    return keepAllowed(toolName, repaired);
+  }
+
+  if (["read_file", "preview_write_file", "write_file"].includes(toolName)) {
+    if (repaired.path === undefined) {
+      repaired.path = firstDefined(repaired.file, repaired.filename, repaired.filePath, repaired.relativePath, repaired.name);
+    }
+    if (typeof repaired.path !== "string" && repaired.path !== undefined) {
+      repaired.path = String(repaired.path);
+    }
+  }
+
+  if (["preview_write_file", "write_file"].includes(toolName)) {
+    if (repaired.content === undefined) {
+      repaired.content = firstDefined(repaired.text, repaired.body, repaired.value, repaired.contents, repaired.newContent);
+    }
+    if (typeof repaired.content !== "string" && repaired.content !== undefined) {
+      repaired.content = String(repaired.content);
+    }
+  }
+
+  return keepAllowed(toolName, repaired);
+}
+
 function formatToolSchemaPrompt() {
   return TOOL_SCHEMAS.map((schema) => {
     const example = exampleArguments(schema);
@@ -133,6 +173,25 @@ function exampleArguments(schema) {
     return { path: "relative/path.txt", content: "complete file content" };
   }
   return {};
+}
+
+function firstDefined(...values) {
+  return values.find((value) => value !== undefined && value !== null && value !== "");
+}
+
+function keepAllowed(toolName, args) {
+  const schema = TOOL_SCHEMAS.find((item) => item.name === toolName);
+  if (!schema || !schema.parameters || !schema.parameters.properties) {
+    return args;
+  }
+  const allowed = new Set(Object.keys(schema.parameters.properties));
+  const cleaned = {};
+  for (const [key, value] of Object.entries(args)) {
+    if (allowed.has(key)) {
+      cleaned[key] = value;
+    }
+  }
+  return cleaned;
 }
 
 function validateObject(value, schema, label) {
@@ -192,5 +251,6 @@ module.exports = {
   listToolSchemas,
   toolDefinitionsForBackend,
   validateToolArguments,
+  repairToolArguments,
   formatToolSchemaPrompt
 };

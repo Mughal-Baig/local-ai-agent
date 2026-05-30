@@ -8,8 +8,8 @@ const os = require("node:os");
 const path = require("node:path");
 
 const projectRoot = path.resolve(__dirname, "..", "..");
-const agentPort = 5400 + Math.floor(Math.random() * 200);
-const mockPort = 5600 + Math.floor(Math.random() * 200);
+const agentPort = 6000 + Math.floor(Math.random() * 200);
+const mockPort = 6200 + Math.floor(Math.random() * 200);
 
 main().catch((error) => {
   console.error(error);
@@ -17,10 +17,11 @@ main().catch((error) => {
 });
 
 async function main() {
-  const state = { requests: 0, sawNativeTools: false };
-  const mock = startMockOllama(mockPort, state);
-  const workspaceRoot = await fsp.mkdtemp(path.join(os.tmpdir(), "agenttrail-ollama-tools-"));
-  await fsp.writeFile(path.join(workspaceRoot, "welcome.md"), "hello from ollama tools\n", "utf8");
+  const state = { turns: 0 };
+  const mock = startMockOpenAI(mockPort, state);
+  const workspaceRoot = await fsp.mkdtemp(path.join(os.tmpdir(), "agenttrail-tool-repair-"));
+  await fsp.mkdir(path.join(workspaceRoot, "notes"), { recursive: true });
+  await fsp.writeFile(path.join(workspaceRoot, "notes", "repair.md"), "repairable argument aliases\n", "utf8");
 
   const child = spawn(process.execPath, ["server.js"], {
     cwd: projectRoot,
@@ -28,7 +29,8 @@ async function main() {
       ...process.env,
       PORT: String(agentPort),
       WORKSPACE_ROOT: workspaceRoot,
-      OLLAMA_HOST: `http://127.0.0.1:${mockPort}`,
+      AGENTTRAIL_MODEL_ADAPTER: "openai-compatible",
+      OPENAI_COMPATIBLE_HOST: `http://127.0.0.1:${mockPort}`,
       AGENTTRAIL_CACHE: "off"
     },
     stdio: ["ignore", "pipe", "pipe"]
@@ -40,10 +42,12 @@ async function main() {
   try {
     await waitForServer(agentPort, () => output);
     const result = await streamChat(agentPort);
-    assert.equal(state.sawNativeTools, true, "Ollama chat request should include tools");
-    assert.equal(result.tools.some((event) => event.name === "read_file"), true, "Ollama native tool call should execute read_file");
-    assert.match(result.text, /Ollama native tool call finished/, "final answer should stream after tool result");
-    console.log("Ollama native tool-calling test passed");
+    const readEvent = result.tools.find((event) => event.name === "read_file");
+    assert.ok(readEvent, "repairable read_file call should execute");
+    assert.equal(readEvent.repaired, true, "event should disclose that arguments were repaired");
+    assert.equal(readEvent.arguments.path, "notes/repair.md", "file alias should repair into path");
+    assert.match(result.text, /repair completed/i);
+    console.log("Tool repair integration test passed");
   } finally {
     child.kill("SIGTERM");
     mock.close();
@@ -51,40 +55,39 @@ async function main() {
   }
 }
 
-function startMockOllama(port, state) {
+function startMockOpenAI(port, state) {
   const server = http.createServer(async (req, res) => {
-    if (req.method === "GET" && req.url.startsWith("/api/tags")) {
-      return json(res, { models: [{ name: "mock-ollama", size: 1, modified_at: new Date().toISOString() }] });
+    if (req.method === "GET" && req.url.startsWith("/v1/models")) {
+      return json(res, { object: "list", data: [{ id: "mock-model", object: "model" }] });
     }
-    if (req.method === "POST" && req.url.startsWith("/api/chat")) {
+    if (req.method === "POST" && req.url.startsWith("/v1/chat/completions")) {
       const body = JSON.parse(await readBody(req) || "{}");
-      state.sawNativeTools = state.sawNativeTools || Array.isArray(body.tools) && body.tools.some((tool) => tool.function && tool.function.name === "read_file");
-      res.writeHead(200, { "Content-Type": "application/x-ndjson" });
       const isProbe = JSON.stringify(body.messages || []).includes("Capability probe");
+      res.writeHead(200, { "Content-Type": "text/event-stream" });
       if (isProbe) {
-        res.write(`${JSON.stringify({ message: { role: "assistant", content: "OK" }, done: true })}\n`);
-      } else if (state.requests === 0) {
-        state.requests += 1;
-        res.write(`${JSON.stringify({
-          message: {
-            role: "assistant",
-            content: "",
-            tool_calls: [{ function: { name: "read_file", arguments: { path: "welcome.md" } } }]
-          },
-          done: true
-        })}\n`);
+        res.write(`data: ${JSON.stringify({ choices: [{ delta: { content: "OK" } }] })}\n\n`);
+      } else if (state.turns === 0) {
+        state.turns += 1;
+        res.write(`data: ${JSON.stringify({
+          choices: [{
+            delta: {
+              tool_calls: [{
+                index: 0,
+                id: "call_repair",
+                type: "function",
+                function: {
+                  name: "read_file",
+                  arguments: JSON.stringify({ file: "notes/repair.md" })
+                }
+              }]
+            }
+          }]
+        })}\n\n`);
       } else {
-        state.requests += 1;
-        for (const token of ["Ollama native ", "tool call finished."]) {
-          res.write(`${JSON.stringify({ message: { role: "assistant", content: token }, done: false })}\n`);
-        }
-        res.write(`${JSON.stringify({ message: { role: "assistant", content: "" }, done: true })}\n`);
+        state.turns += 1;
+        res.write(`data: ${JSON.stringify({ choices: [{ delta: { content: "repair completed" } }] })}\n\n`);
       }
-      return res.end();
-    }
-    if (req.method === "POST" && req.url.startsWith("/api/generate")) {
-      res.writeHead(200, { "Content-Type": "application/x-ndjson" });
-      res.write(`${JSON.stringify({ response: "fallback", done: true })}\n`);
+      res.write("data: [DONE]\n\n");
       return res.end();
     }
     json(res, { error: "not found" }, 404);
@@ -112,8 +115,8 @@ async function streamChat(port) {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
-      model: "mock-ollama",
-      messages: [{ role: "user", content: "Read welcome.md" }],
+      model: "mock-model",
+      messages: [{ role: "user", content: "Read notes/repair.md" }],
       selectedFiles: [],
       permissions: { readFiles: true },
       securityMode: false

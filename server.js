@@ -9,7 +9,7 @@ const packageMeta = require("./package.json");
 const { SCHEMA_VERSION, listSchemaSummaries, validateSchema, withSchema } = require("./src/schemas");
 const { permissionManifest, evaluateToolPermission } = require("./src/permissions");
 const { listModelAdapters, activeModelAdapter } = require("./src/model-adapters");
-const { listToolSchemas, toolDefinitionsForBackend, validateToolArguments, formatToolSchemaPrompt } = require("./src/tool-schemas");
+const { listToolSchemas, toolDefinitionsForBackend, validateToolArguments, repairToolArguments, formatToolSchemaPrompt } = require("./src/tool-schemas");
 const { JsonLineStore } = require("./src/json-store");
 const { JobManager } = require("./src/jobs");
 const { runMigrations, migrationStatus } = require("./src/migrations");
@@ -35,6 +35,7 @@ const DEFAULT_MODEL = process.env.OLLAMA_MODEL || "llama3.2";
 const OLLAMA_EMBED_MODEL = process.env.OLLAMA_EMBED_MODEL || "nomic-embed-text";
 const MAX_TOOL_ITERATIONS = Number(process.env.MAX_TOOL_ITERATIONS || 4);
 const NATIVE_TOOL_CALLS = String(process.env.AGENTTRAIL_NATIVE_TOOLS || "on").toLowerCase() !== "off";
+const TOOL_CAPABILITY_TTL_MS = Number(process.env.AGENTTRAIL_TOOL_CAPABILITY_TTL_MS || 10 * 60 * 1000);
 
 // Pluggable model backend: Ollama (native) or any OpenAI-compatible local server
 // (llama.cpp server, LM Studio, vLLM, Jan, ...). Select with AGENTTRAIL_MODEL_ADAPTER.
@@ -49,6 +50,7 @@ const CACHE_ENABLED = String(process.env.AGENTTRAIL_CACHE || "on").toLowerCase()
 const CACHE_TTL_MS = Number(process.env.AGENTTRAIL_CACHE_TTL_MS || 300000);
 const CACHE_MAX_ENTRIES = 200;
 const RESPONSE_CACHE = new Map();
+const TOOL_CAPABILITY_CACHE = new Map();
 // Prompt budget: cap assembled context so long workspaces stay fast and never overflow.
 const MAX_PROMPT_CHARS = Number(process.env.AGENTTRAIL_MAX_PROMPT_CHARS || 24000);
 const PROJECT_ROOT = __dirname;
@@ -148,6 +150,10 @@ const server = http.createServer(async (req, res) => {
 
     if (url.pathname === "/api/tools/schemas" && req.method === "GET") {
       return handleToolSchemas(res);
+    }
+
+    if (url.pathname === "/api/tools/capability" && req.method === "GET") {
+      return handleToolCapability(url, res);
     }
 
     if (url.pathname === "/api/store/stats" && req.method === "GET") {
@@ -594,6 +600,13 @@ async function handleToolSchemas(res) {
     tools: listToolSchemas(),
     definitions: toolDefinitionsForBackend(BACKEND_IS_OPENAI ? "openai" : "ollama")
   });
+}
+
+async function handleToolCapability(url, res) {
+  const model = String(url.searchParams.get("model") || DEFAULT_MODEL).trim() || DEFAULT_MODEL;
+  const refresh = url.searchParams.get("refresh") === "1";
+  const capability = await probeNativeToolSupport(model, { refresh });
+  sendJson(res, 200, capability);
 }
 
 async function handleStoreStats(res) {
@@ -1550,7 +1563,15 @@ async function runAgent(body, res) {
     const prompt = await buildAgentPrompt(messages, selectedFiles, toolHistory, permissions, securityMode);
     const gate = createProseGate(res);
     const cacheKey = `${model}::${hashPrompt(prompt)}`;
-    const nativeTools = nativeToolDefinitions();
+    const nativeCapability = await probeNativeToolSupport(model);
+    const nativeTools = nativeToolDefinitions(nativeCapability);
+    if (step === 0) {
+      sendEvent(res, "status", {
+        message: nativeCapability.supported
+          ? "Native tool calling available"
+          : "Using JSON tool-call fallback"
+      });
+    }
     let output = cacheGet(cacheKey);
     if (output !== null) {
       sendEvent(res, "status", { message: "Served from local cache" });
@@ -1679,14 +1700,25 @@ async function buildAgentPrompt(messages, selectedFiles, toolHistory, permission
 }
 
 async function executeToolCall(toolCall, permissions) {
-  const args = toolCall.arguments || {};
+  let args = toolCall.arguments || {};
+  let repaired = false;
   const schemaCheck = validateToolArguments(toolCall.tool, args);
   if (!schemaCheck.ok) {
-    await STORE.append("tool-invalid", { tool: toolCall.tool, errors: schemaCheck.errors });
-    return {
-      error: "Tool arguments failed schema validation.",
-      schemaErrors: schemaCheck.errors
-    };
+    const repairedArgs = repairToolArguments(toolCall.tool, args);
+    const repairedCheck = validateToolArguments(toolCall.tool, repairedArgs);
+    if (!repairedCheck.ok) {
+      await STORE.append("tool-invalid", { tool: toolCall.tool, errors: schemaCheck.errors, repairedErrors: repairedCheck.errors });
+      return {
+        error: "Tool arguments failed schema validation. Retry with corrected arguments that match the tool schema.",
+        schemaErrors: schemaCheck.errors,
+        repairedErrors: repairedCheck.errors,
+        expectedSchema: listToolSchemas().find((tool) => tool.name === toolCall.tool) || null
+      };
+    }
+    args = repairedArgs;
+    toolCall.arguments = repairedArgs;
+    repaired = true;
+    await STORE.append("tool-repaired", { tool: toolCall.tool, originalErrors: schemaCheck.errors, arguments: repairedArgs });
   }
   const decision = evaluateToolPermission(toolCall.tool, permissions, args);
   if (!decision.ok) {
@@ -1695,7 +1727,7 @@ async function executeToolCall(toolCall, permissions) {
   }
 
   if (toolCall.tool === "list_files") {
-    const result = { files: await listWorkspaceFiles(), permission: decision.definition };
+    const result = { files: await listWorkspaceFiles(), repaired, permission: decision.definition };
     await STORE.append("tool", { tool: toolCall.tool, result: "list_files", risk: decision.definition.risk });
     return result;
   }
@@ -1703,6 +1735,7 @@ async function executeToolCall(toolCall, permissions) {
   if (toolCall.tool === "search_workspace") {
     const result = {
       results: await searchWorkspace(String(args.query || ""), Number(args.limit || 5)),
+      repaired,
       permission: decision.definition
     };
     await STORE.append("tool", { tool: toolCall.tool, query: String(args.query || ""), risk: decision.definition.risk });
@@ -1712,13 +1745,13 @@ async function executeToolCall(toolCall, permissions) {
   if (toolCall.tool === "read_file") {
     const result = await readWorkspaceFile(String(args.path || ""), MAX_FILE_BYTES);
     await STORE.append("tool", { tool: toolCall.tool, path: result.path, risk: decision.definition.risk });
-    return { ...result, permission: decision.definition };
+    return { ...result, repaired, permission: decision.definition };
   }
 
   if (toolCall.tool === "preview_write_file") {
     const result = await previewWorkspaceFile(String(args.path || ""), String(args.content || ""));
     await STORE.append("tool", { tool: toolCall.tool, path: result.path, risk: decision.definition.risk });
-    return { ...result, permission: decision.definition };
+    return { ...result, repaired, permission: decision.definition };
   }
 
   if (toolCall.tool === "write_file") {
@@ -1727,11 +1760,11 @@ async function executeToolCall(toolCall, permissions) {
         blockedWrite: true
       });
       await STORE.append("tool", { tool: toolCall.tool, path: result.path, convertedToPreview: true, risk: decision.definition.risk });
-      return { ...result, permission: decision.definition };
+      return { ...result, repaired, permission: decision.definition };
     }
     const result = await writeWorkspaceFile(String(args.path || ""), String(args.content || ""));
     await STORE.append("tool", { tool: toolCall.tool, path: result.path, risk: decision.definition.risk });
-    return { ...result, permission: decision.definition };
+    return { ...result, repaired, permission: decision.definition };
   }
 
   return { error: `Unknown tool: ${toolCall.tool}` };
@@ -1797,11 +1830,96 @@ function openaiHeaders() {
   return headers;
 }
 
-function nativeToolDefinitions() {
-  if (!NATIVE_TOOL_CALLS) {
+function nativeToolDefinitions(capability = { supported: true }) {
+  if (!NATIVE_TOOL_CALLS || capability.supported !== true) {
     return [];
   }
   return toolDefinitionsForBackend(BACKEND_IS_OPENAI ? "openai" : "ollama");
+}
+
+async function probeNativeToolSupport(model, options = {}) {
+  const key = `${ACTIVE_BACKEND.api}:${BACKEND_HOST}:${model}`;
+  const cached = TOOL_CAPABILITY_CACHE.get(key);
+  if (!options.refresh && cached && Date.now() - cached.checkedAt < TOOL_CAPABILITY_TTL_MS) {
+    return { ...cached, cached: true };
+  }
+
+  if (!NATIVE_TOOL_CALLS) {
+    const disabled = capabilityResult(model, false, "Native tool calling disabled by AGENTTRAIL_NATIVE_TOOLS.", "disabled");
+    TOOL_CAPABILITY_CACHE.set(key, disabled);
+    return disabled;
+  }
+
+  try {
+    const result = BACKEND_IS_OPENAI
+      ? await probeOpenAIToolSupport(model)
+      : await probeOllamaToolSupport(model);
+    TOOL_CAPABILITY_CACHE.set(key, result);
+    await STORE.append("tool-capability", { model, backend: ACTIVE_BACKEND.api, supported: result.supported, reason: result.reason });
+    return result;
+  } catch (error) {
+    const result = capabilityResult(model, false, error.message || "Native tool probe failed.", "probe-error");
+    TOOL_CAPABILITY_CACHE.set(key, result);
+    await STORE.append("tool-capability", { model, backend: ACTIVE_BACKEND.api, supported: false, reason: result.reason });
+    return result;
+  }
+}
+
+async function probeOpenAIToolSupport(model) {
+  const response = await fetch(openaiUrl("/chat/completions"), {
+    method: "POST",
+    headers: openaiHeaders(),
+    body: JSON.stringify({
+      model,
+      messages: [{ role: "user", content: "Capability probe. Reply OK." }],
+      tools: [toolDefinitionsForBackend("openai")[0]],
+      tool_choice: "auto",
+      temperature: 0,
+      stream: false
+    }),
+    signal: AbortSignal.timeout(8000)
+  });
+  if (!response.ok) {
+    const details = await response.text().catch(() => "");
+    return capabilityResult(model, false, `${ACTIVE_BACKEND.title} rejected tools with HTTP ${response.status}. ${details}`.trim(), "rejected");
+  }
+  return capabilityResult(model, true, `${ACTIVE_BACKEND.title} accepted OpenAI-compatible tool definitions.`, "accepted");
+}
+
+async function probeOllamaToolSupport(model) {
+  const response = await fetch(`${OLLAMA_HOST}/api/chat`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      model,
+      messages: [{ role: "user", content: "Capability probe. Reply OK." }],
+      tools: [toolDefinitionsForBackend("ollama")[0]],
+      stream: false,
+      keep_alive: OLLAMA_KEEP_ALIVE,
+      options: { temperature: 0 }
+    }),
+    signal: AbortSignal.timeout(8000)
+  });
+  if (!response.ok) {
+    const details = await response.text().catch(() => "");
+    return capabilityResult(model, false, `Ollama rejected tools with HTTP ${response.status}. ${details}`.trim(), "rejected");
+  }
+  return capabilityResult(model, true, "Ollama accepted native tool definitions.", "accepted");
+}
+
+function capabilityResult(model, supported, reason, mode) {
+  return {
+    schema: "agenttrail.tool-capability.v1",
+    model,
+    backend: ACTIVE_BACKEND.id,
+    api: ACTIVE_BACKEND.api,
+    supported,
+    mode,
+    reason,
+    checkedAt: Date.now(),
+    ttlMs: TOOL_CAPABILITY_TTL_MS,
+    cached: false
+  };
 }
 
 // Dispatches generation to the active backend (Ollama native, or OpenAI-compatible).
@@ -3069,6 +3187,10 @@ function formatToolEvent(toolCall, result) {
 
   if (result && Array.isArray(result.results)) {
     payload.results = result.results.slice(0, 5);
+  }
+
+  if (result && result.repaired) {
+    payload.repaired = true;
   }
 
   return payload;

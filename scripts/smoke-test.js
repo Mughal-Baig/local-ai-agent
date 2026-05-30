@@ -75,6 +75,10 @@ async function main() {
     assert.equal(toolSchemas.tools.some((item) => item.name === "read_file"), true);
     assert.equal(toolSchemas.definitions.some((item) => item.function.name === "search_workspace"), true);
 
+    const toolCapability = await fetchJson(`http://127.0.0.1:${port}/api/tools/capability?model=llama3.2`);
+    assert.equal(toolCapability.schema, "agenttrail.tool-capability.v1");
+    assert.equal(toolCapability.supported, false);
+
     const plugins = await fetchJson(`http://127.0.0.1:${port}/api/plugins`);
     assert.equal(plugins.plugins.some((plugin) => plugin.id === "example-tool"), true);
 

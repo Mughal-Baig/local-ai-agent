@@ -36,9 +36,9 @@ A long-horizon backlog (12+ months) for making AgentTrail the auditable agent la
 - [x] T018 Add OpenAI `tools`/function-calling for OpenAI-compatible backends
 - [x] T019 Tool schema registry (JSON Schema per tool)
 - [x] T020 Fall back to prompt-JSON parsing when a model lacks tool support
-- [ ] T021 Capability probe: detect per-model tool-calling support, cache result
+- [x] T021 Capability probe: detect per-model tool-calling support, cache result
 - [ ] T022 Multi-tool calls in a single step (parallel tool requests)
-- [ ] T023 Tool-call retry with repair on malformed arguments
+- [x] T023 Tool-call retry with repair on malformed arguments
 - [x] T024 Unit + integration tests for native tool calling (mock backends)
 
 ### Epic B — Structured outputs

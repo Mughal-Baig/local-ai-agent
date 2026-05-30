@@ -22,6 +22,7 @@ async function main() {
   checks.push(await check("Permission engine exists", async () => includes("src/permissions.js", ["TOOL_PERMISSIONS", "evaluateToolPermission"])));
   checks.push(await check("Model adapter layer exists", async () => includes("src/model-adapters.js", ["lmstudio", "openai-compatible"])));
   checks.push(await check("Tool schema registry exists", async () => includes("src/tool-schemas.js", ["read_file", "validateToolArguments", "toolDefinitionsForBackend"])));
+  checks.push(await check("Tool capability probe exists", async () => includes("server.js", ["/api/tools/capability", "probeNativeToolSupport", "TOOL_CAPABILITY_CACHE"])));
   checks.push(await check("Migration system exists", async () => includes("src/migrations.js", ["MIGRATIONS", "runMigrations"])));
   checks.push(await check("Plugin architecture exists", async () => includes("plugins/example-tool/plugin.json", ["agenttrail.plugin.v1", "permissions"])));
   checks.push(await check("Backup endpoint exists", async () => includes("server.js", ["/api/backup/export", "exportBackup"])));
@@ -60,6 +61,7 @@ async function main() {
   checks.push(await check("Attachment UI exists", async () => includes("public/index.html", ["attachmentInput", "attachFiles", "Attach"])));
   checks.push(await check("macOS app bundle generator exists", async () => includes("scripts/package-mac-app.js", ["AgentTrail.app", "Info.plist", "MacOS"])));
   checks.push(await check("Native tool-calling tests exist", async () => includes("tests/integration/native-tool-calling.test.js", ["tool_calls", "read_file"])));
+  checks.push(await check("Tool repair tests exist", async () => includes("tests/integration/tool-repair.test.js", ["repaired", "read_file"])));
 
   const passed = checks.filter((item) => item.ok).length;
   const score = Math.round((passed / checks.length) * 100);
