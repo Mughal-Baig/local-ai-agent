@@ -1,10 +1,10 @@
-# AgentTrail — The "Out-Compete Ollama on Every Front" Roadmap
+# AgentTrail — Local Agent Layer Roadmap
 
-A long-horizon backlog (12+ months). The honest framing first, then the whole battlefield broken into phases → epics → concrete, checkable tasks. Tasks are numbered sequentially (`T001…`) so progress is trackable. `[x]` = already shipped, `[ ]` = open, `[~]` = partial.
+A long-horizon backlog (12+ months) for making AgentTrail the auditable agent layer for Ollama and other local model runtimes. The honest framing first, then the product surface broken into phases → epics → concrete, checkable tasks. Tasks are numbered sequentially (`T001…`) so progress is trackable. `[x]` = already shipped, `[ ]` = open, `[~]` = partial.
 
-> **Reality check (read this).** Ollama *is* a model runtime (llama.cpp + GPU backends + a model registry). To truly match it we must eventually ship our own bundled inference engine — that is the hard, multi-quarter core (Phase 6). Until then AgentTrail wins on the **agent layer** Ollama leaves bare. This roadmap covers both: the winnable agent fronts first, the runtime moonshot later. We complete it in order, a few tasks at a time.
+> **Reality check (read this).** Ollama *is* a model runtime (llama.cpp + GPU backends + a model registry). AgentTrail should not market itself as an Ollama replacement today. The public wedge is stronger and more honest: AgentTrail is the **auditable agent layer** for local models, with receipts, diff-gated writes, replay, tools, memory, search, and security. The bundled runtime work remains a later moonshot (Phase 6). We complete the agent-layer work first, a few tasks at a time.
 
-**Scope:** ~300 tasks here, grouped so each epic can expand into ~3× sub-tasks toward the 1000 mark as we detail them. We expand an epic into sub-tasks only when we reach it.
+**Scope:** 200+ tasks here, grouped so each epic can expand into finer sub-tasks toward the 1000 mark as we detail them. We expand an epic into sub-tasks only when we reach it.
 
 ---
 
