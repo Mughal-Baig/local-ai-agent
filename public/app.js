@@ -736,7 +736,8 @@ function updateRecipeHint() {
   }
 
   const tags = recipe.tags && recipe.tags.length ? ` Tags: ${recipe.tags.join(", ")}.` : "";
-  els.recipeHint.textContent = `${recipe.description}${tags}`;
+  const typed = recipe.structuredOutput ? ` Typed JSON: ${recipe.structuredOutput.schemaId || "custom schema"}.` : "";
+  els.recipeHint.textContent = `${recipe.description}${typed}${tags}`;
 }
 
 function applySelectedRecipe() {
@@ -748,7 +749,7 @@ function applySelectedRecipe() {
   els.prompt.value = recipe.prompt;
   resizePrompt();
   els.prompt.focus();
-  addTrail("recipe", `Loaded ${recipe.title}`);
+  addTrail("recipe", recipe.structuredOutput ? `Loaded typed recipe ${recipe.title}` : `Loaded ${recipe.title}`);
 }
 
 function selectedRecipe() {

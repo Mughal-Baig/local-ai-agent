@@ -31,6 +31,21 @@
       "type": "string",
       "minLength": 1,
       "maxLength": 2400
+    },
+    "outputSchemaId": {
+      "type": "string",
+      "pattern": "^[a-z0-9_-]+$"
+    },
+    "outputTitle": {
+      "type": "string",
+      "maxLength": 80
+    },
+    "outputDescription": {
+      "type": "string",
+      "maxLength": 180
+    },
+    "outputSchema": {
+      "type": "object"
     }
   }
 }

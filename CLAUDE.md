@@ -23,6 +23,8 @@ Codex completed the first hard engineering slice from Phase 1:
 - T025: Ollama JSON-schema `format` support through `/api/structured-output`
 - T026: OpenAI-compatible `response_format.json_schema` support through `/api/structured-output`
 - T027: schema validation before tool execution
+- T028: typed extraction recipes (`extract-tasks-json`, `extract-table-json`) with `/api/structured-output/recipe`
+- T029: schema-violation responses now include a user-visible reason/message
 - T030: structured-output round-trip tests for Ollama and OpenAI-compatible mock backends
 - T036: parallel independent tool execution within a step, while write-like tools stay ordered
 
@@ -30,4 +32,4 @@ Best next Claude tasks:
 
 - Work on docs and UI copy around native tool calling and structured outputs.
 - Do not rework `server.js` tool-calling or structured-output internals unless you also run `npm run test:tools` and `npm run test:structured`.
-- Next code target should be T028 typed extraction recipes or T029 user-visible schema violation handling, not the runtime moonshot.
+- Next code target should be T031/T032 planner approval or T037 cancellable runs, not the runtime moonshot.

@@ -45,8 +45,8 @@ A long-horizon backlog (12+ months) for making AgentTrail the auditable agent la
 - [x] T025 Pass JSON-schema `format` to Ollama for constrained output
 - [x] T026 OpenAI `response_format` json_schema support
 - [x] T027 Schema-validate every tool argument before execution
-- [ ] T028 Typed extraction recipes (e.g., "extract table → JSON")
-- [ ] T029 Graceful schema-violation handling + user-visible reason
+- [x] T028 Typed extraction recipes (e.g., "extract table → JSON")
+- [x] T029 Graceful schema-violation handling + user-visible reason
 - [x] T030 Tests for structured-output round-trips
 
 ### Epic C — Planner & multi-step autonomy

@@ -5,6 +5,7 @@
   "recipes": [
     "user-docs",
     "release-notes",
+    "extract-tasks-json",
     "readme-polish",
     "changelog",
     "launch-readme"

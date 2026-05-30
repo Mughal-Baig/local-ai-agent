@@ -1,0 +1,8 @@
+{
+  "id": "extract-table-json",
+  "title": "Extract Table JSON",
+  "description": "Extract messy notes into validated table JSON with columns and rows.",
+  "tags": ["structured-output", "table", "json", "analysis"],
+  "outputSchemaId": "table-extract",
+  "prompt": "Extract the provided text or selected files into table JSON. Choose concise column names, preserve source values, and use one row per real record. Do not invent rows that are not present."
+}

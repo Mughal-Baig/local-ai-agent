@@ -8,7 +8,7 @@ const { listSchemaSummaries, validateSchema, withSchema } = require("../../src/s
 const { evaluateToolPermission } = require("../../src/permissions");
 const { listModelAdapters } = require("../../src/model-adapters");
 const { listToolSchemas, toolDefinitionsForBackend, validateToolArguments, repairToolArguments } = require("../../src/tool-schemas");
-const { listStructuredOutputSchemas, parseStructuredJson, validateStructuredOutput } = require("../../src/structured-output");
+const { listStructuredOutputSchemas, parseStructuredJson, validateStructuredOutput, structuredOutputMessage } = require("../../src/structured-output");
 const { JsonLineStore } = require("../../src/json-store");
 const { runMigrations, migrationStatus } = require("../../src/migrations");
 const { loadPlugins } = require("../../src/plugin-loader");
@@ -59,6 +59,12 @@ async function main() {
   assert.deepEqual(parseStructuredJson("```json\n{\"tasks\":[{\"title\":\"Ship\",\"priority\":\"high\"}]}\n```").tasks[0].title, "Ship");
   assert.equal(validateStructuredOutput({ tasks: [{ title: "Ship", priority: "high" }] }, taskSchema).ok, true);
   assert.equal(validateStructuredOutput({ tasks: [{ title: "Ship", priority: "urgent" }] }, taskSchema).ok, false);
+  assert.match(structuredOutputMessage({
+    ok: false,
+    reason: "schema-violation",
+    outputSchema: { title: "Task list" },
+    validation: { errors: ["$.tasks[0].priority must be one of: low, medium, high."] }
+  }), /did not match Task list/);
 
   const tempRoot = await fsp.mkdtemp(path.join(os.tmpdir(), "agenttrail-foundation-"));
   try {

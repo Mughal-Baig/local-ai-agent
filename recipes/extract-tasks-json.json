@@ -1,0 +1,8 @@
+{
+  "id": "extract-tasks-json",
+  "title": "Extract Tasks JSON",
+  "description": "Extract action items into validated JSON with title, priority, owner, and done state.",
+  "tags": ["structured-output", "tasks", "json", "productivity"],
+  "outputSchemaId": "task-list",
+  "prompt": "Extract every action item from the provided text or selected files. Preserve explicit owners when present. Use low, medium, or high priority only. Set done to true only when the source clearly says the task is complete."
+}

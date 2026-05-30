@@ -6,6 +6,8 @@
     "workspace-brief",
     "local-rag-brief",
     "meeting-notes",
+    "extract-tasks-json",
+    "extract-table-json",
     "test-plan",
     "receipt-summary"
   ]

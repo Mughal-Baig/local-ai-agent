@@ -116,6 +116,23 @@ function validateStructuredOutput(value, schema, path = "$") {
   return { ok: errors.length === 0, errors };
 }
 
+function structuredOutputMessage(result = {}) {
+  const descriptor = result.outputSchema || {};
+  const title = descriptor.title || descriptor.id || "the selected schema";
+  if (result.ok) {
+    return `Structured output matched ${title}.`;
+  }
+
+  const errors = result.validation && Array.isArray(result.validation.errors) ? result.validation.errors : [];
+  if (result.reason === "invalid-json") {
+    return "The model did not return valid JSON. Try again or use a stricter local model.";
+  }
+  if (result.reason === "schema-violation" && errors.length) {
+    return `The model returned JSON, but it did not match ${title}: ${errors.slice(0, 3).join(" ")}`;
+  }
+  return `The model response did not match ${title}.`;
+}
+
 function validateValue(value, schema, path, errors) {
   if (!schema || typeof schema !== "object") {
     return;
@@ -218,5 +235,6 @@ module.exports = {
   listStructuredOutputSchemas,
   selectStructuredOutputSchema,
   parseStructuredJson,
-  validateStructuredOutput
+  validateStructuredOutput,
+  structuredOutputMessage
 };

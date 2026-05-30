@@ -55,6 +55,25 @@ async function runOpenAIStructuredOutput() {
     assert.equal(state.responseFormat.json_schema.strict, true);
     assert.equal(state.responseFormat.json_schema.name, "task-list");
     assert.equal(state.responseFormat.json_schema.schema.required.includes("tasks"), true);
+
+    const recipeResult = await post(agentPort, "/api/structured-output/recipe", {
+      model: "mock-model",
+      recipeId: "extract-tasks-json",
+      input: "Rohit must ship the structured recipe by Friday. Priority is high."
+    });
+    assert.equal(recipeResult.ok, true);
+    assert.equal(recipeResult.recipe.id, "extract-tasks-json");
+    assert.equal(recipeResult.output.tasks[0].title, "Ship structured output");
+
+    const invalid = await postRaw(agentPort, "/api/structured-output", {
+      model: "mock-model",
+      schemaId: "task-list",
+      prompt: "Return invalid priority for this test."
+    });
+    assert.equal(invalid.status, 422);
+    assert.equal(invalid.body.ok, false);
+    assert.equal(invalid.body.reason, "schema-violation");
+    assert.match(invalid.body.userMessage, /did not match Task list/);
   } finally {
     child.kill("SIGTERM");
     mock.close();
@@ -109,12 +128,14 @@ function startMockOpenAI(port, state) {
     if (req.method === "POST" && req.url.startsWith("/v1/chat/completions")) {
       const body = JSON.parse(await readBody(req) || "{}");
       state.responseFormat = body.response_format;
+      const content = JSON.stringify(body.messages || []);
+      const output = content.includes("invalid priority")
+        ? { tasks: [{ title: "Bad priority", priority: "urgent" }] }
+        : { tasks: [{ title: "Ship structured output", priority: "high", owner: "AgentTrail", done: false }] };
       return json(res, {
         choices: [{
           message: {
-            content: JSON.stringify({
-              tasks: [{ title: "Ship structured output", priority: "high", owner: "AgentTrail", done: false }]
-            })
+            content: JSON.stringify(output)
           }
         }]
       });
@@ -161,13 +182,19 @@ function readBody(req) {
 }
 
 async function post(port, endpoint, body) {
+  const result = await postRaw(port, endpoint, body);
+  assert.equal(result.ok, true, endpoint);
+  return result.body;
+}
+
+async function postRaw(port, endpoint, body) {
   const response = await fetch(`http://127.0.0.1:${port}${endpoint}`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body || {})
   });
-  assert.equal(response.ok, true, endpoint);
-  return response.json();
+  const responseBody = await response.json();
+  return { ok: response.ok, status: response.status, body: responseBody };
 }
 
 async function waitForServer(port, getOutput) {

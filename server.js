@@ -10,7 +10,7 @@ const { SCHEMA_VERSION, listSchemaSummaries, validateSchema, withSchema } = requ
 const { permissionManifest, evaluateToolPermission } = require("./src/permissions");
 const { listModelAdapters, activeModelAdapter } = require("./src/model-adapters");
 const { listToolSchemas, toolDefinitionsForBackend, validateToolArguments, repairToolArguments, formatToolSchemaPrompt } = require("./src/tool-schemas");
-const { listStructuredOutputSchemas, selectStructuredOutputSchema, parseStructuredJson, validateStructuredOutput } = require("./src/structured-output");
+const { listStructuredOutputSchemas, selectStructuredOutputSchema, parseStructuredJson, validateStructuredOutput, structuredOutputMessage } = require("./src/structured-output");
 const { JsonLineStore } = require("./src/json-store");
 const { JobManager } = require("./src/jobs");
 const { runMigrations, migrationStatus } = require("./src/migrations");
@@ -164,6 +164,10 @@ const server = http.createServer(async (req, res) => {
 
     if (url.pathname === "/api/structured-output" && req.method === "POST") {
       return handleStructuredOutput(req, res);
+    }
+
+    if (url.pathname === "/api/structured-output/recipe" && req.method === "POST") {
+      return handleStructuredRecipeOutput(req, res);
     }
 
     if (url.pathname === "/api/store/stats" && req.method === "GET") {
@@ -653,6 +657,80 @@ async function handleStructuredOutput(req, res) {
     backend: ACTIVE_BACKEND.api
   });
   sendJson(res, result.ok ? 200 : 422, result);
+}
+
+async function handleStructuredRecipeOutput(req, res) {
+  const body = await readJsonBody(req);
+  const recipeId = String(body.recipeId || "").trim();
+  if (!recipeId) {
+    return sendJson(res, 400, { error: "A recipeId is required." });
+  }
+
+  const recipes = await listRecipes();
+  const recipe = recipes.find((item) => item.id === recipeId);
+  if (!recipe) {
+    return sendJson(res, 404, { error: `Recipe not found: ${recipeId}` });
+  }
+  if (!recipe.structuredOutput) {
+    return sendJson(res, 400, { error: `${recipe.title} is not a typed extraction recipe.` });
+  }
+
+  let descriptor;
+  try {
+    descriptor = selectStructuredOutputSchema(recipe.structuredOutput);
+  } catch (error) {
+    return sendJson(res, 400, { error: error.message });
+  }
+
+  const selectedFiles = Array.isArray(body.selectedFiles) ? body.selectedFiles.slice(0, 8) : [];
+  const input = String(body.input || body.prompt || "").trim();
+  if (!input && !selectedFiles.length) {
+    return sendJson(res, 400, { error: "Typed extraction requires input text or selectedFiles." });
+  }
+
+  const model = String(body.model || DEFAULT_MODEL).trim() || DEFAULT_MODEL;
+  const prompt = await buildStructuredRecipePrompt(recipe, input, selectedFiles);
+  const result = await generateStructuredOutput(model, prompt, descriptor, {
+    temperature: typeof body.temperature === "number" ? body.temperature : 0
+  });
+  result.recipe = {
+    id: recipe.id,
+    title: recipe.title,
+    outputSchemaId: recipe.structuredOutput.schemaId || descriptor.id
+  };
+
+  await STORE.append("structured-output-recipe", {
+    model,
+    recipeId: recipe.id,
+    schemaId: descriptor.id,
+    ok: result.ok,
+    backend: ACTIVE_BACKEND.api
+  });
+  sendJson(res, result.ok ? 200 : 422, result);
+}
+
+async function buildStructuredRecipePrompt(recipe, input, selectedFiles) {
+  const fileBlocks = [];
+  for (const filePath of selectedFiles) {
+    try {
+      const file = await readWorkspaceFile(filePath, MAX_PROMPT_FILE_BYTES);
+      fileBlocks.push(`--- ${file.path} ---\n${file.content}`);
+    } catch (error) {
+      fileBlocks.push(`--- ${filePath} ---\nCould not read file: ${error.message}`);
+    }
+  }
+
+  return [
+    recipe.prompt,
+    "",
+    "User input:",
+    input || "No additional input.",
+    "",
+    "Selected file context:",
+    fileBlocks.length ? fileBlocks.join("\n\n") : "No files selected.",
+    "",
+    "Extract the requested data and return only the typed JSON."
+  ].join("\n");
 }
 
 async function handleStoreStats(res) {
@@ -2113,6 +2191,7 @@ async function generateStructuredOutput(model, prompt, descriptor, options = {})
   } catch (error) {
     return structuredOutputResult(model, descriptor, false, null, raw, {
       ok: false,
+      reason: "invalid-json",
       errors: [error.message]
     });
   }
@@ -2134,9 +2213,11 @@ function buildStructuredOutputPrompt(prompt, descriptor) {
 }
 
 function structuredOutputResult(model, descriptor, ok, output, raw, validation) {
-  return {
+  const reason = ok ? "valid" : validation.reason || "schema-violation";
+  const result = {
     schema: "agenttrail.structured-output.v1",
     ok,
+    reason,
     model,
     backend: {
       id: ACTIVE_BACKEND.id,
@@ -2152,6 +2233,8 @@ function structuredOutputResult(model, descriptor, ok, output, raw, validation) 
     raw,
     validation
   };
+  result.userMessage = structuredOutputMessage(result);
+  return result;
 }
 
 async function generateStructuredWithOllama(model, prompt, descriptor, options) {
@@ -3236,12 +3319,31 @@ function normalizeRecipe(recipe, fileName) {
     return null;
   }
 
+  const structuredOutput = normalizeRecipeStructuredOutput(recipe);
+
   return {
     id,
     title: truncate(title, 80),
     description: truncate(description, 180),
     prompt: truncate(prompt, 2400),
-    tags: Array.isArray(recipe.tags) ? recipe.tags.map((tag) => String(tag).trim()).filter(Boolean).slice(0, 8) : []
+    tags: Array.isArray(recipe.tags) ? recipe.tags.map((tag) => String(tag).trim()).filter(Boolean).slice(0, 8) : [],
+    ...(structuredOutput ? { structuredOutput } : {})
+  };
+}
+
+function normalizeRecipeStructuredOutput(recipe) {
+  const schemaId = String(recipe.outputSchemaId || recipe.schemaId || "").trim();
+  const outputSchema = recipe.outputSchema && typeof recipe.outputSchema === "object" && !Array.isArray(recipe.outputSchema)
+    ? recipe.outputSchema
+    : null;
+  if (!schemaId && !outputSchema) {
+    return null;
+  }
+  return {
+    ...(schemaId ? { schemaId } : {}),
+    ...(outputSchema ? { schema: outputSchema } : {}),
+    ...(recipe.outputTitle ? { title: truncate(recipe.outputTitle, 80) } : {}),
+    ...(recipe.outputDescription ? { description: truncate(recipe.outputDescription, 180) } : {})
   };
 }
 

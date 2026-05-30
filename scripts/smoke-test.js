@@ -92,6 +92,7 @@ async function main() {
     const recipes = await fetchJson(`http://127.0.0.1:${port}/api/recipes`);
     assert.equal(Array.isArray(recipes.recipes), true);
     assert.equal(recipes.recipes.some((recipe) => recipe.id === "code-review"), true);
+    assert.equal(recipes.recipes.some((recipe) => recipe.id === "extract-tasks-json" && recipe.structuredOutput && recipe.structuredOutput.schemaId === "task-list"), true);
 
     const write = await postJson(`http://127.0.0.1:${port}/api/files/content`, {
       path: "notes/test.md",
