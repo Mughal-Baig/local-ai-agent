@@ -9,7 +9,12 @@ const state = {
   ],
   files: [],
   recipes: [],
+  receipts: [],
   selectedFiles: new Set(),
+  permissions: {
+    readFiles: true,
+    writeFiles: false
+  },
   models: [],
   model: "",
   trail: [],
@@ -26,6 +31,9 @@ const els = {
   privacySignal: document.querySelector("#privacySignal"),
   selectedSignal: document.querySelector("#selectedSignal"),
   toolSignal: document.querySelector("#toolSignal"),
+  setupChecklist: document.querySelector("#setupChecklist"),
+  readPermission: document.querySelector("#readPermission"),
+  writePermission: document.querySelector("#writePermission"),
   refreshStatus: document.querySelector("#refreshStatus"),
   refreshFiles: document.querySelector("#refreshFiles"),
   refreshRecipes: document.querySelector("#refreshRecipes"),
@@ -48,7 +56,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   renderMessages();
   addTrail("system", "Workspace boundary active");
   updateSendState();
-  await Promise.all([refreshStatus(), refreshFiles(), refreshRecipes()]);
+  await Promise.all([refreshStatus(), refreshFiles(), refreshRecipes(), refreshReceipts()]);
   els.prompt.focus();
 });
 
@@ -56,6 +64,8 @@ function bindEvents() {
   els.refreshStatus.addEventListener("click", refreshStatus);
   els.refreshFiles.addEventListener("click", refreshFiles);
   els.refreshRecipes.addEventListener("click", refreshRecipes);
+  els.readPermission.addEventListener("change", syncPermissions);
+  els.writePermission.addEventListener("change", syncPermissions);
   els.modelSelect.addEventListener("change", () => {
     state.model = els.modelSelect.value;
     addTrail("model", `Model set to ${state.model}`);
@@ -88,18 +98,39 @@ function bindEvents() {
   });
 }
 
+function syncPermissions() {
+  state.permissions = {
+    readFiles: els.readPermission.checked,
+    writeFiles: els.writePermission.checked
+  };
+  addTrail("permission", `Reads ${state.permissions.readFiles ? "on" : "off"}, writes ${state.permissions.writeFiles ? "on" : "off"}`);
+  renderLocalSignals();
+}
+
 async function refreshRecipes() {
   try {
     const data = await getJson("/api/recipes");
     state.recipes = data.recipes || [];
     renderRecipes();
+    renderSetupChecklist();
     addTrail("recipe", `${state.recipes.length} recipe(s) loaded`);
   } catch (error) {
     state.recipes = [];
     renderRecipes();
+    renderSetupChecklist();
     els.recipeHint.textContent = "Recipes could not be loaded.";
     addTrail("error", error.message);
   }
+}
+
+async function refreshReceipts() {
+  try {
+    const data = await getJson("/api/receipts");
+    state.receipts = data.receipts || [];
+  } catch {
+    state.receipts = [];
+  }
+  renderSetupChecklist();
 }
 
 function renderRecipes() {
@@ -178,12 +209,14 @@ async function refreshStatus() {
       addTrail("warning", "Ollama not connected");
     }
     renderLocalSignals();
+    renderSetupChecklist();
   } catch (error) {
     setConnection("Status check failed");
     els.modelHint.textContent = error.message;
     state.ollamaAvailable = false;
     addTrail("error", error.message);
     renderLocalSignals();
+    renderSetupChecklist();
   }
 }
 
@@ -212,6 +245,7 @@ async function refreshFiles() {
     renderFiles();
     els.workspaceStatus.textContent = `${state.files.length} workspace file(s)`;
     renderLocalSignals();
+    renderSetupChecklist();
   } catch (error) {
     els.workspaceStatus.textContent = "Workspace unavailable";
     els.fileList.innerHTML = `<div class="empty-state">${escapeHtml(error.message)}</div>`;
@@ -301,7 +335,8 @@ async function sendMessage(event) {
       body: JSON.stringify({
         model: state.model,
         messages: requestMessages,
-        selectedFiles: Array.from(state.selectedFiles)
+        selectedFiles: Array.from(state.selectedFiles),
+        permissions: state.permissions
       })
     });
 
@@ -343,6 +378,7 @@ async function sendMessage(event) {
     els.workspaceStatus.textContent = `${state.files.length} workspace file(s)`;
     updateSendState();
     await refreshFiles();
+    await refreshReceipts();
   }
 }
 
@@ -356,7 +392,7 @@ function addTrail(type, label) {
   renderTrail();
 }
 
-function exportTrailReceipt() {
+async function exportTrailReceipt() {
   addTrail("system", "Exported audit receipt");
   const rows = state.trail
     .slice()
@@ -382,6 +418,14 @@ function exportTrailReceipt() {
   link.download = `local-agent-trail-${new Date().toISOString().replace(/[:.]/g, "-")}.md`;
   link.click();
   URL.revokeObjectURL(url);
+
+  try {
+    const saved = await postJson("/api/receipts", { content });
+    addTrail("file", `Saved receipt ${saved.path}`);
+    await refreshReceipts();
+  } catch (error) {
+    addTrail("error", `Could not save receipt: ${error.message}`);
+  }
 }
 
 function renderTrail() {
@@ -411,6 +455,35 @@ function renderLocalSignals() {
   els.privacySignal.textContent = state.ollamaAvailable ? "Offline-ready" : "Local";
   els.selectedSignal.textContent = `${state.selectedFiles.size} file${state.selectedFiles.size === 1 ? "" : "s"}`;
   els.toolSignal.textContent = `${state.toolCount} call${state.toolCount === 1 ? "" : "s"}`;
+}
+
+function renderSetupChecklist() {
+  const items = [
+    {
+      ok: state.ollamaAvailable,
+      text: state.ollamaAvailable ? "Ollama is reachable" : "Start Ollama on 127.0.0.1:11434"
+    },
+    {
+      ok: state.models.length > 0,
+      text: state.models.length ? `${state.models.length} model(s) available` : "Pull a model: ollama pull llama3.2"
+    },
+    {
+      ok: state.files.length > 0,
+      text: state.files.length ? `${state.files.length} workspace file(s)` : "Add files to workspace/"
+    },
+    {
+      ok: state.recipes.length >= 10,
+      text: `${state.recipes.length} recipe(s) loaded`
+    },
+    {
+      ok: state.receipts.length > 0,
+      text: state.receipts.length ? `${state.receipts.length} saved receipt(s)` : "Export a receipt after a run"
+    }
+  ];
+
+  els.setupChecklist.innerHTML = items
+    .map((item) => `<div class="setup-item ${item.ok ? "ok" : ""}"><span>${item.ok ? "OK" : "TODO"}</span>${escapeHtml(item.text)}</div>`)
+    .join("");
 }
 
 async function readEventStream(body, onEvent) {

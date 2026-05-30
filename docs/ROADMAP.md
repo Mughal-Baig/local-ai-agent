@@ -6,7 +6,7 @@
 - Add a model capability check for tool-call reliability.
 - Add more recipes for common local-agent workflows.
 - Enable the included GitHub Pages demo after the repo is public.
-- Add optional browser-open command for first-run setup.
+- Add richer diff preview before agent writes.
 
 ## Later
 

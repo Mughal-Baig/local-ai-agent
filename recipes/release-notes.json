@@ -1,0 +1,7 @@
+{
+  "id": "release-notes",
+  "title": "Release Notes",
+  "description": "Create a release announcement suitable for GitHub releases and community posts.",
+  "tags": ["release", "launch", "github"],
+  "prompt": "Create release notes from the selected context. Include a short headline, what changed, why it matters, upgrade steps, validation, known limits, and a short community announcement."
+}

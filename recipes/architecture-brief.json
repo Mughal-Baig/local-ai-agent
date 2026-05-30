@@ -1,0 +1,7 @@
+{
+  "id": "architecture-brief",
+  "title": "Architecture Brief",
+  "description": "Map selected files into a clear architecture summary with boundaries and data flow.",
+  "tags": ["architecture", "docs", "planning"],
+  "prompt": "Create an architecture brief from the selected files. Include the main modules, responsibilities, data flow, safety boundaries, extension points, and the next architectural risk to address."
+}

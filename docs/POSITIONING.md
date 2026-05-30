@@ -7,6 +7,7 @@ This project should avoid competing as a giant platform. Its sharper niche is:
 - tiny local agent starter kit
 - visible tool receipts
 - plain JSON agent recipes
+- permission toggles and saved receipts
 - workspace safety by default
 - no npm dependency install
 - readable implementation

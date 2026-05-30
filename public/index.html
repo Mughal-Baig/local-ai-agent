@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Local AI Agent</title>
     <link rel="icon" href="/logo.svg" />
-    <link rel="stylesheet" href="/styles.css?v=4" />
+    <link rel="stylesheet" href="/styles.css?v=5" />
   </head>
   <body>
     <div class="app-shell">
@@ -50,6 +50,28 @@
               <strong id="toolSignal">0 calls</strong>
             </div>
           </div>
+        </section>
+
+        <section class="panel setup-panel" aria-label="Setup checklist">
+          <div class="panel-heading">
+            <h2>Setup</h2>
+          </div>
+          <div id="setupChecklist" class="setup-list"></div>
+        </section>
+
+        <section class="panel permissions-panel" aria-label="Agent permissions">
+          <div class="panel-heading">
+            <h2>Permissions</h2>
+          </div>
+          <label class="toggle-row">
+            <input id="readPermission" type="checkbox" checked />
+            <span>Allow file reads</span>
+          </label>
+          <label class="toggle-row">
+            <input id="writePermission" type="checkbox" />
+            <span>Allow file writes</span>
+          </label>
+          <p class="hint">Writes are off by default; receipts always show tool activity.</p>
         </section>
 
         <section class="panel recipes-panel" aria-label="Agent recipes">
@@ -109,6 +131,6 @@
       </main>
     </div>
 
-    <script src="/app.js?v=4"></script>
+    <script src="/app.js?v=5"></script>
   </body>
 </html>

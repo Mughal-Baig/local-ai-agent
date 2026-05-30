@@ -1,0 +1,7 @@
+{
+  "id": "threat-model",
+  "title": "Threat Model",
+  "description": "Threat-model local agent behavior, permissions, and workspace boundaries.",
+  "tags": ["security", "privacy", "agents"],
+  "prompt": "Threat-model the selected local-agent design. Identify assets, trust boundaries, entry points, likely attackers, abuse cases, mitigations, and residual risks. Prioritize practical fixes."
+}

@@ -9,6 +9,8 @@ A tiny, transparent local AI agent and recipe kit for people who want a Claude/C
 
 ![Local AI Agent preview](docs/preview.svg)
 
+![Local AI Agent demo flow](docs/demo-flow.svg)
+
 **Static demo:** open [docs/demo.html](docs/demo.html) locally, or enable GitHub Pages after making the repo public.
 
 ## Why Star This
@@ -16,6 +18,7 @@ A tiny, transparent local AI agent and recipe kit for people who want a Claude/C
 - **Transparent by default**: every tool call is shown as an Agent Trail receipt.
 - **Recipe-driven**: reusable local workflows live in plain JSON files anyone can add.
 - **Demo-first**: the static demo lets visitors understand the project before installing Ollama.
+- **Permission-aware**: file reads are explicit and file writes are off by default.
 - **Private by design**: the server only talks to Ollama and the local browser UI.
 - **Safe workspace boundary**: file reads and writes are blocked outside `workspace/`.
 - **Zero npm dependencies**: clone, run `node server.js`, and start building.
@@ -39,10 +42,13 @@ Popular local AI tools are often full platforms. This project is intentionally s
 - Chat UI with model picker and streaming-style responses
 - Starter prompts for summarize, plan, review, and save-note workflows
 - Local recipe picker backed by plain JSON workflow files
+- First-run setup checklist for Ollama, models, workspace files, recipes, and receipts
+- Permission toggles for file reads and file writes
 - Ollama integration for local models
 - Workspace-aware tools: list files, read files, and write files
 - Agent Trail receipts for tool calls, selected context, model status, and errors
 - Exportable Markdown audit receipts
+- Saved receipt history in `workspace/receipts/`
 - Safe path handling so the agent stays inside `workspace/`
 - Smoke test and GitHub Actions CI included
 
@@ -59,6 +65,12 @@ Popular local AI tools are often full platforms. This project is intentionally s
 
    ```bash
    node server.js
+   ```
+
+   macOS and Linux users can also run:
+
+   ```bash
+   ./start.sh
    ```
 
 4. Open:
@@ -98,6 +110,8 @@ Each recipe has:
 
 Good recipe ideas are easy to review and useful without any cloud service: code review, launch notes, security hardening, receipt summaries, research briefs, and workspace planning.
 
+Recipe shape is documented in [recipes/schema.json](recipes/schema.json).
+
 ## How It Works
 
 The browser sends messages to the local Node server. The server sends a prompt to Ollama with a small tool protocol. When the model requests a tool, the server runs it against the workspace and sends the result into the next model step.
@@ -133,6 +147,12 @@ Supported variables:
 - `OLLAMA_MODEL`: default model name
 - `WORKSPACE_ROOT`: folder the agent can access
 - `MAX_TOOL_ITERATIONS`: maximum tool loop steps per message
+
+## Troubleshooting And Models
+
+- [Troubleshooting](docs/TROUBLESHOOTING.md)
+- [Model guide](docs/MODELS.md)
+- [Security checklist](docs/SECURITY_CHECKLIST.md)
 
 ## Test
 

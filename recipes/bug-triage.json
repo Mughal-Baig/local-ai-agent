@@ -1,0 +1,7 @@
+{
+  "id": "bug-triage",
+  "title": "Bug Triage",
+  "description": "Turn selected notes, logs, or files into a reproducible bug report and fix plan.",
+  "tags": ["bugs", "debugging", "issues"],
+  "prompt": "Triage the selected context into a bug report. Include observed behavior, expected behavior, likely cause, exact reproduction steps, risk level, and the smallest safe fix."
+}

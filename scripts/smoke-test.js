@@ -38,10 +38,13 @@ async function main() {
   try {
     await waitForServer(port, () => output);
 
-    const home = await fetchText(`http://127.0.0.1:${port}/`);
-    assert.match(home, /Local AI Agent/);
+  const home = await fetchText(`http://127.0.0.1:${port}/`);
+  assert.match(home, /Local AI Agent/);
 
-    const status = await fetchJson(`http://127.0.0.1:${port}/api/status`);
+  const demo = await fetchText(`http://127.0.0.1:${port}/docs/demo.html`);
+  assert.match(demo, /Tiny local agent kit/);
+
+  const status = await fetchJson(`http://127.0.0.1:${port}/api/status`);
     assert.equal(status.app, "ok");
     assert.equal(status.ollama.available, false);
 
@@ -60,6 +63,14 @@ async function main() {
 
     const files = await fetchJson(`http://127.0.0.1:${port}/api/files`);
     assert.equal(files.files.some((item) => item.path === "notes/test.md"), true);
+
+    const receipt = await postJson(`http://127.0.0.1:${port}/api/receipts`, {
+      content: "# Receipt\n\nSmoke test receipt.\n"
+    });
+    assert.equal(receipt.ok, true);
+
+    const receipts = await fetchJson(`http://127.0.0.1:${port}/api/receipts`);
+    assert.equal(receipts.receipts.length, 1);
 
     console.log("Smoke test passed");
   } finally {

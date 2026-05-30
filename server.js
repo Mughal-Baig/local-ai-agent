@@ -17,6 +17,7 @@ const PUBLIC_DIR = path.join(PROJECT_ROOT, "public");
 const DOCS_DIR = path.join(PROJECT_ROOT, "docs");
 const RECIPES_DIR = path.join(PROJECT_ROOT, "recipes");
 const WORKSPACE_ROOT = path.resolve(PROJECT_ROOT, process.env.WORKSPACE_ROOT || "workspace");
+const RECEIPTS_DIR = "receipts";
 const MAX_BODY_BYTES = 1024 * 1024;
 const MAX_FILE_BYTES = 80 * 1024;
 const MAX_PROMPT_FILE_BYTES = 28 * 1024;
@@ -37,6 +38,14 @@ const server = http.createServer(async (req, res) => {
 
     if (url.pathname === "/api/recipes" && req.method === "GET") {
       return handleListRecipes(res);
+    }
+
+    if (url.pathname === "/api/receipts" && req.method === "GET") {
+      return handleListReceipts(res);
+    }
+
+    if (url.pathname === "/api/receipts" && req.method === "POST") {
+      return handleSaveReceipt(req, res);
     }
 
     if (url.pathname === "/api/files/content" && req.method === "GET") {
@@ -100,6 +109,25 @@ async function handleListRecipes(res) {
   sendJson(res, 200, { recipes });
 }
 
+async function handleListReceipts(res) {
+  const files = await listWorkspaceFiles();
+  sendJson(res, 200, {
+    receipts: files.filter((file) => file.path.startsWith(`${RECEIPTS_DIR}/`))
+  });
+}
+
+async function handleSaveReceipt(req, res) {
+  const body = await readJsonBody(req);
+  const content = String(body.content || "").trim();
+  if (!content) {
+    return sendJson(res, 400, { error: "Receipt content is required" });
+  }
+
+  const stamp = new Date().toISOString().replace(/[:.]/g, "-");
+  const result = await writeWorkspaceFile(`${RECEIPTS_DIR}/trail-${stamp}.md`, content);
+  sendJson(res, 200, result);
+}
+
 async function handleReadFile(url, res) {
   const relativePath = url.searchParams.get("path") || "";
   const file = await readWorkspaceFile(relativePath, MAX_FILE_BYTES);
@@ -140,6 +168,7 @@ async function handleChat(req, res) {
 async function runAgent(body, res) {
   const messages = normalizeMessages(body.messages);
   const selectedFiles = Array.isArray(body.selectedFiles) ? body.selectedFiles.slice(0, 8) : [];
+  const permissions = normalizePermissions(body.permissions);
   const status = await fetchOllamaModels();
 
   if (!status.available) {
@@ -160,14 +189,14 @@ async function runAgent(body, res) {
       message: step === 0 ? "Thinking with local context" : "Reviewing tool result"
     });
 
-    const prompt = await buildAgentPrompt(messages, selectedFiles, toolHistory);
+    const prompt = await buildAgentPrompt(messages, selectedFiles, toolHistory, permissions);
     const output = await generateWithOllama(model, prompt, {
       temperature: typeof body.temperature === "number" ? body.temperature : 0.2
     });
 
     const toolCall = extractToolCall(output);
     if (toolCall) {
-      const result = await executeToolCall(toolCall);
+      const result = await executeToolCall(toolCall, permissions);
       toolHistory.push({ call: toolCall, result });
       sendEvent(res, "tool", {
         name: toolCall.tool,
@@ -192,7 +221,7 @@ async function runAgent(body, res) {
   sendEvent(res, "done", { ok: true });
 }
 
-async function buildAgentPrompt(messages, selectedFiles, toolHistory) {
+async function buildAgentPrompt(messages, selectedFiles, toolHistory, permissions) {
   const selectedFileBlocks = [];
 
   for (const filePath of selectedFiles) {
@@ -235,7 +264,9 @@ async function buildAgentPrompt(messages, selectedFiles, toolHistory) {
     "Tool rules:",
     "- Use paths relative to the workspace.",
     "- Read a file before changing it when existing content matters.",
-    "- Use write_file only when the user asks you to create or update a file.",
+    `- read_file permission is ${permissions.readFiles ? "enabled" : "disabled"}.`,
+    `- write_file permission is ${permissions.writeFiles ? "enabled" : "disabled"}.`,
+    "- Use write_file only when write permission is enabled and the user asks you to create or update a file.",
     "- Do not call read_file for a selected file when its content already appears in selected file context.",
     "- If no tool is needed, answer normally in helpful Markdown.",
     "- Never claim you used a tool unless the tool result appears below.",
@@ -255,7 +286,7 @@ async function buildAgentPrompt(messages, selectedFiles, toolHistory) {
   ].join("\n");
 }
 
-async function executeToolCall(toolCall) {
+async function executeToolCall(toolCall, permissions) {
   const args = toolCall.arguments || {};
 
   if (toolCall.tool === "list_files") {
@@ -263,10 +294,16 @@ async function executeToolCall(toolCall) {
   }
 
   if (toolCall.tool === "read_file") {
+    if (!permissions.readFiles) {
+      return { error: "read_file permission is disabled" };
+    }
     return readWorkspaceFile(String(args.path || ""), MAX_FILE_BYTES);
   }
 
   if (toolCall.tool === "write_file") {
+    if (!permissions.writeFiles) {
+      return { error: "write_file permission is disabled" };
+    }
     return writeWorkspaceFile(String(args.path || ""), String(args.content || ""));
   }
 
@@ -309,6 +346,14 @@ function cleanAssistantOutput(text) {
   value = value.replace(/^["“]([\s\S]*)["”]$/g, "$1").trim();
   value = value.replace(/^(Assistant|Local Agent|AI):\s*/i, "").trim();
   return value;
+}
+
+function normalizePermissions(value) {
+  const permissions = value && typeof value === "object" ? value : {};
+  return {
+    readFiles: permissions.readFiles !== false,
+    writeFiles: permissions.writeFiles === true
+  };
 }
 
 async function generateWithOllama(model, prompt, options) {
@@ -397,6 +442,7 @@ async function listWorkspaceFiles() {
 async function listRecipes() {
   const entries = await fsp.readdir(RECIPES_DIR, { withFileTypes: true }).catch(() => []);
   const recipes = [];
+  const seenIds = new Set();
 
   for (const entry of entries) {
     if (!entry.isFile() || !entry.name.endsWith(".json")) {
@@ -407,7 +453,8 @@ async function listRecipes() {
     try {
       const raw = await fsp.readFile(absolutePath, "utf8");
       const recipe = normalizeRecipe(JSON.parse(raw), entry.name);
-      if (recipe) {
+      if (recipe && !seenIds.has(recipe.id)) {
+        seenIds.add(recipe.id);
         recipes.push(recipe);
       }
     } catch {
@@ -429,7 +476,7 @@ function normalizeRecipe(recipe, fileName) {
   const description = String(recipe.description || "").trim();
   const prompt = String(recipe.prompt || "").trim();
 
-  if (!id || !title || !prompt) {
+  if (!id || !/^[a-z0-9-]+$/.test(id) || !title || !prompt) {
     return null;
   }
 

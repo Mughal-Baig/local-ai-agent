@@ -142,6 +142,54 @@ button {
   font-weight: 700;
 }
 
+.setup-list {
+  display: grid;
+  gap: 8px;
+}
+
+.setup-item {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 8px;
+  align-items: center;
+  min-height: 34px;
+  padding: 8px 9px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--soft-coral);
+  color: #7d2f1e;
+  font-size: 0.8rem;
+  font-weight: 800;
+}
+
+.setup-item.ok {
+  background: var(--soft-teal);
+  color: var(--teal-dark);
+}
+
+.setup-item span {
+  padding: 3px 6px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.65);
+  font-size: 0.68rem;
+}
+
+.toggle-row {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-height: 34px;
+  color: var(--ink);
+  font-size: 0.88rem;
+  font-weight: 800;
+}
+
+.toggle-row input {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--teal);
+}
+
 select {
   width: 100%;
   min-height: 42px;

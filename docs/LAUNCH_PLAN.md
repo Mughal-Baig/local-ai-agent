@@ -11,9 +11,10 @@ Tiny local AI agent kit with Ollama, workspace-safe tools, reusable recipes, and
 3. Set the repository homepage to the live demo URL.
 4. Create a `v0.2.0` release with a short changelog.
 5. Pin the README preview and keep the quick start above the fold.
-6. Open 5-10 `good first issue` recipe requests.
-7. Submit to awesome lists for Ollama, local-first AI, self-hosted tools, and MCP.
-8. Share a short demo post in communities focused on local LLMs, self-hosting, and open-source tools.
+6. Add the animated demo flow to the launch post.
+7. Open 5-10 `good first issue` recipe requests.
+8. Submit to awesome lists for Ollama, local-first AI, self-hosted tools, and MCP.
+9. Share a short demo post in communities focused on local LLMs, self-hosting, and open-source tools.
 
 ## Demo Post Draft
 

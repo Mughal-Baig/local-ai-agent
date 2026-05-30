@@ -1,0 +1,7 @@
+{
+  "id": "changelog",
+  "title": "Changelog",
+  "description": "Draft a user-facing changelog from selected project notes or modified files.",
+  "tags": ["release", "docs", "github"],
+  "prompt": "Draft a concise changelog from the selected files. Group changes into Added, Changed, Fixed, Security, and Docs when relevant. Keep it honest and user-facing."
+}

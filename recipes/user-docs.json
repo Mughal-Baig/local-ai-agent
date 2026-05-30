@@ -1,0 +1,7 @@
+{
+  "id": "user-docs",
+  "title": "User Docs",
+  "description": "Turn selected implementation details into beginner-friendly user documentation.",
+  "tags": ["docs", "onboarding", "support"],
+  "prompt": "Write beginner-friendly user documentation from the selected files. Include what the feature does, when to use it, step-by-step instructions, common mistakes, and troubleshooting tips."
+}

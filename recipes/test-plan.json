@@ -1,0 +1,7 @@
+{
+  "id": "test-plan",
+  "title": "Test Plan",
+  "description": "Generate focused manual and automated tests for selected files or features.",
+  "tags": ["testing", "quality", "ci"],
+  "prompt": "Create a test plan for the selected files or feature. Include critical paths, edge cases, security checks, regression tests, and one minimal automated test to add next."
+}

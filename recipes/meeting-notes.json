@@ -1,0 +1,7 @@
+{
+  "id": "meeting-notes",
+  "title": "Meeting Notes",
+  "description": "Convert selected rough notes into decisions, actions, owners, and open questions.",
+  "tags": ["notes", "productivity", "planning"],
+  "prompt": "Turn the selected notes into meeting notes. Include summary, decisions, action items, owners if present, open questions, and follow-up risks. Do not invent attendees or owners."
+}
