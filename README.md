@@ -27,6 +27,13 @@ A calm, grouped workspace: model and files up top, every tool call logged in the
 
 Writes are off by default. The agent proposes a unified diff; you click **Apply**; the run becomes a receipt you can reopen, export, and replay.
 
+## GitHub Visual Assets
+
+- Hero GIF: [`docs/agenttrail-demo.gif`](docs/agenttrail-demo.gif)
+- UI preview: [`docs/preview-app.png`](docs/preview-app.png)
+- Diff preview: [`docs/preview-diff.png`](docs/preview-diff.png)
+- Social preview upload asset: [`docs/social-preview.png`](docs/social-preview.png)
+
 ## Why Star This
 
 - **Transparent by default**: every tool call is shown as an Agent Trail receipt.
