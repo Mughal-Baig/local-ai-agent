@@ -61,6 +61,7 @@
     "test:memory-suggestions": "node tests/integration/memory-suggestions.test.js",
     "test:memory-retrieval": "node tests/integration/memory-retrieval.test.js",
     "test:memory-history": "node tests/integration/memory-history.test.js",
+    "test:memory-scopes": "node tests/integration/memory-scopes.test.js",
     "test:ui": "node tests/ui/playwright-smoke.test.js",
     "eval": "node scripts/evaluate-agenttrail.js",
     "mcp": "node mcp/server.js",

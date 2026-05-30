@@ -93,6 +93,9 @@ async function main() {
   checks.push(await check("Memory history endpoints exist", async () => includes("server.js", ["/api/memory/history", "handleMemoryHistoryRevert", "agenttrail.memory-history.v1"])));
   checks.push(await check("Memory history UI exists", async () => includes("public/index.html", ["memoryHistory", "refreshMemoryHistory", "memoryHistoryDiff"])));
   checks.push(await check("Memory history tests exist", async () => includes("tests/integration/memory-history.test.js", ["memory-history.v1", "history/revert", "Original local fact"])));
+  checks.push(await check("Scoped memory endpoints exist", async () => includes("server.js", ["/api/memory/scopes", "GLOBAL_MEMORY_ROOT", "agenttrail.memory-scopes.v1"])));
+  checks.push(await check("Scoped memory prompt injection exists", async () => includes("server.js", ["Global memory:", "Project memory:", "readStructuredMemoryForScope"])));
+  checks.push(await check("Scoped memory tests exist", async () => includes("tests/integration/memory-scopes.test.js", ["memory-scopes.v1", "Global memory:", "Project memory:"])));
 
   const passed = checks.filter((item) => item.ok).length;
   const score = Math.round((passed / checks.length) * 100);

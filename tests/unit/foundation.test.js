@@ -50,6 +50,7 @@ async function main() {
   assert.equal(routeCatalog().some((route) => route.area === "planner"), true);
   assert.equal(routeCatalog().some((route) => route.routes.includes("/api/chat")), true);
   assert.equal(routeCatalog().some((route) => route.routes.includes("/api/memory/structured")), true);
+  assert.equal(routeCatalog().some((route) => route.routes.includes("/api/memory/scopes")), true);
   assert.equal(routeCatalog().some((route) => route.routes.includes("/api/memory/retrieve")), true);
   assert.equal(routeCatalog().some((route) => route.routes.includes("/api/memory/history/revert")), true);
   assert.equal(routeCatalog().some((route) => route.routes.includes("/api/memory/suggestions/apply")), true);

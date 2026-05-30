@@ -22,6 +22,7 @@ const state = {
   mcp: null,
   evals: null,
   memoryLoaded: false,
+  memoryScope: "project",
   structuredMemory: null,
   memorySuggestions: [],
   memoryHistory: [],
@@ -95,6 +96,7 @@ const els = {
   receiptTimeline: document.querySelector("#receiptTimeline"),
   exportReport: document.querySelector("#exportReport"),
   memoryInput: document.querySelector("#memoryInput"),
+  memoryScope: document.querySelector("#memoryScope"),
   saveMemory: document.querySelector("#saveMemory"),
   memoryStatus: document.querySelector("#memoryStatus"),
   memoryCitations: document.querySelector("#memoryCitations"),
@@ -216,6 +218,7 @@ function bindEvents() {
   els.receiptFilter.addEventListener("input", renderReceiptTimeline);
   els.replaySession.addEventListener("click", replaySelectedSession);
   els.exportReport.addEventListener("click", exportShareableReport);
+  els.memoryScope.addEventListener("change", changeMemoryScope);
   els.saveMemory.addEventListener("click", saveMemory);
   els.refreshMemoryHistory.addEventListener("click", refreshMemoryHistory);
   els.exportPack.addEventListener("click", exportSelectedPack);
@@ -438,25 +441,34 @@ function renderSearchIndex() {
 
 async function refreshMemory() {
   try {
-    const data = await getJson("/api/memory");
+    const data = await getJson(`/api/memory?scope=${encodeURIComponent(state.memoryScope)}`);
     els.memoryInput.value = data.content || "";
     state.structuredMemory = data.structured || null;
     state.memoryLoaded = true;
     els.memoryStatus.textContent = data.structured
-      ? `Loaded ${data.path} · ${memoryCountSummary(data.structured)}`
+      ? `Loaded ${data.label || state.memoryScope} memory · ${memoryCountSummary(data.structured)}`
       : (data.modifiedAt ? `Loaded ${data.path}` : "Memory is ready.");
   } catch (error) {
     els.memoryStatus.textContent = `Memory unavailable: ${error.message}`;
   }
 }
 
+async function changeMemoryScope() {
+  state.memoryScope = els.memoryScope.value || "project";
+  state.memorySuggestions = [];
+  renderMemorySuggestions();
+  await refreshMemory();
+  await refreshMemoryCitations();
+  await refreshMemoryHistory();
+}
+
 async function saveMemory() {
   try {
-    const saved = await postJson("/api/memory", { content: els.memoryInput.value });
+    const saved = await postJson("/api/memory", { content: els.memoryInput.value, scope: state.memoryScope });
     state.memoryLoaded = true;
     state.structuredMemory = saved.structured?.memory || null;
-    els.memoryStatus.textContent = `Saved ${saved.path}; ${memoryCountSummary(state.structuredMemory)}; history ${saved.history?.path || "recorded"}`;
-    addTrail("memory", `Saved ${saved.path}`);
+    els.memoryStatus.textContent = `Saved ${saved.label || state.memoryScope} memory; ${memoryCountSummary(state.structuredMemory)}; history ${saved.history?.path || "recorded"}`;
+    addTrail("memory", `Saved ${saved.label || state.memoryScope} memory`);
     await refreshMemoryCitations();
     await refreshMemoryHistory();
     renderTrustScore();
@@ -488,7 +500,7 @@ function renderMemorySuggestions() {
   els.memorySuggestions.innerHTML = `
     <div class="mini-row muted">
       <strong>Suggested memory</strong>
-      <span>${suggestions.length} item(s) from the latest run</span>
+      <span>${suggestions.length} item(s) for ${escapeHtml(state.memoryScope)} memory</span>
       <button type="button" data-action="save-all">Save all</button>
     </div>
     ${suggestions.slice(0, 6).map((item) => `
@@ -518,11 +530,11 @@ async function applyMemorySuggestions(suggestions) {
     return;
   }
   try {
-    const saved = await postJson("/api/memory/suggestions/apply", { suggestions });
+    const saved = await postJson("/api/memory/suggestions/apply", { suggestions, scope: state.memoryScope });
     state.memorySuggestions = state.memorySuggestions.filter((item) => !suggestions.some((suggestion) => suggestion.id === item.id));
     state.structuredMemory = saved.structured?.memory || state.structuredMemory;
-    els.memoryStatus.textContent = `Saved ${saved.applied} suggestion(s); ${memoryCountSummary(state.structuredMemory)}`;
-    addTrail("memory", `Saved ${saved.applied} suggested memory item(s)`);
+    els.memoryStatus.textContent = `Saved ${saved.applied} ${state.memoryScope} suggestion(s); ${memoryCountSummary(state.structuredMemory)}`;
+    addTrail("memory", `Saved ${saved.applied} suggested ${state.memoryScope} memory item(s)`);
     renderMemorySuggestions();
     await refreshMemory();
     await refreshMemoryCitations();
@@ -539,7 +551,7 @@ async function refreshMemoryCitations(query = "") {
     return;
   }
   try {
-    const data = await getJson(`/api/memory/citations?query=${encodeURIComponent(query)}`);
+    const data = await getJson(`/api/memory/citations?scope=${encodeURIComponent(state.memoryScope)}&query=${encodeURIComponent(query)}`);
     renderMemoryCitations(data.citations || []);
   } catch {
     els.memoryCitations.innerHTML = "";
@@ -569,7 +581,7 @@ async function refreshMemoryHistory() {
     return;
   }
   try {
-    const data = await getJson("/api/memory/history");
+    const data = await getJson(`/api/memory/history?scope=${encodeURIComponent(state.memoryScope)}`);
     state.memoryHistory = data.revisions || [];
     renderMemoryHistory();
   } catch (error) {
@@ -624,7 +636,7 @@ async function showMemoryRevisionDiff(id) {
     return;
   }
   try {
-    const data = await getJson(`/api/memory/history/diff?id=${encodeURIComponent(id)}`);
+    const data = await getJson(`/api/memory/history/diff?scope=${encodeURIComponent(state.memoryScope)}&id=${encodeURIComponent(id)}`);
     state.selectedMemoryRevision = data.revision || null;
     const revision = data.revision || {};
     els.memoryHistoryDiff.innerHTML = `
@@ -647,14 +659,14 @@ async function revertMemoryRevision(id) {
   }
   const revision = (state.memoryHistory || []).find((item) => item.id === id);
   const label = revision ? memoryRevisionLabel(revision) : id;
-  if (!window.confirm(`Revert project memory to ${label}? A new history entry will be created.`)) {
+  if (!window.confirm(`Revert ${state.memoryScope} memory to ${label}? A new history entry will be created.`)) {
     return;
   }
   try {
-    const saved = await postJson("/api/memory/history/revert", { id });
+    const saved = await postJson("/api/memory/history/revert", { id, scope: state.memoryScope });
     state.structuredMemory = saved.structured?.memory || state.structuredMemory;
-    els.memoryStatus.textContent = `Restored ${saved.restoredFrom?.path || id}; ${memoryCountSummary(state.structuredMemory)}`;
-    addTrail("memory", `Reverted memory to ${id}`);
+    els.memoryStatus.textContent = `Restored ${saved.label || state.memoryScope} memory; ${memoryCountSummary(state.structuredMemory)}`;
+    addTrail("memory", `Reverted ${state.memoryScope} memory to ${id}`);
     await refreshMemory();
     await refreshMemoryCitations();
     await refreshMemoryHistory();

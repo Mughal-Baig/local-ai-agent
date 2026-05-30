@@ -64,7 +64,7 @@ A long-horizon backlog (12+ months) for making AgentTrail the auditable agent la
 - [x] T040 Automatic memory capture suggestions after a run
 - [x] T041 Memory retrieval ranked into the prompt budget
 - [x] T042 Memory diff/history view + revert
-- [ ] T043 Per-workspace vs global memory scopes
+- [x] T043 Per-workspace vs global memory scopes
 
 ---
 

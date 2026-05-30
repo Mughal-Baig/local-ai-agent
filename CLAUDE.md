@@ -37,9 +37,10 @@ Codex completed the first hard engineering slice from Phase 1:
 - T040: automatic post-run memory suggestions with explicit user apply controls
 - T041: ranked memory retrieval endpoint and prompt-budgeted structured memory injection
 - T042: memory history list, diff preview, and revert flow that records a new audit entry
+- T043: project/global memory scopes with prompt injection for both scopes and UI switching
 
 Best next Claude tasks:
 
-- Work on docs and UI copy around native tool calling, structured outputs, planner approval, run guardrails, reflection, loop safety, structured memory, memory suggestions, ranked memory retrieval, and memory history.
-- Do not rework `server.js` tool-calling, structured-output, planner, run-cancellation, loop/reflection, or memory internals unless you also run `npm run test:tools`, `npm run test:structured`, `npm run test:planner`, `npm run test:guardrails`, `npm run test:reflection`, `npm run test:memory`, `npm run test:memory-suggestions`, `npm run test:memory-retrieval`, and `npm run test:memory-history`.
-- Next code target should be T038 resume interrupted run from receipt or T043 per-workspace vs global memory scopes, not the runtime moonshot.
+- Work on docs and UI copy around native tool calling, structured outputs, planner approval, run guardrails, reflection, loop safety, structured memory, memory suggestions, ranked memory retrieval, memory history, and scoped memory.
+- Do not rework `server.js` tool-calling, structured-output, planner, run-cancellation, loop/reflection, or memory internals unless you also run `npm run test:tools`, `npm run test:structured`, `npm run test:planner`, `npm run test:guardrails`, `npm run test:reflection`, `npm run test:memory`, `npm run test:memory-suggestions`, `npm run test:memory-retrieval`, `npm run test:memory-history`, and `npm run test:memory-scopes`.
+- Next code target should be T038 resume interrupted run from receipt or T044/T045 search hardening, not the runtime moonshot.

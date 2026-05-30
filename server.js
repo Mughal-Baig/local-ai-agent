@@ -76,6 +76,13 @@ const ATTACHMENTS_DIR = "attachments";
 const MEMORY_PATH = "memory/project-memory.md";
 const MEMORY_STRUCTURED_PATH = "memory/project-memory.json";
 const MEMORY_HISTORY_DIR = "memory/history";
+const GLOBAL_MEMORY_ROOT = path.resolve(process.env.AGENTTRAIL_GLOBAL_MEMORY_ROOT || path.join(PROJECT_ROOT, ".local-agent"));
+const GLOBAL_MEMORY_PATH = "global/memory/global-memory.md";
+const GLOBAL_MEMORY_STRUCTURED_PATH = "global/memory/global-memory.json";
+const GLOBAL_MEMORY_HISTORY_DIR = "global/memory/history";
+const GLOBAL_MEMORY_STORAGE_PATH = "memory/global-memory.md";
+const GLOBAL_MEMORY_STRUCTURED_STORAGE_PATH = "memory/global-memory.json";
+const GLOBAL_MEMORY_HISTORY_STORAGE_DIR = "memory/history";
 const SEARCH_INDEX_PATH = ".agenttrail/search-index.json";
 const BACKUPS_DIR = "backups";
 const MAX_BODY_BYTES = 1024 * 1024;
@@ -259,15 +266,19 @@ const server = http.createServer(async (req, res) => {
     }
 
     if (url.pathname === "/api/memory" && req.method === "GET") {
-      return handleGetMemory(res);
+      return handleGetMemory(url, res);
     }
 
     if (url.pathname === "/api/memory" && req.method === "POST") {
       return handleSaveMemory(req, res);
     }
 
+    if (url.pathname === "/api/memory/scopes" && req.method === "GET") {
+      return handleMemoryScopes(res);
+    }
+
     if (url.pathname === "/api/memory/structured" && req.method === "GET") {
-      return handleStructuredMemory(res);
+      return handleStructuredMemory(url, res);
     }
 
     if (url.pathname === "/api/memory/retrieve" && req.method === "GET") {
@@ -275,7 +286,7 @@ const server = http.createServer(async (req, res) => {
     }
 
     if (url.pathname === "/api/memory/history" && req.method === "GET") {
-      return handleMemoryHistory(res);
+      return handleMemoryHistory(url, res);
     }
 
     if (url.pathname === "/api/memory/history/diff" && req.method === "GET") {
@@ -1243,60 +1254,190 @@ async function handleBuildSearchIndex(req, res) {
   sendJson(res, 200, result);
 }
 
-async function handleGetMemory(res) {
+function normalizeMemoryScope(value, options = {}) {
+  const scope = String(value || options.fallback || "project").trim().toLowerCase();
+  if (options.allowAll && scope === "all") {
+    return "all";
+  }
+  if (scope === "global" || scope === "project") {
+    return scope;
+  }
+  return options.fallback || "project";
+}
+
+function memoryScopeConfig(scopeValue = "project") {
+  const scope = normalizeMemoryScope(scopeValue);
+  if (scope === "global") {
+    return {
+      scope,
+      label: "Global",
+      path: GLOBAL_MEMORY_PATH,
+      structuredPath: GLOBAL_MEMORY_STRUCTURED_PATH,
+      historyDir: GLOBAL_MEMORY_HISTORY_DIR,
+      storagePath: GLOBAL_MEMORY_STORAGE_PATH,
+      structuredStoragePath: GLOBAL_MEMORY_STRUCTURED_STORAGE_PATH,
+      historyStorageDir: GLOBAL_MEMORY_HISTORY_STORAGE_DIR,
+      defaultContent: "# Global Memory\n\nAdd reusable preferences and stable facts that should follow you across workspaces.\n"
+    };
+  }
+  return {
+    scope: "project",
+    label: "Project",
+    path: MEMORY_PATH,
+    structuredPath: MEMORY_STRUCTURED_PATH,
+    historyDir: MEMORY_HISTORY_DIR,
+    storagePath: MEMORY_PATH,
+    structuredStoragePath: MEMORY_STRUCTURED_PATH,
+    historyStorageDir: MEMORY_HISTORY_DIR,
+    defaultContent: "# Project Memory\n\nAdd stable project facts, preferences, and recurring decisions here.\n"
+  };
+}
+
+async function readScopedMemoryFile(scope, displayPath, storagePath, maxBytes) {
+  const config = memoryScopeConfig(scope);
+  if (config.scope === "project") {
+    return readWorkspaceFile(displayPath, maxBytes);
+  }
+  const absolutePath = resolveGlobalMemoryPath(storagePath);
+  const stat = await fsp.stat(absolutePath);
+  if (!stat.isFile()) {
+    throw new Error("Path is not a file");
+  }
+  if (stat.size > maxBytes) {
+    throw new Error(`File is too large to read here (${stat.size} bytes)`);
+  }
+  return {
+    path: displayPath,
+    size: stat.size,
+    modifiedAt: stat.mtime.toISOString(),
+    content: await fsp.readFile(absolutePath, "utf8")
+  };
+}
+
+async function writeScopedMemoryFile(scope, displayPath, storagePath, content) {
+  const config = memoryScopeConfig(scope);
+  if (config.scope === "project") {
+    return writeWorkspaceFile(displayPath, content);
+  }
+  const absolutePath = resolveGlobalMemoryPath(storagePath);
+  await fsp.mkdir(path.dirname(absolutePath), { recursive: true });
+  await fsp.writeFile(absolutePath, content, "utf8");
+  const stat = await fsp.stat(absolutePath);
+  return {
+    path: displayPath,
+    size: stat.size,
+    modifiedAt: stat.mtime.toISOString(),
+    ok: true
+  };
+}
+
+function resolveGlobalMemoryPath(storagePath) {
+  const clean = normalizeRelativePath(storagePath);
+  const absolutePath = path.resolve(GLOBAL_MEMORY_ROOT, clean);
+  if (absolutePath !== GLOBAL_MEMORY_ROOT && !absolutePath.startsWith(`${GLOBAL_MEMORY_ROOT}${path.sep}`)) {
+    throw new Error("Path escapes the global memory store");
+  }
+  return absolutePath;
+}
+
+async function readMemoryDocument(scope, maxBytes = MAX_FILE_BYTES) {
+  const config = memoryScopeConfig(scope);
+  return readScopedMemoryFile(config.scope, config.path, config.storagePath, maxBytes);
+}
+
+async function handleGetMemory(url, res) {
+  const scope = normalizeMemoryScope(url.searchParams.get("scope"));
+  const config = memoryScopeConfig(scope);
   try {
-    const memory = await readWorkspaceFile(MEMORY_PATH, MAX_FILE_BYTES);
+    const memory = await readMemoryDocument(scope, MAX_FILE_BYTES);
     sendJson(res, 200, {
       ...memory,
-      structured: await readOrBuildStructuredMemory(memory.content)
+      scope,
+      label: config.label,
+      structured: await readOrBuildStructuredMemory(memory.content, scope)
     });
   } catch {
     sendJson(res, 200, {
-      path: MEMORY_PATH,
+      path: config.path,
+      scope,
+      label: config.label,
       size: 0,
       modifiedAt: null,
-      content: "# Project Memory\n\nAdd stable project facts, preferences, and recurring decisions here.\n",
-      structured: defaultStructuredMemory()
+      content: config.defaultContent,
+      structured: defaultStructuredMemory(scope)
     });
   }
 }
 
 async function handleSaveMemory(req, res) {
   const body = await readJsonBody(req);
+  const scope = normalizeMemoryScope(body.scope);
   const content = typeof body.content === "string" ? body.content : "";
-  const previous = await readWorkspaceFile(MEMORY_PATH, MAX_FILE_BYTES).catch(() => null);
-  const structured = normalizeStructuredMemory(body.structured, content);
-  sendJson(res, 200, await persistMemoryDocuments(content, structured, previous, "manual-save"));
+  const previous = await readMemoryDocument(scope, MAX_FILE_BYTES).catch(() => null);
+  const structured = normalizeStructuredMemory(body.structured, content, scope);
+  sendJson(res, 200, await persistMemoryDocuments(content, structured, previous, "manual-save", scope));
 }
 
-async function handleStructuredMemory(res) {
-  const structured = await readOrBuildStructuredMemory();
+async function handleMemoryScopes(res) {
+  const scopes = await Promise.all(["project", "global"].map(async (scope) => {
+    const config = memoryScopeConfig(scope);
+    const memory = await readMemoryDocument(scope, MAX_FILE_BYTES).catch(() => null);
+    return {
+      id: scope,
+      label: config.label,
+      path: config.path,
+      structuredPath: config.structuredPath,
+      historyDir: config.historyDir,
+      exists: Boolean(memory),
+      size: memory ? memory.size : 0,
+      modifiedAt: memory ? memory.modifiedAt : null
+    };
+  }));
+  sendJson(res, 200, {
+    schema: "agenttrail.memory-scopes.v1",
+    defaultScope: "project",
+    scopes
+  });
+}
+
+async function handleStructuredMemory(url, res) {
+  const scope = normalizeMemoryScope(url.searchParams.get("scope"));
+  const structured = await readOrBuildStructuredMemory(null, scope);
   sendJson(res, 200, structured);
 }
 
 async function handleMemoryRetrieve(url, res) {
   const query = String(url.searchParams.get("query") || "").trim();
+  const scope = normalizeMemoryScope(url.searchParams.get("scope") || "all", { allowAll: true, fallback: "all" });
   const budget = clampInt(url.searchParams.get("budget"), 240, Math.max(240, MEMORY_PROMPT_CHARS), MEMORY_PROMPT_CHARS);
-  const structured = await readOrBuildStructuredMemory();
-  sendJson(res, 200, rankStructuredMemory(structured, query, budget));
+  const structured = await readStructuredMemoryForScope(scope);
+  sendJson(res, 200, {
+    ...rankStructuredMemory(structured, query, budget),
+    scope
+  });
 }
 
-async function handleMemoryHistory(res) {
-  const revisions = await listMemoryHistory();
+async function handleMemoryHistory(url, res) {
+  const scope = normalizeMemoryScope(url.searchParams.get("scope"));
+  const revisions = await listMemoryHistory(scope);
   sendJson(res, 200, {
     schema: "agenttrail.memory-history.v1",
-    path: MEMORY_HISTORY_DIR,
+    scope,
+    path: memoryScopeConfig(scope).historyDir,
     revisions
   });
 }
 
 async function handleMemoryHistoryDiff(url, res) {
+  const scope = normalizeMemoryScope(url.searchParams.get("scope"));
   const id = normalizeMemoryHistoryId(url.searchParams.get("id"));
-  const revision = await readMemoryRevision(id);
-  const current = await readWorkspaceFile(MEMORY_PATH, MAX_BODY_BYTES).catch(() => ({ content: "" }));
-  const diff = createUnifiedDiff(MEMORY_PATH, current.content, revision.content);
+  const config = memoryScopeConfig(scope);
+  const revision = await readMemoryRevision(scope, id);
+  const current = await readMemoryDocument(scope, MAX_BODY_BYTES).catch(() => ({ content: "" }));
+  const diff = createUnifiedDiff(config.path, current.content, revision.content);
   sendJson(res, 200, {
     schema: "agenttrail.memory-history-diff.v1",
+    scope,
     revision: revision.metadata,
     diff
   });
@@ -1304,27 +1445,32 @@ async function handleMemoryHistoryDiff(url, res) {
 
 async function handleMemoryHistoryRevert(req, res) {
   const body = await readJsonBody(req);
+  const scope = normalizeMemoryScope(body.scope);
   const id = normalizeMemoryHistoryId(body.id);
-  const revision = await readMemoryRevision(id);
-  const structured = await readMemoryRevisionStructured(id).catch(() => normalizeStructuredMemory(null, revision.content));
-  const previous = await readWorkspaceFile(MEMORY_PATH, MAX_BODY_BYTES).catch(() => null);
-  const result = await persistMemoryDocuments(revision.content, structured, previous, `revert:${id}`);
+  const revision = await readMemoryRevision(scope, id);
+  const structured = await readMemoryRevisionStructured(scope, id).catch(() => normalizeStructuredMemory(null, revision.content, scope));
+  const previous = await readMemoryDocument(scope, MAX_BODY_BYTES).catch(() => null);
+  const result = await persistMemoryDocuments(revision.content, structured, previous, `revert:${id}`, scope);
   await STORE.append("memory-revert", {
+    scope,
     id,
     restoredFrom: revision.metadata.path,
     newHistory: result.history?.path || null
   });
   sendJson(res, 200, {
     ...result,
+    scope,
     restoredFrom: revision.metadata
   });
 }
 
 async function handleMemorySuggestions(req, res) {
   const body = await readJsonBody(req);
+  const scope = normalizeMemoryScope(body.scope);
   const messages = normalizeMessages(body.messages || []);
   const selectedFiles = Array.isArray(body.selectedFiles) ? body.selectedFiles.slice(0, 8) : [];
   const suggestions = await buildMemorySuggestions({
+    scope,
     messages,
     finalText: String(body.finalText || body.answer || ""),
     selectedFiles,
@@ -1336,29 +1482,33 @@ async function handleMemorySuggestions(req, res) {
 
 async function handleApplyMemorySuggestions(req, res) {
   const body = await readJsonBody(req);
+  const scope = normalizeMemoryScope(body.scope);
   const suggestions = normalizeMemorySuggestions(body.suggestions || []);
   if (!suggestions.length) {
     return sendJson(res, 400, { error: "No valid memory suggestions to apply." });
   }
 
-  const previous = await readWorkspaceFile(MEMORY_PATH, MAX_FILE_BYTES).catch(() => null);
-  const existingContent = previous ? previous.content : "# Project Memory\n";
-  const existingStructured = await readOrBuildStructuredMemory(existingContent);
+  const config = memoryScopeConfig(scope);
+  const previous = await readMemoryDocument(scope, MAX_FILE_BYTES).catch(() => null);
+  const existingContent = previous ? previous.content : config.defaultContent;
+  const existingStructured = await readOrBuildStructuredMemory(existingContent, scope);
   const mergedStructured = mergeMemorySuggestions(existingStructured, suggestions);
   const mergedContent = appendSuggestionsToMemoryMarkdown(existingContent, suggestions);
-  const result = await persistMemoryDocuments(mergedContent, mergedStructured, previous, "suggestion-apply");
+  const result = await persistMemoryDocuments(mergedContent, mergedStructured, previous, "suggestion-apply", scope);
   sendJson(res, 200, {
     ...result,
+    scope,
     applied: suggestions.length,
     suggestions
   });
 }
 
-async function persistMemoryDocuments(content, structured, previous, reason) {
-  const result = await writeWorkspaceFile(MEMORY_PATH, content);
-  const structuredResult = await writeWorkspaceFile(MEMORY_STRUCTURED_PATH, JSON.stringify(structured, null, 2));
+async function persistMemoryDocuments(content, structured, previous, reason, scope = "project") {
+  const config = memoryScopeConfig(scope);
+  const result = await writeScopedMemoryFile(scope, config.path, config.storagePath, content);
+  const structuredResult = await writeScopedMemoryFile(scope, config.structuredPath, config.structuredStoragePath, JSON.stringify(structured, null, 2));
   const stamp = new Date().toISOString().replace(/[:.]/g, "-");
-  const history = await writeWorkspaceFile(`${MEMORY_HISTORY_DIR}/memory-${stamp}.md`, [
+  const history = await writeScopedMemoryFile(scope, `${config.historyDir}/memory-${stamp}.md`, `${config.historyStorageDir}/memory-${stamp}.md`, [
     "# Memory Revision",
     "",
     `Saved: ${new Date().toISOString()}`,
@@ -1370,30 +1520,33 @@ async function persistMemoryDocuments(content, structured, previous, reason) {
     "",
     content
   ].join("\n"));
-  const structuredHistory = await writeWorkspaceFile(`${MEMORY_HISTORY_DIR}/memory-${stamp}.json`, JSON.stringify(structured, null, 2));
+  const structuredHistory = await writeScopedMemoryFile(scope, `${config.historyDir}/memory-${stamp}.json`, `${config.historyStorageDir}/memory-${stamp}.json`, JSON.stringify(structured, null, 2));
   await STORE.append("memory-structured", {
+    scope: config.scope,
     path: structuredResult.path,
     reason: reason || "manual-save",
     facts: structured.facts.length,
     preferences: structured.preferences.length,
     decisions: structured.decisions.length
   });
-  return { ...result, history, structured: { ...structuredResult, memory: structured, history: structuredHistory } };
+  return { ...result, scope: config.scope, label: config.label, history, structured: { ...structuredResult, memory: structured, history: structuredHistory } };
 }
 
-async function listMemoryHistory(limit = 24) {
-  const files = (await listWorkspaceFiles())
-    .filter((file) => /^memory\/history\/memory-.+\.md$/.test(file.path))
+async function listMemoryHistory(scope = "project", limit = 24) {
+  const config = memoryScopeConfig(scope);
+  const files = (await listMemoryHistoryFiles(scope))
+    .filter((file) => file.path.startsWith(`${config.historyDir}/`) && /\/memory-.+\.md$/.test(file.path))
     .sort((a, b) => String(b.modifiedAt || "").localeCompare(String(a.modifiedAt || "")))
     .slice(0, limit);
 
   const revisions = [];
   for (const file of files) {
     try {
-      const revision = await readMemoryRevision(path.basename(file.path, ".md"));
-      const structured = await readMemoryRevisionStructured(revision.metadata.id).catch(() => normalizeStructuredMemory(null, revision.content));
+      const revision = await readMemoryRevision(scope, path.basename(file.path, ".md"));
+      const structured = await readMemoryRevisionStructured(scope, revision.metadata.id).catch(() => normalizeStructuredMemory(null, revision.content, scope));
       revisions.push({
         ...revision.metadata,
+        scope: config.scope,
         size: file.size,
         modifiedAt: file.modifiedAt,
         counts: structuredMemoryCounts(structured),
@@ -1406,16 +1559,41 @@ async function listMemoryHistory(limit = 24) {
   return revisions.sort((a, b) => String(b.savedAt || b.modifiedAt || "").localeCompare(String(a.savedAt || a.modifiedAt || "")));
 }
 
-async function readMemoryRevision(id) {
+async function listMemoryHistoryFiles(scope = "project") {
+  const config = memoryScopeConfig(scope);
+  if (config.scope === "project") {
+    return listWorkspaceFiles();
+  }
+  const absoluteDir = resolveGlobalMemoryPath(config.historyStorageDir);
+  const entries = await fsp.readdir(absoluteDir, { withFileTypes: true }).catch(() => []);
+  const files = [];
+  for (const entry of entries) {
+    if (!entry.isFile()) {
+      continue;
+    }
+    const absolutePath = path.join(absoluteDir, entry.name);
+    const stat = await fsp.stat(absolutePath);
+    files.push({
+      path: `${config.historyDir}/${entry.name}`,
+      size: stat.size,
+      modifiedAt: stat.mtime.toISOString()
+    });
+  }
+  return files;
+}
+
+async function readMemoryRevision(scope, id) {
+  const config = memoryScopeConfig(scope);
   const cleanId = normalizeMemoryHistoryId(id);
-  const file = await readWorkspaceFile(`${MEMORY_HISTORY_DIR}/${cleanId}.md`, MAX_BODY_BYTES);
+  const file = await readScopedMemoryFile(scope, `${config.historyDir}/${cleanId}.md`, `${config.historyStorageDir}/${cleanId}.md`, MAX_BODY_BYTES);
   const parsed = parseMemoryRevisionMarkdown(file.content);
   return {
     content: parsed.content,
     metadata: {
       id: cleanId,
+      scope: config.scope,
       path: file.path,
-      structuredPath: `${MEMORY_HISTORY_DIR}/${cleanId}.json`,
+      structuredPath: `${config.historyDir}/${cleanId}.json`,
       savedAt: parsed.savedAt,
       reason: parsed.reason,
       previousSize: parsed.previousSize,
@@ -1426,10 +1604,11 @@ async function readMemoryRevision(id) {
   };
 }
 
-async function readMemoryRevisionStructured(id) {
+async function readMemoryRevisionStructured(scope, id) {
+  const config = memoryScopeConfig(scope);
   const cleanId = normalizeMemoryHistoryId(id);
-  const file = await readWorkspaceFile(`${MEMORY_HISTORY_DIR}/${cleanId}.json`, MAX_BODY_BYTES);
-  return normalizeStructuredMemory(JSON.parse(file.content), null);
+  const file = await readScopedMemoryFile(scope, `${config.historyDir}/${cleanId}.json`, `${config.historyStorageDir}/${cleanId}.json`, MAX_BODY_BYTES);
+  return normalizeStructuredMemory(JSON.parse(file.content), null, scope);
 }
 
 function parseMemoryRevisionMarkdown(content) {
@@ -1471,32 +1650,61 @@ function memoryRevisionPreview(content) {
   const line = String(content || "")
     .split(/\r?\n/)
     .map((item) => item.replace(/^[-*#\s]+/, "").trim())
-    .find((item) => item && !/^(project memory|facts?|preferences?|prefs?|decisions?)$/i.test(item));
-  return truncate(line || "Empty project memory revision.", 120);
+    .find((item) => item && !/^((project|global) memory|facts?|preferences?|prefs?|decisions?)$/i.test(item));
+  return truncate(line || "Empty memory revision.", 120);
 }
 
-async function readOrBuildStructuredMemory(content = null) {
+async function readOrBuildStructuredMemory(content = null, scope = "project") {
+  const config = memoryScopeConfig(scope);
   if (content === null) {
     try {
-      const structured = JSON.parse((await readWorkspaceFile(MEMORY_STRUCTURED_PATH, MAX_FILE_BYTES)).content);
-      return normalizeStructuredMemory(structured, null);
+      const structured = JSON.parse((await readScopedMemoryFile(config.scope, config.structuredPath, config.structuredStoragePath, MAX_FILE_BYTES)).content);
+      return normalizeStructuredMemory(structured, null, config.scope);
     } catch {
       // Rebuild from Markdown below.
     }
     try {
-      content = (await readWorkspaceFile(MEMORY_PATH, MAX_FILE_BYTES)).content;
+      content = (await readMemoryDocument(config.scope, MAX_FILE_BYTES)).content;
     } catch {
       content = "";
     }
   }
-  return normalizeStructuredMemory(null, content || "");
+  return normalizeStructuredMemory(null, content || "", config.scope);
 }
 
-function defaultStructuredMemory() {
+async function readStructuredMemoryForScope(scope = "project") {
+  if (scope === "all") {
+    const [globalMemory, projectMemory] = await Promise.all([
+      readOrBuildStructuredMemory(null, "global"),
+      readOrBuildStructuredMemory(null, "project")
+    ]);
+    return combineStructuredMemories([globalMemory, projectMemory]);
+  }
+  return readOrBuildStructuredMemory(null, scope);
+}
+
+function combineStructuredMemories(memories) {
+  const valid = memories.filter(Boolean);
   return {
     schema: "agenttrail.project-memory.v1",
     version: 1,
-    sourcePath: MEMORY_PATH,
+    scope: "all",
+    sourcePath: "scoped-memory",
+    updatedAt: valid.map((item) => item.updatedAt).filter(Boolean).sort().pop() || new Date().toISOString(),
+    summary: "Combined global and project memory.",
+    facts: valid.flatMap((item) => item.facts || []),
+    preferences: valid.flatMap((item) => item.preferences || []),
+    decisions: valid.flatMap((item) => item.decisions || [])
+  };
+}
+
+function defaultStructuredMemory(scope = "project") {
+  const config = memoryScopeConfig(scope);
+  return {
+    schema: "agenttrail.project-memory.v1",
+    version: 1,
+    scope: config.scope,
+    sourcePath: config.path,
     updatedAt: new Date().toISOString(),
     summary: "No structured memory has been saved yet.",
     facts: [],
@@ -1505,33 +1713,35 @@ function defaultStructuredMemory() {
   };
 }
 
-function normalizeStructuredMemory(value, sourceContent = "") {
+function normalizeStructuredMemory(value, sourceContent = "", scope = "project") {
   const now = new Date().toISOString();
-  const sourcePath = MEMORY_PATH;
-  const derived = sourceContent ? deriveStructuredMemory(sourceContent, now) : defaultStructuredMemory();
+  const config = memoryScopeConfig(scope);
+  const sourcePath = config.path;
+  const derived = sourceContent ? deriveStructuredMemory(sourceContent, now, config.scope) : defaultStructuredMemory(config.scope);
   const input = value && typeof value === "object" && !Array.isArray(value) ? value : {};
   const memory = {
     schema: "agenttrail.project-memory.v1",
     version: 1,
+    scope: config.scope,
     sourcePath,
     updatedAt: String(input.updatedAt || derived.updatedAt || now),
     summary: truncate(String(input.summary || derived.summary || "").trim(), 400),
-    facts: normalizeMemoryItems(input.facts, "fact", derived.facts),
-    preferences: normalizeMemoryItems(input.preferences, "preference", derived.preferences),
-    decisions: normalizeMemoryItems(input.decisions, "decision", derived.decisions)
+    facts: normalizeMemoryItems(input.facts, "fact", derived.facts, config.scope),
+    preferences: normalizeMemoryItems(input.preferences, "preference", derived.preferences, config.scope),
+    decisions: normalizeMemoryItems(input.decisions, "decision", derived.decisions, config.scope)
   };
   const validation = validateSchema("projectMemory", memory);
   if (!validation.ok) {
-    return defaultStructuredMemory();
+    return defaultStructuredMemory(config.scope);
   }
   return memory;
 }
 
-function normalizeMemoryItems(items, type, fallback = []) {
+function normalizeMemoryItems(items, type, fallback = [], scope = "project") {
   const values = Array.isArray(items) && items.length ? items : fallback;
   const seen = new Set();
   return values
-    .map((item, index) => normalizeMemoryItem(item, type, index))
+    .map((item, index) => normalizeMemoryItem(item, type, index, scope))
     .filter((item) => {
       if (!item || seen.has(item.text.toLowerCase())) {
         return false;
@@ -1542,7 +1752,8 @@ function normalizeMemoryItems(items, type, fallback = []) {
     .slice(0, 40);
 }
 
-function normalizeMemoryItem(item, type, index) {
+function normalizeMemoryItem(item, type, index, scope = "project") {
+  const config = memoryScopeConfig(scope);
   const source = item && typeof item === "object" && !Array.isArray(item) ? item : { text: item };
   const text = truncate(String(source.text || "").replace(/\s+/g, " ").trim(), 280);
   if (!text) {
@@ -1555,18 +1766,20 @@ function normalizeMemoryItem(item, type, index) {
     text,
     confidence: ["low", "medium", "high"].includes(source.confidence) ? source.confidence : "medium",
     source: {
-      path: String(source.source?.path || source.path || MEMORY_PATH),
+      path: String(source.source?.path || source.path || config.path),
       line: Number.isFinite(line) && line > 0 ? Math.round(line) : 1
     },
     updatedAt: String(source.updatedAt || new Date().toISOString())
   };
 }
 
-function deriveStructuredMemory(content, updatedAt) {
+function deriveStructuredMemory(content, updatedAt, scope = "project") {
+  const config = memoryScopeConfig(scope);
   const memory = {
     schema: "agenttrail.project-memory.v1",
     version: 1,
-    sourcePath: MEMORY_PATH,
+    scope: config.scope,
+    sourcePath: config.path,
     updatedAt,
     summary: "Structured memory derived from Markdown.",
     facts: [],
@@ -1602,15 +1815,15 @@ function deriveStructuredMemory(content, updatedAt) {
       ? (explicit[1].toLowerCase().startsWith("pref") ? "preference" : explicit[1].toLowerCase())
       : section || inferMemoryType(stripped);
     const text = explicit ? explicit[2].trim() : stripped;
-    if (!text || /^project memory$/i.test(text)) {
+    if (!text || /^(project|global) memory$/i.test(text)) {
       continue;
     }
     const item = normalizeMemoryItem({
       text,
       confidence: explicit || section ? "high" : "medium",
-      source: { path: MEMORY_PATH, line: index + 1 },
+      source: { path: config.path, line: index + 1 },
       updatedAt
-    }, type, index);
+    }, type, index, config.scope);
     if (item) {
       memory[memoryCollectionName(type)].push(item);
     }
@@ -1653,13 +1866,18 @@ function structuredMemoryToCitations(memory, terms) {
     .sort((a, b) => b.score - a.score || a.item.type.localeCompare(b.item.type))
     .slice(0, 6)
     .map(({ item, score }) => ({
-      path: MEMORY_STRUCTURED_PATH,
+      path: memoryStructuredPathForItem(item),
       line: item.source?.line || 1,
       text: `[${item.type}] ${item.text}`,
       type: item.type,
       confidence: item.confidence,
       why: terms.length ? `Matched ${score} structured memory term(s).` : "Visible structured project memory."
     }));
+}
+
+function memoryStructuredPathForItem(item) {
+  const sourcePath = String(item?.source?.path || "");
+  return sourcePath.startsWith("global/") ? GLOBAL_MEMORY_STRUCTURED_PATH : MEMORY_STRUCTURED_PATH;
 }
 
 function structuredMemoryItems(memory) {
@@ -1789,6 +2007,7 @@ function formatStructuredMemoryForPrompt(memory, queryText = "", budgetChars = M
   const retrieval = rankStructuredMemory(memory, queryText, budgetChars);
   const rows = [
     `Schema: ${memory.schema || "agenttrail.project-memory.v1"}`,
+    `Scope: ${memory.scope || "project"}`,
     `Updated: ${memory.updatedAt || "unknown"}`,
     `Ranked structured memory: selected ${retrieval.selected.length}/${retrieval.totalItems} item(s), used ${retrieval.usedChars}/${retrieval.budgetChars} chars.`
   ];
@@ -1800,8 +2019,9 @@ function formatStructuredMemoryForPrompt(memory, queryText = "", budgetChars = M
   return rows.join("\n");
 }
 
-async function buildMemorySuggestions({ messages, finalText, selectedFiles = [], approvedPlan = null, toolHistory = [] }) {
-  const existing = await readOrBuildStructuredMemory();
+async function buildMemorySuggestions({ scope = "project", messages, finalText, selectedFiles = [], approvedPlan = null, toolHistory = [] }) {
+  const memoryScope = normalizeMemoryScope(scope);
+  const existing = await readOrBuildStructuredMemory(null, memoryScope);
   const existingTexts = new Set([
     ...(existing.facts || []),
     ...(existing.preferences || []),
@@ -1852,6 +2072,7 @@ async function buildMemorySuggestions({ messages, finalText, selectedFiles = [],
     .slice(0, 6);
   const result = {
     schema: "agenttrail.memory-suggestions.v1",
+    scope: memoryScope,
     createdAt: now,
     suggestions,
     source: {
@@ -1861,6 +2082,7 @@ async function buildMemorySuggestions({ messages, finalText, selectedFiles = [],
   };
   if (suggestions.length) {
     await STORE.append("memory-suggestions", {
+      scope: memoryScope,
       count: suggestions.length,
       types: suggestions.map((item) => item.type)
     });
@@ -1962,7 +2184,9 @@ function normalizeMemorySuggestion(item, index, now) {
 }
 
 function mergeMemorySuggestions(memory, suggestions) {
-  const merged = normalizeStructuredMemory(memory, "");
+  const scope = normalizeMemoryScope(memory?.scope);
+  const config = memoryScopeConfig(scope);
+  const merged = normalizeStructuredMemory(memory, "", scope);
   const existing = new Set([
     ...merged.facts,
     ...merged.preferences,
@@ -1976,11 +2200,11 @@ function mergeMemorySuggestions(memory, suggestions) {
     merged[memoryCollectionName(suggestion.type)].push(normalizeMemoryItem({
       ...suggestion,
       source: {
-        path: MEMORY_STRUCTURED_PATH,
+        path: config.path,
         line: 1
       },
       updatedAt: new Date().toISOString()
-    }, suggestion.type, merged[memoryCollectionName(suggestion.type)].length));
+    }, suggestion.type, merged[memoryCollectionName(suggestion.type)].length, scope));
   }
   merged.updatedAt = new Date().toISOString();
   return merged;
@@ -2003,44 +2227,57 @@ function memoryLabel(type) {
 
 async function handleMemoryCitations(url, res) {
   const query = String(url.searchParams.get("query") || "").trim();
+  const scope = normalizeMemoryScope(url.searchParams.get("scope"), { allowAll: true, fallback: "project" });
   const terms = query
     .toLowerCase()
     .split(/[^a-z0-9_.-]+/i)
     .filter((term) => term.length >= 2)
     .slice(0, 8);
 
-  let memory = "";
-  try {
-    memory = (await readWorkspaceFile(MEMORY_PATH, MAX_FILE_BYTES)).content;
-  } catch {
-    memory = "";
-  }
-  const structuredMemory = await readOrBuildStructuredMemory(memory);
-
-  const structuredCitations = structuredMemoryToCitations(structuredMemory, terms);
-  const markdownCitations = memory
-    .split(/\r?\n/)
-    .map((line, index) => ({ line: index + 1, text: line.trim() }))
-    .filter((item) => item.text)
-    .map((item) => {
-      const lower = item.text.toLowerCase();
-      const score = terms.length ? terms.reduce((sum, term) => sum + (lower.includes(term) ? 1 : 0), 0) : 1;
-      return { ...item, score };
-    })
-    .filter((item) => item.score > 0)
-    .sort((a, b) => b.score - a.score || a.line - b.line)
-    .slice(0, 8)
-    .map((item) => ({
-      path: MEMORY_PATH,
-      line: item.line,
-      text: item.text,
-      why: terms.length ? `Matched ${item.score} memory term(s).` : "Recent visible project memory."
+  const scopes = scope === "all" ? ["global", "project"] : [scope];
+  const structuredMemories = [];
+  const citations = [];
+  for (const currentScope of scopes) {
+    const config = memoryScopeConfig(currentScope);
+    let memory = "";
+    try {
+      memory = (await readMemoryDocument(currentScope, MAX_FILE_BYTES)).content;
+    } catch {
+      memory = "";
+    }
+    const structuredMemory = await readOrBuildStructuredMemory(memory, currentScope);
+    structuredMemories.push(structuredMemory);
+    const structuredCitations = structuredMemoryToCitations(structuredMemory, terms).map((item) => ({
+      ...item,
+      scope: currentScope
     }));
+    const markdownCitations = memory
+      .split(/\r?\n/)
+      .map((line, index) => ({ line: index + 1, text: line.trim() }))
+      .filter((item) => item.text)
+      .map((item) => {
+        const lower = item.text.toLowerCase();
+        const score = terms.length ? terms.reduce((sum, term) => sum + (lower.includes(term) ? 1 : 0), 0) : 1;
+        return { ...item, score };
+      })
+      .filter((item) => item.score > 0)
+      .sort((a, b) => b.score - a.score || a.line - b.line)
+      .slice(0, 8)
+      .map((item) => ({
+        path: config.path,
+        scope: currentScope,
+        line: item.line,
+        text: item.text,
+        why: terms.length ? `Matched ${item.score} memory term(s).` : `Recent visible ${currentScope} memory.`
+      }));
+    citations.push(...structuredCitations, ...markdownCitations);
+  }
 
   sendJson(res, 200, {
     query,
-    structured: structuredMemory,
-    citations: [...structuredCitations, ...markdownCitations].slice(0, 8)
+    scope,
+    structured: scope === "all" ? combineStructuredMemories(structuredMemories) : structuredMemories[0],
+    citations: citations.slice(0, 8)
   });
 }
 
@@ -2677,17 +2914,22 @@ async function runAgent(body, res, context = {}) {
 
 async function buildAgentPrompt(messages, selectedFiles, toolHistory, permissions, securityMode, approvedPlan = null, stepBudget = null) {
   const selectedFileBlocks = [];
-  let memoryBlock = "No project memory saved.";
-  let structuredMemory = defaultStructuredMemory();
-
-  try {
-    const memory = await readWorkspaceFile(MEMORY_PATH, MAX_PROMPT_FILE_BYTES);
-    memoryBlock = truncate(memory.content, RAW_MEMORY_PROMPT_CHARS);
-    structuredMemory = await readOrBuildStructuredMemory(memory.content);
-  } catch {
-    memoryBlock = "No project memory saved.";
-    structuredMemory = await readOrBuildStructuredMemory("");
-  }
+  const memoryScopes = await Promise.all(["global", "project"].map(async (scope) => {
+    try {
+      const memory = await readMemoryDocument(scope, MAX_PROMPT_FILE_BYTES);
+      return {
+        scope,
+        raw: truncate(memory.content, RAW_MEMORY_PROMPT_CHARS),
+        structured: await readOrBuildStructuredMemory(memory.content, scope)
+      };
+    } catch {
+      return {
+        scope,
+        raw: `No ${scope} memory saved.`,
+        structured: await readOrBuildStructuredMemory("", scope)
+      };
+    }
+  }));
 
   for (const filePath of selectedFiles) {
     try {
@@ -2730,7 +2972,12 @@ async function buildAgentPrompt(messages, selectedFiles, toolHistory, permission
     planNotes,
     truncate(toolNotes, 2000)
   ].join("\n\n");
-  const structuredMemoryBlock = formatStructuredMemoryForPrompt(structuredMemory, memoryQuery, MEMORY_PROMPT_CHARS);
+  const globalMemory = memoryScopes.find((item) => item.scope === "global");
+  const projectMemory = memoryScopes.find((item) => item.scope === "project");
+  const globalMemoryBudget = Math.max(240, Math.floor(MEMORY_PROMPT_CHARS * 0.35));
+  const projectMemoryBudget = Math.max(240, MEMORY_PROMPT_CHARS - globalMemoryBudget);
+  const globalStructuredMemoryBlock = formatStructuredMemoryForPrompt(globalMemory.structured, memoryQuery, globalMemoryBudget);
+  const projectStructuredMemoryBlock = formatStructuredMemoryForPrompt(projectMemory.structured, memoryQuery, projectMemoryBudget);
 
   return [
     "You are AgentTrail, a private AI assistant running on the user's computer.",
@@ -2761,11 +3008,17 @@ async function buildAgentPrompt(messages, selectedFiles, toolHistory, permission
     "",
     `Workspace root is sandboxed by the server. Current date: ${new Date().toISOString().slice(0, 10)}.`,
     "",
-    "Project memory:",
-    structuredMemoryBlock,
+    "Global memory:",
+    globalStructuredMemoryBlock,
     "",
-    "Raw memory note:",
-    memoryBlock,
+    "Project memory:",
+    projectStructuredMemoryBlock,
+    "",
+    "Raw global memory note:",
+    globalMemory.raw,
+    "",
+    "Raw project memory note:",
+    projectMemory.raw,
     "",
     "Selected file context:",
     fileContext,

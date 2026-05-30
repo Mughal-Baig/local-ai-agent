@@ -111,6 +111,7 @@ Open `http://127.0.0.1:4173`, build the semantic index, ask for a change, review
 - Project memory stored locally as Markdown plus structured facts/preferences/decisions JSON, with visible citations, revision history, and ranked prompt-budget retrieval
 - Post-run memory suggestions that the user can review and apply; nothing is silently remembered
 - Memory history view with revision diffs and revert that creates a new auditable history entry
+- Project/global memory scopes so reusable preferences can follow you without mixing project facts
 - Recipe packs for coder, founder, and security workflows, plus marketplace manifest and import/export route
 - Real MCP stdio server with explicit per-tool approvals and receipts
 - Workspace profile templates with profile switching API/UI
@@ -249,7 +250,7 @@ When write preview mode is enabled, `write_file` returns a diff preview instead 
 - Physical Mac app: `npm run package:mac-app` builds `dist/mac/AgentTrail.app`
 - Model scoring and benchmarking: `/api/status`, `/api/benchmarks`
 - Agent eval harness and history: `npm run eval`, `/api/evals`, `/api/evals/history`
-- Project memory: `workspace/memory/project-memory.md`, `workspace/memory/project-memory.json`, citations, and revision history
+- Project memory: `workspace/memory/project-memory.md`, `workspace/memory/project-memory.json`, citations, revision history, plus global memory under local `.local-agent/`
 - Workspace profiles: [profiles](profiles), `/api/profiles/apply`
 - Trust Score dashboard: browser UI
 - README star engine: demo, comparison, 60-second quick start, roadmap
@@ -336,6 +337,7 @@ npm run test:memory
 npm run test:memory-suggestions
 npm run test:memory-retrieval
 npm run test:memory-history
+npm run test:memory-scopes
 npm run test:ui
 npm run eval
 npm run release:checksums

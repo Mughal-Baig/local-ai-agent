@@ -180,7 +180,13 @@
         <section class="panel memory-panel" aria-label="Project memory">
           <div class="panel-heading">
             <h2>Memory</h2>
-            <button id="saveMemory" class="icon-button" title="Save project memory" aria-label="Save project memory"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><path d="M17 21v-8H7v8M7 3v5h8"/></svg></button>
+            <div class="panel-actions">
+              <select id="memoryScope" class="scope-select" aria-label="Memory scope">
+                <option value="project">Project</option>
+                <option value="global">Global</option>
+              </select>
+              <button id="saveMemory" class="icon-button" title="Save memory" aria-label="Save memory"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><path d="M17 21v-8H7v8M7 3v5h8"/></svg></button>
+            </div>
           </div>
           <textarea id="memoryInput" class="memory-input" rows="4" placeholder="Stable project facts, preferences, and recurring decisions..."></textarea>
           <p id="memoryStatus" class="hint">Memory is stored locally in the workspace.</p>
@@ -323,7 +329,7 @@
       </main>
     </div>
 
-    <script src="/app.js?v=20"></script>
+    <script src="/app.js?v=21"></script>
     <script src="/modules/foundation.js?v=1"></script>
     <script src="/modules/product.js?v=1"></script>
   </body>

@@ -8,8 +8,8 @@ const os = require("node:os");
 const path = require("node:path");
 
 const projectRoot = path.resolve(__dirname, "..", "..");
-const agentPort = 8800 + Math.floor(Math.random() * 100);
-const mockPort = 9000 + Math.floor(Math.random() * 100);
+const agentPort = 8750 + Math.floor(Math.random() * 120);
+const mockPort = 9050 + Math.floor(Math.random() * 120);
 
 main().catch((error) => {
   console.error(error);
@@ -19,8 +19,8 @@ main().catch((error) => {
 async function main() {
   const capturedPrompts = [];
   const mock = startMockOpenAI(mockPort, capturedPrompts);
-  const workspaceRoot = await fsp.mkdtemp(path.join(os.tmpdir(), "agenttrail-memory-retrieval-"));
-  const globalRoot = await fsp.mkdtemp(path.join(os.tmpdir(), "agenttrail-memory-retrieval-global-"));
+  const workspaceRoot = await fsp.mkdtemp(path.join(os.tmpdir(), "agenttrail-memory-scopes-workspace-"));
+  const globalRoot = await fsp.mkdtemp(path.join(os.tmpdir(), "agenttrail-memory-scopes-global-"));
   const child = spawn(process.execPath, ["server.js"], {
     cwd: projectRoot,
     env: {
@@ -30,9 +30,7 @@ async function main() {
       AGENTTRAIL_GLOBAL_MEMORY_ROOT: globalRoot,
       AGENTTRAIL_MODEL_ADAPTER: "openai-compatible",
       OPENAI_COMPATIBLE_HOST: `http://127.0.0.1:${mockPort}`,
-      AGENTTRAIL_CACHE: "off",
-      AGENTTRAIL_MEMORY_PROMPT_CHARS: "420",
-      AGENTTRAIL_RAW_MEMORY_PROMPT_CHARS: "240"
+      AGENTTRAIL_CACHE: "off"
     },
     stdio: ["ignore", "pipe", "pipe"]
   });
@@ -43,45 +41,62 @@ async function main() {
   try {
     await waitForServer(() => output);
     await postJson("/api/memory", {
+      scope: "project",
       content: [
         "# Project Memory",
         "",
-        "## Facts",
-        "- AgentTrail stores receipts locally.",
-        "- The launch site uses warm UI copy.",
+        "## Decisions",
+        "- Use project deploy checklist before release."
+      ].join("\n")
+    });
+    await postJson("/api/memory", {
+      scope: "global",
+      content: [
+        "# Global Memory",
         "",
         "## Preferences",
-        "- Prefer preview-first writes before applying changes.",
-        "- Always archive release screenshots after a demo.",
-        "",
-        "## Decisions",
-        "- Use structured memory JSON for future agent context.",
-        "- Ship desktop packaging only after tests pass."
+        "- Prefer concise global style notes across workspaces."
       ].join("\n")
     });
 
-    const retrieval = await getJson("/api/memory/retrieve?query=preview%20writes&budget=260");
-    assert.equal(retrieval.schema, "agenttrail.memory-retrieval.v1");
-    assert.equal(retrieval.selected.length >= 1, true);
-    assert.match(retrieval.selected[0].text, /preview-first writes/);
-    assert.equal(retrieval.selected[0].matches.includes("preview"), true);
-    assert.equal(retrieval.usedChars <= retrieval.budgetChars + 1, true);
+    const scopes = await getJson("/api/memory/scopes");
+    assert.equal(scopes.schema, "agenttrail.memory-scopes.v1");
+    assert.equal(scopes.scopes.some((item) => item.id === "global" && item.exists), true);
+    assert.equal(scopes.scopes.some((item) => item.id === "project" && item.exists), true);
+
+    const projectMemory = await getJson("/api/memory?scope=project");
+    assert.equal(projectMemory.scope, "project");
+    assert.match(projectMemory.content, /project deploy checklist/);
+    assert.doesNotMatch(projectMemory.content, /global style/);
+
+    const globalMemory = await getJson("/api/memory?scope=global");
+    assert.equal(globalMemory.scope, "global");
+    assert.match(globalMemory.content, /global style notes/);
+    assert.doesNotMatch(globalMemory.content, /project deploy/);
+
+    const retrieval = await getJson("/api/memory/retrieve?scope=all&query=global%20style%20deploy&budget=900");
+    assert.equal(retrieval.scope, "all");
+    assert.equal(retrieval.selected.some((item) => item.citation.startsWith("global/memory/global-memory.md")), true);
+    assert.equal(retrieval.selected.some((item) => item.citation.startsWith("memory/project-memory.md")), true);
+
+    const citations = await getJson("/api/memory/citations?scope=all&query=global");
+    assert.equal(citations.citations.some((item) => item.scope === "global" && item.path === "global/memory/global-memory.json"), true);
 
     await streamChat({
       model: "mock-model",
-      messages: [{ role: "user", content: "Before editing, remember my preview write preference." }],
+      messages: [{ role: "user", content: "Use my global style preference and the project deploy decision." }],
       permissions: { readFiles: true, writeFiles: false, previewWrites: true },
       securityMode: true,
       stepBudget: { maxSteps: 2, override: false }
     });
 
     const prompt = capturedPrompts.join("\n");
-    assert.match(prompt, /Ranked structured memory/);
-    assert.match(prompt, /Scope: project/);
-    assert.match(prompt, /Prefer preview-first writes before applying changes/);
-    assert.match(prompt, /used \d+\/240 chars/);
+    assert.match(prompt, /Global memory:/);
+    assert.match(prompt, /Project memory:/);
+    assert.match(prompt, /Prefer concise global style notes across workspaces/);
+    assert.match(prompt, /Use project deploy checklist before release/);
 
-    console.log("Memory retrieval integration test passed");
+    console.log("Memory scopes integration test passed");
   } finally {
     child.kill("SIGTERM");
     mock.close();
@@ -99,7 +114,7 @@ function startMockOpenAI(port, capturedPrompts) {
       const body = JSON.parse(await readBody(req) || "{}");
       const messages = JSON.stringify(body.messages || []);
       if (messages.includes("Capability probe")) {
-        return json(res, { error: "tools unsupported for memory retrieval test" }, 400);
+        return json(res, { error: "tools unsupported for memory scope test" }, 400);
       }
       capturedPrompts.push(messages);
       res.writeHead(200, { "Content-Type": "text/event-stream" });

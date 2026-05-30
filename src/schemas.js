@@ -36,7 +36,7 @@ const SCHEMAS = {
   projectMemory: {
     schema: "agenttrail.project-memory.v1",
     required: ["schema", "updatedAt", "facts", "preferences", "decisions"],
-    optional: ["sourcePath", "version", "summary"]
+    optional: ["sourcePath", "version", "summary", "scope"]
   },
   searchIndex: {
     schema: "agenttrail.search-index.v1",
