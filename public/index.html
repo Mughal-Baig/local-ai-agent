@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>AgentTrail Local</title>
     <link rel="icon" href="/logo.svg" />
-    <link rel="stylesheet" href="/styles.css?v=9" />
+    <link rel="stylesheet" href="/styles.css?v=10" />
   </head>
   <body>
     <div class="app-shell">
@@ -21,7 +21,7 @@
         <section class="panel">
           <div class="panel-heading">
             <h2>Model</h2>
-            <button id="refreshStatus" class="icon-button" title="Refresh local model status" aria-label="Refresh local model status">R</button>
+            <button id="refreshStatus" class="icon-button" title="Refresh local model status" aria-label="Refresh local model status"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg></button>
           </div>
           <label class="field-label" for="modelSelect">Ollama model</label>
           <select id="modelSelect"></select>
@@ -86,7 +86,7 @@
         <section class="panel search-panel" aria-label="Workspace search">
           <div class="panel-heading">
             <h2>Find Context</h2>
-            <button id="runSearch" class="icon-button" title="Search workspace files and receipts" aria-label="Search workspace files and receipts">S</button>
+            <button id="runSearch" class="icon-button" title="Search workspace files and receipts" aria-label="Search workspace files and receipts"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg></button>
           </div>
           <label class="field-label" for="workspaceSearch">Local search</label>
           <label class="toggle-row compact-toggle">
@@ -103,7 +103,7 @@
         <section class="panel recipes-panel" aria-label="Agent recipes">
           <div class="panel-heading">
             <h2>Recipes</h2>
-            <button id="refreshRecipes" class="icon-button" title="Refresh agent recipes" aria-label="Refresh agent recipes">R</button>
+            <button id="refreshRecipes" class="icon-button" title="Refresh agent recipes" aria-label="Refresh agent recipes"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg></button>
           </div>
           <label class="field-label" for="recipeSelect">Reusable workflow</label>
           <select id="recipeSelect"></select>
@@ -114,7 +114,7 @@
         <section class="panel files-panel">
           <div class="panel-heading">
             <h2>Workspace</h2>
-            <button id="refreshFiles" class="icon-button" title="Refresh workspace files" aria-label="Refresh workspace files">R</button>
+            <button id="refreshFiles" class="icon-button" title="Refresh workspace files" aria-label="Refresh workspace files"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg></button>
           </div>
           <div id="fileList" class="file-list"></div>
           <button id="newNote" class="secondary-button">New note</button>
@@ -124,8 +124,8 @@
           <div class="panel-heading">
             <h2>Agent Trail</h2>
             <div class="panel-actions">
-              <button id="exportTrail" class="icon-button" title="Export agent trail as Markdown" aria-label="Export agent trail as Markdown">E</button>
-              <button id="clearTrail" class="icon-button" title="Clear agent trail" aria-label="Clear agent trail">C</button>
+              <button id="exportTrail" class="icon-button" title="Export agent trail as Markdown" aria-label="Export agent trail as Markdown"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg></button>
+              <button id="clearTrail" class="icon-button" title="Clear agent trail" aria-label="Clear agent trail"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg></button>
             </div>
           </div>
           <div id="agentTrail" class="agent-trail"></div>
@@ -134,7 +134,7 @@
         <section class="panel review-panel" aria-label="Diff review center">
           <div class="panel-heading">
             <h2>Diff Review</h2>
-            <button id="applyAllPreviews" class="icon-button" title="Apply all pending previews" aria-label="Apply all pending previews">A</button>
+            <button id="applyAllPreviews" class="icon-button" title="Apply all pending previews" aria-label="Apply all pending previews"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></button>
           </div>
           <div id="pendingChanges" class="pending-changes"></div>
         </section>
@@ -142,7 +142,7 @@
         <section class="panel receipt-panel" aria-label="Receipt timeline">
           <div class="panel-heading">
             <h2>Receipts</h2>
-            <button id="exportReport" class="icon-button" title="Export shareable report" aria-label="Export shareable report">H</button>
+            <button id="exportReport" class="icon-button" title="Export shareable report" aria-label="Export shareable report"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M9 13h6M9 17h6"/></svg></button>
           </div>
           <input id="receiptFilter" class="search-input" type="search" placeholder="Filter receipt timeline..." />
           <label class="field-label tight-label" for="sessionSelect">Replay session</label>
@@ -155,7 +155,7 @@
         <section class="panel memory-panel" aria-label="Project memory">
           <div class="panel-heading">
             <h2>Memory</h2>
-            <button id="saveMemory" class="icon-button" title="Save project memory" aria-label="Save project memory">S</button>
+            <button id="saveMemory" class="icon-button" title="Save project memory" aria-label="Save project memory"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><path d="M17 21v-8H7v8M7 3v5h8"/></svg></button>
           </div>
           <textarea id="memoryInput" class="memory-input" rows="4" placeholder="Stable project facts, preferences, and recurring decisions..."></textarea>
           <p id="memoryStatus" class="hint">Memory is stored locally in the workspace.</p>
@@ -165,7 +165,7 @@
         <section class="panel toolkit-panel" aria-label="Top one percent toolkit">
           <div class="panel-heading">
             <h2>Top 1% Kit</h2>
-            <button id="runEval" class="icon-button" title="Run local evaluation harness" aria-label="Run local evaluation harness">T</button>
+            <button id="runEval" class="icon-button" title="Run local evaluation harness" aria-label="Run local evaluation harness"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 4l14 8-14 8V4z"/></svg></button>
           </div>
           <label class="field-label" for="packSelect">Recipe pack</label>
           <select id="packSelect"></select>
@@ -197,7 +197,7 @@
         <section class="panel foundation-panel" aria-label="Foundation dashboard">
           <div class="panel-heading">
             <h2>Foundation</h2>
-            <button id="refreshFoundation" class="icon-button" title="Refresh foundation status" aria-label="Refresh foundation status">F</button>
+            <button id="refreshFoundation" class="icon-button" title="Refresh foundation status" aria-label="Refresh foundation status"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg></button>
           </div>
           <div id="foundationSummary" class="eval-summary"></div>
           <div class="toolkit-grid">
