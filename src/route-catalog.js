@@ -3,7 +3,7 @@
 const ROUTE_CATALOG = [
   { area: "search", module: "server.js + src/features/search.js", routes: ["/api/search", "/api/search-index", "/api/search/chunks"] },
   { area: "attachments", module: "server.js", routes: ["/api/attachments", "/api/files/content"] },
-  { area: "memory", module: "server.js", routes: ["/api/memory", "/api/memory/citations"] },
+  { area: "memory", module: "server.js", routes: ["/api/memory", "/api/memory/structured", "/api/memory/citations"] },
   { area: "reports", module: "server.js", routes: ["/api/reports", "/api/trust/badge"] },
   { area: "sessions", module: "server.js", routes: ["/api/sessions", "/api/replay/plan"] },
   { area: "planner", module: "server.js + src/structured-output.js", routes: ["/api/agent/plan", "/api/chat"] },

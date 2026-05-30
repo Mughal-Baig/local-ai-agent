@@ -49,6 +49,7 @@ async function main() {
   assert.equal(routeCatalog().some((route) => route.area === "attachments"), true);
   assert.equal(routeCatalog().some((route) => route.area === "planner"), true);
   assert.equal(routeCatalog().some((route) => route.routes.includes("/api/chat")), true);
+  assert.equal(routeCatalog().some((route) => route.routes.includes("/api/memory/structured")), true);
   assert.equal(routeCatalog().some((route) => route.routes.includes("/api/tools/schemas")), true);
   assert.equal(routeCatalog().some((route) => route.routes.includes("/api/structured-output")), true);
   assert.equal(listToolSchemas().some((tool) => tool.name === "search_workspace"), true);
@@ -58,6 +59,12 @@ async function main() {
   assert.deepEqual(repairToolArguments("read_file", { file: "welcome.md" }), { path: "welcome.md" });
   assert.deepEqual(repairToolArguments("search_workspace", { q: "receipt", limit: "3" }), { query: "receipt", limit: 3 });
   const taskSchema = listStructuredOutputSchemas().find((schema) => schema.id === "task-list").schema;
+  assert.equal(validateSchema("projectMemory", withSchema("projectMemory", {
+    updatedAt: new Date().toISOString(),
+    facts: [],
+    preferences: [],
+    decisions: []
+  })).ok, true);
   assert.equal(listStructuredOutputSchemas().some((schema) => schema.id === "agent-plan"), true);
   assert.deepEqual(parseStructuredJson("```json\n{\"tasks\":[{\"title\":\"Ship\",\"priority\":\"high\"}]}\n```").tasks[0].title, "Ship");
   assert.equal(validateStructuredOutput({ tasks: [{ title: "Ship", priority: "high" }] }, taskSchema).ok, true);

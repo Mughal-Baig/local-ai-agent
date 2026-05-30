@@ -22,6 +22,7 @@ const state = {
   mcp: null,
   evals: null,
   memoryLoaded: false,
+  structuredMemory: null,
   attachments: [],
   selectedFiles: new Set(),
   permissions: {
@@ -430,8 +431,11 @@ async function refreshMemory() {
   try {
     const data = await getJson("/api/memory");
     els.memoryInput.value = data.content || "";
+    state.structuredMemory = data.structured || null;
     state.memoryLoaded = true;
-    els.memoryStatus.textContent = data.modifiedAt ? `Loaded ${data.path}` : "Memory is ready.";
+    els.memoryStatus.textContent = data.structured
+      ? `Loaded ${data.path} · ${memoryCountSummary(data.structured)}`
+      : (data.modifiedAt ? `Loaded ${data.path}` : "Memory is ready.");
   } catch (error) {
     els.memoryStatus.textContent = `Memory unavailable: ${error.message}`;
   }
@@ -441,7 +445,8 @@ async function saveMemory() {
   try {
     const saved = await postJson("/api/memory", { content: els.memoryInput.value });
     state.memoryLoaded = true;
-    els.memoryStatus.textContent = `Saved ${saved.path}; history ${saved.history?.path || "recorded"}`;
+    state.structuredMemory = saved.structured?.memory || null;
+    els.memoryStatus.textContent = `Saved ${saved.path}; ${memoryCountSummary(state.structuredMemory)}; history ${saved.history?.path || "recorded"}`;
     addTrail("memory", `Saved ${saved.path}`);
     await refreshMemoryCitations();
     renderTrustScore();
@@ -449,6 +454,16 @@ async function saveMemory() {
     els.memoryStatus.textContent = error.message;
     addTrail("error", error.message);
   }
+}
+
+function memoryCountSummary(memory) {
+  if (!memory) {
+    return "0 structured items";
+  }
+  const facts = (memory.facts || []).length;
+  const preferences = (memory.preferences || []).length;
+  const decisions = (memory.decisions || []).length;
+  return `${facts} facts, ${preferences} prefs, ${decisions} decisions`;
 }
 
 async function refreshMemoryCitations(query = "") {

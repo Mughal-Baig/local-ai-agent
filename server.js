@@ -72,6 +72,7 @@ const SESSIONS_DIR = "sessions";
 const EVALS_DIR = "evals";
 const ATTACHMENTS_DIR = "attachments";
 const MEMORY_PATH = "memory/project-memory.md";
+const MEMORY_STRUCTURED_PATH = "memory/project-memory.json";
 const MEMORY_HISTORY_DIR = "memory/history";
 const SEARCH_INDEX_PATH = ".agenttrail/search-index.json";
 const BACKUPS_DIR = "backups";
@@ -261,6 +262,10 @@ const server = http.createServer(async (req, res) => {
 
     if (url.pathname === "/api/memory" && req.method === "POST") {
       return handleSaveMemory(req, res);
+    }
+
+    if (url.pathname === "/api/memory/structured" && req.method === "GET") {
+      return handleStructuredMemory(res);
     }
 
     if (url.pathname === "/api/memory/citations" && req.method === "GET") {
@@ -1215,13 +1220,17 @@ async function handleBuildSearchIndex(req, res) {
 async function handleGetMemory(res) {
   try {
     const memory = await readWorkspaceFile(MEMORY_PATH, MAX_FILE_BYTES);
-    sendJson(res, 200, memory);
+    sendJson(res, 200, {
+      ...memory,
+      structured: await readOrBuildStructuredMemory(memory.content)
+    });
   } catch {
     sendJson(res, 200, {
       path: MEMORY_PATH,
       size: 0,
       modifiedAt: null,
-      content: "# Project Memory\n\nAdd stable project facts, preferences, and recurring decisions here.\n"
+      content: "# Project Memory\n\nAdd stable project facts, preferences, and recurring decisions here.\n",
+      structured: defaultStructuredMemory()
     });
   }
 }
@@ -1231,6 +1240,8 @@ async function handleSaveMemory(req, res) {
   const content = typeof body.content === "string" ? body.content : "";
   const previous = await readWorkspaceFile(MEMORY_PATH, MAX_FILE_BYTES).catch(() => null);
   const result = await writeWorkspaceFile(MEMORY_PATH, content);
+  const structured = normalizeStructuredMemory(body.structured, content);
+  const structuredResult = await writeWorkspaceFile(MEMORY_STRUCTURED_PATH, JSON.stringify(structured, null, 2));
   const stamp = new Date().toISOString().replace(/[:.]/g, "-");
   const history = await writeWorkspaceFile(`${MEMORY_HISTORY_DIR}/memory-${stamp}.md`, [
     "# Memory Revision",
@@ -1243,7 +1254,230 @@ async function handleSaveMemory(req, res) {
     "",
     content
   ].join("\n"));
-  sendJson(res, 200, { ...result, history });
+  const structuredHistory = await writeWorkspaceFile(`${MEMORY_HISTORY_DIR}/memory-${stamp}.json`, JSON.stringify(structured, null, 2));
+  await STORE.append("memory-structured", {
+    path: structuredResult.path,
+    facts: structured.facts.length,
+    preferences: structured.preferences.length,
+    decisions: structured.decisions.length
+  });
+  sendJson(res, 200, { ...result, history, structured: { ...structuredResult, memory: structured, history: structuredHistory } });
+}
+
+async function handleStructuredMemory(res) {
+  const structured = await readOrBuildStructuredMemory();
+  sendJson(res, 200, structured);
+}
+
+async function readOrBuildStructuredMemory(content = null) {
+  if (content === null) {
+    try {
+      const structured = JSON.parse((await readWorkspaceFile(MEMORY_STRUCTURED_PATH, MAX_FILE_BYTES)).content);
+      return normalizeStructuredMemory(structured, null);
+    } catch {
+      // Rebuild from Markdown below.
+    }
+    try {
+      content = (await readWorkspaceFile(MEMORY_PATH, MAX_FILE_BYTES)).content;
+    } catch {
+      content = "";
+    }
+  }
+  return normalizeStructuredMemory(null, content || "");
+}
+
+function defaultStructuredMemory() {
+  return {
+    schema: "agenttrail.project-memory.v1",
+    version: 1,
+    sourcePath: MEMORY_PATH,
+    updatedAt: new Date().toISOString(),
+    summary: "No structured memory has been saved yet.",
+    facts: [],
+    preferences: [],
+    decisions: []
+  };
+}
+
+function normalizeStructuredMemory(value, sourceContent = "") {
+  const now = new Date().toISOString();
+  const sourcePath = MEMORY_PATH;
+  const derived = sourceContent ? deriveStructuredMemory(sourceContent, now) : defaultStructuredMemory();
+  const input = value && typeof value === "object" && !Array.isArray(value) ? value : {};
+  const memory = {
+    schema: "agenttrail.project-memory.v1",
+    version: 1,
+    sourcePath,
+    updatedAt: String(input.updatedAt || derived.updatedAt || now),
+    summary: truncate(String(input.summary || derived.summary || "").trim(), 400),
+    facts: normalizeMemoryItems(input.facts, "fact", derived.facts),
+    preferences: normalizeMemoryItems(input.preferences, "preference", derived.preferences),
+    decisions: normalizeMemoryItems(input.decisions, "decision", derived.decisions)
+  };
+  const validation = validateSchema("projectMemory", memory);
+  if (!validation.ok) {
+    return defaultStructuredMemory();
+  }
+  return memory;
+}
+
+function normalizeMemoryItems(items, type, fallback = []) {
+  const values = Array.isArray(items) && items.length ? items : fallback;
+  const seen = new Set();
+  return values
+    .map((item, index) => normalizeMemoryItem(item, type, index))
+    .filter((item) => {
+      if (!item || seen.has(item.text.toLowerCase())) {
+        return false;
+      }
+      seen.add(item.text.toLowerCase());
+      return true;
+    })
+    .slice(0, 40);
+}
+
+function normalizeMemoryItem(item, type, index) {
+  const source = item && typeof item === "object" && !Array.isArray(item) ? item : { text: item };
+  const text = truncate(String(source.text || "").replace(/\s+/g, " ").trim(), 280);
+  if (!text) {
+    return null;
+  }
+  const line = Number(source.line || source.source?.line || 1);
+  return {
+    id: String(source.id || memoryItemId(type, text, index)),
+    type,
+    text,
+    confidence: ["low", "medium", "high"].includes(source.confidence) ? source.confidence : "medium",
+    source: {
+      path: String(source.source?.path || source.path || MEMORY_PATH),
+      line: Number.isFinite(line) && line > 0 ? Math.round(line) : 1
+    },
+    updatedAt: String(source.updatedAt || new Date().toISOString())
+  };
+}
+
+function deriveStructuredMemory(content, updatedAt) {
+  const memory = {
+    schema: "agenttrail.project-memory.v1",
+    version: 1,
+    sourcePath: MEMORY_PATH,
+    updatedAt,
+    summary: "Structured memory derived from Markdown.",
+    facts: [],
+    preferences: [],
+    decisions: []
+  };
+  let section = "";
+  const lines = String(content || "").split(/\r?\n/);
+  for (const [index, rawLine] of lines.entries()) {
+    const line = rawLine.trim();
+    if (!line) {
+      continue;
+    }
+    const heading = line.replace(/^#+\s*/, "").toLowerCase();
+    if (/^facts?$/.test(heading)) {
+      section = "fact";
+      continue;
+    }
+    if (/^(preferences?|prefs?)$/.test(heading)) {
+      section = "preference";
+      continue;
+    }
+    if (/^decisions?$/.test(heading)) {
+      section = "decision";
+      continue;
+    }
+    if (/^#+\s*/.test(line)) {
+      continue;
+    }
+    const stripped = line.replace(/^[-*]\s+/, "").replace(/^\d+[.)]\s+/, "").trim();
+    const explicit = stripped.match(/^(fact|preference|pref|decision)\s*:\s*(.+)$/i);
+    const type = explicit
+      ? (explicit[1].toLowerCase().startsWith("pref") ? "preference" : explicit[1].toLowerCase())
+      : section || inferMemoryType(stripped);
+    const text = explicit ? explicit[2].trim() : stripped;
+    if (!text || /^project memory$/i.test(text)) {
+      continue;
+    }
+    const item = normalizeMemoryItem({
+      text,
+      confidence: explicit || section ? "high" : "medium",
+      source: { path: MEMORY_PATH, line: index + 1 },
+      updatedAt
+    }, type, index);
+    if (item) {
+      memory[memoryCollectionName(type)].push(item);
+    }
+  }
+  return memory;
+}
+
+function inferMemoryType(text) {
+  const lower = String(text || "").toLowerCase();
+  if (/^(prefer|always|never|default to|use |avoid )/.test(lower)) {
+    return "preference";
+  }
+  if (/^(decided|decision|chose|agreed|ship|use .* because)/.test(lower)) {
+    return "decision";
+  }
+  return "fact";
+}
+
+function memoryCollectionName(type) {
+  return type === "preference" ? "preferences" : type === "decision" ? "decisions" : "facts";
+}
+
+function memoryItemId(type, text, index) {
+  return `${type}-${hashPrompt(`${type}:${text}:${index}`).replace(/[^a-z0-9.]/gi, "").slice(0, 18)}`;
+}
+
+function structuredMemoryToCitations(memory, terms) {
+  const items = [
+    ...(memory.facts || []),
+    ...(memory.preferences || []),
+    ...(memory.decisions || [])
+  ];
+  return items
+    .map((item) => {
+      const lower = `${item.type} ${item.text}`.toLowerCase();
+      const score = terms.length ? terms.reduce((sum, term) => sum + (lower.includes(term) ? 1 : 0), 0) : 1;
+      return { item, score };
+    })
+    .filter((entry) => entry.score > 0)
+    .sort((a, b) => b.score - a.score || a.item.type.localeCompare(b.item.type))
+    .slice(0, 6)
+    .map(({ item, score }) => ({
+      path: MEMORY_STRUCTURED_PATH,
+      line: item.source?.line || 1,
+      text: `[${item.type}] ${item.text}`,
+      type: item.type,
+      confidence: item.confidence,
+      why: terms.length ? `Matched ${score} structured memory term(s).` : "Visible structured project memory."
+    }));
+}
+
+function formatStructuredMemoryForPrompt(memory) {
+  const sections = [
+    ["Facts", memory.facts || []],
+    ["Preferences", memory.preferences || []],
+    ["Decisions", memory.decisions || []]
+  ];
+  const rows = [
+    `Schema: ${memory.schema || "agenttrail.project-memory.v1"}`,
+    `Updated: ${memory.updatedAt || "unknown"}`
+  ];
+  for (const [title, items] of sections) {
+    rows.push(`${title}:`);
+    if (!items.length) {
+      rows.push("- none");
+      continue;
+    }
+    for (const item of items.slice(0, 8)) {
+      const source = item.source ? ` (${item.source.path}:${item.source.line || 1})` : "";
+      rows.push(`- ${item.text}${source}`);
+    }
+  }
+  return rows.join("\n");
 }
 
 async function handleMemoryCitations(url, res) {
@@ -1260,8 +1494,10 @@ async function handleMemoryCitations(url, res) {
   } catch {
     memory = "";
   }
+  const structuredMemory = await readOrBuildStructuredMemory(memory);
 
-  const citations = memory
+  const structuredCitations = structuredMemoryToCitations(structuredMemory, terms);
+  const markdownCitations = memory
     .split(/\r?\n/)
     .map((line, index) => ({ line: index + 1, text: line.trim() }))
     .filter((item) => item.text)
@@ -1280,7 +1516,11 @@ async function handleMemoryCitations(url, res) {
       why: terms.length ? `Matched ${item.score} memory term(s).` : "Recent visible project memory."
     }));
 
-  sendJson(res, 200, { query, citations });
+  sendJson(res, 200, {
+    query,
+    structured: structuredMemory,
+    citations: [...structuredCitations, ...markdownCitations].slice(0, 8)
+  });
 }
 
 async function handleSaveReport(req, res) {
@@ -1907,12 +2147,15 @@ async function runAgent(body, res, context = {}) {
 async function buildAgentPrompt(messages, selectedFiles, toolHistory, permissions, securityMode, approvedPlan = null, stepBudget = null) {
   const selectedFileBlocks = [];
   let memoryBlock = "No project memory saved.";
+  let structuredMemoryBlock = "No structured project memory saved.";
 
   try {
     const memory = await readWorkspaceFile(MEMORY_PATH, MAX_PROMPT_FILE_BYTES);
     memoryBlock = memory.content;
+    structuredMemoryBlock = formatStructuredMemoryForPrompt(await readOrBuildStructuredMemory(memory.content));
   } catch {
     memoryBlock = "No project memory saved.";
+    structuredMemoryBlock = formatStructuredMemoryForPrompt(await readOrBuildStructuredMemory(""));
   }
 
   for (const filePath of selectedFiles) {
@@ -1980,6 +2223,9 @@ async function buildAgentPrompt(messages, selectedFiles, toolHistory, permission
     `Workspace root is sandboxed by the server. Current date: ${new Date().toISOString().slice(0, 10)}.`,
     "",
     "Project memory:",
+    structuredMemoryBlock,
+    "",
+    "Raw memory note:",
     memoryBlock,
     "",
     "Selected file context:",

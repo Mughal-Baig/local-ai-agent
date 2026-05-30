@@ -60,7 +60,7 @@ A long-horizon backlog (12+ months) for making AgentTrail the auditable agent la
 - [ ] T038 Resume an interrupted run from its receipt
 
 ### Epic D — Agent memory
-- [ ] T039 Structured project memory schema (facts, prefs, decisions)
+- [x] T039 Structured project memory schema (facts, prefs, decisions)
 - [ ] T040 Automatic memory capture suggestions after a run
 - [ ] T041 Memory retrieval ranked into the prompt budget
 - [ ] T042 Memory diff/history view + revert

@@ -107,7 +107,7 @@ Open `http://127.0.0.1:4173`, build the semantic index, ask for a change, review
 - Diff Review center with pending-change apply/reject controls
 - Agent Trail receipts for tool calls, selected context, model status, and errors
 - Receipt timeline, replayable saved sessions, and exportable Markdown/HTML reports
-- Project memory stored locally with visible citations, revision history, and prompt context
+- Project memory stored locally as Markdown plus structured facts/preferences/decisions JSON, with visible citations, revision history, and prompt context
 - Recipe packs for coder, founder, and security workflows, plus marketplace manifest and import/export route
 - Real MCP stdio server with explicit per-tool approvals and receipts
 - Workspace profile templates with profile switching API/UI
@@ -246,7 +246,7 @@ When write preview mode is enabled, `write_file` returns a diff preview instead 
 - Physical Mac app: `npm run package:mac-app` builds `dist/mac/AgentTrail.app`
 - Model scoring and benchmarking: `/api/status`, `/api/benchmarks`
 - Agent eval harness and history: `npm run eval`, `/api/evals`, `/api/evals/history`
-- Project memory: `workspace/memory/project-memory.md`, citations, and revision history
+- Project memory: `workspace/memory/project-memory.md`, `workspace/memory/project-memory.json`, citations, and revision history
 - Workspace profiles: [profiles](profiles), `/api/profiles/apply`
 - Trust Score dashboard: browser UI
 - README star engine: demo, comparison, 60-second quick start, roadmap
@@ -329,6 +329,7 @@ npm run test:backend
 npm run test:models
 npm run test:guardrails
 npm run test:reflection
+npm run test:memory
 npm run test:ui
 npm run eval
 npm run release:checksums

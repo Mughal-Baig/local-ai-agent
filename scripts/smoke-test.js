@@ -149,9 +149,11 @@ async function main() {
       content: "# Project Memory\n\nPrefer preview-first writes.\n"
     });
     assert.equal(memory.ok, true);
+    assert.equal(memory.structured.memory.preferences.length >= 1, true);
 
     const citations = await fetchJson(`http://127.0.0.1:${port}/api/memory/citations?query=preview`);
     assert.equal(citations.citations.length >= 1, true);
+    assert.equal(citations.citations.some((item) => item.path === "memory/project-memory.json"), true);
 
     const packs = await fetchJson(`http://127.0.0.1:${port}/api/packs`);
     assert.equal(packs.packs.length >= 5, true);

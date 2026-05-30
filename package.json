@@ -57,6 +57,7 @@
     "test:planner": "node tests/integration/agent-plan.test.js",
     "test:guardrails": "node tests/integration/run-guardrails.test.js",
     "test:reflection": "node tests/integration/reflection-loop.test.js",
+    "test:memory": "node tests/integration/memory-structured.test.js",
     "test:ui": "node tests/ui/playwright-smoke.test.js",
     "eval": "node scripts/evaluate-agenttrail.js",
     "mcp": "node mcp/server.js",

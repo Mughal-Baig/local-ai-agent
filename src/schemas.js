@@ -33,6 +33,11 @@ const SCHEMAS = {
     required: ["savedAt", "path", "content"],
     optional: ["previousSize", "newSize", "reason"]
   },
+  projectMemory: {
+    schema: "agenttrail.project-memory.v1",
+    required: ["schema", "updatedAt", "facts", "preferences", "decisions"],
+    optional: ["sourcePath", "version", "summary"]
+  },
   searchIndex: {
     schema: "agenttrail.search-index.v1",
     required: ["schema", "provider", "model", "dimensions", "builtAt", "items"],

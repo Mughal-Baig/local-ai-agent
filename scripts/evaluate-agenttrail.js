@@ -81,6 +81,9 @@ async function main() {
   checks.push(await check("Reflection self-check exists", async () => includes("server.js", ["buildRunReflection", "run-reflection", "agenttrail.run-reflection.v1"])));
   checks.push(await check("Loop guard exists", async () => includes("server.js", ["createLoopGuard", "loop-abort", "loop-detected"])));
   checks.push(await check("Reflection and loop tests exist", async () => includes("tests/integration/reflection-loop.test.js", ["reflection", "loop-detected", "duplicate tool batch should not execute twice"])));
+  checks.push(await check("Structured project memory schema exists", async () => includes("src/schemas.js", ["projectMemory", "facts", "preferences", "decisions"])));
+  checks.push(await check("Structured memory endpoint exists", async () => includes("server.js", ["/api/memory/structured", "normalizeStructuredMemory", "agenttrail.project-memory.v1"])));
+  checks.push(await check("Structured memory tests exist", async () => includes("tests/integration/memory-structured.test.js", ["memory/project-memory.json", "preferences", "decisions"])));
 
   const passed = checks.filter((item) => item.ok).length;
   const score = Math.round((passed / checks.length) * 100);
