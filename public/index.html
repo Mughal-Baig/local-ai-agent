@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>AgentTrail Local</title>
     <link rel="icon" href="/logo.svg" />
-    <link rel="stylesheet" href="/styles.css?v=13" />
+    <link rel="stylesheet" href="/styles.css?v=14" />
   </head>
   <body>
     <div class="app-shell">
@@ -312,6 +312,13 @@
           </div>
         </section>
 
+        <div id="resumeBanner" class="resume-banner" hidden>
+          <span id="resumeBannerText">You have an interrupted run.</span>
+          <div class="resume-actions">
+            <button id="resumeRunButton" class="secondary-button compact-button" type="button">Resume run</button>
+            <button id="dismissResumeButton" class="secondary-button compact-button" type="button">Dismiss</button>
+          </div>
+        </div>
         <div id="attachmentQueue" class="attachment-queue" aria-live="polite"></div>
         <form id="composer" class="composer">
           <input id="attachmentInput" type="file" multiple hidden />
@@ -329,7 +336,7 @@
       </main>
     </div>
 
-    <script src="/app.js?v=21"></script>
+    <script src="/app.js?v=22"></script>
     <script src="/modules/foundation.js?v=1"></script>
     <script src="/modules/product.js?v=1"></script>
   </body>

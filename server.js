@@ -19,7 +19,7 @@ const { generateChecksums } = require("./src/release");
 const { buildFoundationStatus } = require("./src/foundation");
 const { StructuredLogger } = require("./src/logger");
 const { validateConfig } = require("./src/config");
-const { hashContent, chunkTextDetailed, rankChunks, scoreBm25Documents, fuseHybridScores } = require("./src/features/search");
+const { hashContent, chunkTextDetailed, rankChunks, scoreBm25Documents, fuseHybridScores, rerankDocuments } = require("./src/features/search");
 const { scanSecurityText } = require("./src/features/security");
 const { friendlyError } = require("./src/features/errors");
 const { SqliteStore } = require("./src/sqlite-store");
@@ -53,6 +53,9 @@ const CACHE_ENABLED = String(process.env.AGENTTRAIL_CACHE || "on").toLowerCase()
 const CACHE_TTL_MS = Number(process.env.AGENTTRAIL_CACHE_TTL_MS || 300000);
 const CACHE_MAX_ENTRIES = 200;
 const RESPONSE_CACHE = new Map();
+// Embedding cache: real model embeddings keyed by model + content hash (T048).
+const EMBED_CACHE = new Map();
+const EMBED_CACHE_MAX = 2000;
 const TOOL_CAPABILITY_CACHE = new Map();
 // Prompt budget: cap assembled context so long workspaces stay fast and never overflow.
 const MAX_PROMPT_CHARS = Number(process.env.AGENTTRAIL_MAX_PROMPT_CHARS || 24000);
@@ -84,6 +87,7 @@ const GLOBAL_MEMORY_STORAGE_PATH = "memory/global-memory.md";
 const GLOBAL_MEMORY_STRUCTURED_STORAGE_PATH = "memory/global-memory.json";
 const GLOBAL_MEMORY_HISTORY_STORAGE_DIR = "memory/history";
 const SEARCH_INDEX_PATH = ".agenttrail/search-index.json";
+const PENDING_RUN_PATH = ".agenttrail/pending-run.json";
 const BACKUPS_DIR = "backups";
 const MAX_BODY_BYTES = 1024 * 1024;
 const MAX_FILE_BYTES = 80 * 1024;
@@ -401,6 +405,18 @@ const server = http.createServer(async (req, res) => {
       return handleDeleteModel(req, res);
     }
 
+    if (url.pathname === "/api/runs/pending" && req.method === "GET") {
+      return handleGetPendingRun(res);
+    }
+
+    if (url.pathname === "/api/runs/pending" && req.method === "POST") {
+      return handleSavePendingRun(req, res);
+    }
+
+    if (url.pathname === "/api/runs/pending/clear" && req.method === "POST") {
+      return handleClearPendingRun(res);
+    }
+
     if (url.pathname === "/api/security/scan" && req.method === "POST") {
       return handleSecurityScan(req, res);
     }
@@ -595,6 +611,45 @@ async function handleDeleteModel(req, res) {
   } catch (error) {
     sendJson(res, 502, { error: error.message || "Delete failed." });
   }
+}
+
+// ---- Resumable runs (T038): snapshot a run so an interrupted one can be resumed ----
+
+async function handleSavePendingRun(req, res) {
+  const body = await readJsonBody(req);
+  const prompt = String(body.prompt || "").trim();
+  if (!prompt) {
+    return sendJson(res, 400, { error: "A prompt is required to snapshot a run." });
+  }
+  const record = {
+    prompt,
+    model: String(body.model || ""),
+    selectedFiles: Array.isArray(body.selectedFiles) ? body.selectedFiles.slice(0, 16) : [],
+    permissions: body.permissions && typeof body.permissions === "object" ? body.permissions : {},
+    securityMode: body.securityMode !== false,
+    startedAt: new Date().toISOString()
+  };
+  await writeWorkspaceFile(PENDING_RUN_PATH, JSON.stringify(record, null, 2));
+  sendJson(res, 200, { ok: true });
+}
+
+async function handleGetPendingRun(res) {
+  try {
+    const file = await readWorkspaceFile(PENDING_RUN_PATH, MAX_FILE_BYTES);
+    const record = JSON.parse(file.content || "null");
+    sendJson(res, 200, { pending: record && record.prompt ? record : null });
+  } catch {
+    sendJson(res, 200, { pending: null });
+  }
+}
+
+async function handleClearPendingRun(res) {
+  try {
+    await writeWorkspaceFile(PENDING_RUN_PATH, "null");
+  } catch {
+    // best effort
+  }
+  sendJson(res, 200, { ok: true });
 }
 
 async function handleSqliteStatus(res) {
@@ -4229,6 +4284,27 @@ async function fetchOllamaEmbedding(text, model = OLLAMA_EMBED_MODEL) {
   return legacyData.embedding.map(Number);
 }
 
+// Cached wrapper around the real-embedding fetch: identical (model + text) is
+// embedded once, so index rebuilds and repeated queries skip recomputation (T048).
+async function fetchEmbeddingCached(text, model = OLLAMA_EMBED_MODEL) {
+  if (!CACHE_ENABLED) {
+    return fetchOllamaEmbedding(text, model);
+  }
+  const key = `${model || ""}:${hashContent(String(text || ""))}`;
+  const hit = EMBED_CACHE.get(key);
+  if (hit) {
+    return hit;
+  }
+  const vector = await fetchOllamaEmbedding(text, model);
+  if (Array.isArray(vector) && vector.length) {
+    EMBED_CACHE.set(key, vector);
+    if (EMBED_CACHE.size > EMBED_CACHE_MAX) {
+      EMBED_CACHE.delete(EMBED_CACHE.keys().next().value);
+    }
+  }
+  return vector;
+}
+
 async function listWorkspaceFiles() {
   const files = [];
 
@@ -4319,12 +4395,14 @@ async function searchWorkspace(query, limit, options = {}) {
       semanticScore,
       semanticProvider: semanticContext ? semanticContext.provider : null,
       embeddingModel: semanticContext ? semanticContext.model : null,
+      text: String(document.content || "").slice(0, 6000),
       snippet: createSnippet(document.content, terms)
     };
   });
 
   const fused = fuseHybridScores(scored);
-  const candidates = fused
+  const reranked = terms.length ? rerankDocuments(normalizedQuery, fused, { topK: 12 }) : fused;
+  const candidates = reranked
     .filter((item) => {
       if (!terms.length) {
         return true;
@@ -4337,9 +4415,7 @@ async function searchWorkspace(query, limit, options = {}) {
     .map((item) => {
       const score = !terms.length
         ? Date.parse(item.modifiedAt) || 0
-        : semanticContext
-          ? Math.round(item.hybridScore * 1000)
-          : Math.round((item.scoreParts.keywordNormalized || 0) * 1000);
+        : Math.round((item.finalScore != null ? item.finalScore : (item.hybridScore || item.scoreParts.keywordNormalized || 0)) * 1000);
       return {
         path: item.path,
         size: item.size,
@@ -4371,7 +4447,7 @@ async function getSemanticContext(query) {
 
   if (index && Array.isArray(index.items) && index.items.length) {
     if (index.provider === "ollama") {
-      const embedding = await fetchOllamaEmbedding(query, index.model || OLLAMA_EMBED_MODEL).catch(() => null);
+      const embedding = await fetchEmbeddingCached(query, index.model || OLLAMA_EMBED_MODEL).catch(() => null);
       if (embedding && embedding.length) {
         return {
           provider: "ollama",
@@ -4442,7 +4518,7 @@ async function buildSearchIndex(requestedProvider) {
     const text = `${file.path}\n${content.slice(0, MAX_SEARCH_FILE_BYTES)}`;
     let embedding = null;
     if (provider === "ollama") {
-      embedding = await fetchOllamaEmbedding(text, OLLAMA_EMBED_MODEL).catch(() => null);
+      embedding = await fetchEmbeddingCached(text, OLLAMA_EMBED_MODEL).catch(() => null);
       if (!embedding || !embedding.length) {
         provider = "local-vector";
         model = `hash-${LOCAL_EMBED_DIMS}`;

@@ -55,6 +55,7 @@ async function main() {
   assert.equal(routeCatalog().some((route) => route.routes.includes("/api/memory/retrieve")), true);
   assert.equal(routeCatalog().some((route) => route.routes.includes("/api/memory/history/revert")), true);
   assert.equal(routeCatalog().some((route) => route.routes.includes("/api/memory/suggestions/apply")), true);
+  assert.equal(routeCatalog().some((route) => route.routes.includes("/api/runs/pending")), true);
   assert.equal(routeCatalog().some((route) => route.routes.includes("/api/tools/schemas")), true);
   assert.equal(routeCatalog().some((route) => route.routes.includes("/api/structured-output")), true);
   assert.equal(listToolSchemas().some((tool) => tool.name === "search_workspace"), true);

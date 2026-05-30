@@ -127,6 +127,10 @@ const els = {
   stepBudgetSelect: document.querySelector("#stepBudgetSelect"),
   planButton: document.querySelector("#planButton"),
   stopButton: document.querySelector("#stopButton"),
+  resumeBanner: document.querySelector("#resumeBanner"),
+  resumeBannerText: document.querySelector("#resumeBannerText"),
+  resumeRunButton: document.querySelector("#resumeRunButton"),
+  dismissResumeButton: document.querySelector("#dismissResumeButton"),
   approvePlan: document.querySelector("#approvePlan"),
   discardPlan: document.querySelector("#discardPlan"),
   composer: document.querySelector("#composer"),
@@ -157,7 +161,8 @@ document.addEventListener("DOMContentLoaded", async () => {
     refreshMarketplace(),
     refreshSearchIndex(),
     refreshEvalHistory(),
-    refreshInstalledModels()
+    refreshInstalledModels(),
+    checkPendingRun()
   ]);
   els.prompt.focus();
 });
@@ -210,6 +215,12 @@ function bindEvents() {
   els.stepBudgetSelect.addEventListener("change", updateStepBudget);
   els.planButton.addEventListener("click", generatePlan);
   els.stopButton.addEventListener("click", stopCurrentRun);
+  if (els.resumeRunButton) {
+    els.resumeRunButton.addEventListener("click", resumePendingRun);
+  }
+  if (els.dismissResumeButton) {
+    els.dismissResumeButton.addEventListener("click", dismissPendingRun);
+  }
   els.approvePlan.addEventListener("click", approvePlanAndRun);
   els.discardPlan.addEventListener("click", discardPlan);
   els.planText.addEventListener("input", updateSendState);
@@ -1147,6 +1158,71 @@ function renderModelScores() {
   `;
 }
 
+async function savePendingRun(record) {
+  try {
+    await fetch("/api/runs/pending", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(record)
+    });
+  } catch {
+    // best effort; resume is a convenience, not critical path
+  }
+}
+
+async function clearPendingRun() {
+  try {
+    await fetch("/api/runs/pending/clear", { method: "POST" });
+  } catch {
+    // best effort
+  }
+}
+
+async function checkPendingRun() {
+  if (!els.resumeBanner) {
+    return;
+  }
+  try {
+    const data = await getJson("/api/runs/pending");
+    state.pendingRun = data.pending || null;
+    if (state.pendingRun && state.pendingRun.prompt) {
+      const text = state.pendingRun.prompt;
+      const preview = text.length > 80 ? `${text.slice(0, 80)}...` : text;
+      els.resumeBannerText.textContent = `Interrupted run - resume: "${preview}"`;
+      els.resumeBanner.hidden = false;
+    }
+  } catch {
+    state.pendingRun = null;
+  }
+}
+
+function resumePendingRun() {
+  const run = state.pendingRun;
+  if (!run) {
+    return;
+  }
+  if (run.model && [...els.modelSelect.options].some((option) => option.value === run.model)) {
+    state.model = run.model;
+    els.modelSelect.value = run.model;
+  }
+  if (Array.isArray(run.selectedFiles)) {
+    state.selectedFiles = new Set(run.selectedFiles.filter(Boolean));
+    renderFiles();
+    renderLocalSignals();
+  }
+  els.prompt.value = run.prompt || "";
+  resizePrompt();
+  els.resumeBanner.hidden = true;
+  addTrail("run", "Resumed interrupted run");
+  els.composer.requestSubmit();
+}
+
+function dismissPendingRun() {
+  els.resumeBanner.hidden = true;
+  state.pendingRun = null;
+  clearPendingRun();
+}
+
 async function refreshInstalledModels() {
   if (!els.installedModels) {
     return;
@@ -1539,6 +1615,17 @@ async function sendMessage(event) {
   state.busy = true;
   state.cancelRequested = false;
   state.chatAbortController = new AbortController();
+  if (els.resumeBanner) {
+    els.resumeBanner.hidden = true;
+  }
+  let runCompleted = false;
+  savePendingRun({
+    prompt: content,
+    model: state.model,
+    selectedFiles: Array.from(state.selectedFiles),
+    permissions: state.permissions,
+    securityMode: state.securityMode
+  });
   const suspicious = detectSuspiciousPrompt(content);
   if (suspicious.length) {
     addTrail("security", `Suspicious instruction flagged: ${suspicious[0]}`);
@@ -1651,6 +1738,7 @@ async function sendMessage(event) {
       renderTrustScore();
       renderMessages();
     });
+    runCompleted = !state.cancelRequested;
   } catch (error) {
     if (state.cancelRequested || error.name === "AbortError") {
       assistantMessage.events.push({ type: "error", label: "Run stopped by user" });
@@ -1669,6 +1757,10 @@ async function sendMessage(event) {
     renderPlanPanel(null);
     els.workspaceStatus.textContent = `${state.files.length} workspace file(s)`;
     updateSendState();
+    if (runCompleted) {
+      clearPendingRun();
+      state.pendingRun = null;
+    }
     await refreshFiles();
     await refreshReceipts();
   }

@@ -91,8 +91,8 @@ Open `http://127.0.0.1:4173`, build the semantic index, ask for a change, review
 - **Response cache** so repeated recipe runs return instantly, plus prompt and step-budget guards that keep long workspaces fast
 - Starter prompts for summarize, plan, review, and save-note workflows
 - Local recipe picker backed by plain JSON workflow files
-- BM25 keyword search and hybrid semantic local search across workspace files, sessions, and saved receipts, with markdown-aware overlapping chunks for better citations
-- Ollama embedding index using `OLLAMA_EMBED_MODEL=nomic-embed-text`, with local-vector fallback
+- BM25 keyword search and hybrid semantic local search across workspace files, sessions, and saved receipts, with markdown-aware chunks, reranking, and score parts for better citations
+- Ollama embedding index using `OLLAMA_EMBED_MODEL=nomic-embed-text`, with local-vector fallback and cached real embeddings keyed by model + content hash
 - First-run setup checklist for Ollama, models, workspace files, recipes, and receipts
 - Attachment picker that copies local files into `workspace/attachments/` and selects them for agent context
 - Permission toggles for file reads, file writes, write preview mode, and security hardening mode
@@ -103,6 +103,7 @@ Open `http://127.0.0.1:4173`, build the semantic index, ask for a change, review
 - Structured JSON output endpoint for Ollama schema `format` and OpenAI-compatible `response_format.json_schema`, plus typed extraction recipes with readable schema-error reasons
 - Planner approval flow: generate a structured plan, edit it, approve it, then run the agent with that plan in context
 - Run guardrails: choose a step budget, use a deep-run override deliberately, and stop an active run so the backend stream aborts
+- Interrupted-run resume banner: active prompts are snapshotted locally and can be resumed after a stopped or interrupted browser session
 - Reflection and loop safety: every final answer gets a self-check score, and repeated identical tool loops abort before wasting another step
 - In-chat diff cards with explicit **Apply** buttons for proposed file changes
 - Diff Review center with pending-change apply/reject controls
@@ -240,7 +241,7 @@ When write preview mode is enabled, `write_file` returns a diff preview instead 
 ## Top 1% Surfaces
 
 - Visual demo proof: [docs/agenttrail-demo.gif](docs/agenttrail-demo.gif), [docs/preview-app.png](docs/preview-app.png), [docs/preview-diff.png](docs/preview-diff.png)
-- True semantic search: `/api/search-index`, `/api/search?mode=semantic`, Ollama embeddings with local-vector fallback, and BM25 + vector score fusion
+- True semantic search: `/api/search-index`, `/api/search?mode=semantic`, Ollama embeddings with local-vector fallback, BM25 + vector score fusion, reranking, and embedding cache
 - Receipt timeline and replay: saved Markdown receipts in `workspace/receipts/`, JSON sessions in `workspace/sessions/`
 - Diff Review center: pending preview apply/reject UI
 - Local attachments: `/api/attachments` plus browser file picker that saves files into the workspace
@@ -258,6 +259,7 @@ When write preview mode is enabled, `write_file` returns a diff preview instead 
 - Shareable reports: polished Markdown/HTML exports in `workspace/reports/`
 - Community growth loop: issue templates, launch posts, marketplace submissions, and good-first contribution docs
 - Guided replay: `/api/replay/plan`
+- Interrupted-run resume: `/api/runs/pending`
 - Chunk citations: `/api/search/chunks` with section headings, chunk type, and line ranges
 - Trust badge: `/api/trust/badge`
 - Model comparison: `/api/models/compare`
@@ -329,9 +331,13 @@ Supported variables:
 node scripts/smoke-test.js
 npm run test:unit
 npm run test:search
+npm run test:rerank
 npm run test:integration
 npm run test:backend
 npm run test:models
+npm run test:embed-cache
+npm run test:resume
+npm run eval:search
 npm run test:guardrails
 npm run test:reflection
 npm run test:memory

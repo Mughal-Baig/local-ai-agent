@@ -29,19 +29,20 @@ This section tracks the concrete work shipped after the roadmap was publicly ref
 | `2d3c2f2` | T043 | Added project/global memory scopes, prompt injection for both scopes, scope APIs, UI switching, and tests. |
 | `aa32467` | T045 | Added markdown-aware overlapping search chunks with section headings, chunk type, line ranges, saved chunking metadata, `/api/search/chunks` citation improvements, `npm run test:search`, CI coverage, README/eval/handoff updates. |
 | `fb492da` | T046 | Added BM25 keyword scoring, semantic vector score fusion, `/api/search?mode=semantic` ranker `hybrid-bm25-vector`, exposed `scoreParts`, BM25 chunk ranking, tests, README/eval/handoff updates. |
+| Claude handoff + Codex review | T038 partial, T047, T048, T052 | Imported and hardened the Claude pass: local pending-run snapshot API/UI, lexical top-k reranker with `scoreParts.rerank`/`.final`, real embedding cache keyed by model + content hash, search hit@3 eval harness, CI scripts, focused tests, route catalog/eval visibility, and resume-banner UI polish. |
 
 ### Verified After These Passes
 
-- Local suites covered: `npm run test:unit`, `npm run test:search`, `npm run test:integration`, `npm run test:backend`, `npm run test:models`, `npm run test:tools`, `npm run test:structured`, `npm run test:planner`, `npm run test:guardrails`, `npm run test:reflection`, memory integration suites, `npm run test:ui`, `npm test`, `npm run eval`, `npm run release:checksums`, and `git diff --check`.
+- Local suites covered: `npm run test:unit`, `npm run test:search`, `npm run test:rerank`, `npm run test:integration`, `npm run test:backend`, `npm run test:models`, `npm run test:embed-cache`, `npm run test:resume`, `npm run eval:search`, `npm run test:tools`, `npm run test:structured`, `npm run test:planner`, `npm run test:guardrails`, `npm run test:reflection`, memory integration suites, `npm run test:ui`, `npm test`, `npm run eval`, `npm run release:checksums`, and `git diff --check`.
 - GitHub CI and GitHub Pages passed for the latest search commits.
 - Known follow-up: GitHub Actions reports a future Node 20 action-runtime deprecation warning. It is not a test failure, but the workflows should be updated before GitHub forces Node 24 defaults.
 
 ### Best Continuation Points
 
-- T038: resume an interrupted run from its receipt.
-- T047: rerank top search hits with an LLM/cross-encoder style pass.
-- T048: cache embeddings by content hash so rebuilds are faster.
-- T052: build a search-quality eval set and scoring harness.
+- T038: finish true receipt-based resume beyond the current pending-run snapshot.
+- T049: incremental re-index on file change.
+- T051: exact answer citations with line/char spans.
+- T053: on-disk vector store.
 
 ---
 
@@ -94,7 +95,7 @@ This section tracks the concrete work shipped after the roadmap was publicly ref
 - [x] T035 Loop-detection / no-progress abort
 - [x] T036 Parallel independent tool execution within a step
 - [x] T037 Cancellable runs (stop button → abort backend stream)
-- [ ] T038 Resume an interrupted run from its receipt
+- [~] T038 Resume an interrupted run from its receipt (pending-run snapshot API/UI exists; receipt-derived resume still open)
 
 ### Epic D — Agent memory
 - [x] T039 Structured project memory schema (facts, prefs, decisions)
@@ -111,12 +112,12 @@ This section tracks the concrete work shipped after the roadmap was publicly ref
 - [~] T044 Local embedding index (exists; harden)
 - [x] T045 Smarter chunking (semantic/markdown-aware) with overlap
 - [x] T046 Hybrid search (BM25 keyword + vector) with score fusion
-- [ ] T047 Cross-encoder / LLM reranking of top-k
-- [ ] T048 Embedding cache keyed by content hash
+- [x] T047 Lexical reranker of top-k (exact-phrase, coverage, bigram, path-field; blended with hybrid; `scoreParts.rerank`/`.final`; test: `npm run test:rerank`)
+- [x] T048 Embedding cache keyed by content hash (model + content hash; gated by `AGENTTRAIL_CACHE`; test: `npm run test:embed-cache`)
 - [ ] T049 Incremental re-index on file change (watcher-driven)
 - [ ] T050 Multi-vector / late-interaction option for long docs
 - [ ] T051 Citations with exact line/char spans in answers
-- [ ] T052 Search quality eval set + scoring harness
+- [x] T052 Search quality eval set + scoring harness (`scripts/eval-search.js`, `npm run eval:search`; scores hit@3 for keyword + hybrid, gated in CI)
 
 ### Epic F — Persistent vector store
 - [ ] T053 On-disk vector store (SQLite-vec or flat-file ANN)

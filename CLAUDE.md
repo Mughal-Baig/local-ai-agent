@@ -40,9 +40,27 @@ Codex completed the first hard engineering slice from Phase 1:
 - T043: project/global memory scopes with prompt injection for both scopes and UI switching
 - T045: markdown-aware overlapping search chunks with section headings, chunk type, and line ranges in the saved index
 - T046: hybrid search ranking with BM25 keyword scoring, vector similarity, normalized score fusion, and exposed score parts
+- T047: deterministic lexical top-k reranker with phrase, coverage, bigram, and path-field signals
+- T048: real embedding cache keyed by model + content hash
+- T052: search quality eval harness with hit@3 scoring for keyword and hybrid modes
+- T038 partial: local pending-run snapshot API/UI for interrupted browser runs; true receipt-derived resume remains open
 
 Best next Claude tasks:
 
-- Work on docs and UI copy around native tool calling, structured outputs, planner approval, run guardrails, reflection, loop safety, structured memory, memory suggestions, ranked memory retrieval, memory history, scoped memory, markdown-aware chunk citations, and hybrid search score parts.
-- Do not rework `server.js` tool-calling, structured-output, planner, run-cancellation, loop/reflection, memory internals, search chunking, or hybrid ranking unless you also run the matching scripts: `npm run test:tools`, `npm run test:structured`, `npm run test:planner`, `npm run test:guardrails`, `npm run test:reflection`, `npm run test:memory`, `npm run test:memory-suggestions`, `npm run test:memory-retrieval`, `npm run test:memory-history`, `npm run test:memory-scopes`, and `npm run test:search`.
-- Next code target should be T038 resume interrupted run from receipt, T047 reranking, T048 embedding cache, or T052 search quality evals, not the runtime moonshot.
+- Work on docs and UI copy around native tool calling, structured outputs, planner approval, run guardrails, reflection, loop safety, structured memory, memory suggestions, ranked memory retrieval, memory history, scoped memory, markdown-aware chunk citations, hybrid search score parts, reranking, embedding cache, and search evals.
+- Do not rework `server.js` tool-calling, structured-output, planner, run-cancellation, loop/reflection, memory internals, search chunking, hybrid ranking, reranking, embedding cache, or resumable-run internals unless you also run the matching scripts: `npm run test:tools`, `npm run test:structured`, `npm run test:planner`, `npm run test:guardrails`, `npm run test:reflection`, `npm run test:memory`, `npm run test:memory-suggestions`, `npm run test:memory-retrieval`, `npm run test:memory-history`, `npm run test:memory-scopes`, `npm run test:search`, `npm run test:rerank`, `npm run test:embed-cache`, `npm run test:resume`, and `npm run eval:search`.
+- Next code target should be finishing T038 receipt-derived resume, T049 incremental re-index, T051 exact citations, or T053 on-disk vector store, not the runtime moonshot.
+
+## Latest Claude Pass
+
+Reviewed Codex's work and continued the roadmap:
+
+- T047: reranker. Added `rerankDocuments()` for deterministic cross-encoder-style lexical reranking of top search hits using exact phrase, coverage, bigram, and path-field signals. Exposes `scoreParts.rerank` and `scoreParts.final`. Test: `npm run test:rerank`.
+
+- T048: embedding cache. Added `fetchEmbeddingCached(text, model)` wrapping the real-embedding fetch, keyed by `model + content-hash`, gated by `AGENTTRAIL_CACHE`, capped at 2000 entries. Repointed the semantic-query and index-build embed call sites to it (the probe is left uncached). Test: `npm run test:embed-cache`.
+
+- T052: search-quality eval harness. Added `scripts/eval-search.js` (boots a temp-workspace server, seeds a labeled 4-doc corpus, builds a local-vector index, scores hit@3 for keyword and hybrid ranking, exits non-zero below `SEARCH_EVAL_THRESHOLD`, default 75%). `npm run eval:search`, added to CI. Currently 100% hit@3 for both modes.
+
+- T038 partial: pending-run snapshot. Added `/api/runs/pending`, `/api/runs/pending/clear`, a resume banner in the UI, route catalog coverage, and `npm run test:resume`. This handles interrupted browser runs, but full receipt-derived resume remains open.
+
+Still open and recommended next: finish T038 receipt-derived resume, T049 incremental re-index on file change, T051 exact citations, T053 on-disk vector store.

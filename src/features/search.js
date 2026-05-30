@@ -345,6 +345,95 @@ function fieldMatchBoost(term, entry) {
   return boost;
 }
 
+// Deterministic lexical reranker (cross-encoder style, no model required):
+// re-scores the top-k by exact-phrase, query-term coverage, bigram overlap, and
+// path-field matches, then blends with the first-stage hybrid score (T047).
+function rerankFeatures(queryTerms, queryLower, item) {
+  if (!queryTerms.length) {
+    return 0;
+  }
+  const pathText = String(item.path || item.id || "").toLowerCase();
+  const bodyText = String(item.text || item.content || item.snippet || "").toLowerCase();
+  const haystack = `${pathText}\n${bodyText}`;
+
+  let present = 0;
+  let fieldHits = 0;
+  for (const term of queryTerms) {
+    if (haystack.includes(term)) present += 1;
+    if (pathText.includes(term)) fieldHits += 1;
+  }
+  const coverage = present / queryTerms.length;
+  const fieldNorm = fieldHits / queryTerms.length;
+
+  const multiword = queryLower.split(/\s+/).filter(Boolean).length > 1;
+  const phrase = multiword && bodyText.includes(queryLower) ? 1 : 0;
+
+  let bigramHits = 0;
+  let bigramTotal = 0;
+  for (let i = 0; i < queryTerms.length - 1; i += 1) {
+    bigramTotal += 1;
+    if (haystack.includes(`${queryTerms[i]} ${queryTerms[i + 1]}`)) bigramHits += 1;
+  }
+  const bigram = bigramTotal ? bigramHits / bigramTotal : 0;
+
+  return (coverage * 3) + (phrase * 3) + (bigram * 2) + (fieldNorm * 1.5);
+}
+
+function rerankDocuments(query, documents, options = {}) {
+  const docs = Array.isArray(documents) ? documents : [];
+  if (!docs.length) {
+    return docs;
+  }
+  const topK = clampNumber(options.topK, 1, 50, 12);
+  const hybridWeight = Number.isFinite(Number(options.hybridWeight)) ? Number(options.hybridWeight) : 0.55;
+  const rerankWeight = Number.isFinite(Number(options.rerankWeight)) ? Number(options.rerankWeight) : 0.45;
+  const queryTerms = uniqueSearchTerms(query, options.termLimit || 12);
+  const queryLower = String(query || "").toLowerCase().trim();
+
+  const baseOf = (item) => Number(
+    item.hybridScore != null
+      ? item.hybridScore
+      : (item.scoreParts && item.scoreParts.keywordNormalized) || item.keywordScore || 0
+  );
+
+  const ordered = docs.slice().sort((a, b) => baseOf(b) - baseOf(a));
+  const head = ordered.slice(0, topK);
+  const tail = ordered.slice(topK);
+
+  const rawScores = head.map((item) => rerankFeatures(queryTerms, queryLower, item));
+  const maxRaw = Math.max(0.000001, ...rawScores);
+  const baseMax = Math.max(0.000001, ...head.map(baseOf));
+
+  const scoredHead = head.map((item, i) => {
+    const rerankNormalized = rawScores[i] / maxRaw;
+    const hybridNormalized = baseOf(item) / baseMax;
+    const finalScore = (hybridNormalized * hybridWeight) + (rerankNormalized * rerankWeight);
+    return {
+      ...item,
+      rerankScore: rawScores[i],
+      finalScore,
+      scoreParts: {
+        ...(item.scoreParts || {}),
+        rerank: roundScore(rerankNormalized),
+        final: roundScore(finalScore)
+      }
+    };
+  });
+  scoredHead.sort((a, b) => b.finalScore - a.finalScore);
+
+  const scoredTail = tail.map((item) => {
+    const finalScore = baseOf(item) * hybridWeight;
+    return {
+      ...item,
+      rerankScore: 0,
+      finalScore,
+      scoreParts: { ...(item.scoreParts || {}), rerank: 0, final: roundScore(finalScore) }
+    };
+  });
+
+  return [...scoredHead, ...scoredTail];
+}
+
 function roundScore(value) {
   return Math.round(Number(value || 0) * 10000) / 10000;
 }
@@ -363,5 +452,6 @@ module.exports = {
   uniqueSearchTerms,
   scoreBm25Documents,
   fuseHybridScores,
+  rerankDocuments,
   rankChunks
 };
