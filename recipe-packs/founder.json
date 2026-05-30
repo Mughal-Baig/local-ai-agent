@@ -1,0 +1,13 @@
+{
+  "id": "founder",
+  "title": "Founder Pack",
+  "description": "Recipes for launch polish, README critique, release notes, user docs, and growth teardown.",
+  "recipes": [
+    "github-star-teardown",
+    "launch-readme",
+    "readme-polish",
+    "release-notes",
+    "user-docs",
+    "workspace-brief"
+  ]
+}

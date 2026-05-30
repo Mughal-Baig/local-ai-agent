@@ -1,13 +1,17 @@
 {
   "name": "local-ai-agent",
-  "version": "0.3.1",
+  "version": "0.4.0",
   "description": "AgentTrail: an auditable local AI agent with Ollama, workspace search, recipes, diff previews, and receipts.",
   "main": "server.js",
+  "bin": {
+    "agenttrail": "./bin/agenttrail.js"
+  },
   "type": "commonjs",
   "scripts": {
     "start": "node server.js",
     "dev": "node server.js",
-    "test": "node scripts/smoke-test.js"
+    "test": "node scripts/smoke-test.js",
+    "eval": "node scripts/evaluate-agenttrail.js"
   },
   "keywords": [
     "ai",

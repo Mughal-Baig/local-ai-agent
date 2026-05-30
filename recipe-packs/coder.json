@@ -1,0 +1,13 @@
+{
+  "id": "coder",
+  "title": "Coder Pack",
+  "description": "Recipes for local code review, safe edits, test planning, architecture, and changelog work.",
+  "recipes": [
+    "diff-safe-coder",
+    "code-review",
+    "test-plan",
+    "architecture-brief",
+    "bug-triage",
+    "changelog"
+  ]
+}

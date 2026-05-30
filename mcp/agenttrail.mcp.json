@@ -1,0 +1,38 @@
+{
+  "name": "agenttrail-local",
+  "version": "0.4.0",
+  "status": "approval-required-manifest",
+  "description": "Draft MCP bridge contract for AgentTrail local tools. Every tool must declare scope, risk, and receipt behavior before execution.",
+  "approvals": [
+    {
+      "tool": "search_workspace",
+      "scope": "read workspace file names and content snippets",
+      "risk": "low",
+      "receipt": true
+    },
+    {
+      "tool": "read_file",
+      "scope": "read one workspace-relative file",
+      "risk": "medium",
+      "receipt": true
+    },
+    {
+      "tool": "preview_write_file",
+      "scope": "produce a diff for one workspace-relative file",
+      "risk": "medium",
+      "receipt": true
+    },
+    {
+      "tool": "write_file",
+      "scope": "write one workspace-relative file after explicit approval",
+      "risk": "high",
+      "receipt": true
+    }
+  ],
+  "hardRules": [
+    "No absolute paths",
+    "No network tools without separate approval",
+    "No write_file when preview mode is enabled",
+    "Every action emits an Agent Trail receipt"
+  ]
+}

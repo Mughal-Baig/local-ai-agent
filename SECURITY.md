@@ -13,6 +13,9 @@ AgentTrail is designed to keep file access inside the configured workspace.
 - Write preview mode is enabled by default, so agent write attempts return a diff preview before changing files.
 - Previewed changes require an explicit browser **Apply** action before the app writes the proposed content.
 - Local search only reads files inside `WORKSPACE_ROOT`.
+- Semantic-lite search is local and uses in-process token vectors, not remote embedding APIs.
+- Security hardening mode flags suspicious prompt-injection and workspace-escape language in the Agent Trail.
+- Shareable reports, memory, and receipts are written inside the configured workspace only.
 - Recipes are prompt templates only; they do not grant new tool permissions.
 
 ## Reporting A Vulnerability

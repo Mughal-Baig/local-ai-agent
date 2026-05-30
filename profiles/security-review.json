@@ -1,0 +1,12 @@
+{
+  "id": "security-review",
+  "title": "Security Review",
+  "description": "Hardened profile for prompt-injection checks, receipt review, and write-preview-only workflows.",
+  "workspace": "workspace",
+  "defaultModel": "llama3.2",
+  "permissions": {
+    "readFiles": true,
+    "writeFiles": false,
+    "previewWrites": true
+  }
+}

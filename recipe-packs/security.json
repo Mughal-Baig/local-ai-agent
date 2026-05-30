@@ -1,0 +1,13 @@
+{
+  "id": "security",
+  "title": "Security Pack",
+  "description": "Recipes for prompt-injection review, threat modeling, receipt audit, MCP readiness, and local hardening.",
+  "recipes": [
+    "local-agent-hardening",
+    "prompt-injection-review",
+    "threat-model",
+    "receipt-auditor",
+    "mcp-readiness-review",
+    "local-rag-brief"
+  ]
+}

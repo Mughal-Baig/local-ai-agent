@@ -1,0 +1,12 @@
+{
+  "id": "default",
+  "title": "Default Workspace",
+  "description": "General local workspace with safe reads, preview-first writes, recipes, receipts, and project memory.",
+  "workspace": "workspace",
+  "defaultModel": "llama3.2",
+  "permissions": {
+    "readFiles": true,
+    "writeFiles": false,
+    "previewWrites": true
+  }
+}

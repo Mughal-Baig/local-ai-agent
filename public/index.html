@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>AgentTrail Local</title>
     <link rel="icon" href="/logo.svg" />
-    <link rel="stylesheet" href="/styles.css?v=7" />
+    <link rel="stylesheet" href="/styles.css?v=8" />
   </head>
   <body>
     <div class="app-shell">
@@ -26,6 +26,7 @@
           <label class="field-label" for="modelSelect">Ollama model</label>
           <select id="modelSelect"></select>
           <p class="hint" id="modelHint">Local models appear here when Ollama is running.</p>
+          <div id="modelScoreList" class="model-score-list"></div>
         </section>
 
         <section class="panel signal-panel" aria-label="Local safety signals">
@@ -75,6 +76,10 @@
             <input id="previewWritePermission" type="checkbox" checked />
             <span>Preview writes first</span>
           </label>
+          <label class="toggle-row">
+            <input id="securityMode" type="checkbox" checked />
+            <span>Security hardening mode</span>
+          </label>
           <p class="hint">Writes are off by default; preview mode returns a diff instead of touching files.</p>
         </section>
 
@@ -84,6 +89,10 @@
             <button id="runSearch" class="icon-button" title="Search workspace files and receipts" aria-label="Search workspace files and receipts">S</button>
           </div>
           <label class="field-label" for="workspaceSearch">Local search</label>
+          <label class="toggle-row compact-toggle">
+            <input id="semanticSearchMode" type="checkbox" />
+            <span>Semantic-lite search</span>
+          </label>
           <input id="workspaceSearch" class="search-input" type="search" placeholder="Search files, notes, receipts..." />
           <div id="searchResults" class="search-results"></div>
         </section>
@@ -118,6 +127,44 @@
           </div>
           <div id="agentTrail" class="agent-trail"></div>
         </section>
+
+        <section class="panel review-panel" aria-label="Diff review center">
+          <div class="panel-heading">
+            <h2>Diff Review</h2>
+            <button id="applyAllPreviews" class="icon-button" title="Apply all pending previews" aria-label="Apply all pending previews">A</button>
+          </div>
+          <div id="pendingChanges" class="pending-changes"></div>
+        </section>
+
+        <section class="panel receipt-panel" aria-label="Receipt timeline">
+          <div class="panel-heading">
+            <h2>Receipts</h2>
+            <button id="exportReport" class="icon-button" title="Export shareable report" aria-label="Export shareable report">H</button>
+          </div>
+          <input id="receiptFilter" class="search-input" type="search" placeholder="Filter receipt timeline..." />
+          <div id="receiptTimeline" class="receipt-timeline"></div>
+        </section>
+
+        <section class="panel memory-panel" aria-label="Project memory">
+          <div class="panel-heading">
+            <h2>Memory</h2>
+            <button id="saveMemory" class="icon-button" title="Save project memory" aria-label="Save project memory">S</button>
+          </div>
+          <textarea id="memoryInput" class="memory-input" rows="4" placeholder="Stable project facts, preferences, and recurring decisions..."></textarea>
+          <p id="memoryStatus" class="hint">Memory is stored locally in the workspace.</p>
+        </section>
+
+        <section class="panel toolkit-panel" aria-label="Top one percent toolkit">
+          <div class="panel-heading">
+            <h2>Top 1% Kit</h2>
+            <button id="runEval" class="icon-button" title="Run local evaluation harness" aria-label="Run local evaluation harness">T</button>
+          </div>
+          <label class="field-label" for="packSelect">Recipe pack</label>
+          <select id="packSelect"></select>
+          <button id="exportPack" class="secondary-button" type="button">Export pack</button>
+          <div id="evalSummary" class="eval-summary"></div>
+          <p id="profileSummary" class="hint">Loading profiles and MCP manifest...</p>
+        </section>
       </aside>
 
       <main class="chat-area">
@@ -137,6 +184,14 @@
           <button type="button" data-prompt="Create or update a workspace note with the key decisions from this chat.">Save note</button>
         </section>
 
+        <section class="trust-dashboard" aria-label="Trust score dashboard">
+          <div class="trust-score-card">
+            <span>Trust Score</span>
+            <strong id="trustScore">60</strong>
+          </div>
+          <div id="trustReasons" class="trust-reasons"></div>
+        </section>
+
         <section id="messages" class="messages" aria-live="polite"></section>
 
         <form id="composer" class="composer">
@@ -146,6 +201,6 @@
       </main>
     </div>
 
-    <script src="/app.js?v=7"></script>
+    <script src="/app.js?v=8"></script>
   </body>
 </html>

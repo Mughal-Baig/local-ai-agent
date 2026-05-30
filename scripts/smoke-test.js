@@ -71,6 +71,33 @@ async function main() {
     const search = await fetchJson(`http://127.0.0.1:${port}/api/search?query=smoke&limit=5`);
     assert.equal(search.results.some((item) => item.path === "notes/test.md"), true);
 
+    const semanticSearch = await fetchJson(`http://127.0.0.1:${port}/api/search?query=updated%20content&limit=5&mode=semantic`);
+    assert.equal(Array.isArray(semanticSearch.results), true);
+
+    const memory = await postJson(`http://127.0.0.1:${port}/api/memory`, {
+      content: "# Project Memory\n\nPrefer preview-first writes.\n"
+    });
+    assert.equal(memory.ok, true);
+
+    const packs = await fetchJson(`http://127.0.0.1:${port}/api/packs`);
+    assert.equal(packs.packs.length >= 1, true);
+
+    const profiles = await fetchJson(`http://127.0.0.1:${port}/api/profiles`);
+    assert.equal(profiles.profiles.length >= 1, true);
+
+    const mcp = await fetchJson(`http://127.0.0.1:${port}/api/mcp`);
+    assert.equal(Array.isArray(mcp.approvals), true);
+
+    const evals = await fetchJson(`http://127.0.0.1:${port}/api/evals`);
+    assert.equal(evals.score >= 80, true);
+
+    const report = await postJson(`http://127.0.0.1:${port}/api/reports`, {
+      title: "Smoke Report",
+      markdown: "# Smoke Report\n\nAll good.\n"
+    });
+    assert.equal(report.markdown.ok, true);
+    assert.equal(report.html.ok, true);
+
     const files = await fetchJson(`http://127.0.0.1:${port}/api/files`);
     assert.equal(files.files.some((item) => item.path === "notes/test.md"), true);
 

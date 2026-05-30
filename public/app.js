@@ -11,12 +11,20 @@ const state = {
   recipes: [],
   receipts: [],
   searchResults: [],
+  pendingPreviews: [],
+  packs: [],
+  profiles: [],
+  mcp: null,
+  evals: null,
+  memoryLoaded: false,
   selectedFiles: new Set(),
   permissions: {
     readFiles: true,
     writeFiles: false,
     previewWrites: true
   },
+  semanticSearch: false,
+  securityMode: true,
   models: [],
   model: "",
   trail: [],
@@ -37,10 +45,13 @@ const els = {
   readPermission: document.querySelector("#readPermission"),
   writePermission: document.querySelector("#writePermission"),
   previewWritePermission: document.querySelector("#previewWritePermission"),
+  securityMode: document.querySelector("#securityMode"),
   refreshStatus: document.querySelector("#refreshStatus"),
   refreshFiles: document.querySelector("#refreshFiles"),
   refreshRecipes: document.querySelector("#refreshRecipes"),
+  modelScoreList: document.querySelector("#modelScoreList"),
   workspaceSearch: document.querySelector("#workspaceSearch"),
+  semanticSearchMode: document.querySelector("#semanticSearchMode"),
   runSearch: document.querySelector("#runSearch"),
   searchResults: document.querySelector("#searchResults"),
   recipeSelect: document.querySelector("#recipeSelect"),
@@ -51,6 +62,21 @@ const els = {
   exportTrail: document.querySelector("#exportTrail"),
   clearTrail: document.querySelector("#clearTrail"),
   agentTrail: document.querySelector("#agentTrail"),
+  pendingChanges: document.querySelector("#pendingChanges"),
+  applyAllPreviews: document.querySelector("#applyAllPreviews"),
+  receiptFilter: document.querySelector("#receiptFilter"),
+  receiptTimeline: document.querySelector("#receiptTimeline"),
+  exportReport: document.querySelector("#exportReport"),
+  memoryInput: document.querySelector("#memoryInput"),
+  saveMemory: document.querySelector("#saveMemory"),
+  memoryStatus: document.querySelector("#memoryStatus"),
+  packSelect: document.querySelector("#packSelect"),
+  exportPack: document.querySelector("#exportPack"),
+  runEval: document.querySelector("#runEval"),
+  evalSummary: document.querySelector("#evalSummary"),
+  profileSummary: document.querySelector("#profileSummary"),
+  trustScore: document.querySelector("#trustScore"),
+  trustReasons: document.querySelector("#trustReasons"),
   messages: document.querySelector("#messages"),
   composer: document.querySelector("#composer"),
   prompt: document.querySelector("#prompt"),
@@ -61,9 +87,12 @@ document.addEventListener("DOMContentLoaded", async () => {
   bindEvents();
   renderMessages();
   renderSearchResults();
+  renderPendingChanges();
+  renderReceiptTimeline();
+  renderTrustScore();
   addTrail("system", "Workspace boundary active");
   updateSendState();
-  await Promise.all([refreshStatus(), refreshFiles(), refreshRecipes(), refreshReceipts()]);
+  await Promise.all([refreshStatus(), refreshFiles(), refreshRecipes(), refreshReceipts(), refreshMemory(), refreshPacks(), refreshProfilesAndMcp()]);
   els.prompt.focus();
 });
 
@@ -74,6 +103,15 @@ function bindEvents() {
   els.readPermission.addEventListener("change", syncPermissions);
   els.writePermission.addEventListener("change", syncPermissions);
   els.previewWritePermission.addEventListener("change", syncPermissions);
+  els.securityMode.addEventListener("change", () => {
+    state.securityMode = els.securityMode.checked;
+    addTrail("security", `Hardening mode ${state.securityMode ? "on" : "off"}`);
+    renderTrustScore();
+  });
+  els.semanticSearchMode.addEventListener("change", () => {
+    state.semanticSearch = els.semanticSearchMode.checked;
+    addTrail("search", `Semantic-lite search ${state.semanticSearch ? "on" : "off"}`);
+  });
   els.runSearch.addEventListener("click", searchWorkspace);
   els.workspaceSearch.addEventListener("keydown", (event) => {
     if (event.key === "Enter") {
@@ -90,11 +128,18 @@ function bindEvents() {
   els.useRecipe.addEventListener("click", applySelectedRecipe);
   els.recipeSelect.addEventListener("change", updateRecipeHint);
   els.exportTrail.addEventListener("click", exportTrailReceipt);
+  els.applyAllPreviews.addEventListener("click", applyAllPreviews);
+  els.receiptFilter.addEventListener("input", renderReceiptTimeline);
+  els.exportReport.addEventListener("click", exportShareableReport);
+  els.saveMemory.addEventListener("click", saveMemory);
+  els.exportPack.addEventListener("click", exportSelectedPack);
+  els.runEval.addEventListener("click", runEvals);
   els.clearTrail.addEventListener("click", () => {
     state.trail = [];
     state.toolCount = 0;
     addTrail("system", "Trail cleared");
     renderLocalSignals();
+    renderTrustScore();
   });
   document.querySelectorAll("[data-prompt]").forEach((button) => {
     button.addEventListener("click", () => {
@@ -125,6 +170,7 @@ function syncPermissions() {
   );
   renderLocalSignals();
   renderSetupChecklist();
+  renderTrustScore();
 }
 
 async function refreshRecipes() {
@@ -151,6 +197,110 @@ async function refreshReceipts() {
     state.receipts = [];
   }
   renderSetupChecklist();
+  renderReceiptTimeline();
+  renderTrustScore();
+}
+
+async function refreshMemory() {
+  try {
+    const data = await getJson("/api/memory");
+    els.memoryInput.value = data.content || "";
+    state.memoryLoaded = true;
+    els.memoryStatus.textContent = data.modifiedAt ? `Loaded ${data.path}` : "Memory is ready.";
+  } catch (error) {
+    els.memoryStatus.textContent = `Memory unavailable: ${error.message}`;
+  }
+}
+
+async function saveMemory() {
+  try {
+    const saved = await postJson("/api/memory", { content: els.memoryInput.value });
+    state.memoryLoaded = true;
+    els.memoryStatus.textContent = `Saved ${saved.path}`;
+    addTrail("memory", `Saved ${saved.path}`);
+    renderTrustScore();
+  } catch (error) {
+    els.memoryStatus.textContent = error.message;
+    addTrail("error", error.message);
+  }
+}
+
+async function refreshPacks() {
+  try {
+    const data = await getJson("/api/packs");
+    state.packs = data.packs || [];
+    renderPacks();
+  } catch (error) {
+    state.packs = [];
+    renderPacks();
+    addTrail("error", error.message);
+  }
+}
+
+async function refreshProfilesAndMcp() {
+  try {
+    const [profileData, mcpData] = await Promise.all([getJson("/api/profiles"), getJson("/api/mcp")]);
+    state.profiles = profileData.profiles || [];
+    state.mcp = mcpData;
+    const approvalCount = Array.isArray(mcpData.approvals) ? mcpData.approvals.length : 0;
+    els.profileSummary.textContent = `${state.profiles.length} profile(s), ${approvalCount} MCP approval rule(s).`;
+  } catch (error) {
+    els.profileSummary.textContent = `Toolkit metadata unavailable: ${error.message}`;
+  }
+}
+
+function renderPacks() {
+  els.packSelect.innerHTML = "";
+  if (!state.packs.length) {
+    const option = document.createElement("option");
+    option.value = "";
+    option.textContent = "No packs found";
+    els.packSelect.appendChild(option);
+    els.exportPack.disabled = true;
+    return;
+  }
+
+  for (const pack of state.packs) {
+    const option = document.createElement("option");
+    option.value = pack.id;
+    option.textContent = `${pack.title} (${pack.recipes.length})`;
+    els.packSelect.appendChild(option);
+  }
+  els.exportPack.disabled = false;
+}
+
+async function exportSelectedPack() {
+  const id = els.packSelect.value;
+  if (!id) {
+    return;
+  }
+
+  try {
+    const pack = await getJson(`/api/packs/export?id=${encodeURIComponent(id)}`);
+    downloadText(`agenttrail-${id}-pack.json`, JSON.stringify(pack, null, 2), "application/json");
+    addTrail("recipe", `Exported ${pack.title}`);
+  } catch (error) {
+    addTrail("error", error.message);
+  }
+}
+
+async function runEvals() {
+  els.evalSummary.innerHTML = `<div class="empty-state compact">Running local eval harness...</div>`;
+  try {
+    const data = await getJson("/api/evals");
+    state.evals = data;
+    els.evalSummary.innerHTML = `
+      <div class="eval-score">${data.score}/100</div>
+      <div class="eval-list">${data.checks
+        .map((check) => `<span class="${check.ok ? "ok" : "fail"}">${check.ok ? "OK" : "FAIL"} ${escapeHtml(check.name)}</span>`)
+        .join("")}</div>
+    `;
+    addTrail("eval", `Evaluation score ${data.score}/100`);
+    renderTrustScore();
+  } catch (error) {
+    els.evalSummary.innerHTML = `<div class="empty-state compact">${escapeHtml(error.message)}</div>`;
+    addTrail("error", error.message);
+  }
 }
 
 function renderRecipes() {
@@ -215,10 +365,12 @@ async function searchWorkspace() {
   els.searchResults.innerHTML = `<div class="empty-state">Searching workspace...</div>`;
 
   try {
-    const data = await getJson(`/api/search?query=${encodeURIComponent(query)}&limit=8`);
+    const mode = state.semanticSearch ? "semantic" : "keyword";
+    const data = await getJson(`/api/search?query=${encodeURIComponent(query)}&limit=8&mode=${mode}`);
     state.searchResults = data.results || [];
     renderSearchResults();
-    addTrail("search", `${state.searchResults.length} result(s) for "${query}"`);
+    addTrail("search", `${state.searchResults.length} ${mode} result(s) for "${query}"`);
+    renderTrustScore();
   } catch (error) {
     state.searchResults = [];
     els.searchResults.innerHTML = `<div class="empty-state">${escapeHtml(error.message)}</div>`;
@@ -283,6 +435,7 @@ async function refreshStatus() {
       addTrail("warning", "Ollama not connected");
     }
     renderLocalSignals();
+    renderModelScores();
     renderSetupChecklist();
   } catch (error) {
     setConnection("Status check failed");
@@ -290,6 +443,7 @@ async function refreshStatus() {
     state.ollamaAvailable = false;
     addTrail("error", error.message);
     renderLocalSignals();
+    renderModelScores();
     renderSetupChecklist();
   }
 }
@@ -309,6 +463,40 @@ function renderModels(defaultModel) {
     state.model = models[0];
   }
   els.modelSelect.value = state.model;
+  renderModelScores();
+}
+
+function renderModelScores() {
+  if (!els.modelScoreList) {
+    return;
+  }
+
+  const selected = state.models.find((model) => model.name === state.model);
+  if (!selected || !selected.scores) {
+    els.modelScoreList.innerHTML = `<div class="empty-state compact">Model capability scores appear after Ollama responds.</div>`;
+    return;
+  }
+
+  const rows = [
+    ["Tool", selected.scores.toolUse],
+    ["Code", selected.scores.coding],
+    ["Plan", selected.scores.planning],
+    ["Ctx", selected.scores.longContext]
+  ];
+  els.modelScoreList.innerHTML = `
+    <div class="model-recommendation">Best for ${escapeHtml(selected.recommendation || "general chat")}</div>
+    ${rows
+      .map(
+        ([label, score]) => `
+          <div class="model-score-row">
+            <span>${label}</span>
+            <meter min="0" max="100" value="${Number(score) || 0}"></meter>
+            <strong>${Number(score) || 0}</strong>
+          </div>
+        `
+      )
+      .join("")}
+  `;
 }
 
 async function refreshFiles() {
@@ -396,6 +584,10 @@ async function sendMessage(event) {
 
   state.messages.push(userMessage, assistantMessage);
   state.busy = true;
+  const suspicious = detectSuspiciousPrompt(content);
+  if (suspicious.length) {
+    addTrail("security", `Suspicious instruction flagged: ${suspicious[0]}`);
+  }
   addTrail("chat", `Sent prompt with ${state.selectedFiles.size} file(s)`);
   els.prompt.value = "";
   resizePrompt();
@@ -410,7 +602,8 @@ async function sendMessage(event) {
         model: state.model,
         messages: requestMessages,
         selectedFiles: Array.from(state.selectedFiles),
-        permissions: state.permissions
+        permissions: state.permissions,
+        securityMode: state.securityMode
       })
     });
 
@@ -431,6 +624,16 @@ async function sendMessage(event) {
           preview: data.preview || null,
           id: data.preview ? `preview-${Date.now()}-${state.toolCount}` : null
         });
+        if (data.preview) {
+          state.pendingPreviews.unshift({
+            id: `pending-${Date.now()}-${state.toolCount}`,
+            label,
+            preview: data.preview,
+            applied: false,
+            rejected: false
+          });
+          renderPendingChanges();
+        }
         addTrail(data.preview ? "preview" : "tool", label);
       }
       if (eventName === "status") {
@@ -444,6 +647,7 @@ async function sendMessage(event) {
         addTrail("error", data.message || "Agent error");
       }
       renderLocalSignals();
+      renderTrustScore();
       renderMessages();
     });
   } catch (error) {
@@ -467,6 +671,9 @@ function addTrail(type, label) {
   });
   state.trail = state.trail.slice(0, 24);
   renderTrail();
+  if (els.trustScore) {
+    renderTrustScore();
+  }
 }
 
 async function exportTrailReceipt() {
@@ -566,6 +773,132 @@ function renderSetupChecklist() {
   els.setupChecklist.innerHTML = items
     .map((item) => `<div class="setup-item ${item.ok ? "ok" : ""}"><span>${item.ok ? "OK" : "TODO"}</span>${escapeHtml(item.text)}</div>`)
     .join("");
+}
+
+function renderPendingChanges() {
+  const active = state.pendingPreviews.filter((item) => !item.applied && !item.rejected);
+  els.applyAllPreviews.disabled = active.length === 0;
+  els.pendingChanges.innerHTML = "";
+
+  if (!state.pendingPreviews.length) {
+    els.pendingChanges.innerHTML = `<div class="empty-state compact">No pending diffs yet.</div>`;
+    return;
+  }
+
+  for (const item of state.pendingPreviews.slice(0, 6)) {
+    const row = document.createElement("div");
+    row.className = `pending-change${item.applied ? " applied" : ""}${item.rejected ? " rejected" : ""}`;
+    const stats = item.preview.stats || { added: 0, removed: 0 };
+    row.innerHTML = `
+      <div>
+        <strong>${escapeHtml(item.preview.path)}</strong>
+        <span>+${Number(stats.added || 0)} -${Number(stats.removed || 0)}${item.applied ? " · applied" : item.rejected ? " · rejected" : ""}</span>
+      </div>
+      <div class="pending-actions">
+        <button type="button" data-action="apply" ${item.applied || item.rejected ? "disabled" : ""}>Apply</button>
+        <button type="button" data-action="reject" ${item.applied || item.rejected ? "disabled" : ""}>Reject</button>
+      </div>
+    `;
+    row.querySelector('[data-action="apply"]').addEventListener("click", () => applyPendingPreview(item));
+    row.querySelector('[data-action="reject"]').addEventListener("click", () => rejectPendingPreview(item.id));
+    els.pendingChanges.appendChild(row);
+  }
+}
+
+function renderReceiptTimeline() {
+  const filter = (els.receiptFilter?.value || "").trim().toLowerCase();
+  const receipts = state.receipts.filter((receipt) => {
+    const text = `${receipt.path} ${receipt.snippet || ""}`.toLowerCase();
+    return !filter || text.includes(filter);
+  });
+
+  if (!receipts.length) {
+    els.receiptTimeline.innerHTML = `<div class="empty-state compact">No receipts match this filter.</div>`;
+    return;
+  }
+
+  els.receiptTimeline.innerHTML = receipts
+    .slice(0, 8)
+    .map(
+      (receipt) => `
+        <button type="button" class="receipt-row" data-path="${escapeHtml(receipt.path)}">
+          <strong>${escapeHtml(receipt.path.replace(/^receipts\//, ""))}</strong>
+          <span>${escapeHtml(receipt.snippet || formatBytes(receipt.size))}</span>
+        </button>
+      `
+    )
+    .join("");
+
+  els.receiptTimeline.querySelectorAll(".receipt-row").forEach((row) => {
+    row.addEventListener("click", () => {
+      const path = row.dataset.path;
+      if (path) {
+        state.selectedFiles.add(path);
+        renderFiles();
+        addTrail("receipt", `Selected ${path}`);
+        renderTrustScore();
+      }
+    });
+  });
+}
+
+function renderTrustScore() {
+  const checks = [
+    { ok: state.ollamaAvailable, label: "Local model connected" },
+    { ok: state.trail.some((item) => item.type === "search"), label: "Evidence searched" },
+    { ok: state.trail.some((item) => item.type === "preview") || state.pendingPreviews.length > 0, label: "Writes previewed" },
+    { ok: state.receipts.length > 0, label: "Receipt saved" },
+    { ok: state.securityMode, label: "Hardening mode" },
+    { ok: state.memoryLoaded, label: "Project memory" },
+    { ok: !state.permissions.writeFiles || state.permissions.previewWrites, label: "No direct writes" },
+    { ok: state.evals && state.evals.score >= 80, label: "Eval harness passed" }
+  ];
+  const passed = checks.filter((check) => check.ok).length;
+  const score = Math.round((passed / checks.length) * 100);
+  els.trustScore.textContent = String(score);
+  els.trustReasons.innerHTML = checks
+    .map((check) => `<span class="${check.ok ? "ok" : ""}">${check.ok ? "OK" : "TODO"} ${escapeHtml(check.label)}</span>`)
+    .join("");
+}
+
+async function exportShareableReport() {
+  const trustScore = els.trustScore.textContent;
+  const rows = state.trail
+    .slice()
+    .reverse()
+    .map((item) => `- ${item.time} [${item.type}] ${item.label}`)
+    .join("\n");
+  const diffs = state.pendingPreviews
+    .map((item) => `## ${item.preview.path}\n\n\`\`\`diff\n${item.preview.diff || ""}\n\`\`\``)
+    .join("\n\n");
+  const markdown = [
+    "# AgentTrail Shareable Report",
+    "",
+    `Exported: ${new Date().toISOString()}`,
+    `Trust score: ${trustScore}/100`,
+    `Model: ${state.model || "not selected"}`,
+    `Selected files: ${Array.from(state.selectedFiles).join(", ") || "none"}`,
+    "",
+    "## Trail",
+    "",
+    rows || "- No events",
+    "",
+    "## Pending And Applied Diffs",
+    "",
+    diffs || "No diffs captured."
+  ].join("\n");
+
+  try {
+    const saved = await postJson("/api/reports", {
+      title: "AgentTrail Shareable Report",
+      markdown
+    });
+    downloadText("agenttrail-report.md", markdown, "text/markdown");
+    addTrail("report", `Saved report ${saved.markdown.path}`);
+    await refreshFiles();
+  } catch (error) {
+    addTrail("error", error.message);
+  }
 }
 
 async function readEventStream(body, onEvent) {
@@ -704,14 +1037,63 @@ async function applyPreview(item, button) {
       content: item.preview.proposedContent || ""
     });
     item.applied = true;
+    markPendingPreview(item.preview.path, "applied");
     button.textContent = "Applied";
     addTrail("file", `Applied preview ${result.path}`);
     await refreshFiles();
     await refreshReceipts();
+    renderPendingChanges();
+    renderTrustScore();
   } catch (error) {
     button.disabled = false;
     button.textContent = originalLabel;
     addTrail("error", `Could not apply preview: ${error.message}`);
+  }
+}
+
+async function applyPendingPreview(item) {
+  if (!item || !item.preview || item.applied || item.rejected) {
+    return;
+  }
+
+  const result = await postJson("/api/files/content", {
+    path: item.preview.path,
+    content: item.preview.proposedContent || ""
+  });
+  item.applied = true;
+  addTrail("file", `Applied preview ${result.path}`);
+  await refreshFiles();
+  renderPendingChanges();
+  renderTrustScore();
+}
+
+async function applyAllPreviews() {
+  const pending = state.pendingPreviews.filter((item) => !item.applied && !item.rejected);
+  for (const item of pending) {
+    try {
+      await applyPendingPreview(item);
+    } catch (error) {
+      addTrail("error", `Could not apply ${item.preview.path}: ${error.message}`);
+    }
+  }
+  await refreshReceipts();
+}
+
+function rejectPendingPreview(id) {
+  const item = state.pendingPreviews.find((preview) => preview.id === id);
+  if (item) {
+    item.rejected = true;
+    addTrail("preview", `Rejected ${item.preview.path}`);
+  }
+  renderPendingChanges();
+  renderTrustScore();
+}
+
+function markPendingPreview(path, status) {
+  for (const item of state.pendingPreviews) {
+    if (item.preview && item.preview.path === path) {
+      item[status] = true;
+    }
   }
 }
 
@@ -765,6 +1147,29 @@ async function postJson(url, data) {
     throw new Error(error.error || `HTTP ${response.status}`);
   }
   return response.json();
+}
+
+function downloadText(filename, content, type) {
+  const blob = new Blob([content], { type });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  link.click();
+  URL.revokeObjectURL(url);
+}
+
+function detectSuspiciousPrompt(content) {
+  const text = String(content || "").toLowerCase();
+  const patterns = [
+    ["ignore previous", "instruction override"],
+    ["system prompt", "system prompt request"],
+    ["send to http", "hidden exfiltration"],
+    ["curl ", "network command"],
+    ["delete all", "destructive request"],
+    ["outside workspace", "workspace escape"]
+  ];
+  return patterns.filter(([needle]) => text.includes(needle)).map(([, label]) => label);
 }
 
 function setConnection(text) {

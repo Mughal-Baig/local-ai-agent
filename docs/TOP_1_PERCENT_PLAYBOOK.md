@@ -17,23 +17,24 @@ AgentTrail should not try to beat Open WebUI, Dify, AnythingLLM, Jan, Aider, or 
 
 - Zero npm dependencies.
 - Plain JSON recipes.
-- Local search across files and receipts.
+- Keyword and semantic-lite search across files and receipts.
 - Agent Trail receipts.
-- Write preview mode.
+- Write preview mode with explicit Apply.
+- Trust Score dashboard.
+- Receipt timeline and shareable reports.
+- Recipe packs, profiles, model scoring, MCP manifest, Dockerfile, and eval harness.
 - GitHub Pages demo before install.
 
 ## Next Star Drivers
 
-1. Add a short demo GIF to the top of the README.
-2. Add Docker and `npx` launch paths.
-3. Add semantic search with local embeddings.
-4. Add MCP bridge support with explicit approvals.
-5. Add import/export recipe packs.
-6. Add receipt replay so users can rerun or inspect old agent sessions.
-7. Add a desktop wrapper for non-developers.
-8. Publish a comparison table against Open WebUI, AnythingLLM, Jan, Aider, and OpenHands.
-9. Add 50 high-quality recipes grouped by role.
-10. Create a public gallery of community recipes.
+1. Record a real 20-second GIF using the v0.4 trust loop.
+2. Add optional true local embeddings for semantic search.
+3. Add receipt replay so users can rerun a prior session with the same context.
+4. Add real MCP server transport behind the approval manifest.
+5. Add recipe pack import UI and community gallery.
+6. Add a desktop wrapper for non-developers.
+7. Add 50 high-quality recipes grouped by role.
+8. Publish benchmark screenshots from `npm run eval`.
 
 ## Brutal Anti-Goals
 

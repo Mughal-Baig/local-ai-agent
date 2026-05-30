@@ -2,19 +2,18 @@
 
 ## Next
 
-- Add a model capability check for tool-call reliability.
-- Add local embeddings for semantic workspace search.
-- Add one-click recipe pack import/export.
 - Add a desktop wrapper.
-- Add MCP bridge support behind explicit approvals.
-- Add a demo video/GIF above the README fold.
+- Add true local embedding backends behind optional dependencies.
+- Add receipt replay that can rerun a prior prompt with the same context.
+- Add import UI for external recipe packs.
+- Add real MCP server transport behind the approval manifest.
+- Add a recorded GIF/video in addition to the animated SVG proof.
 
 ## Later
 
 - Add per-tool permission toggles.
-- Add multi-workspace profiles.
-- Add model capability checks for tool-call reliability.
-- Add receipt replay from saved Markdown trails.
+- Add multi-workspace runtime switching.
+- Add packaged desktop builds.
 
 ## Shipped
 
@@ -24,6 +23,20 @@
 - Agent write diff previews.
 - In-chat diff cards with explicit apply buttons.
 - 20 reusable JSON recipes.
+- Animated top-1% trust-loop demo proof.
+- Semantic-lite local search mode.
+- Diff Review center.
+- Receipt timeline.
+- Recipe packs.
+- Dockerfile and `agenttrail` bin entry.
+- Model capability scoring.
+- Local evaluation harness.
+- Project memory.
+- Workspace profile templates.
+- Trust Score dashboard.
+- Security hardening mode.
+- Shareable Markdown/HTML reports.
+- MCP approval manifest.
 
 ## Not Planned
 

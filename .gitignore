@@ -7,3 +7,5 @@ dist/
 .local-agent/
 workspace/private/
 workspace/receipts/
+workspace/reports/
+workspace/memory/

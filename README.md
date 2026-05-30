@@ -7,6 +7,8 @@
 
 AgentTrail is a tiny, auditable local AI agent kit for people who want a Claude/ChatGPT/Gemini-style workspace assistant without sending files to a cloud service.
 
+![AgentTrail trust loop](docs/top1-demo.svg)
+
 ![Local AI Agent preview](docs/preview.svg)
 
 ![Local AI Agent demo flow](docs/demo-flow.svg)
@@ -18,8 +20,10 @@ AgentTrail is a tiny, auditable local AI agent kit for people who want a Claude/
 ## Why Star This
 
 - **Transparent by default**: every tool call is shown as an Agent Trail receipt.
-- **Search before answer**: built-in local workspace search helps the agent find evidence before responding.
+- **Search before answer**: keyword and semantic-lite local search help the agent find evidence before responding.
 - **Diff-safe writes**: preview mode shows a unified diff in chat and lets the user apply it deliberately.
+- **Trust Score dashboard**: each run shows evidence, preview, receipt, memory, hardening, and eval signals.
+- **Receipt timeline and reports**: inspect saved sessions and export shareable Markdown/HTML reports.
 - **Recipe-driven**: reusable local workflows live in plain JSON files anyone can add.
 - **Demo-first**: the static demo lets visitors understand the project before installing Ollama.
 - **Permission-aware**: file reads are explicit and file writes are off by default.
@@ -36,27 +40,56 @@ Popular local AI tools are often full platforms. This project is intentionally s
 | --- | --- |
 | Setup | One Node command, no package install required |
 | Model backend | Ollama |
-| File access | Sandboxed workspace tools plus local search |
-| Trust UX | Visible local signals, reviewable diff previews, explicit apply buttons, exportable receipts, and tool history |
-| Workflow system | Plain JSON recipes in `recipes/` |
+| File access | Sandboxed workspace tools plus keyword and semantic-lite search |
+| Trust UX | Trust Score, local signals, reviewable diff previews, explicit apply buttons, exportable reports, receipts, and tool history |
+| Workflow system | Plain JSON recipes plus role-based recipe packs |
 | Best use | Personal workspace agent starter kit and auditable local workflow lab |
+
+## 60-second Quick Start
+
+```bash
+git clone https://github.com/Mughal-Baig/local-ai-agent.git
+cd local-ai-agent
+ollama pull llama3.2
+node server.js
+```
+
+Open `http://127.0.0.1:4173`, enable semantic-lite search, ask for a change, review the diff, click **Apply**, then export the receipt/report.
 
 ## Features
 
 - Chat UI with model picker and streaming-style responses
 - Starter prompts for summarize, plan, review, and save-note workflows
 - Local recipe picker backed by plain JSON workflow files
-- Local search across workspace files and saved receipts
+- Keyword and semantic-lite local search across workspace files and saved receipts
 - First-run setup checklist for Ollama, models, workspace files, recipes, and receipts
-- Permission toggles for file reads, file writes, and write preview mode
+- Permission toggles for file reads, file writes, write preview mode, and security hardening mode
 - Ollama integration for local models
+- Model capability scoring for coding, tool use, planning, and long context
 - Workspace-aware tools: list files, search files, read files, preview writes, and write files
 - In-chat diff cards with explicit **Apply** buttons for proposed file changes
+- Diff Review center with pending-change apply/reject controls
 - Agent Trail receipts for tool calls, selected context, model status, and errors
-- Exportable Markdown audit receipts
+- Receipt timeline, searchable saved sessions, and exportable Markdown/HTML reports
+- Project memory stored locally with visible citation context in the agent prompt
+- Recipe packs for coder, founder, and security workflows
+- MCP approval manifest for future tool bridge integrations
+- Workspace profile templates
+- Local evaluation harness for safety, search, recipe packs, MCP manifest, and report surfaces
+- Dockerfile and `agenttrail` bin entry for one-command install paths
 - Saved receipt history in `workspace/receipts/`
 - Safe path handling so the agent stays inside `workspace/`
 - Smoke test and GitHub Actions CI included
+
+## Comparison
+
+| Tool | Main strength | AgentTrail difference |
+| --- | --- | --- |
+| Open WebUI | Broad self-hosted chat platform | Smaller, auditable agent kit with receipts and diff apply flow |
+| AnythingLLM | Document chat and workspaces | Lighter starter kit focused on transparent local tool use |
+| Jan | Polished offline chat app | Adds workspace tools, recipes, Trust Score, and receipts |
+| Aider | Terminal coding agent | Browser UI with explicit diff approval and reports |
+| OpenHands | Full coding-agent platform | Tiny local-first lab you can read and fork quickly |
 
 ## Quick Start
 
@@ -89,6 +122,15 @@ You can also use:
 
 ```bash
 npm start
+```
+
+Other install paths:
+
+```bash
+npm link
+agenttrail
+docker build -t agenttrail .
+docker run --rm -p 4173:4173 -v "$PWD/workspace:/app/workspace" agenttrail
 ```
 
 ## Try It
@@ -132,6 +174,24 @@ Available tools:
 
 When write preview mode is enabled, `write_file` returns a diff preview instead of changing the file. The browser shows that diff with an explicit **Apply** button, keeping the default experience reviewable even when an LLM tries to write.
 
+## Top 1% Surfaces
+
+- Visual demo proof: [docs/top1-demo.svg](docs/top1-demo.svg)
+- Semantic-lite local search: `/api/search?mode=semantic`
+- Receipt timeline: saved Markdown receipts in `workspace/receipts/`
+- Diff Review center: pending preview apply/reject UI
+- MCP bridge manifest: [mcp/agenttrail.mcp.json](mcp/agenttrail.mcp.json)
+- Recipe packs: [recipe-packs](recipe-packs)
+- One-command install surfaces: `bin/agenttrail.js` and [Dockerfile](Dockerfile)
+- Model scoring: `/api/status`
+- Agent eval harness: `npm run eval` and `/api/evals`
+- Project memory: `workspace/memory/project-memory.md`
+- Workspace profiles: [profiles](profiles)
+- Trust Score dashboard: browser UI
+- README star engine: demo, comparison, 60-second quick start, roadmap
+- Security hardening mode: prompt flags and safe-write enforcement
+- Shareable reports: `workspace/reports/`
+
 ## Workspace
 
 Put project notes, drafts, and files you want the agent to work with inside:
@@ -168,6 +228,7 @@ Supported variables:
 
 ```bash
 node scripts/smoke-test.js
+npm run eval
 ```
 
 The smoke test starts the server on a temporary port, checks the UI and API, writes a test file in a temporary workspace, reads it back, and shuts the server down.
@@ -179,6 +240,8 @@ See [docs/ROADMAP.md](docs/ROADMAP.md).
 ## Growth Research
 
 See [docs/GROWTH_RESEARCH.md](docs/GROWTH_RESEARCH.md) for research-backed positioning, [docs/LAUNCH_PLAN.md](docs/LAUNCH_PLAN.md) for the public launch checklist, and [docs/TOP_1_PERCENT_PLAYBOOK.md](docs/TOP_1_PERCENT_PLAYBOOK.md) for the focused growth path.
+
+The v0.4 implementation map is in [docs/TOP_1_PERCENT_IMPLEMENTATION.md](docs/TOP_1_PERCENT_IMPLEMENTATION.md).
 
 ## Contributing
 
