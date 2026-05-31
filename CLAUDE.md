@@ -49,7 +49,7 @@ Best next Claude tasks:
 
 - Work on docs and UI copy around native tool calling, structured outputs, planner approval, run guardrails, reflection, loop safety, structured memory, memory suggestions, ranked memory retrieval, memory history, scoped memory, markdown-aware chunk citations, hybrid search score parts, reranking, embedding cache, and search evals.
 - Do not rework `server.js` tool-calling, structured-output, planner, run-cancellation, loop/reflection, memory internals, search chunking, hybrid ranking, reranking, embedding cache, search benchmarks, or resumable-run internals unless you also run the matching scripts: `npm run test:tools`, `npm run test:structured`, `npm run test:planner`, `npm run test:guardrails`, `npm run test:reflection`, `npm run test:memory`, `npm run test:memory-suggestions`, `npm run test:memory-retrieval`, `npm run test:memory-history`, `npm run test:memory-scopes`, `npm run test:search`, `npm run test:rerank`, `npm run test:embed-cache`, `npm run test:resume`, `npm run eval:search`, and `npm run bench:search`.
-- Next code target should be Phase 3 T065 image input to local vision models, not the runtime moonshot.
+- Next code target should be T066 drag-drop image into chat, T067 screenshot-to-action flow, or T068 vision-model capability detection, not the runtime moonshot.
 
 ## Latest Claude Pass
 
@@ -63,7 +63,7 @@ Reviewed Codex's work and continued the roadmap:
 
 - T038 original partial: pending-run snapshot. Added `/api/runs/pending`, `/api/runs/pending/clear`, a resume banner in the UI, route catalog coverage, and `npm run test:resume`. Receipt-derived resume is completed in the latest Codex pass below.
 
-Still open and recommended next: Phase 3 T065 image input to local vision models.
+Still open and recommended next: T066 drag-drop image into chat, T067 screenshot-to-action flow, or T068 vision-model capability detection.
 
 ## Latest Claude Pass - UI redesign + handoff completion
 
@@ -180,4 +180,12 @@ Still open and recommended next: Phase 3 T065 image input to local vision models
 - OCR outputs use the same searchable `.agenttrail.md` sidecars, progress arrays, and `receipts/ingestion/` audit receipts as the rest of document ingestion.
 - Tests/evals/docs updated: API integration uses `tests/fixtures/mock-ocr.js` to prove OCR without external binaries, unit tests cover image detection, route catalog/eval/docs/roadmap now expose `/api/documents/ocr`.
 
-Next open: Phase 3 T065 image input to local vision models.
+## Latest Codex Pass - Vision image input
+
+- T065 and T069 are done: selected PNG/JPEG/TIFF/BMP/WebP workspace files are attached to model calls as true vision payloads, not just OCR text.
+- Ollama receives images through `images` arrays on chat/generate requests; OpenAI-compatible local servers receive `image_url` data URL content parts.
+- Image attachments now return/select `visionPath` in the browser, so users get both OCR/searchable notes and raw image pixels for a vision-capable model.
+- The prompt includes image path/hash metadata, `/api/chat` emits a `vision` SSE event, and cache keys include selected image hashes.
+- Tests/evals/docs updated: `tests/integration/vision-input.test.js`, `npm run test:vision`, CI coverage, repo eval check, README/model-backend docs, and roadmap status.
+
+Next open: T066 drag-drop image into chat, T067 screenshot-to-action flow, or T068 vision-model capability detection.

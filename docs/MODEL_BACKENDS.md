@@ -13,7 +13,7 @@ Pick a backend with the `AGENTTRAIL_MODEL_ADAPTER` environment variable. Everyth
 | llama.cpp server | `llamacpp` | `LLAMACPP_HOST` | `http://127.0.0.1:8080` | OpenAI-compatible |
 | Any OpenAI-compatible server | `openai-compatible` | `OPENAI_COMPATIBLE_HOST` | `http://127.0.0.1:8000/v1` | OpenAI-compatible |
 
-For OpenAI-compatible backends, AgentTrail calls `/v1/chat/completions`, `/v1/models`, and `/v1/embeddings`. If the host already ends in `/v1`, it is used as-is; otherwise `/v1` is appended. An optional bearer token can be supplied with `OPENAI_API_KEY` (or `AGENTTRAIL_API_KEY`) for servers that require one.
+For OpenAI-compatible backends, AgentTrail calls `/v1/chat/completions`, `/v1/models`, and `/v1/embeddings`. If the host already ends in `/v1`, it is used as-is; otherwise `/v1` is appended. An optional bearer token can be supplied with `OPENAI_API_KEY` (or `AGENTTRAIL_API_KEY`) for servers that require one. Selected local images are sent as OpenAI-compatible `image_url` data URLs for vision-capable local models.
 
 ## Examples
 
@@ -55,6 +55,7 @@ and `/api/status` reports it under a `backend` field.
 A single dispatcher routes the three model primitives to the active backend:
 
 - **Generation** — `generateCompletion()` → Ollama `/api/generate` or OpenAI `/v1/chat/completions`.
+- **Vision input** — selected workspace images are attached to Ollama chat/generate as `images` arrays and to OpenAI-compatible chat as `image_url` content parts.
 - **Model listing** — `fetchOllamaModels()` → Ollama `/api/tags` or OpenAI `/v1/models`.
 - **Embeddings** — `fetchOllamaEmbedding()` → Ollama `/api/embed` or OpenAI `/v1/embeddings`, with a local-vector fallback when no embedding model is available.
 

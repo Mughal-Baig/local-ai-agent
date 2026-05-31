@@ -44,6 +44,7 @@ This section tracks the concrete work shipped after the roadmap was publicly ref
 | Codex continuation | T063 | Added allowlisted URL ingestion with redirect re-validation, private-host opt-in, response-size limits, cleaned document extraction, searchable Markdown sidecars with source URL metadata, API tests, eval checks, and docs. |
 | Codex continuation | T064 | Added ingestion progress arrays and automatic Markdown receipts under `receipts/ingestion/` for attachments, workspace document extraction, and allowlisted URL ingestion; tests, smoke, eval, and docs now assert the audit trail. |
 | Codex continuation | T062 | Added optional local OCR for image scans through `/api/documents/ocr`, automatic image-attachment OCR, Tesseract-compatible command configuration, searchable OCR sidecars, ingestion receipts, route/eval coverage, and mock-command tests. |
+| Codex continuation | T065, T069 | Added local vision image input for selected PNG/JPEG/TIFF/BMP/WebP files across Ollama and OpenAI-compatible backends, browser auto-selection for image attachments, prompt path/hash metadata, SSE `vision` events, eval coverage, and a mock vision backend integration test. |
 
 ### Verified After These Passes
 
@@ -53,7 +54,9 @@ This section tracks the concrete work shipped after the roadmap was publicly ref
 
 ### Best Continuation Points
 
-- T065: Image input to local vision models.
+- T066: Drag-drop image into chat.
+- T067: Screenshot-to-action flow.
+- T068: Vision-model capability detection.
 
 ---
 
@@ -151,11 +154,11 @@ This section tracks the concrete work shipped after the roadmap was publicly ref
 ## Phase 3 — Multi-modal
 
 ### Epic H — Vision
-- [ ] T065 Image input to vision models (llava, qwen-vl, etc.)
+- [x] T065 Image input to vision models (selected workspace images are sent to Ollama/OpenAI-compatible vision backends)
 - [ ] T066 Drag-drop image into chat → base64 to backend
 - [ ] T067 Screenshot-to-action (describe + plan) flow
 - [ ] T068 Vision-model capability detection
-- [ ] T069 Tests with a mock vision backend
+- [x] T069 Tests with a mock vision backend (`tests/integration/vision-input.test.js`)
 
 ### Epic I — Audio
 - [ ] T070 Local speech-to-text (whisper.cpp integration)
@@ -381,12 +384,12 @@ This section tracks the concrete work shipped after the roadmap was publicly ref
 
 ## Status & bug sweep (latest)
 
-- Progress: **66 tasks done**, 131 open (across Phases 1-10). Phase 1 (agent reliability) is complete; Phase 2 Epic E/F search foundation complete (T044-T058 done except T044 remains hardening umbrella), and Epic G now has PDF, Office, HTML, Markdown, code-aware extraction, optional local image OCR, allowlisted URL ingestion, and ingestion receipts.
+- Progress: **68 tasks done**, 129 open (across Phases 1-10). Phase 1 (agent reliability) is complete; Phase 2 Epic E/F search foundation complete (T044-T058 done except T044 remains hardening umbrella), Epic G document ingestion is complete, and Phase 3 vision now has local image payload support plus mock backend coverage.
 - Focused test suite green: unit, document extraction, API integration, smoke, repo eval, and release checksums. All touched source files pass `node --check`.
 - **Bug fixed:** `listWorkspaceFiles` only skipped `.DS_Store`, so internal `.agenttrail/*` state (logs, store, search index, pending-run) was being walked, indexed, and returned in search — adding noise and per-request churn to the index. Now excludes `.agenttrail/`. Verified against smoke, api, search-incremental, search-chunking, and eval:search.
 - Known minor item: a couple of integration tests assert relative/invariant counts (not exact) because the workspace can still gain legit files (e.g. `memory/*`) between calls — intentional, not a bug.
 
-Next code target: Phase 3 T065 image input to local vision models.
+Next code targets: T066 drag-drop image into chat, T067 screenshot-to-action flow, or T068 vision-model capability detection.
 
 ---
 

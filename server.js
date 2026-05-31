@@ -108,6 +108,8 @@ const URL_INGEST_TIMEOUT_MS = Number(process.env.AGENTTRAIL_URL_INGEST_TIMEOUT_M
 const URL_INGEST_MAX_REDIRECTS = 3;
 const OCR_TIMEOUT_MS = Number(process.env.AGENTTRAIL_OCR_TIMEOUT_MS || 30000);
 const OCR_MAX_OUTPUT_BYTES = Number(process.env.AGENTTRAIL_OCR_MAX_OUTPUT_BYTES || 1024 * 1024);
+const MAX_VISION_IMAGES = Number(process.env.AGENTTRAIL_MAX_VISION_IMAGES || 4);
+const MAX_VISION_IMAGE_BYTES = Number(process.env.AGENTTRAIL_MAX_VISION_IMAGE_BYTES || 2 * 1024 * 1024);
 const LOCAL_EMBED_DIMS = 192;
 const STOP_WORDS = new Set(["the", "and", "for", "with", "that", "this", "from", "you", "your", "are", "was", "were", "have", "has", "not", "but", "can", "will"]);
 
@@ -3105,6 +3107,7 @@ async function handleAttachments(req, res) {
           encoding,
           contextPath: note.path,
           notePath: note.path,
+          visionPath: isImageDocument(binary.path, type) ? binary.path : null,
           receiptPath: documentNote && documentNote.receipt ? documentNote.receipt.path : null,
           extracted: Boolean(documentNote),
           extraction: documentNote ? documentNote.extraction : null,
@@ -3883,8 +3886,21 @@ async function runAgent(body, res, context = {}) {
   const model = requestedModel || status.models[0]?.name || DEFAULT_MODEL;
   const toolHistory = [];
   const loopGuard = createLoopGuard();
+  const visionContext = await collectVisionImages(selectedFiles);
 
   sendEvent(res, "status", { message: `Using ${model}` });
+  if (visionContext.images.length || visionContext.warnings.length) {
+    sendEvent(res, "vision", {
+      count: visionContext.images.length,
+      images: visionContext.images.map((image) => ({
+        path: image.path,
+        mediaType: image.mediaType,
+        size: image.size,
+        hash: image.hash.slice(0, 12)
+      })),
+      warnings: visionContext.warnings
+    });
+  }
   sendEvent(res, "budget", {
     maxSteps: stepBudget.maxSteps,
     defaultMaxSteps: stepBudget.defaultMaxSteps,
@@ -3909,9 +3925,9 @@ async function runAgent(body, res, context = {}) {
         : `Reviewing tool result · step ${step + 1}/${stepBudget.maxSteps}`
     });
 
-    const prompt = await buildAgentPrompt(messages, selectedFiles, toolHistory, permissions, securityMode, approvedPlan, stepBudget);
+    const prompt = await buildAgentPrompt(messages, selectedFiles, toolHistory, permissions, securityMode, approvedPlan, stepBudget, visionContext);
     const gate = createProseGate(res);
-    const cacheKey = `${model}::${hashPrompt(prompt)}`;
+    const cacheKey = `${model}::${hashPrompt(`${prompt}\n${visionContext.images.map((image) => image.hash).join("\n")}`)}`;
     const nativeCapability = await probeNativeToolSupport(model);
     const nativeTools = nativeToolDefinitions(nativeCapability);
     if (step === 0) {
@@ -3929,6 +3945,7 @@ async function runAgent(body, res, context = {}) {
       output = await generateStream(model, prompt, {
         temperature: typeof body.temperature === "number" ? body.temperature : 0.2,
         tools: nativeTools,
+        images: visionContext.images,
         signal
       }, (chunk) => gate.push(chunk));
       cacheSet(cacheKey, output);
@@ -4027,7 +4044,78 @@ async function runAgent(body, res, context = {}) {
   sendEvent(res, "done", { ok: false, reason: "step-budget-exhausted", budget: stepBudget });
 }
 
-async function buildAgentPrompt(messages, selectedFiles, toolHistory, permissions, securityMode, approvedPlan = null, stepBudget = null) {
+async function collectVisionImages(selectedFiles) {
+  const images = [];
+  const warnings = [];
+  const seen = new Set();
+  for (const selectedPath of selectedFiles) {
+    const candidates = await visionCandidatePaths(selectedPath);
+    for (const candidate of candidates) {
+      if (images.length >= MAX_VISION_IMAGES) {
+        warnings.push(`Only the first ${MAX_VISION_IMAGES} image(s) were attached to the vision model.`);
+        return { images, warnings };
+      }
+      if (seen.has(candidate)) {
+        continue;
+      }
+      seen.add(candidate);
+      try {
+        const file = await readWorkspaceBinaryFile(candidate, MAX_VISION_IMAGE_BYTES);
+        const base64 = file.content.toString("base64");
+        images.push({
+          path: file.path,
+          mediaType: visionImageMediaType(file.path),
+          size: file.size,
+          hash: hashContent(base64),
+          base64
+        });
+      } catch (error) {
+        warnings.push(`${candidate}: ${error.message}`);
+      }
+    }
+  }
+  return { images, warnings };
+}
+
+async function visionCandidatePaths(selectedPath) {
+  const normalized = normalizeRelativePath(selectedPath);
+  if (!normalized) {
+    return [];
+  }
+  if (isImageDocument(normalized, "")) {
+    return [normalized];
+  }
+  if (!normalized.endsWith(".agenttrail.md")) {
+    return [];
+  }
+  try {
+    const file = await readWorkspaceFile(normalized, MAX_PROMPT_FILE_BYTES);
+    const sourcePath = parseSourceFileLine(file.content);
+    return sourcePath && isImageDocument(sourcePath, "") ? [sourcePath] : [];
+  } catch {
+    return [];
+  }
+}
+
+function parseSourceFileLine(content) {
+  const match = String(content || "").match(/^-?\s*Source file:\s*(.+)$/im);
+  return match ? normalizeRelativePath(match[1]) : "";
+}
+
+function visionImageMediaType(filePath) {
+  const ext = path.extname(String(filePath || "").toLowerCase());
+  return {
+    ".png": "image/png",
+    ".jpg": "image/jpeg",
+    ".jpeg": "image/jpeg",
+    ".tif": "image/tiff",
+    ".tiff": "image/tiff",
+    ".bmp": "image/bmp",
+    ".webp": "image/webp"
+  }[ext] || "image/png";
+}
+
+async function buildAgentPrompt(messages, selectedFiles, toolHistory, permissions, securityMode, approvedPlan = null, stepBudget = null, visionContext = null) {
   const selectedFileBlocks = [];
   const memoryScopes = await Promise.all(["global", "project"].map(async (scope) => {
     try {
@@ -4048,6 +4136,11 @@ async function buildAgentPrompt(messages, selectedFiles, toolHistory, permission
 
   for (const filePath of selectedFiles) {
     try {
+      if (isImageDocument(filePath, "")) {
+        const normalized = normalizeRelativePath(filePath);
+        selectedFileBlocks.push(`--- ${normalized} ---\n[Image selected for vision input. AgentTrail attempts to attach raw pixels separately for supported local vision backends.]`);
+        continue;
+      }
       const file = await readWorkspaceFile(filePath, MAX_PROMPT_FILE_BYTES);
       selectedFileBlocks.push(`--- ${file.path} ---\n${file.content}`);
     } catch (error) {
@@ -4093,6 +4186,15 @@ async function buildAgentPrompt(messages, selectedFiles, toolHistory, permission
   const projectMemoryBudget = Math.max(240, MEMORY_PROMPT_CHARS - globalMemoryBudget);
   const globalStructuredMemoryBlock = formatStructuredMemoryForPrompt(globalMemory.structured, memoryQuery, globalMemoryBudget);
   const projectStructuredMemoryBlock = formatStructuredMemoryForPrompt(projectMemory.structured, memoryQuery, projectMemoryBudget);
+  const visionImagesForPrompt = visionContext && Array.isArray(visionContext.images) ? visionContext.images : [];
+  const visionWarningsForPrompt = visionContext && Array.isArray(visionContext.warnings) ? visionContext.warnings : [];
+  const visionBlock = visionImagesForPrompt.length || visionWarningsForPrompt.length
+    ? [
+        `Selected vision images: ${visionImagesForPrompt.length}`,
+        ...visionImagesForPrompt.map((image, index) => `- Image ${index + 1}: ${image.path} (${image.mediaType}, ${image.size} bytes, sha256 ${image.hash.slice(0, 12)})`),
+        ...visionWarningsForPrompt.map((warning) => `- Warning: ${warning}`)
+      ].join("\n")
+    : "No vision images selected.";
 
   return [
     "You are AgentTrail, a private AI assistant running on the user's computer.",
@@ -4137,6 +4239,9 @@ async function buildAgentPrompt(messages, selectedFiles, toolHistory, permission
     "",
     "Selected file context:",
     fileContext,
+    "",
+    "Vision image context:",
+    visionBlock,
     "",
     "Tool history:",
     toolNotes,
@@ -4776,7 +4881,7 @@ async function generateWithOpenAI(model, prompt, options) {
       headers: openaiHeaders(),
       body: JSON.stringify({
         model,
-        messages: [{ role: "user", content: prompt }],
+        messages: [openAIUserMessage(prompt, options.images)],
         temperature: options.temperature,
         stream: false
       }),
@@ -4837,6 +4942,38 @@ async function generateStream(model, prompt, options, onToken) {
   return generateOllamaStream(model, prompt, options, onToken);
 }
 
+function visionImages(images) {
+  return Array.isArray(images) ? images.filter((image) => image && image.base64).slice(0, MAX_VISION_IMAGES) : [];
+}
+
+function ollamaUserMessage(prompt, images) {
+  const attached = visionImages(images);
+  return {
+    role: "user",
+    content: prompt,
+    ...(attached.length ? { images: attached.map((image) => image.base64) } : {})
+  };
+}
+
+function openAIUserMessage(prompt, images) {
+  const attached = visionImages(images);
+  if (!attached.length) {
+    return { role: "user", content: prompt };
+  }
+  return {
+    role: "user",
+    content: [
+      { type: "text", text: prompt },
+      ...attached.map((image) => ({
+        type: "image_url",
+        image_url: {
+          url: `data:${image.mediaType || "image/png"};base64,${image.base64}`
+        }
+      }))
+    ]
+  };
+}
+
 async function generateOllamaStream(model, prompt, options, onToken) {
   if (Array.isArray(options.tools) && options.tools.length) {
     try {
@@ -4861,6 +4998,7 @@ async function generateOllamaStream(model, prompt, options, onToken) {
         model,
         prompt,
         stream: true,
+        ...(visionImages(options.images).length ? { images: visionImages(options.images).map((image) => image.base64) } : {}),
         keep_alive: OLLAMA_KEEP_ALIVE,
         options: { temperature: options.temperature, num_ctx: 8192 }
       }),
@@ -4913,7 +5051,7 @@ async function generateOllamaChatStream(model, prompt, options, onToken) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         model,
-        messages: [{ role: "user", content: prompt }],
+        messages: [ollamaUserMessage(prompt, options.images)],
         tools: options.tools,
         stream: true,
         keep_alive: OLLAMA_KEEP_ALIVE,
@@ -4993,7 +5131,7 @@ async function generateOpenAIStream(model, prompt, options, onToken) {
       headers: openaiHeaders(),
       body: JSON.stringify({
         model,
-        messages: [{ role: "user", content: prompt }],
+        messages: [openAIUserMessage(prompt, options.images)],
         temperature: options.temperature,
         stream: true
       }),
@@ -5050,7 +5188,7 @@ async function generateOpenAIChatStream(model, prompt, options, onToken) {
       headers: openaiHeaders(),
       body: JSON.stringify({
         model,
-        messages: [{ role: "user", content: prompt }],
+        messages: [openAIUserMessage(prompt, options.images)],
         tools: options.tools,
         tool_choice: "auto",
         temperature: options.temperature,

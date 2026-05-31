@@ -1544,11 +1544,14 @@ async function attachSelectedFiles() {
     const result = await postJson("/api/attachments", { files: payload });
     for (const item of result.saved || []) {
       state.selectedFiles.add(item.contextPath || item.path);
+      if (item.visionPath) {
+        state.selectedFiles.add(item.visionPath);
+      }
     }
     state.attachments = [
       ...(result.saved || []).map((item) => ({
         name: item.originalName || item.path,
-        path: item.contextPath || item.path,
+        path: item.visionPath ? `${item.contextPath || item.path} + ${item.visionPath}` : item.contextPath || item.path,
         status: "saved",
         binary: item.encoding === "base64"
       })),

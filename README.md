@@ -94,7 +94,7 @@ Open `http://127.0.0.1:4173`, build the semantic index, ask for a change, review
 - BM25 keyword search and hybrid semantic local search across workspace files, sessions, and saved receipts, with markdown-aware chunks, late-interaction chunk vectors, reranking, score parts, and exact line/character citation spans
 - Ollama embedding index using `OLLAMA_EMBED_MODEL=nomic-embed-text`, with local-vector fallback and cached real embeddings keyed by model + content hash
 - First-run setup checklist for Ollama, models, workspace files, recipes, and receipts
-- Attachment picker that copies local files into `workspace/attachments/`, extracts selectable PDF/DOCX/PPTX/XLSX/HTML/Markdown/code text into context notes, and selects them for agent context
+- Attachment picker that copies local files into `workspace/attachments/`, extracts selectable PDF/DOCX/PPTX/XLSX/HTML/Markdown/code/image text into context notes, and selects image pixels for local vision models
 - Permission toggles for file reads, file writes, write preview mode, and security hardening mode
 - Ollama integration for local models
 - Model capability scoring for coding, tool use, planning, and long context
@@ -246,6 +246,7 @@ When write preview mode is enabled, `write_file` returns a diff preview instead 
 - Diff Review center: pending preview apply/reject UI
 - Local attachments: `/api/attachments` plus browser file picker that saves files into the workspace
 - Document text extraction: `/api/documents/extract`, `/api/documents/ocr`, `/api/documents/ingest-url`, automatic PDF/DOCX/PPTX/XLSX/HTML/Markdown/code/image attachment notes, progress steps, and ingestion receipts for searchable context
+- Vision-model image input: selected PNG/JPEG/TIFF/BMP/WebP files are sent as local image payloads to Ollama vision models and OpenAI-compatible local servers
 - MCP bridge: [mcp/server.js](mcp/server.js) and [mcp/agenttrail.mcp.json](mcp/agenttrail.mcp.json)
 - Recipe marketplace: [marketplace/recipes.json](marketplace/recipes.json), [recipe-packs](recipe-packs), `/api/packs/import`
 - One-command install surfaces: `bin/agenttrail.js`, [Dockerfile](Dockerfile), [docker-compose.yml](docker-compose.yml), [install.sh](install.sh), [Formula/agenttrail.rb](Formula/agenttrail.rb), [desktop](desktop)
@@ -320,6 +321,8 @@ Supported variables:
 - `AGENTTRAIL_DEFAULT_STEP_BUDGET`: default model/tool loop budget, default `3`
 - `AGENTTRAIL_OCR_COMMAND`: optional local OCR executable for image scans, default `tesseract`
 - `AGENTTRAIL_OCR_ARGS`: optional OCR argument template, default `{{input}} stdout -l {{language}}`
+- `AGENTTRAIL_MAX_VISION_IMAGES`: max selected images sent to a vision model, default `4`
+- `AGENTTRAIL_MAX_VISION_IMAGE_BYTES`: max bytes per selected vision image, default `2097152`
 - `WORKSPACE_ROOT`: folder the agent can access
 - `MAX_TOOL_ITERATIONS`: maximum tool loop steps per message
 
