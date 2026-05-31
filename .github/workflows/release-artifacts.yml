@@ -22,9 +22,15 @@ jobs:
       - run: npm run eval
       - run: npm run release:checksums
       - run: npm run package:desktop
+      - run: npm run package:mac-app
+      - run: npm run package:linux
+      - run: npm run sign:mac-app -- --dry-run
+      - run: npm run sign:windows -- --dry-run
       - uses: actions/upload-artifact@v7
         with:
           name: agenttrail-release-artifacts
           path: |
             docs/checksums/
+            dist/mac/
             installers/
+            updates/

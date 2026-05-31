@@ -30,6 +30,7 @@ const { SqliteStore } = require("./src/sqlite-store");
 const { FileWatcher } = require("./src/file-watcher");
 const { runPluginTool } = require("./src/plugin-sandbox");
 const { routeCatalog } = require("./src/route-catalog");
+const { maybeNotifyLongTask, desktopNotificationsEnabled } = require("./src/desktop-notifications");
 const { isSupportedDocument, isImageDocument, detectDocumentType, extractDocumentText, buildExtractedDocumentMarkdown } = require("./src/document-ingestion");
 const {
   isAudioDocument,
@@ -119,6 +120,7 @@ const RECIPES_DIR = path.resolve(process.env.AGENTTRAIL_RECIPES_DIR || path.join
 const RECIPE_PACKS_DIR = path.resolve(process.env.AGENTTRAIL_RECIPE_PACKS_DIR || path.join(PROJECT_ROOT, "recipe-packs"));
 const PROFILES_DIR = path.join(PROJECT_ROOT, "profiles");
 const MARKETPLACE_DIR = path.join(PROJECT_ROOT, "marketplace");
+const UPDATES_DIR = path.join(PROJECT_ROOT, "updates");
 const PLUGINS_DIR = path.join(PROJECT_ROOT, "plugins");
 const MCP_MANIFEST_PATH = path.join(PROJECT_ROOT, "mcp", "agenttrail.mcp.json");
 const WORKSPACE_ROOT = path.resolve(PROJECT_ROOT, process.env.WORKSPACE_ROOT || "workspace");
@@ -365,6 +367,10 @@ const server = http.createServer(async (req, res) => {
 
     if (url.pathname === "/api/releases/signing-plan" && req.method === "GET") {
       return handleSigningPlan(res);
+    }
+
+    if (url.pathname === "/api/updates/check" && req.method === "GET") {
+      return handleUpdateCheck(url, res);
     }
 
     if (url.pathname === "/api/files" && req.method === "GET") {
@@ -854,6 +860,8 @@ async function handlePullModel(req, res) {
     "X-Accel-Buffering": "no"
   });
 
+  const startedAt = Date.now();
+  let notificationMessage = `Model pull finished: ${name}`;
   try {
     const response = await fetch(`${OLLAMA_HOST}/api/pull`, {
       method: "POST",
@@ -887,9 +895,15 @@ async function handlePullModel(req, res) {
     await STORE.append("model-pull", { name });
     sendEvent(res, "done", { ok: true, name });
   } catch (error) {
+    notificationMessage = `Model pull failed: ${name}`;
     sendEvent(res, "error", { message: error.message || "Pull failed." });
   } finally {
     res.end();
+    void maybeNotifyLongTask({
+      startedAt,
+      title: "AgentTrail model pull",
+      message: notificationMessage
+    });
   }
 }
 
@@ -957,6 +971,8 @@ async function handleModelRegistryPull(req, res, options = {}) {
     "X-Accel-Buffering": "no"
   });
 
+  const startedAt = Date.now();
+  let notificationMessage = `Registry pull finished: ${source}`;
   try {
     const model = await pullRegistryModel(WORKSPACE_ROOT, body, process.env, (event) => {
       if (event.event !== "done") sendEvent(res, event.event, event);
@@ -964,9 +980,15 @@ async function handleModelRegistryPull(req, res, options = {}) {
     await STORE.append("model-registry-pull", { name: model.name, sha256: model.sha256, source });
     sendEvent(res, "done", { ok: true, model });
   } catch (error) {
+    notificationMessage = `Registry pull failed: ${source}`;
     sendEvent(res, "error", { message: error.message || "Registry pull failed." });
   } finally {
     res.end();
+    void maybeNotifyLongTask({
+      startedAt,
+      title: "AgentTrail registry pull",
+      message: notificationMessage
+    });
   }
 }
 
@@ -2208,7 +2230,9 @@ async function handleOnboarding(res) {
       packageVersion: packageMeta.version
     }))
   ]);
+  const desktopMode = process.env.AGENTTRAIL_DESKTOP === "1" || ["desktop", "menubar", "tray"].includes(String(process.env.AGENTTRAIL_APP_MODE || "").toLowerCase());
   const items = [
+    { id: "desktop-shell", label: "Desktop shell launched", ok: desktopMode, action: "Open AgentTrail.app, AgentTrail-Tray.ps1, or the Linux desktop launcher" },
     { id: "ollama", label: "Start Ollama", ok: status.available, action: `ollama pull ${DEFAULT_MODEL}` },
     { id: "workspace", label: "Add or select a workspace file", ok: files.length > 0, action: "Use workspace/welcome.md" },
     { id: "semantic-index", label: "Build semantic search index", ok: Boolean(await readSearchIndex()), action: "Click Build search index" },
@@ -2219,8 +2243,32 @@ async function handleOnboarding(res) {
   ];
   sendJson(res, 200, {
     version: packageMeta.version,
+    desktop: {
+      enabled: desktopMode,
+      appMode: process.env.AGENTTRAIL_APP_MODE || "browser",
+      notifications: desktopNotificationsEnabled(process.env),
+      updateChannel: process.env.AGENTTRAIL_UPDATE_CHANNEL || "stable"
+    },
     score: Math.round((items.filter((item) => item.ok).length / items.length) * 100),
     items
+  });
+}
+
+async function handleUpdateCheck(url, res) {
+  const channel = String(url.searchParams.get("channel") || process.env.AGENTTRAIL_UPDATE_CHANNEL || "stable").trim().toLowerCase();
+  const manifest = await readUpdateManifest();
+  const release = selectUpdateRelease(manifest, channel);
+  const latestVersion = release.version || manifest.version || packageMeta.version;
+  sendJson(res, 200, {
+    schema: "agenttrail.updates.v1",
+    channel,
+    currentVersion: packageMeta.version,
+    latestVersion,
+    updateAvailable: compareVersions(latestVersion, packageMeta.version) > 0,
+    releaseDate: release.releaseDate || manifest.releaseDate || "",
+    releaseNotes: release.releaseNotes || manifest.releaseNotes || "",
+    artifacts: Array.isArray(release.artifacts) ? release.artifacts : [],
+    source: manifest.source || "updates/latest.json"
   });
 }
 
@@ -2243,14 +2291,52 @@ async function handlePublicDemo(res) {
   });
 }
 
+async function readUpdateManifest() {
+  try {
+    return JSON.parse(await fsp.readFile(path.join(UPDATES_DIR, "latest.json"), "utf8"));
+  } catch {
+    return {
+      schema: "agenttrail.update-channel.v1",
+      version: packageMeta.version,
+      releaseDate: "",
+      releaseNotes: "No update manifest is bundled with this checkout.",
+      artifacts: []
+    };
+  }
+}
+
+function selectUpdateRelease(manifest, channel) {
+  if (manifest && manifest.channels && manifest.channels[channel]) {
+    return manifest.channels[channel];
+  }
+  if (manifest && manifest.channels && manifest.channels.stable) {
+    return manifest.channels.stable;
+  }
+  return manifest || {};
+}
+
+function compareVersions(a, b) {
+  const left = normalizeVersionParts(a);
+  const right = normalizeVersionParts(b);
+  for (let i = 0; i < Math.max(left.length, right.length); i += 1) {
+    const delta = (left[i] || 0) - (right[i] || 0);
+    if (delta !== 0) return delta;
+  }
+  return 0;
+}
+
+function normalizeVersionParts(value) {
+  return String(value || "0").replace(/^v/i, "").split(/[.-]/).map((part) => Number(part) || 0).slice(0, 4);
+}
+
 async function handleSigningPlan(res) {
   sendJson(res, 200, {
     schema: "agenttrail.signing-plan.v1",
     version: packageMeta.version,
     artifacts: [
-      { platform: "macos", path: "desktop/mac/AgentTrail.command", signing: "Developer ID + notarization required" },
-      { platform: "windows", path: "desktop/windows/AgentTrail.cmd", signing: "Authenticode certificate required" },
-      { platform: "linux", path: "desktop/linux/agenttrail.desktop", signing: "signed checksums/package repo metadata" },
+      { platform: "macos", path: "dist/mac/AgentTrail.app", signing: "Developer ID + notarization via npm run sign:mac-app" },
+      { platform: "windows", path: "installers/windows/AgentTrail.iss", signing: "Authenticode certificate via npm run sign:windows" },
+      { platform: "linux", path: "installers/linux", signing: "signed checksums plus deb/rpm/AppImage metadata" },
       { platform: "npm", path: "package.json", signing: "npm provenance recommended after package ownership is verified" }
     ],
     checksums: `docs/checksums/SHA256SUMS_v${packageMeta.version}.txt`
@@ -5398,6 +5484,8 @@ async function handleChat(req, res) {
   const body = await readJsonBody(req);
   const runAbort = new AbortController();
   let completed = false;
+  const startedAt = Date.now();
+  let notificationMessage = "Agent run completed.";
 
   res.on("close", () => {
     if (!completed && !runAbort.signal.aborted) {
@@ -5419,12 +5507,19 @@ async function handleChat(req, res) {
       await STORE.append("run-cancelled", { reason: error.message || "Run cancelled by the user." });
       await LOGGER.log("info", "agent.cancelled", { reason: error.message || "cancelled" });
       sendEvent(res, "cancelled", { message: "Run stopped by user." });
+      notificationMessage = "Agent run was stopped.";
     } else {
       sendEvent(res, "error", { message: error.message || "The agent stopped unexpectedly." });
+      notificationMessage = "Agent run failed.";
     }
   } finally {
     completed = true;
     res.end();
+    void maybeNotifyLongTask({
+      startedAt,
+      title: "AgentTrail run",
+      message: notificationMessage
+    });
   }
 }
 

@@ -1,0 +1,11 @@
+Package: agenttrail
+Version: 0.7.0
+Section: utils
+Priority: optional
+Architecture: all
+Depends: nodejs
+Maintainer: AgentTrail <maintainers@example.com>
+Description: Auditable local AI agent
+ AgentTrail is a local-first AI agent layer for Ollama and OpenAI-compatible
+ local runtimes. It shows searches, diff previews, approvals, receipts,
+ replay sessions, and reports.

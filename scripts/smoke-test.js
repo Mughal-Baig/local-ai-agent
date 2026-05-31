@@ -257,6 +257,12 @@ async function main() {
 
     const signingPlan = await fetchJson(`http://127.0.0.1:${port}/api/releases/signing-plan`);
     assert.equal(signingPlan.artifacts.length >= 3, true);
+    assert.equal(signingPlan.artifacts.some((artifact) => /sign:mac-app/.test(artifact.signing)), true);
+
+    const updateCheck = await fetchJson(`http://127.0.0.1:${port}/api/updates/check`);
+    assert.equal(updateCheck.schema, "agenttrail.updates.v1");
+    assert.equal(updateCheck.currentVersion, "0.7.0");
+    assert.equal(updateCheck.updateAvailable, false);
 
     const job = await postJson(`http://127.0.0.1:${port}/api/jobs/start`, {
       type: "foundation-audit"
@@ -284,6 +290,8 @@ async function main() {
 
     const onboarding = await fetchJson(`http://127.0.0.1:${port}/api/onboarding`);
     assert.equal(onboarding.items.length >= 5, true);
+    assert.equal(onboarding.desktop.appMode, "browser");
+    assert.equal(onboarding.items.some((item) => item.id === "desktop-shell"), true);
 
     const publicDemo = await fetchJson(`http://127.0.0.1:${port}/api/demo/public`);
     assert.equal(publicDemo.steps.length, 4);

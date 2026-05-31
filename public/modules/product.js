@@ -153,7 +153,15 @@
   async function refreshOnboarding() {
     try {
       const data = await getJson("/api/onboarding");
-      els.onboarding.innerHTML = `<div class="mini-row"><strong>Onboarding ${Number(data.score || 0)}/100</strong><span>${data.items.filter((item) => item.ok).length}/${data.items.length} first-run checks complete</span></div>`;
+      const desktop = data.desktop && data.desktop.enabled
+        ? `${data.desktop.appMode} desktop · notifications ${data.desktop.notifications ? "on" : "off"}`
+        : "browser mode · desktop shell available";
+      const next = (data.items || []).find((item) => !item.ok);
+      els.onboarding.innerHTML = [
+        `<div class="mini-row"><strong>Onboarding ${Number(data.score || 0)}/100</strong><span>${data.items.filter((item) => item.ok).length}/${data.items.length} first-run checks complete</span></div>`,
+        `<div class="mini-row"><strong>Desktop</strong><span>${escapeHtml(desktop)}</span></div>`,
+        next ? `<div class="mini-row"><strong>Next</strong><span>${escapeHtml(next.action || next.label)}</span></div>` : ""
+      ].filter(Boolean).join("");
     } catch {
       els.onboarding.innerHTML = "";
     }

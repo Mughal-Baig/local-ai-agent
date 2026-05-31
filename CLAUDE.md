@@ -301,3 +301,12 @@ Next open: real `node-llama-cpp` validation with a tiny GGUF on actual hardware,
 - T155 moved to done after expanding the security scanner for tool escalation, system prompt extraction, and encoded payloads, with foundation test coverage.
 
 Next open: real `node-llama-cpp` validation with a tiny GGUF on actual hardware, then Phase 7 desktop/CLI distribution.
+
+## Latest Codex Pass - Epic T native desktop distribution
+
+- T132-T139 are implemented at the repo/scaffolding level: hardened macOS `.app` packaging, native Swift menu-bar launcher source, Windows PowerShell tray launcher, Linux desktop/tray launcher, deb/rpm/AppImage metadata, update channel manifest, signing dry-run scripts, desktop onboarding state, and native notification hooks for long runs/model pulls.
+- New API surface: `/api/updates/check` returns `agenttrail.updates.v1` from `updates/latest.json`; `/api/onboarding` now reports desktop mode, notifications, and update channel.
+- Desktop launchers set `AGENTTRAIL_DESKTOP=1`, `AGENTTRAIL_APP_MODE`, `AGENTTRAIL_DESKTOP_NOTIFICATIONS=on`, and `AGENTTRAIL_UPDATE_CHANNEL=stable`.
+- New test/docs: `npm run test:desktop`, `docs/DESKTOP_DISTRIBUTION.md`, expanded desktop/signing docs, release workflow dry-runs for macOS/Windows signing, and checksum coverage for desktop-critical files.
+
+Next open: real `node-llama-cpp` validation with a tiny GGUF on actual hardware, then Epic U CLI parity.

@@ -4,6 +4,7 @@
 node_modules/
 coverage/
 dist/
+installers/linux/staging/
 .local-agent/
 workspace/private/
 workspace/receipts/

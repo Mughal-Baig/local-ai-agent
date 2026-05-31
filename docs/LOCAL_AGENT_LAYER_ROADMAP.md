@@ -58,16 +58,17 @@ This section tracks the concrete work shipped after the roadmap was publicly ref
 | Codex Epic R pass | T119-T124 | Added `src/runtime-loading.js` for quantization-aware GGUF loading policy, KV-cache/context shifting, batching/micro-batching, mmap/mlock, multi-GPU split metadata, `/api/runtime` loading visibility, System panel model-load summary, `npm run bench:runtime`, docs/env knobs, and deterministic tests. |
 | Codex Epic S pass | T125-T131 | Added `src/model-registry.js` and `/api/model-registry/*` for resumable/checksummed GGUF pulls, Hugging Face/OCI reference parsing, Modelfile-style derived models, local model library metadata/tags, create/cp/show/share operations, and SHA/signature provenance verification. |
 | Codex GitHub issue cleanup | T006, T028, T038, T154, T155 | Closed the seven public starter issues: recipe validation now rejects bad shape/duplicate IDs, prompt-injection review and meeting follow-up email recipes are present, the Pages demo shows recipe/safety/receipt proof, diff-safe writes remain covered, receipt history is searchable by model/tool/file/timestamp metadata, and model compatibility docs explain tool/write/review/summarization fit. |
+| Codex Epic T pass | T132-T139 | Added native desktop distribution scaffolding: hardened macOS app bundle with Swift menu-bar launcher, Windows tray launcher, Linux desktop/deb/rpm/AppImage templates, update channel manifest and `/api/updates/check`, macOS/Windows signing dry-run scripts, desktop first-run onboarding state, and native notification hooks for long runs/model pulls. Real public signing still requires external Apple/Windows certificates. |
 
 ### Verified After These Passes
 
-- Local suites covered: `npm run test:unit`, `npm run test:hardware`, `npm run test:loading`, `npm run test:registry`, `npm run test:redact`, `npm run test:documents`, `npm run test:audio`, `npm run test:search`, `npm run test:rerank`, `npm run test:integration`, `npm run test:backend`, `npm run test:v1`, `npm run test:bundled`, `npm run test:models`, `npm run test:embed-cache`, `npm run test:resume`, `npm run test:reindex`, `npm run test:health`, `npm run test:concurrency`, `npm run test:options`, `npm run test:resources`, `npm run eval:search`, `npm run bench:search`, `npm run test:tools`, `npm run test:structured`, `npm run test:planner`, `npm run test:guardrails`, `npm run test:reflection`, memory integration suites, `npm run test:ui`, `npm test`, `npm run eval`, `npm run release:checksums`, GitHub issue cleanup smoke coverage, and `git diff --check`.
+- Local suites covered: `npm run test:unit`, `npm run test:desktop`, `npm run test:hardware`, `npm run test:loading`, `npm run test:registry`, `npm run test:redact`, `npm run test:documents`, `npm run test:audio`, `npm run test:search`, `npm run test:rerank`, `npm run test:integration`, `npm run test:backend`, `npm run test:v1`, `npm run test:bundled`, `npm run test:models`, `npm run test:embed-cache`, `npm run test:resume`, `npm run test:reindex`, `npm run test:health`, `npm run test:concurrency`, `npm run test:options`, `npm run test:resources`, `npm run eval:search`, `npm run bench:search`, `npm run test:tools`, `npm run test:structured`, `npm run test:planner`, `npm run test:guardrails`, `npm run test:reflection`, memory integration suites, `npm run test:ui`, `npm test`, `npm run eval`, `npm run release:checksums`, GitHub issue cleanup smoke coverage, and `git diff --check`.
 - GitHub CI and GitHub Pages passed for the latest roadmap commits.
 - GitHub Actions workflows now use Node-24-ready action majors and keep `FORCE_JAVASCRIPT_ACTIONS_TO_NODE24=true`, addressing the prior Node 20 action-runtime deprecation warning.
 
 ### Best Continuation Points
 
-- T090/T091: finish automation webhook triggers and MCP parity expansion.
+- T140-T146: CLI parity with Ollama (`run`, `pull/list/rm/ps/show`, `serve`, `create`, scripting, completions, tests).
 - T098/T104: add time-to-first-token/tokens-per-second metrics and idle-unload policy UI.
 
 ---
@@ -275,14 +276,14 @@ This section tracks the concrete work shipped after the roadmap was publicly ref
 ## Phase 7 — Desktop, CLI & distribution
 
 ### Epic T — Native desktop app
-- [~] T132 macOS `.app` bundle (exists; harden)
-- [ ] T133 Menu-bar / tray app with background server
-- [ ] T134 Auto-update channel
-- [ ] T135 Code signing + notarization (macOS)
-- [ ] T136 Windows installer (.msi/.exe) + signing
-- [ ] T137 Linux packages (.deb/.rpm/AppImage)
-- [ ] T138 First-run onboarding inside the desktop app
-- [ ] T139 Native notifications for long pulls/runs
+- [x] T132 macOS `.app` bundle (hardened generator, icon, desktop env, fallback launcher)
+- [x] T133 Menu-bar / tray app with background server (macOS Swift menu-bar source, Windows tray PowerShell launcher, Linux tray shell)
+- [x] T134 Auto-update channel (`updates/latest.json`, `/api/updates/check`, desktop menu link)
+- [x] T135 Code signing + notarization (macOS dry-run/real command scaffold; requires Apple credentials for public release)
+- [x] T136 Windows installer (.msi/.exe) + signing (Inno/WiX templates plus Authenticode script; requires certificate for public release)
+- [x] T137 Linux packages (.deb/.rpm/AppImage) (deb control, RPM spec, AppRun/AppData, staging script)
+- [x] T138 First-run onboarding inside the desktop app (`AGENTTRAIL_DESKTOP` mode and desktop onboarding state)
+- [x] T139 Native notifications for long pulls/runs (desktop notification helper wired to runs and model pulls)
 
 ### Epic U — CLI parity with Ollama
 - [ ] T140 `agenttrail run <model>` interactive REPL
@@ -392,16 +393,16 @@ This section tracks the concrete work shipped after the roadmap was publicly ref
 4. We expand an epic's tasks into finer sub-tasks (toward 1000) only when we start that epic — so the plan stays honest and current.
 5. We re-mark `[x]` here as we go; this file is the single source of truth for the campaign.
 
-**Next up:** validate real `node-llama-cpp` with a tiny GGUF on hardware, then move into Phase 7 desktop/CLI distribution.
+**Next up:** validate real `node-llama-cpp` with a tiny GGUF on hardware, then move into Epic U CLI parity.
 
 ## Status & bug sweep (latest)
 
-- Progress: **125 tasks done**, with 72 open or partial items in the tracked Phases 1-10 set. Phase 1 is complete; Phase 2 Epic E/F search foundation is complete except T044 as a hardening umbrella; Epic G document ingestion is complete; Phase 3 vision/audio/image generation is complete; Epic K is complete; Epic L is complete; Epic M is partially complete; Epic N/O now have cache, option passthrough, resources, and runtime visibility; Phase 6 now has a first-class bundled-runtime adapter seam plus Epic Q/R/S hardware, loading, and registry policy; and the public starter issues are cleared with tests/docs.
-- Focused test suite green: unit, runtime hardware, runtime loading, model registry, bundled runtime, redaction, document extraction, API integration, v1 API, health, concurrency, model options, resources, smoke, recipe validation, receipt metadata, repo eval, and release checksums. All touched source files pass `node --check`.
+- Progress: **133 tasks done**, with 64 open or partial items in the tracked Phases 1-10 set. Phase 1 is complete; Phase 2 Epic E/F search foundation is complete except T044 as a hardening umbrella; Epic G document ingestion is complete; Phase 3 vision/audio/image generation is complete; Epic K is complete; Epic L is complete; Epic M is partially complete; Epic N/O now have cache, option passthrough, resources, and runtime visibility; Phase 6 now has a first-class bundled-runtime adapter seam plus Epic Q/R/S hardware, loading, and registry policy; Epic T native desktop distribution is complete at the repo/scaffolding level; and the public starter issues are cleared with tests/docs.
+- Focused test suite green: unit, desktop distribution, runtime hardware, runtime loading, model registry, bundled runtime, redaction, document extraction, API integration, v1 API, health, concurrency, model options, resources, smoke, recipe validation, receipt metadata, repo eval, and release checksums. All touched source files pass `node --check`.
 - **Bug fixed:** `listWorkspaceFiles` only skipped `.DS_Store`, so internal `.agenttrail/*` state (logs, store, search index, pending-run) was being walked, indexed, and returned in search — adding noise and per-request churn to the index. Now excludes `.agenttrail/`. Verified against smoke, api, search-incremental, search-chunking, and eval:search.
 - Known minor item: a couple of integration tests assert relative/invariant counts (not exact) because the workspace can still gain legit files (e.g. `memory/*`) between calls — intentional, not a bug.
 
-Next code target: T107 real `node-llama-cpp` hardware validation with a tiny GGUF, then Phase 7 desktop/CLI distribution.
+Next code target: T107 real `node-llama-cpp` hardware validation with a tiny GGUF, then Epic U CLI parity.
 
 ---
 

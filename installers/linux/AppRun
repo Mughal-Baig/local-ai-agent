@@ -1,9 +1,9 @@
 #!/bin/sh
 set -eu
-cd "$(dirname "$0")/../.."
-export PORT="${PORT:-4173}"
+HERE="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
 export AGENTTRAIL_DESKTOP=1
 export AGENTTRAIL_APP_MODE="${AGENTTRAIL_APP_MODE:-desktop}"
 export AGENTTRAIL_DESKTOP_NOTIFICATIONS="${AGENTTRAIL_DESKTOP_NOTIFICATIONS:-on}"
 export AGENTTRAIL_UPDATE_CHANNEL="${AGENTTRAIL_UPDATE_CHANNEL:-stable}"
-node server.js
+cd "$HERE"
+exec node server.js

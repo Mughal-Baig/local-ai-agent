@@ -36,6 +36,7 @@ AgentTrail v0.7 expands the foundation API:
 - `/api/plugins/run`
 - `/api/backup/import`
 - `/api/releases/signing-plan`
+- `/api/updates/check`
 - `/api/onboarding`
 - `/api/demo/public`
 - `/v1/chat/completions`

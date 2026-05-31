@@ -77,6 +77,7 @@ async function main() {
   assert.equal(routeCatalog().some((route) => route.routes.includes("/api/resources")), true);
   assert.equal(routeCatalog().some((route) => route.routes.includes("/api/runtime")), true);
   assert.equal(routeCatalog().some((route) => route.routes.includes("/api/concurrency")), true);
+  assert.equal(routeCatalog().some((route) => route.routes.includes("/api/updates/check")), true);
   assert.equal(routeCatalog().some((route) => route.routes.includes("/api/model-registry/pull")), true);
   assert.equal(routeCatalog().some((route) => route.routes.includes("/api/tools/schemas")), true);
   assert.equal(routeCatalog().some((route) => route.routes.includes("/api/structured-output")), true);

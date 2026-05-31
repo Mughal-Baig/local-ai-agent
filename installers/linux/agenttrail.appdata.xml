@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>com.agenttrail.local</id>
+  <name>AgentTrail</name>
+  <summary>Auditable local AI agent</summary>
+  <metadata_license>MIT</metadata_license>
+  <project_license>MIT</project_license>
+  <description>
+    <p>AgentTrail runs a local AI agent with workspace search, diff-safe writes, receipts, replay, and reports.</p>
+  </description>
+  <launchable type="desktop-id">agenttrail.desktop</launchable>
+  <releases>
+    <release version="0.7.0" date="2026-05-31" />
+  </releases>
+</component>

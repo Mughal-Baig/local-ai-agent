@@ -2,17 +2,15 @@
 
 ## Next
 
-- Add a desktop wrapper.
 - Add true local embedding backends behind optional dependencies.
 - Add a recorded GIF/video in addition to the animated SVG proof.
-- Add menu-bar/tray controls for the background server.
-- Add signed release automation for desktop builds.
+- Add CLI parity commands for `agenttrail run`, `pull`, `list`, `serve`, and `create`.
 
 ## Later
 
 - Add per-tool permission toggles.
 - Add multi-workspace runtime switching.
-- Add packaged desktop builds.
+- Add signed, published desktop binaries after certificate setup.
 
 ## Shipped
 
@@ -39,6 +37,7 @@
 - Security hardening mode.
 - Shareable Markdown/HTML reports.
 - MCP approval manifest.
+- Native desktop distribution scaffolding: macOS menu-bar app, Windows tray launcher, Linux package templates, update channel, signing dry-runs, onboarding, and long-run notifications.
 
 ## Not Planned
 

@@ -123,7 +123,7 @@ Open `http://127.0.0.1:4173`, build the semantic index, ask for a change, review
 - Real MCP stdio server with explicit per-tool approvals and receipts
 - Workspace profile templates with profile switching API/UI
 - Local evaluation harness plus saved pass/fail history and model benchmark surface
-- Dockerfile, Docker Compose, `agenttrail` bin entry, install script, Homebrew formula draft, desktop launchers, and a macOS `.app` bundle generator
+- Dockerfile, Docker Compose, `agenttrail` bin entry, install script, Homebrew formula draft, desktop launchers, macOS menu-bar app bundle, Windows tray launcher, Linux desktop/package templates, and update-channel metadata
 - Stable schemas exposed at `/api/schemas`
 - Route catalog exposed at `/api/routes`
 - Config validation exposed at `/api/config`
@@ -138,7 +138,7 @@ Open `http://127.0.0.1:4173`, build the semantic index, ask for a change, review
 - Backup export exposed at `/api/backup/export`
 - Backup import exposed at `/api/backup/import`
 - Release checksums exposed at `/api/releases/checksums`
-- Release signing plan exposed at `/api/releases/signing-plan`
+- Release signing plan exposed at `/api/releases/signing-plan`, update checks at `/api/updates/check`, and native desktop notifications for long local runs/pulls
 - Separate frontend foundation and product modules in `public/modules/`
 - Saved receipt history in `workspace/receipts/`
 - Safe path handling so the agent stays inside `workspace/`
@@ -201,6 +201,9 @@ docker run --rm -p 4173:4173 -v "$PWD/workspace:/app/workspace" agenttrail
 docker compose up --build
 ./install.sh
 npm run package:mac-app
+npm run package:linux
+npm run sign:mac-app -- --dry-run
+npm run sign:windows -- --dry-run
 ```
 
 ## Try It
@@ -262,7 +265,7 @@ When write preview mode is enabled, `write_file` returns a diff preview instead 
 - Recipe marketplace: [marketplace/recipes.json](marketplace/recipes.json), [recipe-packs](recipe-packs), `/api/packs/import`
 - One-command install surfaces: `bin/agenttrail.js`, [Dockerfile](Dockerfile), [docker-compose.yml](docker-compose.yml), [install.sh](install.sh), [Formula/agenttrail.rb](Formula/agenttrail.rb), [desktop](desktop)
 - CLI and editor integrations: `bin/agenttrail-chat.js`, `agenttrail-chat`, [docs/INTEGRATIONS.md](docs/INTEGRATIONS.md), and the VS Code MVP in [editor/vscode-agenttrail](editor/vscode-agenttrail)
-- Physical Mac app: `npm run package:mac-app` builds `dist/mac/AgentTrail.app`
+- Physical desktop app: `npm run package:mac-app` builds `dist/mac/AgentTrail.app`; Windows tray and Linux desktop/package templates live in [desktop](desktop) and [installers](installers)
 - Model scoring and benchmarking: `/api/status`, `/api/models/vision-capability`, `/api/benchmarks`
 - Throughput and resource visibility: `/api/concurrency`, `/api/health`, `/api/resources`, `/api/runtime`, and `npm run load:test`
 - Agent-as-API: `/v1/chat/completions`, `/v1/models`, `/v1/embeddings`, `/v1/openapi.json`, plus [docs/OPENAI_COMPATIBLE_API.md](docs/OPENAI_COMPATIBLE_API.md)

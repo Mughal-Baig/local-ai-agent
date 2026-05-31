@@ -1,0 +1,31 @@
+{
+  "schema": "agenttrail.update-channel.v1",
+  "source": "updates/latest.json",
+  "channels": {
+    "stable": {
+      "version": "0.7.0",
+      "releaseDate": "2026-05-31",
+      "releaseNotes": "AgentTrail v0.7.0 desktop channel: local server launchers, release checksums, and auditable local-agent foundation.",
+      "artifacts": [
+        {
+          "platform": "macos",
+          "name": "AgentTrail.app",
+          "url": "https://github.com/Mughal-Baig/local-ai-agent/releases/latest",
+          "signature": "developer-id-required"
+        },
+        {
+          "platform": "windows",
+          "name": "AgentTrail Setup",
+          "url": "https://github.com/Mughal-Baig/local-ai-agent/releases/latest",
+          "signature": "authenticode-required"
+        },
+        {
+          "platform": "linux",
+          "name": "AgentTrail Linux packages",
+          "url": "https://github.com/Mughal-Baig/local-ai-agent/releases/latest",
+          "signature": "checksum-required"
+        }
+      ]
+    }
+  }
+}

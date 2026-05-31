@@ -31,6 +31,7 @@ async function main() {
   checks.push(await check("Docker compose exists", async () => includes("docker-compose.yml", ["agenttrail", "OLLAMA_HOST"])));
   checks.push(await check("Homebrew formula exists", async () => includes("Formula/agenttrail.rb", ["class Agenttrail", "v0.7.0"])));
   checks.push(await check("Desktop launchers exist", async () => includes("desktop/README.md", ["macOS", "Windows", "Linux"])));
+  checks.push(await check("Epic T desktop distribution exists", async () => includes("desktop/mac/AgentTrailMenuBar.swift", ["NSStatusBar", "Restart Server"]) && includes("desktop/windows/AgentTrail-Tray.ps1", ["NotifyIcon", "Restart server"]) && includes("desktop/linux/agenttrail-tray.sh", ["notify-send", "AGENTTRAIL_DESKTOP"]) && includes("updates/latest.json", ["agenttrail.update-channel.v1", "stable"]) && includes("src/desktop-notifications.js", ["maybeNotifyLongTask", "notify-send"]) && includes("installers/windows/AgentTrail.iss", ["AgentTrail-Setup"]) && includes("installers/linux/agenttrail.spec", ["Name: agenttrail"])));
   checks.push(await check("Real demo GIF exists", async () => hasFile("docs/agenttrail-demo.gif")));
   checks.push(await check("Trust dashboard exists", async () => includes("public/index.html", ["trustScore", "Diff Review", "Receipts"])));
   checks.push(await check("Security hardening mode exists", async () => includes("public/index.html", ["Security hardening mode"])));
@@ -80,6 +81,7 @@ async function main() {
   checks.push(await check("Guided replay endpoint exists", async () => includes("server.js", ["/api/replay/plan", "handleReplayPlan"])));
   checks.push(await check("Trust badge endpoint exists", async () => includes("server.js", ["/api/trust/badge", "handleTrustBadge"])));
   checks.push(await check("Release artifact workflow exists", async () => includes(".github/workflows/release-artifacts.yml", ["release:checksums", "package:desktop"])));
+  checks.push(await check("Desktop signing scripts exist", async () => includes("scripts/sign-mac-app.js", ["notarytool", "stapler"]) && includes("scripts/sign-windows.js", ["signtool", "AGENTTRAIL_WINDOWS_CERT_THUMBPRINT"]) && includes("docs/RELEASE_SIGNING.md", ["sign:mac-app", "sign:windows"])));
   checks.push(await check("Attachment workflow exists", async () => includes("server.js", ["/api/attachments", "handleAttachments", "attachments"])));
   checks.push(await check("Attachment UI exists", async () => includes("public/index.html", ["attachmentInput", "attachFiles", "Attach"])));
   checks.push(await check("Drag-drop image composer exists", async () => includes("public/index.html", ["dropHint"]) && includes("public/app.js", ["bindComposerAttachmentIntake", "IMAGE_ATTACHMENT_MAX_BYTES", "isImageAttachment"]) && includes("server.js", ["MAX_ATTACHMENT_IMAGE_BYTES", "MAX_ATTACHMENT_BODY_BYTES"])));

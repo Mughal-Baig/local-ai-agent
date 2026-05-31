@@ -23,4 +23,20 @@ Requirements:
 - Node.js installed on the Mac
 - Ollama running for local models
 
-This app bundle is unsigned. Public distribution still needs Apple Developer ID signing and notarization.
+## Native Menu-Bar Mode
+
+When `swiftc` is available on macOS, `npm run package:mac-app` compiles `desktop/mac/AgentTrailMenuBar.swift` into the bundle. The app runs as a menu-bar utility with:
+
+- Open AgentTrail
+- Check For Updates
+- Restart Server
+- Show Logs
+- Quit
+
+If the build host cannot compile Swift, the bundle falls back to the shell launcher and still starts the local server.
+
+## Updates, Signing, And Notifications
+
+- Update channel metadata lives in `updates/latest.json` and is exposed through `/api/updates/check`.
+- Long desktop runs and model pulls can trigger native notifications through `AGENTTRAIL_DESKTOP_NOTIFICATIONS=on`.
+- Public distribution still needs Apple Developer ID signing and notarization. Use `npm run sign:mac-app -- --dry-run` to inspect the exact `codesign`, `notarytool`, and `stapler` commands before using credentials.

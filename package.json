@@ -53,6 +53,7 @@
     "test:hardware": "node tests/unit/runtime-hardware.test.js",
     "test:loading": "node tests/unit/runtime-loading.test.js",
     "test:registry": "node tests/unit/model-registry.test.js && node tests/integration/model-registry.test.js",
+    "test:desktop": "node tests/unit/desktop-distribution.test.js",
     "test:redact": "node tests/unit/redact.test.js",
     "test:documents": "node tests/unit/pdf-extraction.test.js",
     "test:audio": "node tests/unit/audio-transcription.test.js && node tests/integration/audio-transcription.test.js",
@@ -94,7 +95,10 @@
     "screenshots": "node scripts/generate-demo-screenshots.js",
     "release:checksums": "node scripts/generate-release-checksums.js",
     "package:desktop": "node scripts/package-desktop.js",
+    "package:linux": "node scripts/package-linux.js",
     "package:mac-app": "node scripts/package-mac-app.js",
+    "sign:mac-app": "node scripts/sign-mac-app.js",
+    "sign:windows": "node scripts/sign-windows.js",
     "benchmark": "node scripts/evaluate-agenttrail.js"
   },
   "keywords": [

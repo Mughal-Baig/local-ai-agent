@@ -1,5 +1,5 @@
 AgentTrail 0.7.0
 
-Use desktop/mac/AgentTrail.command. Sign with Developer ID before public distribution.
+Run npm run package:mac-app for AgentTrail.app. The macOS bundle uses the native menu-bar launcher when swiftc is available, otherwise it falls back to the shell launcher. Sign and notarize with npm run sign:mac-app.
 
-This repository includes launchers and checksum generation. Native signing requires platform certificates.
+This repository includes launchers, update metadata, notification hooks, checksum generation, and signing command scaffolds. Native signing requires platform certificates.
