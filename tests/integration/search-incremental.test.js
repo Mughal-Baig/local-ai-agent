@@ -37,11 +37,14 @@ async function main() {
     // Full build (workspace may also contain auto-created files like memory/*).
     const built = await post("/api/search-index", { provider: "local-vector" });
     assert.equal(built.itemCount >= 3, true, "index should cover at least the three seeded files");
+    assert.equal(built.features.multiVector, true, "index should store chunk vectors for late interaction");
+    assert.equal(built.features.chunkVectorCount >= built.chunkCount, true, "each chunk should have a vector");
 
     // Incremental: unchanged seeded files are reused, and within a pass the counts
     // always balance (reused + re-embedded == itemCount).
     let incr = await post("/api/search-index", { incremental: true });
     assert.equal(incr.incremental, true, "should run an incremental pass");
+    assert.equal(incr.features.lateInteraction, true, "incremental index should preserve late-interaction vectors");
     assert.equal(incr.reused >= 3, true, "the unchanged seeded files should be reused");
     assert.equal(incr.reused + incr.reembedded, incr.itemCount, "reused + re-embedded must equal itemCount");
     const chunkHits = await get(`/api/search/chunks?query=embeddings&limit=5`);

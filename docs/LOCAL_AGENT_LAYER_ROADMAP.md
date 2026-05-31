@@ -31,6 +31,7 @@ This section tracks the concrete work shipped after the roadmap was publicly ref
 | `fb492da` | T046 | Added BM25 keyword scoring, semantic vector score fusion, `/api/search?mode=semantic` ranker `hybrid-bm25-vector`, exposed `scoreParts`, BM25 chunk ranking, tests, README/eval/handoff updates. |
 | Claude handoff + Codex review | T038 partial, T047, T048, T052 | Imported and hardened the Claude pass: local pending-run snapshot API/UI, lexical top-k reranker with `scoreParts.rerank`/`.final`, real embedding cache keyed by model + content hash, search hit@3 eval harness, CI scripts, focused tests, route catalog/eval visibility, and resume-banner UI polish. |
 | Claude RAG pass + Codex continuation | T049, T051, T056 | Imported Claude's incremental re-index and metadata filters, then added exact line/character citation spans across `/api/search`, `/api/search/chunks`, saved search chunks, UI search metadata, tests, eval checks, and README visibility. |
+| Codex continuation | T050 | Added multi-vector late-interaction search: saved chunk embeddings in the local index, best-chunk semantic scoring for long docs, sanitized chunk APIs, `bestChunk` result metadata, tests, eval checks, and docs. |
 
 ### Verified After These Passes
 
@@ -41,8 +42,8 @@ This section tracks the concrete work shipped after the roadmap was publicly ref
 ### Best Continuation Points
 
 - T038: finish true receipt-based resume beyond the current pending-run snapshot.
-- T050: multi-vector / late-interaction option for long docs.
 - T053: on-disk vector store.
+- T057: store versioning + migration for richer search index formats.
 - T058: benchmark recall/latency vs brute force.
 
 ---
@@ -116,7 +117,7 @@ This section tracks the concrete work shipped after the roadmap was publicly ref
 - [x] T047 Lexical reranker of top-k (exact-phrase, coverage, bigram, path-field; blended with hybrid; `scoreParts.rerank`/`.final`; test: `npm run test:rerank`)
 - [x] T048 Embedding cache keyed by content hash (model + content hash; gated by `AGENTTRAIL_CACHE`; test: `npm run test:embed-cache`)
 - [x] T049 Incremental re-index — reuse embeddings for unchanged files by content hash, refresh chunk metadata, re-embed only changed/new, drop deleted (`POST /api/search-index {incremental:true}`; returns reused/reembedded/removed; test: `npm run test:reindex`)
-- [ ] T050 Multi-vector / late-interaction option for long docs
+- [x] T050 Multi-vector / late-interaction option for long docs (chunk embeddings stored in the index; semantic search scores the best chunk and exposes `bestChunk` + `scoreParts.lateInteraction`; tests/eval assert it)
 - [x] T051 Citations with exact line/char spans in answers (`/api/search` and `/api/search/chunks` return `citation` + `span` with line and char offsets; tests/eval assert spans)
 - [x] T052 Search quality eval set + scoring harness (`scripts/eval-search.js`, `npm run eval:search`; scores hit@3 for keyword + hybrid, gated in CI)
 
@@ -367,16 +368,16 @@ This section tracks the concrete work shipped after the roadmap was publicly ref
 4. We expand an epic's tasks into finer sub-tasks (toward 1000) only when we start that epic — so the plan stays honest and current.
 5. We re-mark `[x]` here as we go; this file is the single source of truth for the campaign.
 
-**Next up:** Phase 2, Epic E/F — T050 multi-vector search, T053 on-disk vector store, and T058 recall/latency benchmarks.
+**Next up:** Phase 2, Epic F — T053 on-disk vector store, T057 store migration/versioning, and T058 recall/latency benchmarks.
 
 ## Status & bug sweep (latest)
 
-- Progress: **53 tasks done**, 144 open (across Phases 1–10). Phase 1 (agent reliability) essentially complete; Phase 2 (RAG) in progress (T044–T052, T056 done).
+- Progress: **54 tasks done**, 143 open (across Phases 1–10). Phase 1 (agent reliability) essentially complete; Phase 2 (RAG) in progress (T044–T052, T056 done).
 - Full test suite green: **25/25** (unit, integration, smoke, search eval) — run twice, no flakes. All source files pass `node --check`.
 - **Bug fixed:** `listWorkspaceFiles` only skipped `.DS_Store`, so internal `.agenttrail/*` state (logs, store, search index, pending-run) was being walked, indexed, and returned in search — adding noise and per-request churn to the index. Now excludes `.agenttrail/`. Verified against smoke, api, search-incremental, search-chunking, and eval:search.
 - Known minor item: a couple of integration tests assert relative/invariant counts (not exact) because the workspace can still gain legit files (e.g. `memory/*`) between calls — intentional, not a bug.
 
-Next code targets: T050 multi-vector / late-interaction search, T053 on-disk vector store, T058 recall/latency benchmark.
+Next code targets: T053 on-disk vector store, T057 store versioning/migration, T058 recall/latency benchmark.
 
 ---
 

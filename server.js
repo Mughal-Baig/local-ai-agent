@@ -19,7 +19,7 @@ const { generateChecksums } = require("./src/release");
 const { buildFoundationStatus } = require("./src/foundation");
 const { StructuredLogger } = require("./src/logger");
 const { validateConfig } = require("./src/config");
-const { hashContent, chunkTextDetailed, rankChunks, scoreBm25Documents, fuseHybridScores, rerankDocuments } = require("./src/features/search");
+const { hashContent, chunkTextDetailed, rankChunks, scoreBm25Documents, fuseHybridScores, rerankDocuments, bestLateInteractionChunk } = require("./src/features/search");
 const { scanSecurityText } = require("./src/features/security");
 const { friendlyError } = require("./src/features/errors");
 const { SqliteStore } = require("./src/sqlite-store");
@@ -1289,6 +1289,16 @@ async function handleSearchChunks(url, res) {
   });
 }
 
+function searchIndexFeatures(index) {
+  const chunks = Array.isArray(index && index.chunks) ? index.chunks : [];
+  const chunkVectorCount = chunks.filter((chunk) => Array.isArray(chunk.embedding) && chunk.embedding.length).length;
+  return {
+    multiVector: chunkVectorCount > 0,
+    lateInteraction: chunkVectorCount > 0,
+    chunkVectorCount
+  };
+}
+
 async function handleGetSearchIndex(res) {
   const index = await readSearchIndex();
   if (!index) {
@@ -1310,6 +1320,7 @@ async function handleGetSearchIndex(res) {
     chunking: index.chunking || null,
     itemCount: Array.isArray(index.items) ? index.items.length : 0,
     chunkCount: Array.isArray(index.chunks) ? index.chunks.length : 0,
+    features: searchIndexFeatures(index),
     fileHashCount: index.fileHashes ? Object.keys(index.fileHashes).length : 0,
     builtAt: index.builtAt || null
   });
@@ -4403,13 +4414,22 @@ async function searchWorkspace(query, limit, options = {}) {
   const keywordScores = new Map(scoreBm25Documents(normalizedQuery, documents).map((item) => [item.path, item]));
   const scored = documents.map((document) => {
     const keyword = keywordScores.get(document.path) || {};
-    const snippet = createSnippetWithSpan(document.content, terms);
+    const lineSnippet = createSnippetWithSpan(document.content, terms);
     let semanticScore = 0;
+    let fileSemanticScore = 0;
+    let lateInteractionScore = 0;
+    let bestChunk = null;
     if (semanticContext && semanticContext.queryVector) {
       const indexedVector = semanticContext.fileVectors.get(document.path);
       const fileVector = indexedVector || (semanticContext.provider === "local-vector" ? embedTextDense(document.text) : null);
-      semanticScore = fileVector ? cosineSimilarity(semanticContext.queryVector, fileVector) : 0;
+      fileSemanticScore = fileVector ? cosineSimilarity(semanticContext.queryVector, fileVector) : 0;
+      const late = bestLateInteractionChunk(semanticContext.queryVector, semanticContext.chunkVectors.get(document.path) || []);
+      lateInteractionScore = late.score || 0;
+      bestChunk = late.chunk || null;
+      semanticScore = Math.max(fileSemanticScore, lateInteractionScore);
     }
+    const useChunkSnippet = bestChunk && (keyword.keywordScore <= 0 || lateInteractionScore >= fileSemanticScore);
+    const snippet = useChunkSnippet ? snippetFromChunk(bestChunk) : lineSnippet;
     return {
       path: document.path,
       size: document.file.size,
@@ -4419,9 +4439,12 @@ async function searchWorkspace(query, limit, options = {}) {
       semanticScore,
       semanticProvider: semanticContext ? semanticContext.provider : null,
       embeddingModel: semanticContext ? semanticContext.model : null,
-      text: String(document.content || "").slice(0, 6000),
+      semanticMode: semanticContext ? (useChunkSnippet ? "late-interaction" : "file-vector") : null,
+      lateInteractionScore,
+      bestChunk: bestChunk ? publicChunkReference(bestChunk) : null,
+      text: `${String(document.content || "").slice(0, 6000)}\n${bestChunk ? String(bestChunk.text || bestChunk.preview || "") : ""}`,
       snippet: snippet.text,
-      citation: formatLineCitation(document.path, snippet.startLine, snippet.endLine),
+      citation: snippet.citation || formatLineCitation(document.path, snippet.startLine, snippet.endLine),
       span: {
         startLine: snippet.startLine,
         endLine: snippet.endLine,
@@ -4455,8 +4478,11 @@ async function searchWorkspace(query, limit, options = {}) {
         mode: semanticContext ? "hybrid" : "keyword",
         semanticProvider: item.semanticProvider,
         embeddingModel: item.embeddingModel,
+        semanticMode: item.semanticMode,
+        bestChunk: item.bestChunk,
         scoreParts: {
           ...item.scoreParts,
+          lateInteraction: roundSearchScore(item.lateInteractionScore || 0),
           matches: item.keywordMatches
         },
         snippet: item.snippet,
@@ -4486,7 +4512,8 @@ async function getSemanticContext(query) {
           provider: "ollama",
           model: index.model || OLLAMA_EMBED_MODEL,
           queryVector: normalizeVector(embedding),
-          fileVectors: new Map(index.items.map((item) => [item.path, item.embedding]))
+          fileVectors: new Map(index.items.map((item) => [item.path, item.embedding])),
+          chunkVectors: chunkVectorMap(index)
         };
       }
     }
@@ -4496,7 +4523,8 @@ async function getSemanticContext(query) {
         provider: "local-vector",
         model: index.model || `hash-${LOCAL_EMBED_DIMS}`,
         queryVector: embedTextDense(query, index.dimensions || LOCAL_EMBED_DIMS),
-        fileVectors: new Map(index.items.map((item) => [item.path, item.embedding]))
+        fileVectors: new Map(index.items.map((item) => [item.path, item.embedding])),
+        chunkVectors: chunkVectorMap(index)
       };
     }
   }
@@ -4505,8 +4533,23 @@ async function getSemanticContext(query) {
     provider: "local-vector",
     model: `hash-${LOCAL_EMBED_DIMS}`,
     queryVector: embedTextDense(query),
-    fileVectors: new Map()
+    fileVectors: new Map(),
+    chunkVectors: new Map()
   };
+}
+
+function chunkVectorMap(index) {
+  const byPath = new Map();
+  for (const chunk of Array.isArray(index && index.chunks) ? index.chunks : []) {
+    if (!Array.isArray(chunk.embedding) || !chunk.embedding.length) {
+      continue;
+    }
+    if (!byPath.has(chunk.path)) {
+      byPath.set(chunk.path, []);
+    }
+    byPath.get(chunk.path).push(chunk);
+  }
+  return byPath;
 }
 
 async function buildSearchIndex(requestedProvider) {
@@ -4568,6 +4611,7 @@ async function buildSearchIndex(requestedProvider) {
       embedding = embedTextDense(text);
     }
     dimensions = embedding.length;
+    await attachChunkEmbeddings(fileChunks, provider, model, dimensions);
     items.push({
       path: file.path,
       size: file.size,
@@ -4595,6 +4639,7 @@ async function buildSearchIndex(requestedProvider) {
       const fileChunks = buildSearchChunks(file, content, chunking);
       const embedding = embedTextDense(`${file.path}\n${content.slice(0, MAX_SEARCH_FILE_BYTES)}`);
       dimensions = embedding.length;
+      await attachChunkEmbeddings(fileChunks, provider, model, dimensions);
       items.push({
         path: file.path,
         size: file.size,
@@ -4629,7 +4674,8 @@ async function buildSearchIndex(requestedProvider) {
     chunking,
     itemCount: items.length,
     chunkCount: chunks.length,
-    builtAt: index.builtAt
+    builtAt: index.builtAt,
+    features: searchIndexFeatures(index)
   };
 }
 
@@ -4647,6 +4693,13 @@ async function incrementalSearchIndex() {
   const model = existing.model;
   const chunking = existing.chunking || { strategy: "markdown-overlap-v1", size: 1800, overlap: 220 };
   const oldItems = new Map(existing.items.map((item) => [item.path, item]));
+  const oldChunksByPath = new Map();
+  for (const chunk of existing.chunks || []) {
+    if (!oldChunksByPath.has(chunk.path)) {
+      oldChunksByPath.set(chunk.path, []);
+    }
+    oldChunksByPath.get(chunk.path).push(chunk);
+  }
 
   const files = (await listWorkspaceFiles()).filter((file) => file.size <= MAX_SEARCH_FILE_BYTES);
   const items = [];
@@ -4669,9 +4722,11 @@ async function incrementalSearchIndex() {
     const hash = hashContent(content);
     fileHashes[file.path] = hash;
     const fileChunks = buildSearchChunks(file, content, chunking);
+    const oldFileChunks = oldChunksByPath.get(file.path) || [];
 
     const prev = oldItems.get(file.path);
     if (prev && prev.hash === hash && Array.isArray(prev.embedding) && prev.embedding.length) {
+      await attachChunkEmbeddings(fileChunks, provider, model, dimensions, oldFileChunks);
       items.push({ ...prev, size: file.size, modifiedAt: file.modifiedAt, chunkCount: fileChunks.length });
       chunks.push(...fileChunks);
       reused += 1;
@@ -4690,6 +4745,7 @@ async function incrementalSearchIndex() {
       embedding = embedTextDense(text);
     }
     dimensions = embedding.length;
+    await attachChunkEmbeddings(fileChunks, provider, model, dimensions, oldFileChunks);
     items.push({
       path: file.path,
       size: file.size,
@@ -4726,6 +4782,7 @@ async function incrementalSearchIndex() {
     itemCount: items.length,
     chunkCount: chunks.length,
     builtAt: index.builtAt,
+    features: searchIndexFeatures(index),
     incremental: true,
     reused,
     reembedded,
@@ -4738,6 +4795,7 @@ function buildSearchChunks(file, content, chunking) {
     id: `${file.path}#${index + 1}`,
     path: file.path,
     index,
+    text: chunk.text,
     hash: hashContent(chunk.text),
     size: Buffer.byteLength(chunk.text, "utf8"),
     heading: chunk.heading || "",
@@ -4755,6 +4813,43 @@ function buildSearchChunks(file, content, chunking) {
     citation: formatLineCitation(file.path, chunk.startLine || 1, chunk.endLine || chunk.startLine || 1),
     preview: truncate(chunk.preview || chunk.text.replace(/\s+/g, " ").trim(), 160)
   }));
+}
+
+async function attachChunkEmbeddings(chunks, provider, model, dimensions, previousChunks = []) {
+  const oldByHash = new Map();
+  for (const chunk of previousChunks) {
+    if (chunk && chunk.hash && Array.isArray(chunk.embedding) && chunk.embedding.length) {
+      oldByHash.set(chunk.hash, chunk.embedding);
+    }
+  }
+
+  for (const chunk of chunks) {
+    const previousEmbedding = oldByHash.get(chunk.hash);
+    if (previousEmbedding) {
+      chunk.embedding = previousEmbedding;
+      continue;
+    }
+
+    const input = chunkEmbeddingText(chunk);
+    if (provider === "ollama") {
+      const vector = await fetchEmbeddingCached(input, model || OLLAMA_EMBED_MODEL).catch(() => null);
+      if (Array.isArray(vector) && vector.length) {
+        chunk.embedding = normalizeVector(vector);
+      }
+      continue;
+    }
+
+    chunk.embedding = embedTextDense(input, dimensions || LOCAL_EMBED_DIMS);
+  }
+}
+
+function chunkEmbeddingText(chunk) {
+  return [
+    chunk.path || "",
+    chunk.heading || "",
+    chunk.kind || "",
+    chunk.text || chunk.preview || ""
+  ].filter(Boolean).join("\n");
 }
 
 async function readSearchIndex() {
@@ -5759,6 +5854,45 @@ function createSnippet(content, terms) {
   return createSnippetWithSpan(content, terms).text;
 }
 
+function snippetFromChunk(chunk) {
+  const startLine = chunk.startLine || (chunk.span && chunk.span.startLine) || 1;
+  const endLine = chunk.endLine || (chunk.span && chunk.span.endLine) || startLine;
+  const charStart = Number.isInteger(chunk.charStart)
+    ? chunk.charStart
+    : (chunk.span && Number.isInteger(chunk.span.charStart) ? chunk.span.charStart : null);
+  const charEnd = Number.isInteger(chunk.charEnd)
+    ? chunk.charEnd
+    : (chunk.span && Number.isInteger(chunk.span.charEnd) ? chunk.span.charEnd : null);
+  return {
+    text: truncate(String(chunk.preview || chunk.text || "").replace(/\s+/g, " ").trim(), 180),
+    citation: chunk.citation || formatLineCitation(chunk.path, startLine, endLine),
+    startLine,
+    endLine,
+    charStart,
+    charEnd
+  };
+}
+
+function publicChunkReference(chunk) {
+  const startLine = chunk.startLine || (chunk.span && chunk.span.startLine) || 1;
+  const endLine = chunk.endLine || (chunk.span && chunk.span.endLine) || startLine;
+  return {
+    id: chunk.id || `${chunk.path || "workspace"}#${Number(chunk.index || 0) + 1}`,
+    path: chunk.path || "",
+    index: Number(chunk.index || 0),
+    heading: chunk.heading || "",
+    kind: chunk.kind || "paragraph",
+    preview: truncate(String(chunk.preview || chunk.text || "").replace(/\s+/g, " ").trim(), 180),
+    citation: chunk.citation || formatLineCitation(chunk.path, startLine, endLine),
+    span: {
+      startLine,
+      endLine,
+      charStart: Number.isInteger(chunk.charStart) ? chunk.charStart : null,
+      charEnd: Number.isInteger(chunk.charEnd) ? chunk.charEnd : null
+    }
+  };
+}
+
 function createSnippetWithSpan(content, terms) {
   const records = contentLineRecords(content);
   const cleanTerms = (Array.isArray(terms) ? terms : [])
@@ -5853,6 +5987,10 @@ function formatLineCitation(filePath, startLine, endLine) {
   const start = Math.max(1, Number(startLine) || 1);
   const end = Math.max(start, Number(endLine) || start);
   return start === end ? `${source}:${start}` : `${source}:${start}-${end}`;
+}
+
+function roundSearchScore(value) {
+  return Math.round(Number(value || 0) * 10000) / 10000;
 }
 
 function createUnifiedDiff(filePath, before, after) {

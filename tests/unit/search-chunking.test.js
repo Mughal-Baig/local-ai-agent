@@ -4,6 +4,7 @@ const assert = require("node:assert/strict");
 const {
   chunkText,
   chunkTextDetailed,
+  bestLateInteractionChunk,
   fuseHybridScores,
   rankChunks,
   scoreBm25Documents
@@ -52,8 +53,17 @@ assert.equal(ranked.length, 1);
 assert.equal(ranked[0].heading.includes("Install"), true);
 assert.match(ranked[0].citation, /^README\.md:\d+(-\d+)?$/);
 assert.match(ranked[0].chunkRef, /^README\.md#chunk-\d+$/);
+assert.equal("embedding" in ranked[0], false);
+assert.equal("text" in ranked[0], false);
 assert.equal(Number.isInteger(ranked[0].span.charStart), true);
 assert.equal(ranked[0].scoreParts.matches.includes("install"), true);
+
+const late = bestLateInteractionChunk([1, 0], [
+  { path: "a.md", index: 0, embedding: [0.1, 0.9] },
+  { path: "b.md", index: 1, embedding: [0.95, 0.05] }
+]);
+assert.equal(late.chunk.path, "b.md");
+assert.equal(late.score > 0.9, true);
 
 const bm25 = scoreBm25Documents("install npx", [
   { id: "install", path: "docs/install.md", text: "npx agenttrail install local agent local agent" },

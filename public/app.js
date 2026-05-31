@@ -1055,7 +1055,8 @@ function renderSearchResults() {
     item.type = "button";
     item.className = `search-result${state.selectedFiles.has(result.path) ? " selected" : ""}`;
     item.title = result.path;
-    const meta = [result.citation, result.semanticProvider].filter(Boolean).join(" - ");
+    const semanticLabel = result.semanticMode === "late-interaction" ? "best chunk" : result.semanticMode;
+    const meta = [result.citation, semanticLabel, result.semanticProvider].filter(Boolean).join(" - ");
     item.innerHTML = `
       <span class="search-path">${escapeHtml(result.path)}</span>
       <span class="search-snippet">${escapeHtml(result.snippet || "No preview available")}</span>

@@ -54,15 +54,20 @@ async function main() {
 
     const indexStatus = await get("/api/search-index");
     assert.equal(indexStatus.chunking.strategy, "markdown-overlap-v1");
+    assert.equal(indexStatus.features.multiVector, true);
+    assert.equal(indexStatus.features.lateInteraction, true);
+    assert.equal(indexStatus.features.chunkVectorCount >= indexStatus.chunkCount, true);
 
     const hybridSearch = await get("/api/search?query=semantic&mode=semantic");
     assert.equal(hybridSearch.ranker, "hybrid-bm25-vector");
     assert.equal(hybridSearch.results.some((result) => result.mode === "hybrid" && result.scoreParts && typeof result.scoreParts.bm25 === "number"), true);
     assert.equal(hybridSearch.results.some((result) => /^notes\/api\.md:\d+$/.test(result.citation || "") && result.span && Number.isInteger(result.span.charStart)), true);
+    assert.equal(hybridSearch.results.some((result) => result.bestChunk && result.bestChunk.citation && typeof result.scoreParts.lateInteraction === "number"), true);
 
     const chunkResults = await get("/api/search/chunks?query=receipt");
     assert.equal(chunkResults.chunks.some((chunk) => chunk.heading === "API" && chunk.startLine >= 1 && chunk.endLine >= chunk.startLine), true);
     assert.equal(chunkResults.chunks.some((chunk) => /^notes\/api\.md:\d+(-\d+)?$/.test(chunk.citation || "") && chunk.span && Number.isInteger(chunk.span.charStart)), true);
+    assert.equal(chunkResults.chunks.every((chunk) => !Array.isArray(chunk.embedding) && chunk.text == null), true);
 
     const badge = await post("/api/trust/badge", { score: 96, label: "run" });
     assert.match(badge.svg, /AgentTrail/);

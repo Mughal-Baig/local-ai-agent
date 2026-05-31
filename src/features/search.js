@@ -242,17 +242,18 @@ function rankChunks(query, chunks, limit = 8) {
   const documents = (Array.isArray(chunks) ? chunks : []).map((chunk) => ({
     ...chunk,
     id: `${chunk.path || "workspace"}#${Number(chunk.index || 0) + 1}`,
-    text: `${chunk.path || ""}\n${chunk.heading || ""}\n${chunk.kind || ""}\n${chunk.preview || ""}`
+    text: `${chunk.path || ""}\n${chunk.heading || ""}\n${chunk.kind || ""}\n${chunk.preview || ""}\n${chunk.text || ""}`
   }));
   return scoreBm25Documents(query, documents)
     .filter((chunk) => !terms.length || chunk.keywordScore > 0)
     .sort((a, b) => b.keywordScore - a.keywordScore || String(a.path).localeCompare(String(b.path)))
     .map((chunk) => {
+      const { embedding, text, ...publicChunk } = chunk;
       const sourcePath = chunk.path || "workspace";
       const startLine = chunk.startLine || 1;
       const endLine = chunk.endLine || startLine;
       return {
-        ...chunk,
+        ...publicChunk,
         score: roundScore(chunk.keywordScore),
         scoreParts: {
           bm25: roundScore(chunk.keywordScore),
@@ -269,6 +270,24 @@ function rankChunks(query, chunks, limit = 8) {
       };
     })
     .slice(0, Math.min(Math.max(Number(limit) || 8, 1), 30));
+}
+
+function bestLateInteractionChunk(queryVector, chunks) {
+  const query = Array.isArray(queryVector) ? queryVector : [];
+  let best = null;
+  for (const chunk of Array.isArray(chunks) ? chunks : []) {
+    if (!Array.isArray(chunk.embedding) || !chunk.embedding.length) {
+      continue;
+    }
+    const score = vectorCosineSimilarity(query, chunk.embedding);
+    if (!best || score > best.score) {
+      best = { score, chunk };
+    }
+  }
+  if (!best) {
+    return { score: 0, chunk: null };
+  }
+  return { score: roundScore(best.score), chunk: best.chunk };
 }
 
 function scoreBm25Documents(query, documents, options = {}) {
@@ -502,6 +521,27 @@ function lineCitation(sourcePath, startLine, endLine) {
   return start === end ? `${sourcePath}:${start}` : `${sourcePath}:${start}-${end}`;
 }
 
+function vectorCosineSimilarity(a, b) {
+  if (!Array.isArray(a) || !Array.isArray(b) || !a.length || !b.length) {
+    return 0;
+  }
+  const length = Math.min(a.length, b.length);
+  let dot = 0;
+  let normA = 0;
+  let normB = 0;
+  for (let i = 0; i < length; i += 1) {
+    const av = Number(a[i]) || 0;
+    const bv = Number(b[i]) || 0;
+    dot += av * bv;
+    normA += av * av;
+    normB += bv * bv;
+  }
+  if (!normA || !normB) {
+    return 0;
+  }
+  return dot / (Math.sqrt(normA) * Math.sqrt(normB));
+}
+
 module.exports = {
   hashContent,
   chunkText,
@@ -511,5 +551,6 @@ module.exports = {
   scoreBm25Documents,
   fuseHybridScores,
   rerankDocuments,
-  rankChunks
+  rankChunks,
+  bestLateInteractionChunk
 };

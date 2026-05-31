@@ -92,4 +92,10 @@ Still open and recommended next: finish T038 receipt-derived resume, T050 multi-
 - Search chunks now persist char spans in the index, file-level snippets keep exact source offsets, and the UI shows line citations under each search result.
 - Tests/evals updated: `test:search`, `test:integration`, `test:reindex`, and `eval:search` assert citation spans.
 
-Next open: T050 multi-vector search, T053 on-disk vector store, T058 recall/latency benchmark, and the remaining receipt-derived part of T038.
+## Latest Codex Pass - Multi-vector search
+
+- T050 multi-vector / late-interaction search is done: the search index now stores embeddings per chunk as well as per file, semantic search scores each result by its best matching chunk, and results expose `bestChunk`, `semanticMode`, and `scoreParts.lateInteraction`.
+- `/api/search/chunks` strips raw `embedding` and `text` fields from responses, so vectors stay internal while citations remain visible.
+- Tests/evals updated: `test:search`, `test:integration`, `test:reindex`, and `eval:search` assert chunk vectors, best-chunk metadata, and sanitized chunk responses.
+
+Next open: T053 on-disk vector store, T057 store versioning/migration, T058 recall/latency benchmark, and the remaining receipt-derived part of T038.

@@ -82,6 +82,9 @@ async function scoreMode(mode) {
     );
     const top = (data.results || []).slice(0, TOP_K).map((r) => r.path);
     assert.equal((data.results || []).every((r) => r.citation && r.span && Number.isInteger(r.span.charStart)), true);
+    if (mode === "semantic") {
+      assert.equal((data.results || []).every((r) => r.bestChunk && typeof r.scoreParts.lateInteraction === "number"), true);
+    }
     if (top.includes(testCase.expect)) hits += 1;
   }
   return { hits, total: CASES.length, score: Math.round((hits / CASES.length) * 100) };
