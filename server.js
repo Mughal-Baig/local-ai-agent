@@ -2,9 +2,11 @@
 
 const fs = require("node:fs");
 const fsp = require("node:fs/promises");
+const { execFile } = require("node:child_process");
 const http = require("node:http");
 const net = require("node:net");
 const path = require("node:path");
+const { promisify } = require("node:util");
 const { URL } = require("node:url");
 const packageMeta = require("./package.json");
 const { SCHEMA_VERSION, listSchemaSummaries, validateSchema, withSchema } = require("./src/schemas");
@@ -28,9 +30,10 @@ const { SqliteStore } = require("./src/sqlite-store");
 const { FileWatcher } = require("./src/file-watcher");
 const { runPluginTool } = require("./src/plugin-sandbox");
 const { routeCatalog } = require("./src/route-catalog");
-const { isSupportedDocument, detectDocumentType, extractDocumentText, buildExtractedDocumentMarkdown } = require("./src/document-ingestion");
+const { isSupportedDocument, isImageDocument, detectDocumentType, extractDocumentText, buildExtractedDocumentMarkdown } = require("./src/document-ingestion");
 
 loadDotEnv();
+const execFileAsync = promisify(execFile);
 
 const PORT = Number(process.env.PORT || 4173);
 const HOST = process.env.HOST || "127.0.0.1";
@@ -103,6 +106,8 @@ const MAX_SEARCH_FILE_BYTES = 160 * 1024;
 const URL_INGEST_MAX_BYTES = Number(process.env.AGENTTRAIL_URL_INGEST_MAX_BYTES || 512 * 1024);
 const URL_INGEST_TIMEOUT_MS = Number(process.env.AGENTTRAIL_URL_INGEST_TIMEOUT_MS || 12000);
 const URL_INGEST_MAX_REDIRECTS = 3;
+const OCR_TIMEOUT_MS = Number(process.env.AGENTTRAIL_OCR_TIMEOUT_MS || 30000);
+const OCR_MAX_OUTPUT_BYTES = Number(process.env.AGENTTRAIL_OCR_MAX_OUTPUT_BYTES || 1024 * 1024);
 const LOCAL_EMBED_DIMS = 192;
 const STOP_WORDS = new Set(["the", "and", "for", "with", "that", "this", "from", "you", "your", "are", "was", "were", "have", "has", "not", "but", "can", "will"]);
 
@@ -454,6 +459,10 @@ const server = http.createServer(async (req, res) => {
 
     if (url.pathname === "/api/documents/extract" && req.method === "POST") {
       return handleDocumentExtract(req, res);
+    }
+
+    if (url.pathname === "/api/documents/ocr" && req.method === "POST") {
+      return handleDocumentOcr(req, res);
     }
 
     if (url.pathname === "/api/documents/ingest-url" && req.method === "POST") {
@@ -3062,9 +3071,22 @@ async function handleAttachments(req, res) {
           throw new Error(`Attachment is too large (${data.length} bytes)`);
         }
         const binary = await writeWorkspaceBinaryFile(relativePath, data);
-        const documentNote = isSupportedDocument(safeName, type)
-          ? await writeExtractedDocumentNote(binary.path, data, { originalName, mediaType: type })
-          : null;
+        let documentNote = null;
+        let ocrError = null;
+        if (isSupportedDocument(safeName, type)) {
+          documentNote = await writeExtractedDocumentNote(binary.path, data, { originalName, mediaType: type });
+        } else if (isImageDocument(safeName, type)) {
+          try {
+            documentNote = await writeOcrDocumentNote(binary.path, {
+              originalName,
+              mediaType: type,
+              language: body.ocrLanguage,
+              operation: "attachment-ocr"
+            });
+          } catch (error) {
+            ocrError = error.message || "OCR failed.";
+          }
+        }
         const note = documentNote || await writeWorkspaceFile(`${relativePath}.agenttrail.md`, [
           `# Attachment: ${originalName}`,
           "",
@@ -3072,8 +3094,10 @@ async function handleAttachments(req, res) {
           `- Media type: ${type}`,
           `- Size: ${binary.size} bytes`,
           "",
-          "This attachment was saved as a binary file. AgentTrail selected this note as context so the agent can see that the file exists without reading raw binary bytes."
-        ].join("\n"));
+          "This attachment was saved as a binary file. AgentTrail selected this note as context so the agent can see that the file exists without reading raw binary bytes.",
+          ocrError ? "" : null,
+          ocrError ? `OCR note: ${ocrError}` : null
+        ].filter((line) => line !== null).join("\n"));
         saved.push({
           ...binary,
           originalName,
@@ -3084,7 +3108,8 @@ async function handleAttachments(req, res) {
           receiptPath: documentNote && documentNote.receipt ? documentNote.receipt.path : null,
           extracted: Boolean(documentNote),
           extraction: documentNote ? documentNote.extraction : null,
-          progress: documentNote ? documentNote.progress : null
+          progress: documentNote ? documentNote.progress : null,
+          ocrError
         });
       } else {
         const content = String(file.content || "");
@@ -3128,8 +3153,11 @@ async function handleDocumentExtract(req, res) {
   if (!sourcePath) {
     return sendJson(res, 400, { error: "Document path is required." });
   }
+  if (isImageDocument(sourcePath, body.mediaType || "")) {
+    return handleDocumentOcrBody(body, res, sourcePath);
+  }
   if (!isSupportedDocument(sourcePath, body.mediaType || "")) {
-    return sendJson(res, 400, { error: "Supported document types: PDF, DOCX, PPTX, XLSX, HTML, Markdown, code, and plain text." });
+    return sendJson(res, 400, { error: "Supported document types: PDF, DOCX, PPTX, XLSX, HTML, Markdown, code, plain text, and OCR image files." });
   }
   try {
     const file = await readWorkspaceBinaryFile(sourcePath, MAX_BODY_BYTES);
@@ -3158,6 +3186,59 @@ async function handleDocumentExtract(req, res) {
   }
 }
 
+async function handleDocumentOcr(req, res) {
+  const body = await readJsonBody(req);
+  const sourcePath = normalizeRelativePath(body.path || body.sourcePath || "");
+  if (!sourcePath) {
+    return sendJson(res, 400, { error: "Image path is required." });
+  }
+  return handleDocumentOcrBody(body, res, sourcePath);
+}
+
+async function handleDocumentOcrBody(body, res, sourcePath) {
+  if (!isImageDocument(sourcePath, body.mediaType || "")) {
+    return sendJson(res, 400, { error: "OCR currently supports PNG, JPEG, TIFF, BMP, and WebP image files." });
+  }
+  try {
+    const file = await readWorkspaceBinaryFile(sourcePath, MAX_BODY_BYTES);
+    const note = await writeOcrDocumentNote(file.path, {
+      originalName: body.originalName || path.basename(file.path),
+      mediaType: body.mediaType || defaultDocumentMediaType("image"),
+      outputPath: body.outputPath,
+      language: body.language || body.ocrLanguage,
+      operation: body.operation || "image-ocr"
+    });
+    await STORE.append("document-ocr", {
+      path: file.path,
+      outputPath: note.path,
+      type: note.extraction.type,
+      chars: note.extraction.charCount,
+      engine: note.extraction.engine
+    });
+    SQLITE.insert("document-ocr", {
+      path: file.path,
+      outputPath: note.path,
+      type: note.extraction.type,
+      engine: note.extraction.engine
+    });
+    await LOGGER.log("info", "document.ocr", {
+      path: file.path,
+      outputPath: note.path,
+      engine: note.extraction.engine
+    });
+    sendJson(res, 200, {
+      ok: true,
+      source: { path: file.path, size: file.size, modifiedAt: file.modifiedAt },
+      output: { path: note.path, size: note.size, modifiedAt: note.modifiedAt },
+      extraction: note.extraction,
+      progress: note.progress,
+      receipt: note.receipt
+    });
+  } catch (error) {
+    sendJson(res, error.status || 400, { error: error.message || "Could not OCR image." });
+  }
+}
+
 async function handleUrlIngest(req, res) {
   const body = await readJsonBody(req);
   const sourceUrl = String(body.url || body.sourceUrl || "").trim();
@@ -3173,13 +3254,22 @@ async function handleUrlIngest(req, res) {
     const mediaType = fetched.mediaType || defaultDocumentMediaType(detectDocumentType(fetched.sourceFileName, ""));
     const sourcePath = normalizeUrlIngestSourcePath(body.sourcePath || "", fetched.finalUrl, fetched.extension);
     const source = await writeWorkspaceBinaryFile(sourcePath, fetched.buffer);
-    const note = await writeExtractedDocumentNote(source.path, fetched.buffer, {
-      originalName: fetched.finalUrl.href,
-      mediaType,
-      outputPath: body.outputPath,
-      sourceUrl: fetched.finalUrl.href,
-      operation: "url-ingest"
-    });
+    const note = isImageDocument(source.path, mediaType)
+      ? await writeOcrDocumentNote(source.path, {
+          originalName: fetched.finalUrl.href,
+          mediaType,
+          outputPath: body.outputPath,
+          sourceUrl: fetched.finalUrl.href,
+          language: body.language || body.ocrLanguage,
+          operation: "url-image-ocr"
+        })
+      : await writeExtractedDocumentNote(source.path, fetched.buffer, {
+          originalName: fetched.finalUrl.href,
+          mediaType,
+          outputPath: body.outputPath,
+          sourceUrl: fetched.finalUrl.href,
+          operation: "url-ingest"
+        });
     const result = {
       ok: true,
       url: requestedUrl.href,
@@ -3215,6 +3305,81 @@ async function handleUrlIngest(req, res) {
   } catch (error) {
     sendJson(res, error.status || 400, { error: error.message || "Could not ingest URL." });
   }
+}
+
+async function writeOcrDocumentNote(sourcePath, options = {}) {
+  const startedAt = new Date().toISOString();
+  const progress = [
+    ingestionProgressStep("validate-source", "Validated OCR image source", 12, { sourcePath }),
+    ingestionProgressStep("load-source", "Loaded image file for OCR", 28, { sourcePath })
+  ];
+  const language = normalizeOcrLanguage(options.language);
+  const ocr = await runLocalOcr(resolveWorkspacePath(sourcePath), { language });
+  const text = normalizeOcrText(ocr.text);
+  const warnings = [];
+  if (!text) {
+    warnings.push("OCR command returned no text.");
+  }
+  if (ocr.stderr) {
+    warnings.push(`OCR stderr: ${truncate(ocr.stderr, 180)}`);
+  }
+  const extraction = {
+    ok: Boolean(text),
+    type: "image",
+    engine: ocr.engine,
+    language,
+    sourcePath,
+    text,
+    charCount: text.length,
+    partCount: 1,
+    warnings
+  };
+  progress.push(ingestionProgressStep("ocr-image", `Ran local OCR with ${ocr.engine}`, 62, {
+    engine: ocr.engine,
+    language,
+    characters: extraction.charCount
+  }));
+  const outputPath = options.outputPath
+    ? normalizeRelativePath(options.outputPath)
+    : `${sourcePath}.agenttrail.md`;
+  const result = await writeWorkspaceFile(outputPath, buildExtractedDocumentMarkdown({
+    sourcePath,
+    sourceUrl: options.sourceUrl || "",
+    originalName: options.originalName || path.basename(sourcePath),
+    mediaType: options.mediaType || defaultDocumentMediaType("image"),
+    extraction
+  }));
+  progress.push(ingestionProgressStep("write-sidecar", "Wrote searchable OCR Markdown sidecar", 82, { outputPath: result.path }));
+  const receipt = options.receipt === false ? null : await writeIngestionReceipt({
+    operation: options.operation || "image-ocr",
+    startedAt,
+    finishedAt: new Date().toISOString(),
+    sourcePath,
+    sourceUrl: options.sourceUrl || "",
+    originalName: options.originalName || path.basename(sourcePath),
+    mediaType: options.mediaType || defaultDocumentMediaType("image"),
+    outputPath: result.path,
+    outputSize: result.size,
+    extraction,
+    progress
+  });
+  if (receipt) {
+    progress.push(ingestionProgressStep("save-receipt", "Saved ingestion receipt", 100, { receiptPath: receipt.path }));
+  }
+  return {
+    ...result,
+    progress,
+    receipt,
+    extraction: {
+      ok: extraction.ok,
+      type: extraction.type,
+      engine: extraction.engine,
+      language: extraction.language,
+      partCount: extraction.partCount,
+      charCount: extraction.charCount,
+      warnings: extraction.warnings
+    }
+  };
 }
 
 async function writeExtractedDocumentNote(sourcePath, data, options = {}) {
@@ -3287,6 +3452,64 @@ function ingestionProgressStep(id, label, percent, detail = {}) {
   };
 }
 
+async function runLocalOcr(absolutePath, options = {}) {
+  const command = process.env.AGENTTRAIL_OCR_COMMAND || "tesseract";
+  const language = normalizeOcrLanguage(options.language);
+  const args = ocrCommandArgs(absolutePath, language);
+  try {
+    const result = await execFileAsync(command, args, {
+      cwd: PROJECT_ROOT,
+      timeout: OCR_TIMEOUT_MS,
+      maxBuffer: OCR_MAX_OUTPUT_BYTES
+    });
+    return {
+      engine: path.basename(command),
+      text: result.stdout || "",
+      stderr: result.stderr || ""
+    };
+  } catch (error) {
+    if (error.code === "ENOENT") {
+      throw httpError(501, `Local OCR command "${command}" was not found. Install Tesseract or set AGENTTRAIL_OCR_COMMAND to a local OCR executable.`);
+    }
+    const details = error.stderr || error.stdout || error.message || "OCR command failed.";
+    throw httpError(502, `Local OCR failed: ${truncate(details, 300)}`);
+  }
+}
+
+function ocrCommandArgs(inputPath, language) {
+  const template = process.env.AGENTTRAIL_OCR_ARGS
+    ? parseCommandArgs(process.env.AGENTTRAIL_OCR_ARGS)
+    : ["{{input}}", "stdout", "-l", "{{language}}"];
+  return template.map((arg) => String(arg)
+    .replace(/\{\{input\}\}/g, inputPath)
+    .replace(/\{\{language\}\}/g, language));
+}
+
+function parseCommandArgs(value) {
+  const args = [];
+  const pattern = /"([^"]*)"|'([^']*)'|(\S+)/g;
+  let match;
+  while ((match = pattern.exec(String(value || ""))) !== null) {
+    args.push(match[1] ?? match[2] ?? match[3]);
+  }
+  return args;
+}
+
+function normalizeOcrLanguage(value) {
+  const cleaned = String(value || "eng").trim();
+  return /^[A-Za-z0-9_+-]{1,32}$/.test(cleaned) ? cleaned : "eng";
+}
+
+function normalizeOcrText(value) {
+  return String(value || "")
+    .replace(/\u0000/g, "")
+    .replace(/\r/g, "\n")
+    .split("\n")
+    .map((line) => line.replace(/[ \t\f\v]+/g, " ").trim())
+    .filter(Boolean)
+    .join("\n");
+}
+
 async function writeIngestionReceipt(details) {
   const stamp = new Date().toISOString().replace(/[:.]/g, "-");
   const slug = sanitizeAttachmentName(`${details.operation || "ingestion"}-${path.basename(details.sourcePath || "document")}`)
@@ -3314,6 +3537,8 @@ async function writeIngestionReceipt(details) {
     `Output file: ${details.outputPath || "unknown"}`,
     `Media type: ${details.mediaType || "application/octet-stream"}`,
     `Document type: ${extraction.type || "unknown"}`,
+    extraction.engine ? `OCR engine: ${extraction.engine}` : null,
+    extraction.language ? `OCR language: ${extraction.language}` : null,
     `Extracted characters: ${extraction.charCount || 0}`,
     `Status: ${extraction.ok ? "completed" : "completed-with-empty-text"}`,
     "",
@@ -3389,7 +3614,7 @@ async function fetchAllowedDocumentUrl(startUrl, allowlist, options = {}) {
     const mediaType = normalizeContentMediaType(response.headers.get("content-type"));
     const extension = extensionForIngestedUrl(mediaType, currentUrl.pathname);
     const sourceFileName = `url${extension}`;
-    if (!isSupportedDocument(sourceFileName, mediaType)) {
+    if (!isSupportedDocument(sourceFileName, mediaType) && !isImageDocument(sourceFileName, mediaType)) {
       throw httpError(415, "URL response is not a supported document type.");
     }
 
@@ -3531,7 +3756,7 @@ function normalizeContentMediaType(value) {
 
 function extensionForIngestedUrl(mediaType, pathname = "") {
   const ext = path.extname(String(pathname || "").toLowerCase());
-  if ([".pdf", ".docx", ".pptx", ".xlsx", ".html", ".htm", ".md", ".markdown", ".txt", ".log", ".csv", ".js", ".jsx", ".ts", ".tsx", ".css", ".json", ".xml", ".yml", ".yaml", ".toml", ".py", ".rb", ".go", ".rs", ".java", ".c", ".cpp", ".h", ".hpp", ".swift", ".sh", ".zsh", ".sql"].includes(ext)) {
+  if ([".pdf", ".docx", ".pptx", ".xlsx", ".html", ".htm", ".md", ".markdown", ".txt", ".log", ".csv", ".js", ".jsx", ".ts", ".tsx", ".css", ".json", ".xml", ".yml", ".yaml", ".toml", ".py", ".rb", ".go", ".rs", ".java", ".c", ".cpp", ".h", ".hpp", ".swift", ".sh", ".zsh", ".sql", ".png", ".jpg", ".jpeg", ".tif", ".tiff", ".bmp", ".webp"].includes(ext)) {
     return ext === ".htm" ? ".html" : ext === ".markdown" ? ".md" : ext;
   }
   if (mediaType.includes("application/pdf")) return ".pdf";
@@ -3542,6 +3767,11 @@ function extensionForIngestedUrl(mediaType, pathname = "") {
   if (mediaType.includes("markdown")) return ".md";
   if (mediaType.includes("application/json")) return ".json";
   if (mediaType.includes("application/xml") || mediaType.includes("text/xml")) return ".xml";
+  if (mediaType.includes("image/png")) return ".png";
+  if (mediaType.includes("image/jpeg")) return ".jpg";
+  if (mediaType.includes("image/tiff")) return ".tiff";
+  if (mediaType.includes("image/bmp")) return ".bmp";
+  if (mediaType.includes("image/webp")) return ".webp";
   if (mediaType.startsWith("text/")) return ".txt";
   return ".bin";
 }
@@ -3578,7 +3808,8 @@ function defaultDocumentMediaType(type) {
     html: "text/html",
     markdown: "text/markdown",
     code: "text/plain",
-    text: "text/plain"
+    text: "text/plain",
+    image: "image/png"
   }[type] || "application/octet-stream";
 }
 

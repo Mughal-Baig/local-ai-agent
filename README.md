@@ -245,7 +245,7 @@ When write preview mode is enabled, `write_file` returns a diff preview instead 
 - Receipt timeline and replay: saved Markdown receipts in `workspace/receipts/`, JSON sessions in `workspace/sessions/`, and receipt-derived resume
 - Diff Review center: pending preview apply/reject UI
 - Local attachments: `/api/attachments` plus browser file picker that saves files into the workspace
-- Document text extraction: `/api/documents/extract`, `/api/documents/ingest-url`, automatic PDF/DOCX/PPTX/XLSX/HTML/Markdown/code attachment notes, progress steps, and ingestion receipts for searchable context
+- Document text extraction: `/api/documents/extract`, `/api/documents/ocr`, `/api/documents/ingest-url`, automatic PDF/DOCX/PPTX/XLSX/HTML/Markdown/code/image attachment notes, progress steps, and ingestion receipts for searchable context
 - MCP bridge: [mcp/server.js](mcp/server.js) and [mcp/agenttrail.mcp.json](mcp/agenttrail.mcp.json)
 - Recipe marketplace: [marketplace/recipes.json](marketplace/recipes.json), [recipe-packs](recipe-packs), `/api/packs/import`
 - One-command install surfaces: `bin/agenttrail.js`, [Dockerfile](Dockerfile), [docker-compose.yml](docker-compose.yml), [install.sh](install.sh), [Formula/agenttrail.rb](Formula/agenttrail.rb), [desktop](desktop)
@@ -318,6 +318,8 @@ Supported variables:
 - `AGENTTRAIL_CACHE`: set to `off` to disable the in-memory response cache (default on); `AGENTTRAIL_CACHE_TTL_MS` tunes the TTL
 - `AGENTTRAIL_MAX_PROMPT_CHARS`: prompt budget cap for assembled context, default `24000`
 - `AGENTTRAIL_DEFAULT_STEP_BUDGET`: default model/tool loop budget, default `3`
+- `AGENTTRAIL_OCR_COMMAND`: optional local OCR executable for image scans, default `tesseract`
+- `AGENTTRAIL_OCR_ARGS`: optional OCR argument template, default `{{input}} stdout -l {{language}}`
 - `WORKSPACE_ROOT`: folder the agent can access
 - `MAX_TOOL_ITERATIONS`: maximum tool loop steps per message
 

@@ -21,7 +21,14 @@ async function main() {
   let urlServer = null;
   const child = spawn(process.execPath, ["server.js"], {
     cwd: projectRoot,
-    env: { ...process.env, PORT: String(port), WORKSPACE_ROOT: workspaceRoot, OLLAMA_HOST: "http://127.0.0.1:1" },
+    env: {
+      ...process.env,
+      PORT: String(port),
+      WORKSPACE_ROOT: workspaceRoot,
+      OLLAMA_HOST: "http://127.0.0.1:1",
+      AGENTTRAIL_OCR_COMMAND: process.execPath,
+      AGENTTRAIL_OCR_ARGS: "tests/fixtures/mock-ocr.js {{input}} {{language}}"
+    },
     stdio: ["ignore", "pipe", "pipe"]
   });
   try {
@@ -157,6 +164,34 @@ async function main() {
     const codeNote = await get(`/api/files/content?path=${encodeURIComponent(codeAttachment.saved[0].contextPath)}`);
     assert.match(codeNote.content, /```typescript/);
     assert.match(codeNote.content, /export const agentTrail = true/);
+
+    const imageAttachment = await post("/api/attachments", {
+      files: [{
+        name: "scan.png",
+        type: "image/png",
+        encoding: "base64",
+        content: Buffer.from("fake image bytes").toString("base64")
+      }],
+      ocrLanguage: "eng"
+    });
+    assert.equal(imageAttachment.saved[0].extracted, true);
+    assert.equal(imageAttachment.saved[0].extraction.type, "image");
+    assert.match(imageAttachment.saved[0].extraction.engine, /node/);
+    const imageNote = await get(`/api/files/content?path=${encodeURIComponent(imageAttachment.saved[0].contextPath)}`);
+    assert.match(imageNote.content, /AgentTrail OCR ingestion text/);
+    assert.match(imageNote.content, /OCR engine:/);
+
+    const imageOcr = await post("/api/documents/ocr", {
+      path: imageAttachment.saved[0].path,
+      outputPath: "extracted/scan-ocr.md",
+      language: "eng"
+    });
+    assert.equal(imageOcr.ok, true);
+    assert.equal(imageOcr.extraction.type, "image");
+    assert.match(imageOcr.output.path, /extracted\/scan-ocr\.md/);
+    assert.match(imageOcr.receipt.path, /^receipts\/ingestion\//);
+    const imageOcrNote = await get("/api/files/content?path=extracted%2Fscan-ocr.md");
+    assert.match(imageOcrNote.content, /AgentTrail OCR ingestion text/);
 
     urlServer = await startUrlFixtureServer();
     const urlPath = `http://127.0.0.1:${urlServer.address().port}/research.html`;

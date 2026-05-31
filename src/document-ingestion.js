@@ -30,6 +30,8 @@ const CODE_EXTENSIONS = new Map([
   [".sql", "sql"]
 ]);
 
+const IMAGE_EXTENSIONS = new Set([".png", ".jpg", ".jpeg", ".tif", ".tiff", ".bmp", ".webp"]);
+
 function isPdfDocument(filePath, mediaType = "") {
   return /\.pdf$/i.test(String(filePath || "")) || String(mediaType || "").toLowerCase().includes("application/pdf");
 }
@@ -46,6 +48,17 @@ function isTextDocument(filePath, mediaType = "") {
   return Boolean(detectTextDocumentType(filePath, mediaType));
 }
 
+function isImageDocument(filePath, mediaType = "") {
+  const ext = path.extname(String(filePath || "").toLowerCase());
+  const type = String(mediaType || "").toLowerCase();
+  return IMAGE_EXTENSIONS.has(ext) ||
+    type.includes("image/png") ||
+    type.includes("image/jpeg") ||
+    type.includes("image/tiff") ||
+    type.includes("image/bmp") ||
+    type.includes("image/webp");
+}
+
 function isSupportedDocument(filePath, mediaType = "") {
   return isPdfDocument(filePath, mediaType) || isOfficeDocument(filePath, mediaType) || isTextDocument(filePath, mediaType);
 }
@@ -57,6 +70,7 @@ function detectDocumentType(filePath, mediaType = "") {
   if (name.endsWith(".docx") || type.includes("wordprocessingml.document")) return "docx";
   if (name.endsWith(".pptx") || type.includes("presentationml.presentation")) return "pptx";
   if (name.endsWith(".xlsx") || type.includes("spreadsheetml.sheet")) return "xlsx";
+  if (isImageDocument(filePath, mediaType)) return "image";
   return detectTextDocumentType(filePath, mediaType);
 }
 
@@ -148,6 +162,8 @@ function buildExtractedDocumentMarkdown({ sourcePath, sourceUrl, originalName, m
     `- Source file: ${sourcePath}`,
     sourceUrl ? `- Source URL: ${sourceUrl}` : null,
     `- Media type: ${mediaType || "application/octet-stream"}`,
+    extraction && extraction.engine ? `- OCR engine: ${extraction.engine}` : null,
+    extraction && extraction.language ? `- OCR language: ${extraction.language}` : null,
     extraction && extraction.pageCount ? `- Pages detected: ${extraction.pageCount}` : null,
     extraction && extraction.partCount ? `- Parts extracted: ${extraction.partCount}` : null,
     `- Extracted characters: ${text.length}`,
@@ -722,6 +738,7 @@ function countPdfPages(raw) {
 module.exports = {
   isPdfDocument,
   isOfficeDocument,
+  isImageDocument,
   isSupportedDocument,
   detectDocumentType,
   extractDocumentText,

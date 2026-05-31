@@ -6,7 +6,9 @@ const {
   extractPdfText,
   extractPdfContentText,
   buildExtractedDocumentMarkdown,
-  htmlToMarkdown
+  htmlToMarkdown,
+  isImageDocument,
+  detectDocumentType
 } = require("../../src/document-ingestion");
 const { makePdf, makeDocx, makePptx, makeXlsx } = require("../helpers/document-fixtures");
 
@@ -87,5 +89,8 @@ const codeDoc = extractDocumentText("export const answer = 42;\n", {
 assert.equal(codeDoc.type, "code");
 assert.match(codeDoc.text, /```typescript/);
 assert.match(codeDoc.text, /export const answer = 42/);
+
+assert.equal(isImageDocument("scan.png", "image/png"), true);
+assert.equal(detectDocumentType("scan.jpeg", ""), "image");
 
 console.log("Document extraction unit tests passed");

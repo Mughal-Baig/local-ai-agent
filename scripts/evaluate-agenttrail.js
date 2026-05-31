@@ -80,6 +80,7 @@ async function main() {
   checks.push(await check("PDF extraction exists", async () => includes("src/document-ingestion.js", ["extractPdfText", "FlateDecode", "buildExtractedDocumentMarkdown"]) && includes("server.js", ["/api/documents/extract", "writeExtractedDocumentNote"])));
   checks.push(await check("Office extraction exists", async () => includes("src/document-ingestion.js", ["extractOfficeText", "extractDocxText", "extractPptxText", "extractXlsxText"])));
   checks.push(await check("HTML markdown code ingestion exists", async () => includes("src/document-ingestion.js", ["htmlToMarkdown", "extractTextDocument", "inferCodeLanguage"])));
+  checks.push(await check("Image OCR ingestion exists", async () => includes("src/document-ingestion.js", ["isImageDocument", "IMAGE_EXTENSIONS"]) && includes("server.js", ["/api/documents/ocr", "writeOcrDocumentNote", "AGENTTRAIL_OCR_COMMAND"])));
   checks.push(await check("Allowlisted URL ingestion exists", async () => includes("server.js", ["/api/documents/ingest-url", "handleUrlIngest", "normalizeUrlAllowlist", "fetchAllowedDocumentUrl"])));
   checks.push(await check("Ingestion progress receipts exist", async () => includes("server.js", ["writeIngestionReceipt", "AgentTrail Ingestion Receipt", "ingestionProgressStep", "ingestion-receipt"])));
   checks.push(await check("macOS app bundle generator exists", async () => includes("scripts/package-mac-app.js", ["AgentTrail.app", "Info.plist", "MacOS"])));
