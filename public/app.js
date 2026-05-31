@@ -19,6 +19,8 @@ const state = {
   searchIndex: null,
   observability: null,
   activeTraceId: null,
+  team: null,
+  teamUserId: "owner",
   benchmarks: null,
   evalHistory: [],
   mcp: null,
@@ -170,7 +172,14 @@ const els = {
   resourcesSummary: document.querySelector("#resourcesSummary"),
   refreshObservability: document.querySelector("#refreshObservability"),
   observabilitySummary: document.querySelector("#observabilitySummary"),
-  traceTimeline: document.querySelector("#traceTimeline")
+  traceTimeline: document.querySelector("#traceTimeline"),
+  refreshTeam: document.querySelector("#refreshTeam"),
+  teamUserSelect: document.querySelector("#teamUserSelect"),
+  exportAuditJson: document.querySelector("#exportAuditJson"),
+  exportAuditCsv: document.querySelector("#exportAuditCsv"),
+  teamSyncExport: document.querySelector("#teamSyncExport"),
+  teamSummary: document.querySelector("#teamSummary"),
+  sharedReceipts: document.querySelector("#sharedReceipts")
 };
 
 document.addEventListener("DOMContentLoaded", async () => {
@@ -196,6 +205,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     refreshMarketplace(),
     refreshSearchIndex(),
     refreshObservability(),
+    refreshTeam(),
     refreshEvalHistory(),
     refreshInstalledModels(),
     checkPendingRun()
@@ -278,6 +288,21 @@ function bindEvents() {
   }
   if (els.refreshObservability) {
     els.refreshObservability.addEventListener("click", refreshObservability);
+  }
+  if (els.refreshTeam) {
+    els.refreshTeam.addEventListener("click", refreshTeam);
+  }
+  if (els.teamUserSelect) {
+    els.teamUserSelect.addEventListener("change", selectTeamUser);
+  }
+  if (els.exportAuditJson) {
+    els.exportAuditJson.addEventListener("click", () => exportAudit("json"));
+  }
+  if (els.exportAuditCsv) {
+    els.exportAuditCsv.addEventListener("click", () => exportAudit("csv"));
+  }
+  if (els.teamSyncExport) {
+    els.teamSyncExport.addEventListener("click", exportTeamSync);
   }
   if (els.toolsBackdrop) {
     els.toolsBackdrop.addEventListener("click", closeToolsDrawer);
@@ -1409,6 +1434,7 @@ function openToolsDrawer() {
   }
   refreshResources();
   refreshObservability();
+  refreshTeam();
 }
 
 function formatGb(bytes) {
@@ -1508,6 +1534,119 @@ function renderObservability() {
       </div>
     `;
   }).join("");
+}
+
+async function refreshTeam() {
+  if (!els.teamSummary || !els.sharedReceipts) {
+    return;
+  }
+  try {
+    const query = state.teamUserId ? `?user=${encodeURIComponent(state.teamUserId)}` : "";
+    const data = await getJson(`/api/team/status${query}`);
+    state.team = data;
+    state.teamUserId = data.activeUser?.id || state.teamUserId || "owner";
+    renderTeam();
+  } catch (error) {
+    els.teamSummary.innerHTML = `<div class="mini-row muted">${escapeHtml(error.message)}</div>`;
+    els.sharedReceipts.innerHTML = "";
+  }
+}
+
+function renderTeam() {
+  if (!els.teamSummary || !els.sharedReceipts || !state.team) {
+    return;
+  }
+  const team = state.team;
+  if (els.teamUserSelect) {
+    els.teamUserSelect.innerHTML = "";
+    for (const user of team.users || []) {
+      const option = document.createElement("option");
+      option.value = user.id;
+      option.textContent = `${user.displayName} (${user.role})`;
+      option.selected = user.id === team.activeUser?.id;
+      els.teamUserSelect.appendChild(option);
+    }
+  }
+  const caps = team.capabilities || {};
+  const sso = team.sso || {};
+  const sync = team.sync || {};
+  const allowed = (team.rbac || []).filter((item) => item.allowed).length;
+  els.teamSummary.innerHTML = [
+    ["Role", `${team.activeUser?.role || "viewer"} · ${allowed} tool(s)`],
+    ["Receipts", `${team.sharedReceipts?.count || 0} read-only shared`],
+    ["Audit", caps.canExportAudit ? "export allowed" : "view only"],
+    ["Sync", sync.enabled ? "enabled" : "explicit export required"],
+    ["SSO", sso.configured ? `${sso.provider} hook configured` : "hook available"]
+  ].map(([k, v]) => `<div class="mini-row"><strong>${escapeHtml(k)}</strong><span>${escapeHtml(v)}</span></div>`).join("");
+
+  const receipts = team.sharedReceipts?.receipts || [];
+  els.sharedReceipts.innerHTML = receipts.length
+    ? receipts.slice(0, 4).map((receipt) => `
+      <div class="mini-row">
+        <strong>${escapeHtml(receipt.title || receipt.path)}</strong>
+        <span>${escapeHtml(receipt.model || "receipt")} · ${escapeHtml(receipt.snippet || receipt.path)}</span>
+      </div>
+    `).join("")
+    : `<div class="mini-row muted">No shared receipts yet.</div>`;
+}
+
+async function selectTeamUser() {
+  const id = els.teamUserSelect?.value || "owner";
+  try {
+    const data = await postJson("/api/team/users/select", { userId: id, permissions: state.permissions });
+    state.teamUserId = data.activeUser?.id || id;
+    state.team = {
+      ...(state.team || {}),
+      activeUser: data.activeUser,
+      capabilities: data.capabilities,
+      rbac: data.rbac
+    };
+    const permissions = data.applied?.permissions || {};
+    state.permissions = {
+      readFiles: permissions.readFiles !== false,
+      writeFiles: permissions.writeFiles === true,
+      previewWrites: permissions.previewWrites !== false
+    };
+    els.readPermission.checked = state.permissions.readFiles;
+    els.writePermission.checked = state.permissions.writeFiles;
+    els.previewWritePermission.checked = state.permissions.previewWrites;
+    renderTeam();
+    addTrail("team", `Team user ${data.activeUser?.displayName || id}`);
+    renderTrustScore();
+  } catch (error) {
+    addTrail("error", `Team user failed: ${error.message}`);
+  }
+}
+
+async function exportAudit(format) {
+  const user = encodeURIComponent(state.teamUserId || "owner");
+  const endpoint = `/api/team/audit/export?format=${encodeURIComponent(format)}&user=${user}`;
+  try {
+    const response = await fetch(endpoint);
+    if (!response.ok) {
+      const text = await response.text();
+      throw new Error(text || `Audit export failed with HTTP ${response.status}`);
+    }
+    const text = await response.text();
+    downloadText(`agenttrail-audit.${format === "csv" ? "csv" : "json"}`, text, format === "csv" ? "text/csv" : "application/json");
+    addTrail("audit", `Exported audit ${format.toUpperCase()}`);
+  } catch (error) {
+    addTrail("error", `Audit export failed: ${error.message}`);
+  }
+}
+
+async function exportTeamSync() {
+  try {
+    const data = await postJson("/api/team/sync/export", {
+      enabled: true,
+      userId: state.teamUserId || "owner"
+    });
+    addTrail("team", `Exported sync pack ${data.path}`);
+    await refreshFiles();
+    await refreshTeam();
+  } catch (error) {
+    addTrail("error", `Sync export failed: ${error.message}`);
+  }
 }
 
 function closeToolsDrawer() {
@@ -2277,6 +2416,7 @@ async function sendMessage(event) {
         selectedFiles: Array.from(state.selectedFiles),
         permissions: state.permissions,
         securityMode: state.securityMode,
+        teamUserId: state.teamUserId,
         approvedPlan,
         stepBudget: state.stepBudget
       }),

@@ -22,6 +22,11 @@ Current schema families:
 - `agenttrail.run-accounting.v1`
 - `agenttrail.local-analytics.v1`
 - `agenttrail.error.v1`
+- `agenttrail.team-users.v1`
+- `agenttrail.shared-receipts.v1`
+- `agenttrail.team-sync.v1`
+- `agenttrail.audit-export.v1`
+- `agenttrail.sso-hook.v1`
 - `agenttrail.plugin.v1`
 - `agenttrail.job.v1`
 - `agenttrail.backup.v1`

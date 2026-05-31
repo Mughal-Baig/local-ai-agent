@@ -15,6 +15,7 @@ const RELEASE_ARTIFACTS = [
   "src/privacy.js",
   "src/network-policy.js",
   "src/observability.js",
+  "src/team-enterprise.js",
   "src/permissions.js",
   "src/features/errors.js",
   "src/features/redact.js",
@@ -37,6 +38,7 @@ const RELEASE_ARTIFACTS = [
   "docs/CLI.md",
   "docs/SUPPLY_CHAIN.md",
   "docs/SECURITY_POSTURE.md",
+  "docs/TEAM_ENTERPRISE.md",
   "docs/RELEASE_SIGNING.md",
   "docs/NPM_PUBLISH.md",
   "docs/sbom/agenttrail-v0.7.0.spdx.json",
@@ -45,10 +47,13 @@ const RELEASE_ARTIFACTS = [
   ".github/workflows/npm-publish.yml",
   ".github/workflows/release-artifacts.yml",
   "docker-compose.yml",
+  "team/users.json",
   "tests/unit/security-privacy.test.js",
   "tests/integration/threat-model.test.js",
   "tests/unit/observability.test.js",
   "tests/integration/observability.test.js",
+  "tests/unit/team-enterprise.test.js",
+  "tests/integration/team-enterprise.test.js",
   "install.sh"
 ];
 

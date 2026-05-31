@@ -41,6 +41,7 @@
 - CLI parity commands: `agenttrail run`, `pull`, `list`, `rm`, `ps`, `show`, `serve`, `create`, JSON scripting, shell completions, and integration tests.
 - Packaging and supply-chain foundation: multi-arch Docker workflow, publishable Homebrew formula, npm provenance workflow, SPDX SBOM, checksum signing script, and reproducible npm package check.
 - Local observability: structured logs, Prometheus-style metrics, per-run traces, token/time accounting, error taxonomy, and privacy-preserving analytics.
+- Local team/enterprise layer: shared read-only receipts, local users, RBAC, audit export, opt-in sync packages, and SSO identity hook.
 
 ## Not Planned
 

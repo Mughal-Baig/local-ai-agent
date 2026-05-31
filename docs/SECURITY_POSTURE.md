@@ -16,12 +16,13 @@ AgentTrail runs a local Node server that talks to a local Ollama instance and yo
 - **Secret redaction.** Common API keys, bearer tokens, GitHub/Slack/AWS-style tokens, private keys, and `key=value` credentials are redacted before selected context reaches a model and before receipts, sessions, reports, logs, and permission audits are stored.
 - **Network egress policy.** URL ingestion requires explicit host allowlists, image generation stays local unless remote endpoints are deliberately enabled and allowlisted, and model-registry HTTP pulls pass through the same egress policy.
 - **Optional encrypted artifacts.** Set `AGENTTRAIL_ENCRYPT_AT_REST=receipts` and `AGENTTRAIL_ENCRYPTION_KEY=...` to encrypt managed AgentTrail artifacts such as receipts at rest. The browser/API decrypts them only when the key is present.
+- **Local team controls.** Team mode is still local-first: users and roles live in `team/users.json`, RBAC caps tool permissions, shared receipts are read-only, audit exports are explicit, and sync packages are written locally only after opt-in.
 - **Auditability.** Every tool call is logged to the Agent Trail and can be exported as a receipt, so after the fact you can see exactly what ran.
 
 ## What AgentTrail does NOT protect against
 
 - **A compromised machine or Ollama host.** AgentTrail trusts the local Ollama endpoint and the local filesystem. If either is controlled by an attacker, AgentTrail offers no defense.
-- **Multi-user / network exposure.** It is a single-user local tool. Binding it to `0.0.0.0` (e.g. in Docker) or exposing the port removes the local-only assumption — do not run it on an untrusted network without your own auth/proxy.
+- **Network-exposed multi-user auth.** Local team mode is not internet-grade authentication. Binding it to `0.0.0.0` (e.g. in Docker) or exposing the port removes the local-only assumption — do not run it on an untrusted network without your own auth/proxy.
 - **Arbitrary code execution safety.** AgentTrail edits files; it does not sandbox running the code it writes. Review and run generated code as you would any untrusted snippet.
 - **Perfect prompt-injection defense.** The hardening scan is heuristic. It raises the cost of an attack and surfaces suspicious content; it is not a guarantee. The real backstop is that writes are gated behind your explicit Apply.
 - **Perfect secret discovery.** Redaction is pattern-based and errs toward common credential formats. It is not a substitute for keeping `.env` files and credentials out of selected context.

@@ -351,4 +351,13 @@ Next open: real `node-llama-cpp` validation with a tiny GGUF on actual hardware,
 - The sidebar now has an Observability panel showing completed/failed/active runs, input/output token estimates, p50/p95 latency, classified errors, and recent trace timeline rows without prompt text.
 - Tests/docs updated: `npm run test:observability`, README, foundation routes, schema docs, roadmap progress, repo eval, and release checksum/SBOM paths.
 
-Next open: Epic Y read-only shared receipt views, then package-publication launch polish.
+Next section records the Epic Y team/enterprise pass.
+
+## Latest Codex Pass - Epic Y team enterprise
+
+- T167-T172 are implemented through `src/team-enterprise.js`, `team/users.json`, and `/api/team/*` routes.
+- Added read-only shared receipt summaries/content, local owner/auditor/viewer users, RBAC caps that feed into agent tool policies, audit-log export in JSON/CSV, explicit opt-in sync package export under `workspace/shared-sync/`, and an SSO identity hook for trusted local proxies.
+- The app sidebar now has a Team panel for switching local users, viewing shared receipts, exporting audit logs, and writing sync packs.
+- Tests/docs updated: `npm run test:team`, route catalog, schema docs, README, repo eval, CI, roadmap progress, and release checksum/SBOM paths.
+
+Next open: Epic Z quality engineering, starting with coverage reporting, UI E2E in CI, path/diff fuzz tests, and performance regression checks.

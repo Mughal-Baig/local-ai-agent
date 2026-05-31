@@ -1,0 +1,27 @@
+{
+  "schema": "agenttrail.team-users.v1",
+  "updatedAt": "2026-05-31T00:00:00.000Z",
+  "users": [
+    {
+      "id": "owner",
+      "displayName": "Local Owner",
+      "email": "owner@local.agenttrail",
+      "role": "owner",
+      "profileId": "default"
+    },
+    {
+      "id": "auditor",
+      "displayName": "Receipt Auditor",
+      "email": "auditor@local.agenttrail",
+      "role": "auditor",
+      "profileId": "security-review"
+    },
+    {
+      "id": "viewer",
+      "displayName": "Read-only Viewer",
+      "email": "viewer@local.agenttrail",
+      "role": "viewer",
+      "profileId": "default"
+    }
+  ]
+}

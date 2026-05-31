@@ -125,7 +125,7 @@ function evaluateToolPermission(tool, permissions = {}, args = {}, options = {})
   const approved = args.approved === true || options.approved === true;
 
   if (policy.enabled === false) {
-    return deny(definition, `Tool ${tool} is disabled by policy.`, policy);
+    return deny(definition, policy.reason || `Tool ${tool} is disabled by policy.`, policy);
   }
   const pathDecision = evaluatePathPolicy(args.path, policy);
   if (!pathDecision.ok) {

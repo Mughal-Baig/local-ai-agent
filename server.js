@@ -26,6 +26,24 @@ const { FlatVectorStore, summarizeVectorStore, vectorMapsFromStore, annCandidate
 const { scanSecurityText } = require("./src/features/security");
 const { ERROR_TAXONOMY, friendlyError } = require("./src/features/errors");
 const { createObservability } = require("./src/observability");
+const {
+  applyRbacToPermissions,
+  buildSharedReceipts,
+  buildSyncPackage,
+  canExportAudit,
+  canReadSharedReceipts,
+  canSyncWorkspace,
+  exportAudit,
+  normalizeAuditRecords,
+  normalizeTeamUsers,
+  publicTeamUser,
+  roleCapabilities,
+  selectTeamUser,
+  ssoStatus,
+  syncStatus,
+  teamPermissionManifest,
+  validateSsoIdentity
+} = require("./src/team-enterprise");
 const { redactTextOnly, redactValueOnly, protectTextForStorage, revealTextFromStorage, privacyStatus } = require("./src/privacy");
 const { validateNetworkEgress, normalizeNetworkAllowlist, hostMatchesAllowlist, isPrivateNetworkHost, networkPolicyStatus } = require("./src/network-policy");
 const { SqliteStore } = require("./src/sqlite-store");
@@ -121,6 +139,8 @@ const DOCS_DIR = path.join(PROJECT_ROOT, "docs");
 const RECIPES_DIR = path.resolve(process.env.AGENTTRAIL_RECIPES_DIR || path.join(PROJECT_ROOT, "recipes"));
 const RECIPE_PACKS_DIR = path.resolve(process.env.AGENTTRAIL_RECIPE_PACKS_DIR || path.join(PROJECT_ROOT, "recipe-packs"));
 const PROFILES_DIR = path.join(PROJECT_ROOT, "profiles");
+const TEAM_DIR = path.join(PROJECT_ROOT, "team");
+const TEAM_USERS_PATH = path.join(TEAM_DIR, "users.json");
 const MARKETPLACE_DIR = path.join(PROJECT_ROOT, "marketplace");
 const UPDATES_DIR = path.join(PROJECT_ROOT, "updates");
 const PLUGINS_DIR = path.join(PROJECT_ROOT, "plugins");
@@ -533,6 +553,50 @@ const server = http.createServer(async (req, res) => {
 
     if (url.pathname === "/api/profiles/apply" && req.method === "POST") {
       return handleApplyProfile(req, res);
+    }
+
+    if (url.pathname === "/api/team/status" && req.method === "GET") {
+      return handleTeamStatus(url, res);
+    }
+
+    if (url.pathname === "/api/team/users" && req.method === "GET") {
+      return handleTeamUsers(url, res);
+    }
+
+    if (url.pathname === "/api/team/users/select" && req.method === "POST") {
+      return handleTeamUserSelect(req, res);
+    }
+
+    if (url.pathname === "/api/team/rbac" && req.method === "GET") {
+      return handleTeamRbac(url, res);
+    }
+
+    if (url.pathname === "/api/team/receipts" && req.method === "GET") {
+      return handleTeamReceipts(url, res);
+    }
+
+    if (url.pathname === "/api/team/receipts/content" && req.method === "GET") {
+      return handleTeamReceiptContent(url, res);
+    }
+
+    if (url.pathname === "/api/team/sync/status" && req.method === "GET") {
+      return handleTeamSyncStatus(res);
+    }
+
+    if (url.pathname === "/api/team/sync/export" && req.method === "POST") {
+      return handleTeamSyncExport(req, res);
+    }
+
+    if (url.pathname === "/api/team/audit/export" && req.method === "GET") {
+      return handleAuditExport(url, res);
+    }
+
+    if (url.pathname === "/api/team/sso" && req.method === "GET") {
+      return handleSsoStatus(res);
+    }
+
+    if (url.pathname === "/api/team/sso/validate" && req.method === "POST") {
+      return handleSsoValidate(req, res);
     }
 
     if (url.pathname === "/api/mcp" && req.method === "GET") {
@@ -2515,6 +2579,7 @@ async function exportBackup(options = {}) {
     RECIPES_DIR,
     RECIPE_PACKS_DIR,
     PROFILES_DIR,
+    TEAM_DIR,
     MARKETPLACE_DIR,
     PLUGINS_DIR
   ]);
@@ -2614,24 +2679,9 @@ async function handleListRecipes(res) {
 }
 
 async function handleListReceipts(res) {
-  const files = await listWorkspaceFiles();
-  const receipts = [];
-  for (const file of files.filter((item) => item.path.startsWith(`${RECEIPTS_DIR}/`))) {
-    let snippet = "";
-    let metadata = receiptSearchMetadata("", file);
-    try {
-      const receipt = await readWorkspaceFile(file.path, MAX_FILE_BYTES);
-      snippet = createSnippet(receipt.content, ["tool", "preview", "search", "receipt"]);
-      metadata = receiptSearchMetadata(receipt.content, file);
-    } catch {
-      snippet = "";
-    }
-    receipts.push({ ...file, snippet, ...metadata });
-  }
-  receipts.sort((a, b) => b.modifiedAt.localeCompare(a.modifiedAt));
   sendJson(res, 200, {
     schema: "agenttrail.receipts.v1",
-    receipts
+    receipts: await collectReceiptSummaries()
   });
 }
 
@@ -4059,6 +4109,199 @@ async function handleApplyProfile(req, res) {
       permissions: normalizePermissions(profile.permissions)
     }
   });
+}
+
+async function handleTeamStatus(url, res) {
+  const users = await listTeamUsers();
+  const activeUser = selectTeamUser(users, teamUserIdFromUrl(url));
+  const receipts = await collectReceiptSummaries();
+  const audit = await collectAuditRecords(80);
+  sendJson(res, 200, {
+    schema: "agenttrail.team-status.v1",
+    localOnly: true,
+    activeUser: publicTeamUser(activeUser),
+    users: users.map(publicTeamUser),
+    capabilities: roleCapabilities(activeUser.role),
+    rbac: teamPermissionManifest(activeUser),
+    sharedReceipts: buildSharedReceipts(receipts, activeUser, { limit: 8 }),
+    audit: {
+      exportable: canExportAudit(activeUser),
+      recentCount: audit.length,
+      endpoints: {
+        json: "/api/team/audit/export?format=json",
+        csv: "/api/team/audit/export?format=csv"
+      }
+    },
+    sync: syncStatus(process.env),
+    sso: ssoStatus(process.env)
+  });
+}
+
+async function handleTeamUsers(url, res) {
+  const users = await listTeamUsers();
+  const activeUser = selectTeamUser(users, teamUserIdFromUrl(url));
+  sendJson(res, 200, {
+    schema: "agenttrail.team-users.v1",
+    activeUser: publicTeamUser(activeUser),
+    users: users.map((user) => ({
+      ...publicTeamUser(user),
+      capabilities: roleCapabilities(user.role)
+    }))
+  });
+}
+
+async function handleTeamUserSelect(req, res) {
+  const body = await readJsonBody(req);
+  const users = await listTeamUsers();
+  const activeUser = selectTeamUser(users, body.userId || body.id);
+  const profile = (await listProfiles()).find((item) => item.id === activeUser.profileId) || null;
+  const permissions = applyRbacToPermissions(normalizePermissions(profile?.permissions || body.permissions || {}), activeUser);
+  await STORE.append("team-user-select", {
+    user: publicTeamUser(activeUser),
+    profileId: activeUser.profileId,
+    role: activeUser.role
+  });
+  sendJson(res, 200, {
+    ok: true,
+    activeUser: publicTeamUser(activeUser),
+    capabilities: roleCapabilities(activeUser.role),
+    rbac: teamPermissionManifest(activeUser),
+    applied: {
+      model: profile?.defaultModel || DEFAULT_MODEL,
+      profile,
+      permissions
+    }
+  });
+}
+
+async function handleTeamRbac(url, res) {
+  const users = await listTeamUsers();
+  const activeUser = selectTeamUser(users, teamUserIdFromUrl(url));
+  sendJson(res, 200, {
+    schema: "agenttrail.team-rbac.v1",
+    user: publicTeamUser(activeUser),
+    capabilities: roleCapabilities(activeUser.role),
+    tools: teamPermissionManifest(activeUser)
+  });
+}
+
+async function handleTeamReceipts(url, res) {
+  const users = await listTeamUsers();
+  const activeUser = selectTeamUser(users, teamUserIdFromUrl(url));
+  if (!canReadSharedReceipts(activeUser)) {
+    return sendJson(res, 403, { error: "This role cannot read shared receipts." });
+  }
+  const limit = Math.min(Math.max(Number(url.searchParams.get("limit") || 80), 1), 200);
+  sendJson(res, 200, buildSharedReceipts(await collectReceiptSummaries(), activeUser, { limit }));
+}
+
+async function handleTeamReceiptContent(url, res) {
+  const users = await listTeamUsers();
+  const activeUser = selectTeamUser(users, teamUserIdFromUrl(url));
+  if (!canReadSharedReceipts(activeUser)) {
+    return sendJson(res, 403, { error: "This role cannot read shared receipts." });
+  }
+  const relativePath = normalizeRelativePath(url.searchParams.get("path") || "");
+  if (!relativePath.startsWith(`${RECEIPTS_DIR}/`)) {
+    return sendJson(res, 400, { error: "Shared receipt content is read-only and limited to receipts/." });
+  }
+  const file = await readWorkspaceFile(relativePath, MAX_FILE_BYTES);
+  sendJson(res, 200, {
+    schema: "agenttrail.shared-receipt-content.v1",
+    readOnly: true,
+    user: publicTeamUser(activeUser),
+    receipt: {
+      path: file.path,
+      size: file.size,
+      modifiedAt: file.modifiedAt,
+      content: file.content
+    }
+  });
+}
+
+function handleTeamSyncStatus(res) {
+  sendJson(res, 200, syncStatus(process.env));
+}
+
+async function handleTeamSyncExport(req, res) {
+  const body = await readJsonBody(req);
+  const users = await listTeamUsers();
+  const activeUser = selectTeamUser(users, body.userId || body.id);
+  if (!canSyncWorkspace(activeUser)) {
+    return sendJson(res, 403, { error: "This role cannot export shared sync packages." });
+  }
+  const status = syncStatus(process.env);
+  if (body.enabled !== true && status.enabled !== true) {
+    return sendJson(res, 409, {
+      error: "Shared workspace sync is opt-in. Send enabled:true or set AGENTTRAIL_TEAM_SYNC=on.",
+      sync: status
+    });
+  }
+  const packageBody = buildSyncPackage({
+    receipts: await collectReceiptSummaries(),
+    profiles: await listProfiles(),
+    users,
+    audit: await collectAuditRecords(200),
+    workspaceRoot: WORKSPACE_ROOT
+  });
+  const stamp = new Date().toISOString().replace(/[:.]/g, "-");
+  const result = await writeWorkspaceFile(`shared-sync/team-sync-${stamp}.json`, JSON.stringify(packageBody, null, 2));
+  await STORE.append("team-sync-export", {
+    user: publicTeamUser(activeUser),
+    path: result.path,
+    receipts: packageBody.receipts.length,
+    audit: packageBody.audit.length
+  });
+  sendJson(res, 200, {
+    ok: true,
+    sync: status,
+    path: result.path,
+    package: packageBody
+  });
+}
+
+async function handleAuditExport(url, res) {
+  const users = await listTeamUsers();
+  const activeUser = selectTeamUser(users, teamUserIdFromUrl(url));
+  if (!canExportAudit(activeUser)) {
+    return sendJson(res, 403, { error: "This role cannot export audit logs." });
+  }
+  const format = String(url.searchParams.get("format") || "json").trim();
+  const limit = Math.min(Math.max(Number(url.searchParams.get("limit") || 500), 1), 2000);
+  const exportBody = exportAudit(await collectAuditRecords(limit), format);
+  await STORE.append("audit-export", {
+    user: publicTeamUser(activeUser),
+    format: exportBody.extension,
+    limit
+  });
+  res.writeHead(200, {
+    "Content-Type": exportBody.contentType,
+    "Content-Disposition": `attachment; filename="agenttrail-audit.${exportBody.extension}"`
+  });
+  res.end(exportBody.body);
+}
+
+function handleSsoStatus(res) {
+  sendJson(res, 200, ssoStatus(process.env));
+}
+
+async function handleSsoValidate(req, res) {
+  const body = await readJsonBody(req);
+  const status = ssoStatus(process.env);
+  const headerEmail = req.headers[status.headerName] || "";
+  const result = validateSsoIdentity({
+    email: body.email || headerEmail,
+    displayName: body.displayName || body.name,
+    role: body.role,
+    profileId: body.profileId
+  }, process.env);
+  await STORE.append("sso-validate", {
+    ok: result.ok,
+    email: result.user?.email || body.email || "",
+    provider: status.provider,
+    reason: result.reason || "accepted"
+  });
+  sendJson(res, result.ok ? 200 : 401, result);
 }
 
 async function handleMcpManifest(res) {
@@ -5690,7 +5933,8 @@ async function handleChat(req, res) {
 async function runAgent(body, res, context = {}) {
   const messages = normalizeMessages(body.messages);
   const selectedFiles = Array.isArray(body.selectedFiles) ? body.selectedFiles.slice(0, 8) : [];
-  const permissions = normalizePermissions(body.permissions);
+  const teamUser = selectTeamUser(await listTeamUsers(), body.teamUserId || body.userId);
+  const permissions = applyRbacToPermissions(normalizePermissions(body.permissions), teamUser);
   const securityMode = body.securityMode !== false;
   const approvedPlan = normalizeApprovedPlan(body.approvedPlan);
   const stepBudget = normalizeStepBudget(body.stepBudget);
@@ -5701,6 +5945,7 @@ async function runAgent(body, res, context = {}) {
     selectedFiles: selectedFiles.length,
     securityMode,
     stepBudget: stepBudget.maxSteps,
+    teamUser: permissions.teamUser,
     permissions: {
       readFiles: permissions.readFiles,
       writeFiles: permissions.writeFiles,
@@ -6364,7 +6609,8 @@ async function executeToolCall(toolCall, permissions) {
     await STORE.append("tool-repaired", { tool: toolCall.tool, originalErrors: schemaCheck.errors, arguments: repairedArgs });
   }
   const decision = evaluateToolPermission(toolCall.tool, permissions, args);
-  await auditToolPermission(toolCall.tool, decision, args, "agent");
+  const actor = permissions.teamUser ? `${permissions.teamUser.id}:${permissions.teamUser.role}` : "agent";
+  await auditToolPermission(toolCall.tool, decision, args, actor);
   if (!decision.ok) {
     await STORE.append("tool-denied", { tool: toolCall.tool, reason: decision.reason, risk: decision.definition.risk });
     return { error: decision.reason, permission: decision.definition };
@@ -8338,6 +8584,46 @@ async function listProfiles() {
   }
 
   return profiles;
+}
+
+async function listTeamUsers() {
+  try {
+    const raw = await fsp.readFile(TEAM_USERS_PATH, "utf8");
+    return normalizeTeamUsers(JSON.parse(raw)).users;
+  } catch {
+    return normalizeTeamUsers({}).users;
+  }
+}
+
+async function collectReceiptSummaries() {
+  const files = await listWorkspaceFiles();
+  const receipts = [];
+  for (const file of files.filter((item) => item.path.startsWith(`${RECEIPTS_DIR}/`))) {
+    let snippet = "";
+    let metadata = receiptSearchMetadata("", file);
+    try {
+      const receipt = await readWorkspaceFile(file.path, MAX_FILE_BYTES);
+      snippet = createSnippet(receipt.content, ["tool", "preview", "search", "receipt"]);
+      metadata = receiptSearchMetadata(receipt.content, file);
+    } catch {
+      snippet = "";
+    }
+    receipts.push({ ...file, snippet, ...metadata });
+  }
+  receipts.sort((a, b) => b.modifiedAt.localeCompare(a.modifiedAt));
+  return receipts;
+}
+
+async function collectAuditRecords(limit = 500) {
+  const [logs, events] = await Promise.all([
+    LOGGER.list(Math.min(Math.max(Number(limit || 500), 1), 2000)).catch(() => []),
+    STORE.list(Math.min(Math.max(Number(limit || 500), 1), 2000)).catch(() => [])
+  ]);
+  return normalizeAuditRecords({ logs, events }).slice(0, limit);
+}
+
+function teamUserIdFromUrl(url) {
+  return String(url.searchParams.get("user") || url.searchParams.get("userId") || process.env.AGENTTRAIL_TEAM_USER || "owner").trim();
 }
 
 function normalizeRecipe(recipe, fileName) {

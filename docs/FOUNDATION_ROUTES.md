@@ -10,6 +10,17 @@ AgentTrail v0.7 expands the foundation API:
 - `/api/traces`
 - `/api/traces/content`
 - `/api/errors/taxonomy`
+- `/api/team/status`
+- `/api/team/users`
+- `/api/team/users/select`
+- `/api/team/rbac`
+- `/api/team/receipts`
+- `/api/team/receipts/content`
+- `/api/team/sync/status`
+- `/api/team/sync/export`
+- `/api/team/audit/export`
+- `/api/team/sso`
+- `/api/team/sso/validate`
 - `/api/sqlite/status`
 - `/api/watch/status`
 - `/api/watch/start`

@@ -25,6 +25,7 @@ This table maps the requested 30-item top-1% and foundation list to the v0.7 imp
 | Recipe marketplace | coder/founder/security/student/writer packs, `marketplace/recipes.json`, `/api/packs/import`, `/api/marketplace/import-url` |
 | Beautiful reports | polished Markdown/HTML exports with trail, citations, trust score, diffs |
 | Workspace profiles | profile selector, `/api/profiles/apply`, separate permission/model defaults |
+| Lightweight team/audit | `/api/team/status`, read-only shared receipts, local users, RBAC tool caps, audit export, opt-in sync pack, and SSO identity hook |
 | Polished README | GIF, badges, comparison, 60-second quick start, screenshots, roadmap, foundation section |
 | Community loop | good-first issue templates, recipe submissions, launch posts, marketplace manifest |
 | Real screen demo path | `npm run demo:video`, `docs/demo-video/storyboard.json`, recording plan for real browser capture |
@@ -55,6 +56,7 @@ This table maps the requested 30-item top-1% and foundation list to the v0.7 imp
 | Frontend structure | `public/modules/foundation.js` and `public/modules/product.js` own panels outside `app.js` |
 | Structured logging | `src/logger.js`, `workspace/.agenttrail/logs.jsonl`, `/api/logs` |
 | Observability metrics | `src/observability.js`, Prometheus-style `/api/metrics`, trace records in `workspace/.agenttrail/store.jsonl`, and aggregate local analytics without prompt text |
+| Team foundation | `src/team-enterprise.js`, `team/users.json`, `/api/team/*`, role-capped permissions, read-only shared receipt summaries, audit CSV/JSON, sync package export |
 | Config validation | `src/config.js`, `/api/config` |
 | File watching | `src/file-watcher.js`, `/api/watch/start`, `/api/watch/status`, `/api/watch/stop` |
 | Route catalog | `src/route-catalog.js`, `/api/routes` |

@@ -28,6 +28,31 @@ const SCHEMAS = {
     required: ["id", "title", "workspace", "permissions"],
     optional: ["description", "defaultModel", "memoryPath"]
   },
+  teamUsers: {
+    schema: "agenttrail.team-users.v1",
+    required: ["schema", "updatedAt", "users"],
+    optional: ["activeUser"]
+  },
+  sharedReceipts: {
+    schema: "agenttrail.shared-receipts.v1",
+    required: ["schema", "readOnly", "canRead", "user", "receipts"],
+    optional: ["count"]
+  },
+  teamSync: {
+    schema: "agenttrail.team-sync.v1",
+    required: ["schema", "createdAt", "mode", "receipts", "profiles", "users", "audit"],
+    optional: ["workspaceRoot", "privacy"]
+  },
+  auditExport: {
+    schema: "agenttrail.audit-export.v1",
+    required: ["schema", "exportedAt", "count", "records"],
+    optional: ["format"]
+  },
+  ssoHook: {
+    schema: "agenttrail.sso-hook.v1",
+    required: ["schema", "configured", "provider", "headerName", "allowedDomains", "mode"],
+    optional: ["issuer", "audience"]
+  },
   memoryRevision: {
     schema: "agenttrail.memory-revision.v1",
     required: ["savedAt", "path", "content"],

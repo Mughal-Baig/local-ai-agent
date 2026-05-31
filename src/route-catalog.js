@@ -18,6 +18,7 @@ const ROUTE_CATALOG = [
   { area: "structured-output", module: "src/structured-output.js", routes: ["/api/structured-output/schemas", "/api/structured-output", "/api/structured-output/recipe"] },
   { area: "security", module: "src/features/security.js + src/privacy.js + src/network-policy.js", routes: ["/api/security/scan", "/api/security/privacy"] },
   { area: "observability", module: "src/observability.js + src/logger.js", routes: ["/api/logs", "/api/metrics", "/api/observability", "/api/traces", "/api/traces/content", "/api/errors/taxonomy"] },
+  { area: "team-enterprise", module: "src/team-enterprise.js", routes: ["/api/team/status", "/api/team/users", "/api/team/users/select", "/api/team/rbac", "/api/team/receipts", "/api/team/receipts/content", "/api/team/sync/status", "/api/team/sync/export", "/api/team/audit/export", "/api/team/sso", "/api/team/sso/validate"] },
   { area: "foundation", module: "src/foundation.js", routes: ["/api/foundation", "/api/schemas", "/api/migrations"] },
   { area: "plugins", module: "src/plugin-loader.js + src/plugin-sandbox.js", routes: ["/api/plugins", "/api/plugins/run"] },
   { area: "jobs", module: "src/jobs.js", routes: ["/api/jobs", "/api/jobs/start"] },

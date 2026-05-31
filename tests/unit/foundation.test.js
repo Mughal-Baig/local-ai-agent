@@ -23,6 +23,7 @@ const { routeCatalog } = require("../../src/route-catalog");
 const { normalizeImageBackend, buildImageGenerationPayload } = require("../../src/image-generation");
 const { privacyStatus } = require("../../src/privacy");
 const { validateNetworkEgress } = require("../../src/network-policy");
+const { applyRbacToPermissions, normalizeTeamUsers, teamPermissionManifest } = require("../../src/team-enterprise");
 
 main().catch((error) => {
   console.error(error);
@@ -88,6 +89,8 @@ async function main() {
   assert.equal(routeCatalog().some((route) => route.routes.includes("/api/metrics")), true);
   assert.equal(routeCatalog().some((route) => route.routes.includes("/api/observability")), true);
   assert.equal(routeCatalog().some((route) => route.routes.includes("/api/errors/taxonomy")), true);
+  assert.equal(routeCatalog().some((route) => route.routes.includes("/api/team/status")), true);
+  assert.equal(routeCatalog().some((route) => route.routes.includes("/api/team/audit/export")), true);
   assert.equal(listToolSchemas().some((tool) => tool.name === "search_workspace"), true);
   assert.equal(toolDefinitionsForBackend("openai").some((tool) => tool.function.name === "read_file"), true);
   assert.equal(validateToolArguments("read_file", { path: "welcome.md" }).ok, true);
@@ -98,6 +101,14 @@ async function main() {
   assert.equal(buildImageGenerationPayload({ backend: "openai-compatible", prompt: "x", width: 512, height: 512 }).size, "512x512");
   assert.equal(privacyStatus({ AGENTTRAIL_ENCRYPT_AT_REST: "off" }).secretRedaction, "on");
   assert.equal(validateNetworkEgress("https://example.com", { allowlist: ["example.com"], requireAllowlist: true }).host, "example.com");
+  assert.equal(validateSchema("teamUsers", {
+    schema: "agenttrail.team-users.v1",
+    updatedAt: new Date().toISOString(),
+    users: []
+  }).ok, true);
+  const viewerUser = normalizeTeamUsers({ users: [{ id: "viewer", role: "viewer", profileId: "default" }] }).users[0];
+  assert.equal(applyRbacToPermissions({ readFiles: true, writeFiles: true }, viewerUser).writeFiles, false);
+  assert.equal(teamPermissionManifest(viewerUser).find((item) => item.tool === "read_file").allowed, false);
   const taskSchema = listStructuredOutputSchemas().find((schema) => schema.id === "task-list").schema;
   assert.equal(validateSchema("projectMemory", withSchema("projectMemory", {
     updatedAt: new Date().toISOString(),

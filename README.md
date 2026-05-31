@@ -41,6 +41,7 @@ Writes are off by default. The agent proposes a unified diff; you click **Apply*
 - **Diff-safe writes**: preview mode shows a unified diff in chat and lets the user apply it deliberately.
 - **Trust Score dashboard**: each run shows evidence, preview, receipt, memory, hardening, and eval signals.
 - **Local observability**: Prometheus-style metrics, run traces, token/time accounting, and aggregate analytics stay on the machine.
+- **Local team mode**: read-only shared receipts, local users, RBAC caps, sync exports, audit exports, and an SSO identity hook.
 - **Budgeted project memory**: structured memory is ranked by the current prompt/files/tools before it enters the model context.
 - **Receipt timeline, replay, and reports**: reopen a saved run, restore prompt/files/model/diffs, and export Markdown/HTML reports.
 - **Recipe-driven**: reusable local workflows live in plain JSON files anyone can add.
@@ -63,6 +64,7 @@ Popular local AI tools are often full platforms. This project is intentionally s
 | File access | Sandboxed workspace tools plus keyword search, versioned local vector store, and Ollama embedding index |
 | Trust UX | Trust Score, local signals, security scan, reviewable diff previews, explicit apply buttons, exportable reports, replay sessions, receipts, and tool history |
 | Observability | Structured logs, `/api/metrics`, per-run traces, token/time accounting, error taxonomy, and privacy-preserving local analytics |
+| Team/audit | Read-only shared receipts, local multi-user profiles, RBAC tool caps, audit export, opt-in local sync packs, and SSO header/domain hook |
 | Workflow system | Plain JSON recipes, role-based recipe packs, import/export UI, and marketplace manifest |
 | Foundation | Stable schemas, migrations, append-only store, permission engine, plugin manifests, backups, jobs, checksums |
 | Best use | Personal workspace agent starter kit and auditable local workflow lab |
@@ -110,6 +112,7 @@ Open `http://127.0.0.1:4173`, build the semantic index, ask for a change, review
 - Bounded model concurrency and graceful overload responses through `AGENTTRAIL_MAX_CONCURRENCY`, `AGENTTRAIL_MAX_QUEUE`, and `/api/concurrency`
 - Health/resources/runtime endpoints for deployment checks and system visibility: `/api/health`, `/api/resources`, `/api/runtime`
 - Observability endpoints: `/api/metrics`, `/api/observability`, `/api/traces`, `/api/traces/content`, and `/api/errors/taxonomy`
+- Local team endpoints: `/api/team/status`, `/api/team/users`, `/api/team/rbac`, `/api/team/receipts`, `/api/team/audit/export`, `/api/team/sync/export`, and `/api/team/sso/validate`
 - Structured JSON output endpoint for Ollama schema `format` and OpenAI-compatible `response_format.json_schema`, plus typed extraction recipes with readable schema-error reasons
 - Planner approval flow: generate a structured plan, edit it, approve it, then run the agent with that plan in context
 - Run guardrails: choose a step budget, use a deep-run override deliberately, and stop an active run so the backend stream aborts
@@ -126,6 +129,7 @@ Open `http://127.0.0.1:4173`, build the semantic index, ask for a change, review
 - Recipe packs for coder, founder, and security workflows, plus marketplace manifest and import/export route
 - Real MCP stdio server with explicit per-tool approvals and receipts
 - Workspace profile templates with profile switching API/UI
+- Local team controls with owner/auditor/viewer defaults, read-only shared receipt views, RBAC-limited tools, audit-log export, opt-in sync package export, and SSO identity hook
 - Local evaluation harness plus saved pass/fail history and model benchmark surface
 - Dockerfile, Docker Compose, `agenttrail` bin entry, install script, publishable Homebrew formula, npm provenance workflow, SBOM, reproducibility check, desktop launchers, macOS menu-bar app bundle, Windows tray launcher, Linux desktop/package templates, and update-channel metadata
 - Stable schemas exposed at `/api/schemas`
@@ -310,6 +314,7 @@ When write preview mode is enabled, `write_file` returns a diff preview instead 
 - Append-only store: [src/json-store.js](src/json-store.js)
 - Background jobs: [src/jobs.js](src/jobs.js)
 - Plugin architecture: [plugins](plugins)
+- Team users/RBAC: [team/users.json](team/users.json), [src/team-enterprise.js](src/team-enterprise.js)
 - Release checksums: [docs/RELEASE_SIGNING.md](docs/RELEASE_SIGNING.md)
 - Backup export: `workspace/backups/`
 - SQLite store: `workspace/.agenttrail/agenttrail.db`
@@ -377,6 +382,9 @@ Supported variables:
 - `AGENTTRAIL_V1_API_KEY` / `AGENTTRAIL_V1_API_KEYS`: optional API key(s) for `/v1/*` OpenAI-compatible endpoints
 - `AGENTTRAIL_V1_RATE_LIMIT_PER_MINUTE`: rate limit for `/v1/*`, default `60`
 - `AGENTTRAIL_V1_QUEUE_CONCURRENCY` / `AGENTTRAIL_V1_QUEUE_MAX`: local request queue controls, default `2` / `16`
+- `AGENTTRAIL_TEAM_USER`: default local team user id, default `owner`
+- `AGENTTRAIL_TEAM_SYNC` / `AGENTTRAIL_TEAM_SYNC_DIR`: opt-in local shared sync export switch and destination label
+- `AGENTTRAIL_SSO_PROVIDER`, `AGENTTRAIL_SSO_ALLOWED_DOMAINS`, `AGENTTRAIL_SSO_HEADER_EMAIL`: optional SSO identity hook settings for trusted local proxies
 - `AGENTTRAIL_MAX_VISION_IMAGES`: max selected images sent to a vision model, default `4`
 - `AGENTTRAIL_MAX_VISION_IMAGE_BYTES`: max bytes per selected vision image, default `2097152`
 - `AGENTTRAIL_MAX_ATTACHMENT_AUDIO_BYTES`: max bytes for saved audio attachments, default `8388608`
@@ -392,6 +400,7 @@ Supported variables:
 
 - [Troubleshooting](docs/TROUBLESHOOTING.md)
 - [Model guide](docs/MODELS.md)
+- [Team mode](docs/TEAM_ENTERPRISE.md)
 - [Security checklist](docs/SECURITY_CHECKLIST.md)
 
 ## Test
