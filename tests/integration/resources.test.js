@@ -22,6 +22,8 @@ async function main() {
     assert.equal(r.contextLength > 0, true, "context length");
     const rt = await (await fetch(`http://127.0.0.1:${port}/api/runtime`)).json();
     assert.equal(typeof rt.bundledRuntime.installed, "boolean");
+    assert.equal(typeof rt.bundledRuntime.hardware.selectedBackend, "string");
+    assert.equal(typeof rt.bundledRuntime.hardware.threading.effective, "number");
     assert.equal(typeof rt.activeBackend.id, "string");
     console.log("Resources + runtime test passed");
   } finally { child.kill("SIGTERM"); await fsp.rm(ws, { recursive: true, force: true }); }

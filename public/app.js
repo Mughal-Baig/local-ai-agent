@@ -1417,7 +1417,14 @@ async function refreshResources() {
     if (r.disk) rows.push(["Disk", `${formatGb(r.disk.free)} free of ${formatGb(r.disk.total)}`]);
     rows.push(["Context", `${r.contextLength} tokens · keep-alive ${r.keepAlive}`]);
     rows.push(["Suggested quant", r.recommendedQuantization]);
-    if (rt) rows.push(["Backend", `${rt.activeBackend.title}${rt.bundledRuntime.installed ? " · bundled runtime ready" : ""}`]);
+    if (rt) {
+      rows.push(["Backend", `${rt.activeBackend.title}${rt.bundledRuntime.installed ? " · bundled runtime ready" : ""}`]);
+      if (rt.bundledRuntime.hardware) {
+        const hw = rt.bundledRuntime.hardware;
+        const offload = hw.offload.mode === "fixed" ? `${hw.offload.effectiveLayers} GPU layers` : `${hw.offload.mode} offload`;
+        rows.push(["Bundled accel", `${hw.selected.label} · ${offload} · ${hw.threading.effective} threads`]);
+      }
+    }
     els.resourcesSummary.innerHTML = rows
       .map(([k, v]) => `<div class="mini-row"><strong>${escapeHtml(k)}</strong><span>${escapeHtml(v)}</span></div>`)
       .join("");

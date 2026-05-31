@@ -699,6 +699,8 @@ async function handleRuntime(res) {
       contextSize: runtime.contextSize,
       gpuLayers: runtime.gpuLayers,
       threads: runtime.threads,
+      accelerationBackend: runtime.accelerationBackend,
+      hardware: runtime.hardware,
       note: runtime.available
         ? "Bundled llama.cpp runtime available with a readable GGUF model."
         : runtime.reason

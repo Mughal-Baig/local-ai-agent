@@ -54,10 +54,11 @@ This section tracks the concrete work shipped after the roadmap was publicly ref
 | Codex continuation | T076-T081 | Added OpenAI-compatible AgentTrail server mode with `/v1/chat/completions`, `/v1/models`, `/v1/embeddings`, SSE streaming chunks, optional API-key auth, local rate limiting, request queue headers, OpenAPI spec, client docs, and mock-client tests. |
 | Claude continuation + Codex hardening | T082-T089, T093, T095, T097, T099-T103, T105, T111, T245 | Added bounded model concurrency/backpressure, local load testing, integration docs, CLI pipe mode, VS Code MVP, Ollama option passthrough, health/resources/runtime APIs, System panel, optional bundled-runtime seam docs, redaction helper/tests, route/eval/CI coverage, and updated completion status. |
 | Codex Phase 6 pass | T106, T108; T107/T109/T110 partial | Added a first-class experimental `bundled` backend adapter, optional runtime provider contract in `src/bundled-runtime.js`, `/api/runtime` readiness details, GGUF model config, mock bundled-runtime integration coverage for streaming/embeddings/structured output, docs, env examples, and CI/eval wiring while keeping the default install zero-dependency. |
+| Codex Epic Q pass | T112-T118 | Added `src/runtime-hardware.js` for Metal/CUDA/ROCm/Vulkan/CPU acceleration policy, CPU SIMD/thread tuning, auto backend selection, GPU-layer offload config, `/api/runtime` hardware visibility, System panel acceleration summary, docs/env knobs, and deterministic unit/integration coverage. |
 
 ### Verified After These Passes
 
-- Local suites covered: `npm run test:unit`, `npm run test:redact`, `npm run test:documents`, `npm run test:audio`, `npm run test:search`, `npm run test:rerank`, `npm run test:integration`, `npm run test:backend`, `npm run test:v1`, `npm run test:bundled`, `npm run test:models`, `npm run test:embed-cache`, `npm run test:resume`, `npm run test:reindex`, `npm run test:health`, `npm run test:concurrency`, `npm run test:options`, `npm run test:resources`, `npm run eval:search`, `npm run bench:search`, `npm run test:tools`, `npm run test:structured`, `npm run test:planner`, `npm run test:guardrails`, `npm run test:reflection`, memory integration suites, `npm run test:ui`, `npm test`, `npm run eval`, `npm run release:checksums`, and `git diff --check`.
+- Local suites covered: `npm run test:unit`, `npm run test:hardware`, `npm run test:redact`, `npm run test:documents`, `npm run test:audio`, `npm run test:search`, `npm run test:rerank`, `npm run test:integration`, `npm run test:backend`, `npm run test:v1`, `npm run test:bundled`, `npm run test:models`, `npm run test:embed-cache`, `npm run test:resume`, `npm run test:reindex`, `npm run test:health`, `npm run test:concurrency`, `npm run test:options`, `npm run test:resources`, `npm run eval:search`, `npm run bench:search`, `npm run test:tools`, `npm run test:structured`, `npm run test:planner`, `npm run test:guardrails`, `npm run test:reflection`, memory integration suites, `npm run test:ui`, `npm test`, `npm run eval`, `npm run release:checksums`, and `git diff --check`.
 - GitHub CI and GitHub Pages passed for the latest roadmap commits.
 - GitHub Actions workflows now use Node-24-ready action majors and keep `FORCE_JAVASCRIPT_ACTIONS_TO_NODE24=true`, addressing the prior Node 20 action-runtime deprecation warning.
 
@@ -241,13 +242,13 @@ This section tracks the concrete work shipped after the roadmap was publicly ref
 - [x] T111 Zero-dependency default preserved; bundled runtime is opt-in (documented)
 
 ### Epic Q — Hardware acceleration
-- [ ] T112 Metal (Apple Silicon) acceleration path
-- [ ] T113 CUDA path detection + load
-- [ ] T114 ROCm path
-- [ ] T115 Vulkan path
-- [ ] T116 CPU SIMD / thread tuning
-- [ ] T117 Auto-detect best backend per machine
-- [ ] T118 GPU-layer offload configuration
+- [x] T112 Metal (Apple Silicon) acceleration path (auto-select policy + provider config; hardware validation still requires a Mac GGUF run)
+- [x] T113 CUDA path detection + load (CUDA env/device detection + provider config)
+- [x] T114 ROCm path (ROCm/HIP env detection + provider config)
+- [x] T115 Vulkan path (Vulkan SDK/ICD detection + provider config)
+- [x] T116 CPU SIMD / thread tuning
+- [x] T117 Auto-detect best backend per machine
+- [x] T118 GPU-layer offload configuration
 
 ### Epic R — Model loading internals
 - [ ] T119 Quantization-aware loader (Q4_K_M, Q5, Q8, etc.)
@@ -388,16 +389,16 @@ This section tracks the concrete work shipped after the roadmap was publicly ref
 4. We expand an epic's tasks into finer sub-tasks (toward 1000) only when we start that epic — so the plan stays honest and current.
 5. We re-mark `[x]` here as we go; this file is the single source of truth for the campaign.
 
-**Next up:** finish the partial integration/performance items: T090/T091 automation/MCP parity, then T098/T104 runtime metrics and idle-unload UI.
+**Next up:** validate real `node-llama-cpp` with a tiny GGUF on hardware, then move into Epic R model loading internals.
 
 ## Status & bug sweep (latest)
 
-- Progress: **104 tasks done**, with 93 open or partial items in the tracked Phases 1-10 set. Phase 1 is complete; Phase 2 Epic E/F search foundation is complete except T044 as a hardening umbrella; Epic G document ingestion is complete; Phase 3 vision/audio/image generation is complete; Epic K is complete; Epic L is complete; Epic M is partially complete; Epic N/O now have cache, option passthrough, resources, and runtime visibility; and Phase 6 now has a first-class bundled-runtime adapter seam.
-- Focused test suite green: unit, redaction, document extraction, API integration, v1 API, health, concurrency, model options, resources, smoke, repo eval, and release checksums. All touched source files pass `node --check`.
+- Progress: **111 tasks done**, with 86 open or partial items in the tracked Phases 1-10 set. Phase 1 is complete; Phase 2 Epic E/F search foundation is complete except T044 as a hardening umbrella; Epic G document ingestion is complete; Phase 3 vision/audio/image generation is complete; Epic K is complete; Epic L is complete; Epic M is partially complete; Epic N/O now have cache, option passthrough, resources, and runtime visibility; and Phase 6 now has a first-class bundled-runtime adapter seam plus Epic Q hardware policy.
+- Focused test suite green: unit, runtime hardware, bundled runtime, redaction, document extraction, API integration, v1 API, health, concurrency, model options, resources, smoke, repo eval, and release checksums. All touched source files pass `node --check`.
 - **Bug fixed:** `listWorkspaceFiles` only skipped `.DS_Store`, so internal `.agenttrail/*` state (logs, store, search index, pending-run) was being walked, indexed, and returned in search — adding noise and per-request churn to the index. Now excludes `.agenttrail/`. Verified against smoke, api, search-incremental, search-chunking, and eval:search.
 - Known minor item: a couple of integration tests assert relative/invariant counts (not exact) because the workspace can still gain legit files (e.g. `memory/*`) between calls — intentional, not a bug.
 
-Next code target: T107 real `node-llama-cpp` hardware validation with a tiny GGUF, then T112/T116/T118 hardware/thread/offload detection.
+Next code target: T107 real `node-llama-cpp` hardware validation with a tiny GGUF, then Epic R quantization/KV-cache/batching internals.
 
 ---
 

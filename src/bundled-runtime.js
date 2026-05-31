@@ -4,6 +4,7 @@ const fs = require("node:fs");
 const fsp = require("node:fs/promises");
 const path = require("node:path");
 const { pathToFileURL } = require("node:url");
+const { detectRuntimeHardware } = require("./runtime-hardware");
 
 const DEFAULT_RUNTIME_MODULE = "node-llama-cpp";
 
@@ -20,6 +21,7 @@ const RUNTIME_STATE = {
 
 function bundledRuntimeConfig(env = process.env, projectRoot = process.cwd(), requestedModel = "") {
   const moduleId = String(env.AGENTTRAIL_BUNDLED_RUNTIME_MODULE || DEFAULT_RUNTIME_MODULE).trim();
+  const hardware = detectRuntimeHardware(env);
   const modelPath = resolveBundledModelPath(
     requestedModel && looksLikeGgufPath(requestedModel) ? requestedModel : (env.AGENTTRAIL_GGUF_MODEL || env.AGENTTRAIL_BUNDLED_MODEL || ""),
     projectRoot
@@ -32,10 +34,12 @@ function bundledRuntimeConfig(env = process.env, projectRoot = process.cwd(), re
     modelPath,
     modelName,
     contextSize: numberFromEnv(env.AGENTTRAIL_BUNDLED_CONTEXT_SIZE, env.OLLAMA_NUM_CTX, 8192),
-    gpuLayers: optionalNumber(env.AGENTTRAIL_BUNDLED_GPU_LAYERS, env.OLLAMA_NUM_GPU),
-    threads: optionalNumber(env.AGENTTRAIL_BUNDLED_THREADS, env.OLLAMA_NUM_THREAD),
+    accelerationBackend: hardware.selectedBackend,
+    gpuLayers: hardware.offload.loadValue,
+    threads: hardware.threading.effective,
     batchSize: optionalNumber(env.AGENTTRAIL_BUNDLED_BATCH_SIZE),
-    embeddingModelPath: resolveBundledModelPath(env.AGENTTRAIL_BUNDLED_EMBED_MODEL || "", projectRoot)
+    embeddingModelPath: resolveBundledModelPath(env.AGENTTRAIL_BUNDLED_EMBED_MODEL || "", projectRoot),
+    hardware
   };
 }
 
@@ -162,7 +166,7 @@ async function embedWithNodeLlamaCpp(runtime, config, input) {
 }
 
 async function getNodeLlamaSession(getLlama, LlamaChatSession, config) {
-  const sessionKey = `${config.module}:${config.modelPath}:${config.contextSize}:${config.gpuLayers}:${config.threads}:${config.batchSize}`;
+  const sessionKey = `${config.module}:${config.modelPath}:${config.accelerationBackend}:${config.contextSize}:${config.gpuLayers}:${config.threads}:${config.batchSize}`;
   if (RUNTIME_STATE.sessionKey === sessionKey && RUNTIME_STATE.session) {
     return RUNTIME_STATE;
   }

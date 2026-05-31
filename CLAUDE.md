@@ -264,3 +264,12 @@ Next open: T082 request queue with configurable concurrency.
 - Tests/docs updated: `npm run test:bundled`, `docs/RUNTIME_PHASE6.md`, `docs/MODEL_BACKENDS.md`, README/env docs, repo eval, and CI.
 
 Next open: validate the bundled adapter against real `node-llama-cpp` + a tiny GGUF, then work through T112/T116/T118 hardware/thread/offload detection.
+
+## Latest Codex Pass - Epic Q hardware acceleration policy
+
+- T112-T118 are implemented as a deterministic bundled-runtime hardware policy layer in `src/runtime-hardware.js`: Metal auto-select on Apple Silicon, CUDA/ROCm/Vulkan env/path detection, CPU SIMD/thread tuning, auto backend selection, and GPU-layer offload parsing.
+- `/api/runtime` now exposes `bundledRuntime.hardware`, `accelerationBackend`, selected backend evidence/reason, offload mode, and effective threads; the System panel shows the selected acceleration summary.
+- The bundled provider config now receives `config.hardware`, `config.accelerationBackend`, `config.gpuLayers`, and `config.threads` so custom providers can load the right native path while the default install remains zero-dependency.
+- Tests/docs updated: `npm run test:hardware`, expanded `npm run test:bundled`/resources assertions, README/env/model backend/runtime docs, roadmap, repo eval, and CI.
+
+Next open: real `node-llama-cpp` validation with a tiny GGUF on actual hardware, then Epic R model loading internals.

@@ -32,6 +32,9 @@ async function main() {
       AGENTTRAIL_BUNDLED_RUNTIME_MODULE: "tests/fixtures/mock-bundled-runtime.js",
       AGENTTRAIL_GGUF_MODEL: modelPath,
       AGENTTRAIL_BUNDLED_MODEL_NAME: "mock-gguf",
+      AGENTTRAIL_ACCELERATION_BACKEND: "cpu",
+      AGENTTRAIL_BUNDLED_GPU_LAYERS: "0",
+      AGENTTRAIL_BUNDLED_THREADS: "6",
       AGENTTRAIL_CACHE: "off",
       AGENTTRAIL_NATIVE_TOOLS: "off"
     },
@@ -50,6 +53,10 @@ async function main() {
     assert.equal(runtime.bundledRuntime.available, true);
     assert.equal(runtime.bundledRuntime.model.exists, true);
     assert.equal(runtime.bundledRuntime.modelName, "mock-gguf");
+    assert.equal(runtime.bundledRuntime.accelerationBackend, "cpu");
+    assert.equal(runtime.bundledRuntime.hardware.selectedBackend, "cpu");
+    assert.equal(runtime.bundledRuntime.hardware.threading.effective, 6);
+    assert.equal(runtime.bundledRuntime.hardware.offload.loadValue, 0);
 
     const status = await getJson("/api/status");
     assert.equal(status.backend.api, "bundled");
