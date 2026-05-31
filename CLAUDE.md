@@ -243,3 +243,15 @@ Still open and recommended next: T076 OpenAI-compatible server mode.
 - Tests/evals/docs updated: `npm run test:v1`, route catalog/foundation/smoke coverage, repo eval checks, env docs, README/model-backend docs, and roadmap status were updated.
 
 Next open: T082 request queue with configurable concurrency.
+
+## Latest Claude Pass — verify Codex + T245 health
+
+- Verified Codex's continuation (T050 late-interaction, T051 citation spans, T058 search bench, T059-T064 doc ingestion, T065-T069 vision, audio, image-gen, Epic K OpenAI-compatible server): full suite 32/32 green, server.js syntax OK. Roadmap markers already accurate (83 done).
+- Added T245 health endpoint: `GET /api/health` (ok, status, uptimeSeconds, version, backend, pid, time) — lightweight liveness, no backend call. `tests/integration/health.test.js`, `npm run test:health`, CI step. Did not touch other internals; smoke + api still pass.
+- Next open: T206 conversation history, T244 graceful-degradation UI, T263 per-chat usage accounting, T234/T235 export/import archive.
+
+## Latest Codex Review Of Claude Pass
+
+- Imported Claude's broader Phase 4/5/6 batch from Downloads: bounded model concurrency/backpressure, `/api/concurrency`, `/api/resources`, `/api/runtime`, System panel, `OLLAMA_NUM_CTX`/`OLLAMA_NUM_GPU`/`OLLAMA_NUM_THREAD` passthrough, `scripts/load-test.js`, `docs/INTEGRATIONS.md`, `docs/RUNTIME_PHASE6.md`, `bin/agenttrail-chat.js`, and the VS Code MVP.
+- Hardened the handoff by exposing `agenttrail-chat` as an npm bin, adding redaction and new route coverage to CI, adding `/api/health`/resources/runtime/concurrency to route catalog and foundation docs, expanding repo eval checks, and updating the roadmap progress/completion log.
+- Next open: finish T090/T091 dedicated automation/webhook + MCP parity, then T098/T104 runtime metrics and idle-unload policy UI.

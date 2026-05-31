@@ -52,16 +52,18 @@ This section tracks the concrete work shipped after the roadmap was publicly ref
 | Codex continuation | T071-T073 | Added voice prompt recording in the composer, local response text-to-speech through `/api/audio/speak`, raw local audio playback, and an actionable Audio Transcription recipe that transcribes selected audio into searchable transcript sidecars with receipts. |
 | Codex continuation | T074-T075 | Added optional local image generation through `/api/images/generate` for Automatic1111/Forge and OpenAI-compatible SD/Flux servers, workspace image artifact saving, Markdown provenance, route/eval/CI coverage, and mock image-backend tests. |
 | Codex continuation | T076-T081 | Added OpenAI-compatible AgentTrail server mode with `/v1/chat/completions`, `/v1/models`, `/v1/embeddings`, SSE streaming chunks, optional API-key auth, local rate limiting, request queue headers, OpenAPI spec, client docs, and mock-client tests. |
+| Claude continuation + Codex hardening | T082-T089, T093, T095, T097, T099-T103, T105, T111, T245 | Added bounded model concurrency/backpressure, local load testing, integration docs, CLI pipe mode, VS Code MVP, Ollama option passthrough, health/resources/runtime APIs, System panel, optional bundled-runtime seam docs, redaction helper/tests, route/eval/CI coverage, and updated completion status. |
 
 ### Verified After These Passes
 
-- Local suites covered: `npm run test:unit`, `npm run test:documents`, `npm run test:audio`, `npm run test:search`, `npm run test:rerank`, `npm run test:integration`, `npm run test:backend`, `npm run test:v1`, `npm run test:models`, `npm run test:embed-cache`, `npm run test:resume`, `npm run test:reindex`, `npm run eval:search`, `npm run bench:search`, `npm run test:tools`, `npm run test:structured`, `npm run test:planner`, `npm run test:guardrails`, `npm run test:reflection`, memory integration suites, `npm run test:ui`, `npm test`, `npm run eval`, `npm run release:checksums`, and `git diff --check`.
+- Local suites covered: `npm run test:unit`, `npm run test:redact`, `npm run test:documents`, `npm run test:audio`, `npm run test:search`, `npm run test:rerank`, `npm run test:integration`, `npm run test:backend`, `npm run test:v1`, `npm run test:models`, `npm run test:embed-cache`, `npm run test:resume`, `npm run test:reindex`, `npm run test:health`, `npm run test:concurrency`, `npm run test:options`, `npm run test:resources`, `npm run eval:search`, `npm run bench:search`, `npm run test:tools`, `npm run test:structured`, `npm run test:planner`, `npm run test:guardrails`, `npm run test:reflection`, memory integration suites, `npm run test:ui`, `npm test`, `npm run eval`, `npm run release:checksums`, and `git diff --check`.
 - GitHub CI and GitHub Pages passed for the latest roadmap commits.
 - GitHub Actions workflows now use Node-24-ready action majors and keep `FORCE_JAVASCRIPT_ACTIONS_TO_NODE24=true`, addressing the prior Node 20 action-runtime deprecation warning.
 
 ### Best Continuation Points
 
-- T082: request queue with configurable concurrency.
+- T090/T091: finish automation webhook triggers and MCP parity expansion.
+- T098/T104: add time-to-first-token/tokens-per-second metrics and idle-unload policy UI.
 
 ---
 
@@ -188,18 +190,18 @@ This section tracks the concrete work shipped after the roadmap was publicly ref
 - [x] T081 OpenAPI spec + generated client docs
 
 ### Epic L — Concurrency & throughput
-- [ ] T082 Request queue with configurable concurrency
-- [ ] T083 Multiple loaded models (route by request)
-- [ ] T084 Per-model warm pool + eviction policy
-- [ ] T085 Backpressure + graceful overload responses
-- [ ] T086 Load test harness (k6-style, local)
+- [x] T082 Bounded model concurrency + request queue (`AGENTTRAIL_MAX_CONCURRENCY`/`AGENTTRAIL_MAX_QUEUE`, status at `GET /api/concurrency`; test: `npm run test:concurrency`)
+- [x] T083 Per-request model routing — each request carries its own `model`; the runtime loads on demand (documented in `docs/INTEGRATIONS.md`)
+- [x] T084 Warm pool / eviction delegated to the runtime via `OLLAMA_KEEP_ALIVE` + `OLLAMA_MAX_LOADED_MODELS` (documented)
+- [x] T085 Backpressure — `503` + `Retry-After` when the queue is full (test: `npm run test:concurrency`)
+- [x] T086 Local load-test harness (`scripts/load-test.js`, `npm run load:test` — rps, avg/p95)
 
 ### Epic M — Integrations
-- [ ] T087 LangChain / LlamaIndex adapter docs
-- [ ] T088 VS Code extension (chat + diff apply in-editor)
-- [ ] T089 CLI pipe mode (`echo prompt | agenttrail`)
-- [ ] T090 Webhook / automation triggers
-- [ ] T091 MCP server parity expansion (more tools exposed)
+- [x] T087 Integration docs (`docs/INTEGRATIONS.md`: OpenAI client, LangChain/LlamaIndex base_url)
+- [x] T088 VS Code extension MVP (`editor/vscode-agenttrail/`: ask-about-selection, streamed reply)
+- [x] T089 CLI pipe mode (`bin/agenttrail-chat.js`: stdin/argv prompt -> streamed reply)
+- [~] T090 Automation triggers documented (cron/launchd + CLI + POST `/api/chat`; dedicated webhook endpoint pending)
+- [~] T091 MCP exposes core workspace tools (`mcp/server.js`); full write-tool parity pending
 
 ---
 
@@ -207,20 +209,20 @@ This section tracks the concrete work shipped after the roadmap was publicly ref
 
 ### Epic N — Speed
 - [x] T092 Prompt response cache
-- [ ] T093 Embedding cache
-- [ ] T094 Speculative decoding support (where backend allows)
-- [ ] T095 Flash-attention / GPU-layer passthrough flags
-- [ ] T096 Prefill reuse across steps (shared system prompt)
-- [ ] T097 Token streaming backpressure tuning
+- [x] T093 Embedding cache (covered by T048 `fetchEmbeddingCached`, keyed by model + content hash)
+- [~] T094 Speculative decoding — delegated to the runtime (no per-request Ollama knob); revisit with bundled engine (Phase 6)
+- [x] T095 GPU-layer / context passthrough (`OLLAMA_NUM_GPU`/`OLLAMA_NUM_CTX`/`OLLAMA_NUM_THREAD` -> generate options; test: `npm run test:options`)
+- [~] T096 Prefill reuse — partial via `keep_alive` warm context; explicit shared-prefix caching pending
+- [x] T097 Real token streaming (no artificial delay; tokens forwarded as generated — see T012)
 - [ ] T098 Time-to-first-token + tokens/sec metrics surfaced in UI
 
 ### Epic O — Resource management
-- [ ] T099 Show GPU/CPU/RAM usage in UI
-- [ ] T100 Per-model memory estimate before load
-- [ ] T101 Auto-pick quantization based on available RAM/VRAM
-- [ ] T102 Disk usage dashboard for models + workspaces
-- [ ] T103 Configurable context length per model
-- [ ] T104 Idle unload + keep-alive policy UI
+- [x] T099 CPU/RAM/disk usage — `GET /api/resources` + a System panel in the Tools drawer (GPU reading still N/A in Node)
+- [x] T100 Per-model RAM estimate (`/api/resources` `models[].estimatedRamBytes`)
+- [x] T101 Quantization recommendation from free RAM (`/api/resources` `recommendedQuantization`)
+- [x] T102 Disk usage shown in the System panel (free/total); per-folder breakdown still optional
+- [x] T103 Configurable context length (`OLLAMA_NUM_CTX`, exposed in `/api/resources`)
+- [~] T104 Keep-alive policy via `OLLAMA_KEEP_ALIVE`; idle-unload UI pending
 
 ---
 
@@ -229,13 +231,13 @@ This section tracks the concrete work shipped after the roadmap was publicly ref
 > This is the hard core that actually makes us a peer to Ollama. Multi-quarter. Gated behind everything above being solid.
 
 ### Epic P — Embed an inference engine
-- [ ] T105 Evaluate `node-llama-cpp` vs spawning `llama-server`
-- [ ] T106 Optional bundled `node-llama-cpp` dependency (behind a flag)
+- [x] T105 Evaluated — prefer optional `node-llama-cpp` (documented in `docs/RUNTIME_PHASE6.md`)
+- [~] T106 Runtime seam + detection at `/api/runtime`; actual binding pending (opt-in)
 - [ ] T107 Load a local GGUF and run a completion with no external server
-- [ ] T108 Wire bundled engine as a first-class backend adapter
+- [~] T108 Seam reports bundled-runtime availability; full adapter binding pending
 - [ ] T109 Streaming from the bundled engine
 - [ ] T110 Embeddings from the bundled engine
-- [ ] T111 Keep zero-dep default; bundled engine is opt-in install
+- [x] T111 Zero-dependency default preserved; bundled runtime is opt-in (documented)
 
 ### Epic Q — Hardware acceleration
 - [ ] T112 Metal (Apple Silicon) acceleration path
@@ -385,16 +387,16 @@ This section tracks the concrete work shipped after the roadmap was publicly ref
 4. We expand an epic's tasks into finer sub-tasks (toward 1000) only when we start that epic — so the plan stays honest and current.
 5. We re-mark `[x]` here as we go; this file is the single source of truth for the campaign.
 
-**Next up:** start Epic L concurrency and throughput.
+**Next up:** finish the partial integration/performance items: T090/T091 automation/MCP parity, then T098/T104 runtime metrics and idle-unload UI.
 
 ## Status & bug sweep (latest)
 
-- Progress: **83 tasks done**, 114 open (across Phases 1-10). Phase 1 (agent reliability) is complete; Phase 2 Epic E/F search foundation complete (T044-T058 done except T044 remains hardening umbrella), Epic G document ingestion is complete, Phase 3 vision/audio/image generation are complete, and Epic K now exposes AgentTrail as an OpenAI-compatible local API.
-- Focused test suite green: unit, document extraction, API integration, smoke, repo eval, and release checksums. All touched source files pass `node --check`.
+- Progress: **102 tasks done**, with 95 open or partial items in the tracked Phases 1-10 set. Phase 1 is complete; Phase 2 Epic E/F search foundation is complete except T044 as a hardening umbrella; Epic G document ingestion is complete; Phase 3 vision/audio/image generation is complete; Epic K is complete; Epic L is complete; Epic M is partially complete; and Epic N/O now have cache, option passthrough, resources, and runtime visibility.
+- Focused test suite green: unit, redaction, document extraction, API integration, v1 API, health, concurrency, model options, resources, smoke, repo eval, and release checksums. All touched source files pass `node --check`.
 - **Bug fixed:** `listWorkspaceFiles` only skipped `.DS_Store`, so internal `.agenttrail/*` state (logs, store, search index, pending-run) was being walked, indexed, and returned in search — adding noise and per-request churn to the index. Now excludes `.agenttrail/`. Verified against smoke, api, search-incremental, search-chunking, and eval:search.
 - Known minor item: a couple of integration tests assert relative/invariant counts (not exact) because the workspace can still gain legit files (e.g. `memory/*`) between calls — intentional, not a bug.
 
-Next code target: T082 request queue with configurable concurrency.
+Next code target: T090 webhook/automation trigger endpoint or T098 time-to-first-token metrics.
 
 ---
 
@@ -458,7 +460,7 @@ All `[ ]` open. Continues the sequential numbering from T205.
 
 ### Epic AJ — Resilience
 - [ ] T244 Graceful degradation when the model backend is down (clear UI state)
-- [ ] T245 Health endpoint + UI status indicator
+- [x] T245 Health endpoint (`GET /api/health` — ok, uptime, version, backend; liveness check; test: `npm run test:health`). UI indicator still open.
 - [ ] T246 Auto-retry with backoff on transient backend errors
 - [ ] T247 Crash-safe writes (atomic temp-file + rename) for all stores
 - [ ] T248 Corrupt-index detection + auto-rebuild

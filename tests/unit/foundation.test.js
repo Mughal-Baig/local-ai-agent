@@ -64,6 +64,10 @@ async function main() {
   assert.equal(routeCatalog().some((route) => route.routes.includes("/api/audio/speak")), true);
   assert.equal(routeCatalog().some((route) => route.routes.includes("/api/images/generate")), true);
   assert.equal(routeCatalog().some((route) => route.routes.includes("/v1/chat/completions")), true);
+  assert.equal(routeCatalog().some((route) => route.routes.includes("/api/health")), true);
+  assert.equal(routeCatalog().some((route) => route.routes.includes("/api/resources")), true);
+  assert.equal(routeCatalog().some((route) => route.routes.includes("/api/runtime")), true);
+  assert.equal(routeCatalog().some((route) => route.routes.includes("/api/concurrency")), true);
   assert.equal(routeCatalog().some((route) => route.routes.includes("/api/tools/schemas")), true);
   assert.equal(routeCatalog().some((route) => route.routes.includes("/api/structured-output")), true);
   assert.equal(listToolSchemas().some((tool) => tool.name === "search_workspace"), true);

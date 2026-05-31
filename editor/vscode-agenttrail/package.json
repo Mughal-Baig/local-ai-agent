@@ -1,0 +1,17 @@
+{
+  "name": "agenttrail-vscode",
+  "displayName": "AgentTrail",
+  "description": "Chat with your local AgentTrail server from VS Code (MVP).",
+  "version": "0.1.0",
+  "engines": { "vscode": "^1.80.0" },
+  "categories": ["Other"],
+  "activationEvents": ["onCommand:agenttrail.ask"],
+  "main": "./extension.js",
+  "contributes": {
+    "commands": [{ "command": "agenttrail.ask", "title": "AgentTrail: Ask about selection" }],
+    "configuration": {
+      "title": "AgentTrail",
+      "properties": { "agenttrail.url": { "type": "string", "default": "http://127.0.0.1:4173", "description": "AgentTrail server URL" } }
+    }
+  }
+}

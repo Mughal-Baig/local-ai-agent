@@ -76,6 +76,16 @@ const BACKEND_HOST = trimTrailingSlash(ACTIVE_BACKEND.host || OLLAMA_HOST);
 const BACKEND_API_KEY = process.env.OPENAI_API_KEY || process.env.AGENTTRAIL_API_KEY || "";
 // Keep the model warm between turns to cut cold-start latency (Ollama keep_alive).
 const OLLAMA_KEEP_ALIVE = process.env.OLLAMA_KEEP_ALIVE || "5m";
+// Phase 5 / Epic N — performance passthrough to the runtime (T095).
+const OLLAMA_NUM_CTX = Number(process.env.OLLAMA_NUM_CTX || 8192);
+const OLLAMA_NUM_GPU = process.env.OLLAMA_NUM_GPU !== undefined ? Number(process.env.OLLAMA_NUM_GPU) : null;
+const OLLAMA_NUM_THREAD = process.env.OLLAMA_NUM_THREAD !== undefined ? Number(process.env.OLLAMA_NUM_THREAD) : null;
+function buildModelOptions(temperature) {
+  const options = { temperature, num_ctx: OLLAMA_NUM_CTX };
+  if (OLLAMA_NUM_GPU !== null && Number.isFinite(OLLAMA_NUM_GPU)) options.num_gpu = OLLAMA_NUM_GPU;
+  if (OLLAMA_NUM_THREAD !== null && Number.isFinite(OLLAMA_NUM_THREAD)) options.num_thread = OLLAMA_NUM_THREAD;
+  return options;
+}
 // In-memory response cache: identical (model + prompt) returns instantly.
 const CACHE_ENABLED = String(process.env.AGENTTRAIL_CACHE || "on").toLowerCase() !== "off";
 const CACHE_TTL_MS = Number(process.env.AGENTTRAIL_CACHE_TTL_MS || 300000);
@@ -122,6 +132,32 @@ const SEARCH_COLLECTIONS_DIR = ".agenttrail/search-collections";
 const SEARCH_INDEX_PATH = ".agenttrail/search-index.json";
 const VECTOR_STORE_PATH = ".agenttrail/vector-store.json";
 const PENDING_RUN_PATH = ".agenttrail/pending-run.json";
+const SERVER_START = Date.now();
+// Phase 4 / Epic L — bounded model concurrency + backpressure (T082/T085).
+const MAX_CONCURRENCY = Math.max(1, Number(process.env.AGENTTRAIL_MAX_CONCURRENCY || 4));
+const MAX_QUEUE = Math.max(0, Number(process.env.AGENTTRAIL_MAX_QUEUE || 64));
+const MODEL_GATE = {
+  active: 0,
+  queue: [],
+  enter() {
+    if (this.active < MAX_CONCURRENCY) {
+      this.active += 1;
+      return Promise.resolve(true);
+    }
+    if (this.queue.length >= MAX_QUEUE) {
+      return null; // overloaded
+    }
+    return new Promise((resolve) => this.queue.push(resolve));
+  },
+  release() {
+    const next = this.queue.shift();
+    if (next) {
+      next(true);
+    } else {
+      this.active = Math.max(0, this.active - 1);
+    }
+  }
+};
 const BACKUPS_DIR = "backups";
 const MAX_BODY_BYTES = 1024 * 1024;
 const MAX_FILE_BYTES = 80 * 1024;
@@ -190,6 +226,18 @@ const server = http.createServer(async (req, res) => {
 
     if (url.pathname.startsWith("/v1/")) {
       return handleV1Route(req, res, url);
+    }
+
+    if (url.pathname === "/api/health" && req.method === "GET") {
+      return handleHealth(res);
+    }
+
+    if (url.pathname === "/api/resources" && req.method === "GET") {
+      return handleResources(res);
+    }
+
+    if (url.pathname === "/api/runtime" && req.method === "GET") {
+      return handleRuntime(res);
     }
 
     if (url.pathname === "/api/status" && req.method === "GET") {
@@ -556,8 +604,12 @@ const server = http.createServer(async (req, res) => {
       return handlePreviewFile(req, res);
     }
 
+    if (url.pathname === "/api/concurrency" && req.method === "GET") {
+      return sendJson(res, 200, { active: MODEL_GATE.active, queued: MODEL_GATE.queue.length, maxConcurrency: MAX_CONCURRENCY, maxQueue: MAX_QUEUE });
+    }
+
     if (url.pathname === "/api/chat" && req.method === "POST") {
-      return handleChat(req, res);
+      return gatedChat(req, res, handleChat);
     }
 
     if (req.method === "GET" || req.method === "HEAD") {
@@ -587,6 +639,77 @@ server.listen(PORT, HOST, () => {
   console.log(`Workspace root: ${WORKSPACE_ROOT}`);
   console.log(`Model backend: ${ACTIVE_BACKEND.title} (${ACTIVE_BACKEND.api}) at ${BACKEND_HOST}`);
 });
+
+// Epic O — resource management: CPU/RAM/disk usage, per-model RAM estimate, and a
+// quantization recommendation based on free memory (T099-T103).
+async function handleResources(res) {
+  const os = require("node:os");
+  const cpus = os.cpus() || [];
+  const memory = { total: os.totalmem(), free: os.freemem() };
+  memory.used = memory.total - memory.free;
+  let disk = null;
+  try {
+    const st = await fsp.statfs(WORKSPACE_ROOT);
+    disk = { total: st.blocks * st.bsize, free: st.bfree * st.bsize };
+    disk.used = disk.total - disk.free;
+  } catch {
+    disk = null;
+  }
+  const status = await fetchOllamaModels().catch(() => ({ models: [] }));
+  const models = (status.models || []).map((m) => ({
+    name: m.name,
+    sizeBytes: m.size || 0,
+    estimatedRamBytes: Math.round((m.size || 0) * 1.2)
+  }));
+  const freeGb = memory.free / 1e9;
+  const recommendedQuantization =
+    freeGb >= 24 ? "fp16 / Q8_0" :
+    freeGb >= 12 ? "Q6_K" :
+    freeGb >= 8 ? "Q5_K_M" :
+    freeGb >= 5 ? "Q4_K_M" : "Q4_K_S or a smaller model";
+  sendJson(res, 200, {
+    cpu: { count: cpus.length, model: cpus[0] ? cpus[0].model : null, loadAverage: os.loadavg() },
+    memory,
+    process: { rss: process.memoryUsage().rss },
+    disk,
+    models,
+    contextLength: OLLAMA_NUM_CTX,
+    keepAlive: OLLAMA_KEEP_ALIVE,
+    recommendedQuantization,
+    uptimeSeconds: Math.round((Date.now() - SERVER_START) / 1000)
+  });
+}
+
+// Phase 6 seam — report the active backend and whether an optional bundled
+// inference runtime is installed (kept opt-in to preserve the zero-dep default).
+async function handleRuntime(res) {
+  let installed = false;
+  try { require.resolve("node-llama-cpp"); installed = true; } catch { installed = false; }
+  sendJson(res, 200, {
+    activeBackend: { id: ACTIVE_BACKEND.id, title: ACTIVE_BACKEND.title, api: ACTIVE_BACKEND.api, host: BACKEND_HOST },
+    bundledRuntime: {
+      id: "node-llama-cpp",
+      installed,
+      optIn: true,
+      note: installed
+        ? "Bundled llama.cpp runtime available — GGUF models can run with no external server."
+        : "Not installed. `npm i node-llama-cpp` to run GGUF models without an external server (opt-in; preserves the zero-dependency default)."
+    },
+    moonshot: "GPU acceleration, quantization, KV-cache, and model registry are tracked in Phase 6 (Epics P–S)."
+  });
+}
+
+async function handleHealth(res) {
+  sendJson(res, 200, {
+    ok: true,
+    status: "healthy",
+    version: packageMeta.version,
+    uptimeSeconds: Math.round((Date.now() - SERVER_START) / 1000),
+    backend: { id: ACTIVE_BACKEND.id, title: ACTIVE_BACKEND.title, api: ACTIVE_BACKEND.api, host: BACKEND_HOST },
+    pid: process.pid,
+    time: new Date().toISOString()
+  });
+}
 
 async function handleStatus(res) {
   const models = await fetchOllamaModels();
@@ -5084,6 +5207,23 @@ async function handlePreviewFile(req, res) {
   sendJson(res, 200, result);
 }
 
+// Backpressure wrapper: bound concurrent model runs; reject with 503 when the
+// queue is full so the caller can retry instead of piling up (T082/T085).
+async function gatedChat(req, res, handler) {
+  const ticket = MODEL_GATE.enter();
+  if (ticket === null) {
+    res.writeHead(503, { "Content-Type": "application/json; charset=utf-8", "Retry-After": "2" });
+    res.end(JSON.stringify({ error: "Server at capacity — please retry.", active: MODEL_GATE.active, queued: MODEL_GATE.queue.length }));
+    return;
+  }
+  try {
+    await ticket;
+    await handler(req, res);
+  } finally {
+    MODEL_GATE.release();
+  }
+}
+
 async function handleChat(req, res) {
   const body = await readJsonBody(req);
   const runAbort = new AbortController();
@@ -6082,10 +6222,7 @@ async function generateStructuredWithOllama(model, prompt, descriptor, options) 
         format: descriptor.schema,
         ...(visionImages(options.images).length ? { images: visionImages(options.images).map((image) => image.base64) } : {}),
         keep_alive: OLLAMA_KEEP_ALIVE,
-        options: {
-          temperature: options.temperature,
-          num_ctx: 8192
-        }
+        options: buildModelOptions(options.temperature)
       }),
       signal: AbortSignal.timeout(120000)
     });
@@ -6275,7 +6412,7 @@ async function generateOllamaStream(model, prompt, options, onToken) {
         stream: true,
         ...(visionImages(options.images).length ? { images: visionImages(options.images).map((image) => image.base64) } : {}),
         keep_alive: OLLAMA_KEEP_ALIVE,
-        options: { temperature: options.temperature, num_ctx: 8192 }
+        options: buildModelOptions(options.temperature)
       }),
       signal: abortSignalWithTimeout(options.signal, 120000)
     });
@@ -6330,7 +6467,7 @@ async function generateOllamaChatStream(model, prompt, options, onToken) {
         tools: options.tools,
         stream: true,
         keep_alive: OLLAMA_KEEP_ALIVE,
-        options: { temperature: options.temperature, num_ctx: 8192 }
+        options: buildModelOptions(options.temperature)
       }),
       signal: abortSignalWithTimeout(options.signal, 120000)
     });

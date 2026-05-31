@@ -163,7 +163,9 @@ const els = {
   toolsToggle: document.querySelector("#toolsToggle"),
   toolsToggleTop: document.querySelector("#toolsToggleTop"),
   toolsToggleMobile: document.querySelector("#toolsToggleMobile"),
-  closeTools: document.querySelector("#closeTools")
+  closeTools: document.querySelector("#closeTools"),
+  refreshResources: document.querySelector("#refreshResources"),
+  resourcesSummary: document.querySelector("#resourcesSummary")
 };
 
 document.addEventListener("DOMContentLoaded", async () => {
@@ -264,6 +266,9 @@ function bindEvents() {
   });
   if (els.closeTools) {
     els.closeTools.addEventListener("click", closeToolsDrawer);
+  }
+  if (els.refreshResources) {
+    els.refreshResources.addEventListener("click", refreshResources);
   }
   if (els.toolsBackdrop) {
     els.toolsBackdrop.addEventListener("click", closeToolsDrawer);
@@ -1392,6 +1397,32 @@ function openToolsDrawer() {
   els.toolsDrawer.hidden = false;
   if (els.toolsBackdrop) {
     els.toolsBackdrop.hidden = false;
+  }
+  refreshResources();
+}
+
+function formatGb(bytes) {
+  return `${(Number(bytes || 0) / 1e9).toFixed(1)} GB`;
+}
+
+async function refreshResources() {
+  if (!els.resourcesSummary) {
+    return;
+  }
+  try {
+    const [r, rt] = await Promise.all([getJson("/api/resources"), getJson("/api/runtime").catch(() => null)]);
+    const rows = [];
+    rows.push(["CPU", `${r.cpu.count} cores · load ${(r.cpu.loadAverage[0] || 0).toFixed(2)}`]);
+    rows.push(["Memory", `${formatGb(r.memory.used)} / ${formatGb(r.memory.total)} used`]);
+    if (r.disk) rows.push(["Disk", `${formatGb(r.disk.free)} free of ${formatGb(r.disk.total)}`]);
+    rows.push(["Context", `${r.contextLength} tokens · keep-alive ${r.keepAlive}`]);
+    rows.push(["Suggested quant", r.recommendedQuantization]);
+    if (rt) rows.push(["Backend", `${rt.activeBackend.title}${rt.bundledRuntime.installed ? " · bundled runtime ready" : ""}`]);
+    els.resourcesSummary.innerHTML = rows
+      .map(([k, v]) => `<div class="mini-row"><strong>${escapeHtml(k)}</strong><span>${escapeHtml(v)}</span></div>`)
+      .join("");
+  } catch (error) {
+    els.resourcesSummary.innerHTML = `<div class="mini-row muted">${escapeHtml(error.message)}</div>`;
   }
 }
 

@@ -12,7 +12,8 @@
     "url": "https://github.com/Mughal-Baig/local-ai-agent/issues"
   },
   "bin": {
-    "agenttrail": "bin/agenttrail.js"
+    "agenttrail": "bin/agenttrail.js",
+    "agenttrail-chat": "bin/agenttrail-chat.js"
   },
   "files": [
     "bin",
@@ -49,6 +50,7 @@
     "dev": "node server.js",
     "test": "node scripts/smoke-test.js",
     "test:unit": "node tests/unit/foundation.test.js",
+    "test:redact": "node tests/unit/redact.test.js",
     "test:documents": "node tests/unit/pdf-extraction.test.js",
     "test:audio": "node tests/unit/audio-transcription.test.js && node tests/integration/audio-transcription.test.js",
     "test:images": "node tests/unit/image-generation.test.js && node tests/integration/image-generation.test.js",
@@ -64,6 +66,11 @@
     "test:rerank": "node tests/unit/rerank.test.js",
     "test:resume": "node tests/integration/resumable-run.test.js",
     "test:reindex": "node tests/integration/search-incremental.test.js",
+    "test:health": "node tests/integration/health.test.js",
+    "test:concurrency": "node tests/integration/concurrency.test.js",
+    "test:options": "node tests/integration/model-options.test.js",
+    "test:resources": "node tests/integration/resources.test.js",
+    "load:test": "node scripts/load-test.js",
     "test:tools": "node tests/integration/native-tool-calling.test.js && node tests/integration/ollama-native-tools.test.js && node tests/integration/tool-repair.test.js && node tests/integration/multi-tool-calls.test.js",
     "test:structured": "node tests/integration/structured-output.test.js",
     "test:planner": "node tests/integration/agent-plan.test.js",

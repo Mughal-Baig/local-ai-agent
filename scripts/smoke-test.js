@@ -53,8 +53,24 @@ async function main() {
     const config = await fetchJson(`http://127.0.0.1:${port}/api/config`);
     assert.equal(config.ok, true);
 
+    const health = await fetchJson(`http://127.0.0.1:${port}/api/health`);
+    assert.equal(health.ok, true);
+
+    const concurrency = await fetchJson(`http://127.0.0.1:${port}/api/concurrency`);
+    assert.equal(concurrency.maxConcurrency >= 1, true);
+
+    const resources = await fetchJson(`http://127.0.0.1:${port}/api/resources`);
+    assert.equal(resources.memory.total > 0, true);
+
+    const runtime = await fetchJson(`http://127.0.0.1:${port}/api/runtime`);
+    assert.equal(typeof runtime.bundledRuntime.installed, "boolean");
+
     const routes = await fetchJson(`http://127.0.0.1:${port}/api/routes`);
     assert.equal(routes.routes.some((route) => route.area === "search"), true);
+    assert.equal(routes.routes.some((route) => route.routes.includes("/api/health")), true);
+    assert.equal(routes.routes.some((route) => route.routes.includes("/api/resources")), true);
+    assert.equal(routes.routes.some((route) => route.routes.includes("/api/runtime")), true);
+    assert.equal(routes.routes.some((route) => route.routes.includes("/api/concurrency")), true);
     assert.equal(routes.routes.some((route) => route.routes.includes("/api/audio/transcribe")), true);
     assert.equal(routes.routes.some((route) => route.routes.includes("/api/audio/speak")), true);
     assert.equal(routes.routes.some((route) => route.routes.includes("/api/images/generate")), true);
