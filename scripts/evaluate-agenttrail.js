@@ -50,6 +50,7 @@ async function main() {
   checks.push(await check("Search reranker exists", async () => includes("src/features/search.js", ["rerankDocuments", "rerankFeatures", "scoreParts", "final"])));
   checks.push(await check("Embedding cache exists", async () => includes("server.js", ["fetchEmbeddingCached", "EMBED_CACHE", "EMBED_CACHE_MAX"])));
   checks.push(await check("Search eval harness exists", async () => includes("scripts/eval-search.js", ["hit@3", "SEARCH_EVAL_THRESHOLD", "Search eval passed"])));
+  checks.push(await check("Search benchmark harness exists", async () => includes("scripts/benchmark-search.js", ["agenttrail.search-benchmark.v1", "brute force recall", "p95LatencyMs"])));
   checks.push(await check("Resumable run endpoints exist", async () => includes("server.js", ["/api/runs/pending", "handleSavePendingRun", "PENDING_RUN_PATH"])));
   checks.push(await check("Resumable run UI exists", async () => includes("public/index.html", ["resumeBanner", "resumeRunButton", "dismissResumeButton"])));
   checks.push(await check("Recipe marketplace exists", async () => includes("marketplace/recipes.json", ["Recipe Marketplace", "submissionUrl"])));

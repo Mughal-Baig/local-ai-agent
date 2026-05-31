@@ -250,7 +250,7 @@ When write preview mode is enabled, `write_file` returns a diff preview instead 
 - One-command install surfaces: `bin/agenttrail.js`, [Dockerfile](Dockerfile), [docker-compose.yml](docker-compose.yml), [install.sh](install.sh), [Formula/agenttrail.rb](Formula/agenttrail.rb), [desktop](desktop)
 - Physical Mac app: `npm run package:mac-app` builds `dist/mac/AgentTrail.app`
 - Model scoring and benchmarking: `/api/status`, `/api/benchmarks`
-- Agent eval harness and history: `npm run eval`, `/api/evals`, `/api/evals/history`
+- Agent eval harness and history: `npm run eval`, `npm run eval:search`, `npm run bench:search`, `/api/evals`, `/api/evals/history`
 - Project memory: `workspace/memory/project-memory.md`, `workspace/memory/project-memory.json`, citations, revision history, plus global memory under local `.local-agent/`
 - Workspace profiles: [profiles](profiles), `/api/profiles/apply`
 - Trust Score dashboard: browser UI
@@ -339,6 +339,7 @@ npm run test:models
 npm run test:embed-cache
 npm run test:resume
 npm run eval:search
+npm run bench:search
 npm run test:guardrails
 npm run test:reflection
 npm run test:memory
@@ -357,6 +358,7 @@ npm run package:mac-app
 
 - **Unit** — foundation modules (schemas, permissions, store, migrations) behave as specified.
 - **Integration** — the API contract holds across endpoints.
+- **Search benchmark** — seeds a deterministic local corpus, builds the vector store, then compares AgentTrail semantic recall and latency against a brute-force scanner.
 - **End-to-end smoke** — boots a real server on a temp workspace and asserts the full trust loop: the UI serves, `/api/status` reports `ok` with Ollama correctly detected as unavailable, the foundation score is **≥ 90**, **≥ 10** stable schemas are exposed, `write_file` is a permissioned tool, recipes load (including `code-review`), and a write → read → **preview diff** → search round-trip all succeed. It then shuts the server down.
 
 In other words, "serious foundation" is checkable in one command — every claim above is an assertion in `scripts/smoke-test.js`.

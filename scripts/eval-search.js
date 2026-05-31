@@ -109,7 +109,7 @@ async function postJson(url, payload) {
 async function waitForServer(p, getOutput) {
   for (let i = 0; i < 80; i += 1) {
     try {
-      const response = await fetch(`http://127.0.0.1:${p}/api/status`);
+      const response = await fetch(`http://127.0.0.1:${p}/api/config`);
       if (response.ok) return;
     } catch {
       // not up yet

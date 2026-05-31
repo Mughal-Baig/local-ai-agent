@@ -34,19 +34,19 @@ This section tracks the concrete work shipped after the roadmap was publicly ref
 | Codex continuation | T050 | Added multi-vector late-interaction search: saved chunk embeddings in the local index, best-chunk semantic scoring for long docs, sanitized chunk APIs, `bestChunk` result metadata, tests, eval checks, and docs. |
 | Codex continuation | T053 | Added a flat-file on-disk vector store at `.agenttrail/vector-store.json`, search-index status visibility, vector-store read path for semantic search, unit/integration coverage, eval checks, and docs. |
 | Codex continuation | T057 | Added vector-store version metadata, legacy normalization, search-index-to-vector-store migration, `.agenttrail/vector-store-migrations.json`, migration `005-vector-store-versioning`, tests, eval checks, and docs. |
+| Codex continuation | T058 | Added `npm run bench:search`: deterministic local corpus, local-vector index build timing, AgentTrail semantic recall/latency, brute-force scanner baseline, top-1 agreement threshold, CI coverage, and docs. |
 
 ### Verified After These Passes
 
-- Local suites covered: `npm run test:unit`, `npm run test:search`, `npm run test:rerank`, `npm run test:integration`, `npm run test:backend`, `npm run test:models`, `npm run test:embed-cache`, `npm run test:resume`, `npm run test:reindex`, `npm run eval:search`, `npm run test:tools`, `npm run test:structured`, `npm run test:planner`, `npm run test:guardrails`, `npm run test:reflection`, memory integration suites, `npm run test:ui`, `npm test`, `npm run eval`, `npm run release:checksums`, and `git diff --check`.
+- Local suites covered: `npm run test:unit`, `npm run test:search`, `npm run test:rerank`, `npm run test:integration`, `npm run test:backend`, `npm run test:models`, `npm run test:embed-cache`, `npm run test:resume`, `npm run test:reindex`, `npm run eval:search`, `npm run bench:search`, `npm run test:tools`, `npm run test:structured`, `npm run test:planner`, `npm run test:guardrails`, `npm run test:reflection`, memory integration suites, `npm run test:ui`, `npm test`, `npm run eval`, `npm run release:checksums`, and `git diff --check`.
 - GitHub CI and GitHub Pages passed for the latest search commits.
 - Known follow-up: GitHub Actions reports a future Node 20 action-runtime deprecation warning. It is not a test failure, but the workflows should be updated before GitHub forces Node 24 defaults.
 
 ### Best Continuation Points
 
-- T038: finish true receipt-based resume beyond the current pending-run snapshot.
-- T058: benchmark recall/latency vs brute force.
 - T054: HNSW/IVF index for large corpora after the flat-file store is stable.
 - T055: namespace/collection support per workspace.
+- T038: finish true receipt-based resume beyond the current pending-run snapshot.
 
 ---
 
@@ -129,7 +129,7 @@ This section tracks the concrete work shipped after the roadmap was publicly ref
 - [ ] T055 Namespace/collection support per workspace
 - [x] T056 Metadata filters — `path` (substring) and `ext` (comma-separated) query params on `/api/search` filter before ranking (test: `npm run test:reindex`)
 - [x] T057 Store versioning + migration (`version`, `minReaderVersion`, record schemas, legacy normalization, search-index conversion, and migration manifest)
-- [ ] T058 Benchmark recall/latency vs brute force
+- [x] T058 Benchmark recall/latency vs brute force (`npm run bench:search`; deterministic corpus, brute-force baseline, recall@3, top-1 agreement, avg/p95 latency)
 
 ### Epic G — Document ingestion
 - [ ] T059 PDF text extraction
@@ -370,16 +370,16 @@ This section tracks the concrete work shipped after the roadmap was publicly ref
 4. We expand an epic's tasks into finer sub-tasks (toward 1000) only when we start that epic — so the plan stays honest and current.
 5. We re-mark `[x]` here as we go; this file is the single source of truth for the campaign.
 
-**Next up:** Phase 2, Epic F — T058 recall/latency benchmarks, T054 large-corpus ANN indexing, then T055 namespace/collection support.
+**Next up:** Phase 2, Epic F — T054 large-corpus ANN indexing, T055 namespace/collection support, then finish T038 receipt-derived resume.
 
 ## Status & bug sweep (latest)
 
-- Progress: **56 tasks done**, 141 open (across Phases 1–10). Phase 1 (agent reliability) essentially complete; Phase 2 (RAG) in progress (T044–T053, T056-T057 done).
+- Progress: **57 tasks done**, 140 open (across Phases 1–10). Phase 1 (agent reliability) essentially complete; Phase 2 (RAG) in progress (T044–T053, T056-T058 done).
 - Full test suite green: **25/25** (unit, integration, smoke, search eval) — run twice, no flakes. All source files pass `node --check`.
 - **Bug fixed:** `listWorkspaceFiles` only skipped `.DS_Store`, so internal `.agenttrail/*` state (logs, store, search index, pending-run) was being walked, indexed, and returned in search — adding noise and per-request churn to the index. Now excludes `.agenttrail/`. Verified against smoke, api, search-incremental, search-chunking, and eval:search.
 - Known minor item: a couple of integration tests assert relative/invariant counts (not exact) because the workspace can still gain legit files (e.g. `memory/*`) between calls — intentional, not a bug.
 
-Next code targets: T058 recall/latency benchmark, T054 large-corpus ANN indexing, T055 namespace/collection support.
+Next code targets: T054 large-corpus ANN indexing, T055 namespace/collection support, T038 receipt-derived resume.
 
 ---
 

@@ -27,6 +27,7 @@ jobs:
       - run: node tests/integration/model-management.test.js
       - run: node tests/integration/embedding-cache.test.js
       - run: node scripts/eval-search.js
+      - run: node scripts/benchmark-search.js
       - run: node tests/integration/resumable-run.test.js
       - run: node tests/integration/search-incremental.test.js
       - run: node tests/integration/native-tool-calling.test.js
