@@ -15,7 +15,7 @@ const { loadPlugins } = require("../../src/plugin-loader");
 const { validateConfig } = require("../../src/config");
 const { hashContent, chunkText, chunkTextDetailed, rankChunks } = require("../../src/features/search");
 const { scanSecurityText } = require("../../src/features/security");
-const { friendlyError } = require("../../src/features/errors");
+const { classifyError, friendlyError } = require("../../src/features/errors");
 const { SqliteStore } = require("../../src/sqlite-store");
 const { FlatVectorStore, VECTOR_STORE_VERSION, annCandidatePaths, buildVectorAnnIndex, migrateVectorStore, vectorMapsFromStore, vectorStoreFromIndex } = require("../../src/vector-store");
 const { runPluginTool } = require("../../src/plugin-sandbox");
@@ -61,6 +61,7 @@ async function main() {
   assert.equal(securityScan.findings.some((finding) => finding.label === "Tool escalation request"), true);
   assert.equal(securityScan.findings.some((finding) => finding.label === "Encoded instruction payload"), true);
   assert.equal(friendlyError(new Error("Path escapes the workspace")).code, "WORKSPACE_BOUNDARY");
+  assert.equal(classifyError(new Error("egress host blocked")).code, "NETWORK_EGRESS");
   assert.equal(routeCatalog().some((route) => route.area === "search"), true);
   assert.equal(routeCatalog().some((route) => route.area === "attachments"), true);
   assert.equal(routeCatalog().some((route) => route.area === "planner"), true);
@@ -84,6 +85,9 @@ async function main() {
   assert.equal(routeCatalog().some((route) => route.routes.includes("/api/tools/schemas")), true);
   assert.equal(routeCatalog().some((route) => route.routes.includes("/api/structured-output")), true);
   assert.equal(routeCatalog().some((route) => route.routes.includes("/api/security/privacy")), true);
+  assert.equal(routeCatalog().some((route) => route.routes.includes("/api/metrics")), true);
+  assert.equal(routeCatalog().some((route) => route.routes.includes("/api/observability")), true);
+  assert.equal(routeCatalog().some((route) => route.routes.includes("/api/errors/taxonomy")), true);
   assert.equal(listToolSchemas().some((tool) => tool.name === "search_workspace"), true);
   assert.equal(toolDefinitionsForBackend("openai").some((tool) => tool.function.name === "read_file"), true);
   assert.equal(validateToolArguments("read_file", { path: "welcome.md" }).ok, true);

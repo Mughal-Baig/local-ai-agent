@@ -343,3 +343,12 @@ Next open: real `node-llama-cpp` validation with a tiny GGUF on actual hardware,
 - Tests/docs updated: `npm run test:supply-chain`, `docs/SUPPLY_CHAIN.md`, release signing/npm docs, README, release workflow artifact uploads, repo eval, and checksum coverage.
 
 Next open: real `node-llama-cpp` validation with a tiny GGUF on actual hardware, then package-publication launch polish.
+
+## Latest Codex Pass - Epic X observability
+
+- T161-T166 are implemented through `src/observability.js`, expanded `src/features/errors.js`, and new API routes: `/api/metrics`, `/api/observability`, `/api/traces`, `/api/traces/content`, and `/api/errors/taxonomy`.
+- Chat, structured-output, and typed recipe runs now create privacy-preserving traces with token/time accounting, tool-call counts, status/error events, and persisted `run-accounting` / `run-trace` records in the append-only store.
+- The sidebar now has an Observability panel showing completed/failed/active runs, input/output token estimates, p50/p95 latency, classified errors, and recent trace timeline rows without prompt text.
+- Tests/docs updated: `npm run test:observability`, README, foundation routes, schema docs, roadmap progress, repo eval, and release checksum/SBOM paths.
+
+Next open: Epic Y read-only shared receipt views, then package-publication launch polish.

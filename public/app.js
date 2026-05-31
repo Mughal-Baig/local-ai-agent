@@ -17,6 +17,8 @@ const state = {
   sessions: [],
   marketplace: null,
   searchIndex: null,
+  observability: null,
+  activeTraceId: null,
   benchmarks: null,
   evalHistory: [],
   mcp: null,
@@ -165,7 +167,10 @@ const els = {
   toolsToggleMobile: document.querySelector("#toolsToggleMobile"),
   closeTools: document.querySelector("#closeTools"),
   refreshResources: document.querySelector("#refreshResources"),
-  resourcesSummary: document.querySelector("#resourcesSummary")
+  resourcesSummary: document.querySelector("#resourcesSummary"),
+  refreshObservability: document.querySelector("#refreshObservability"),
+  observabilitySummary: document.querySelector("#observabilitySummary"),
+  traceTimeline: document.querySelector("#traceTimeline")
 };
 
 document.addEventListener("DOMContentLoaded", async () => {
@@ -190,6 +195,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     refreshProfilesAndMcp(),
     refreshMarketplace(),
     refreshSearchIndex(),
+    refreshObservability(),
     refreshEvalHistory(),
     refreshInstalledModels(),
     checkPendingRun()
@@ -269,6 +275,9 @@ function bindEvents() {
   }
   if (els.refreshResources) {
     els.refreshResources.addEventListener("click", refreshResources);
+  }
+  if (els.refreshObservability) {
+    els.refreshObservability.addEventListener("click", refreshObservability);
   }
   if (els.toolsBackdrop) {
     els.toolsBackdrop.addEventListener("click", closeToolsDrawer);
@@ -1399,6 +1408,7 @@ function openToolsDrawer() {
     els.toolsBackdrop.hidden = false;
   }
   refreshResources();
+  refreshObservability();
 }
 
 function formatGb(bytes) {
@@ -1435,6 +1445,69 @@ async function refreshResources() {
   } catch (error) {
     els.resourcesSummary.innerHTML = `<div class="mini-row muted">${escapeHtml(error.message)}</div>`;
   }
+}
+
+async function refreshObservability() {
+  if (!els.observabilitySummary || !els.traceTimeline) {
+    return;
+  }
+  try {
+    const data = await getJson("/api/observability");
+    state.observability = data;
+    renderObservability();
+  } catch (error) {
+    els.observabilitySummary.innerHTML = `<div class="mini-row muted">${escapeHtml(error.message)}</div>`;
+    els.traceTimeline.innerHTML = "";
+  }
+}
+
+function renderObservability() {
+  if (!els.observabilitySummary || !els.traceTimeline) {
+    return;
+  }
+  const data = state.observability;
+  if (!data) {
+    els.observabilitySummary.innerHTML = `<div class="mini-row muted">No observability data yet.</div>`;
+    els.traceTimeline.innerHTML = "";
+    return;
+  }
+  const totals = data.totals || {};
+  const latency = data.latency || {};
+  const active = Number(data.activeRuns || 0);
+  const rows = [
+    ["Runs", `${totals.runsCompleted || 0} ok · ${totals.runsFailed || 0} failed · ${active} active`],
+    ["Tokens", `${totals.inputTokens || 0} in · ${totals.outputTokens || 0} out`],
+    ["Latency", `${formatDuration(latency.p50Ms || 0)} p50 · ${formatDuration(latency.p95Ms || 0)} p95`],
+    ["Errors", `${totals.errors || 0} classified`]
+  ];
+  els.observabilitySummary.innerHTML = rows
+    .map(([k, v]) => `<div class="metric-tile"><strong>${escapeHtml(k)}</strong><span>${escapeHtml(v)}</span></div>`)
+    .join("");
+
+  const traces = Array.isArray(data.traces) ? data.traces.slice(0, 6) : [];
+  if (!traces.length) {
+    els.traceTimeline.innerHTML = `<div class="mini-row muted">No run traces yet.</div>`;
+    return;
+  }
+  els.traceTimeline.innerHTML = traces.map((trace) => {
+    const counters = trace.counters || {};
+    const meta = trace.metadata || {};
+    const parts = [
+      trace.kind,
+      trace.status,
+      formatDuration(trace.durationMs || 0),
+      `${counters.outputTokens || 0} tok`,
+      `${counters.toolCalls || 0} tools`
+    ].filter(Boolean);
+    const title = meta.model || meta.recipeId || trace.id;
+    const last = trace.lastEvent && trace.lastEvent.label ? ` · ${trace.lastEvent.label}` : "";
+    return `
+      <div class="mini-row trace-row" data-trace-id="${escapeHtml(trace.id)}">
+        <strong>${escapeHtml(title)}</strong>
+        <span>${escapeHtml(parts.join(" · "))}${escapeHtml(last)}</span>
+      </div>
+    `;
+  }).join("");
 }
 
 function closeToolsDrawer() {
@@ -2215,6 +2288,15 @@ async function sendMessage(event) {
     }
 
     await readEventStream(response.body, (eventName, data) => {
+      if (eventName === "trace") {
+        state.activeTraceId = data.id || null;
+        const label = data.id ? `Trace ${data.id.slice(0, 18)}` : "Run trace started";
+        assistantMessage.events.push({
+          type: "trace",
+          label
+        });
+        addTrail("trace", label);
+      }
       if (eventName === "token") {
         assistantMessage.content += data.text || "";
       }
@@ -2298,11 +2380,20 @@ async function sendMessage(event) {
         addTrail("run", data.message || "Run stopped");
       }
       if (eventName === "error") {
+        const detail = data.code && data.action ? `${data.code}: ${data.action}` : data.message || "The agent hit an error";
         assistantMessage.events.push({
           type: "error",
-          label: data.message || "The agent hit an error"
+          label: detail
         });
-        addTrail("error", data.message || "Agent error");
+        addTrail("error", detail);
+      }
+      if (eventName === "done") {
+        const label = data.ok ? "Run completed with accounting" : `Run ended: ${data.reason || "not ok"}`;
+        assistantMessage.events.push({
+          type: data.ok ? "trace" : "error",
+          label
+        });
+        addTrail("trace", label);
       }
       renderLocalSignals();
       renderTrustScore();
@@ -2333,6 +2424,7 @@ async function sendMessage(event) {
     }
     await refreshFiles();
     await refreshReceipts();
+    await refreshObservability();
   }
 }
 
@@ -2887,7 +2979,7 @@ function renderMessages() {
           events.appendChild(renderPreviewEvent(item));
         } else {
           const chip = document.createElement("span");
-          chip.className = `tool-chip${item.type === "error" ? " error" : ""}${item.type === "reflection" ? " reflection" : ""}${item.type === "memory" ? " memory" : ""}`;
+          chip.className = `tool-chip${item.type === "error" ? " error" : ""}${item.type === "reflection" ? " reflection" : ""}${item.type === "memory" ? " memory" : ""}${item.type === "trace" ? " trace" : ""}`;
           chip.textContent = item.label;
           events.appendChild(chip);
         }
@@ -3185,6 +3277,17 @@ function formatBytes(bytes) {
     return `${bytes} B`;
   }
   return `${(bytes / 1024).toFixed(1)} KB`;
+}
+
+function formatDuration(ms) {
+  const value = Number(ms || 0);
+  if (value < 1000) {
+    return `${Math.round(value)} ms`;
+  }
+  if (value < 60000) {
+    return `${(value / 1000).toFixed(1)} s`;
+  }
+  return `${Math.round(value / 60000)} min`;
 }
 
 function escapeHtml(value) {

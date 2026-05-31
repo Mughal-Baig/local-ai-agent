@@ -14,7 +14,9 @@ const RELEASE_ARTIFACTS = [
   "src/cli.js",
   "src/privacy.js",
   "src/network-policy.js",
+  "src/observability.js",
   "src/permissions.js",
+  "src/features/errors.js",
   "src/features/redact.js",
   "src/features/security.js",
   "scripts/generate-sbom.js",
@@ -45,6 +47,8 @@ const RELEASE_ARTIFACTS = [
   "docker-compose.yml",
   "tests/unit/security-privacy.test.js",
   "tests/integration/threat-model.test.js",
+  "tests/unit/observability.test.js",
+  "tests/integration/observability.test.js",
   "install.sh"
 ];
 

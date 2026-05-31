@@ -17,6 +17,7 @@ This table maps the requested 30-item top-1% and foundation list to the v0.7 imp
 | Diff-safe file writing | permission engine, preview-first writes, Diff Review center, explicit Apply buttons |
 | Replayable receipts | `/api/sessions`, `/api/sessions/content`, `/api/replay/plan`, `/api/receipts/resume`, `/api/runs/pending/from-receipt`, saved model/prompt/files/diffs/trail |
 | Trust Score | browser Trust Score dashboard plus `/api/foundation` score |
+| Run observability | `/api/metrics`, `/api/observability`, `/api/traces`, token/time accounting, error taxonomy, and the in-app trace timeline |
 | Security hardening | `/api/security/scan`, `/api/security/privacy`, prompt injection, exfiltration, path escape, hidden instruction, destructive command, secret-like value detection, egress allowlists, optional encrypted receipts |
 | Project memory with citations | `/api/memory/citations`, revision history in `workspace/memory/history/` |
 | Model benchmark dashboard | `/api/benchmarks`, `/api/benchmarks/run`, `/api/models/compare`, `/api/models/vision-capability`, benchmark history, vision-readiness scoring |
@@ -47,12 +48,13 @@ This table maps the requested 30-item top-1% and foundation list to the v0.7 imp
 | Model adapter layer | `src/model-adapters.js`, status exposes Ollama plus planned LM Studio, llama.cpp, OpenAI-compatible adapters |
 | Stronger vector index | file hashes, chunk metadata, chunk citation search, provider/model/dimensions, status counts |
 | Background jobs | `src/jobs.js`, `/api/jobs`, `/api/jobs/start`, Foundation panel job actions |
-| Better error handling | `src/features/errors.js` adds actionable hints for Ollama, embeddings, large files, permissions, path escapes |
+| Better error handling | `src/features/errors.js` adds a structured taxonomy with actionable hints for Ollama, embeddings, large files, permissions, path escapes, egress blocks, encryption, rate limits, and timeouts |
 | Signed-release path | `npm run release:checksums`, `/api/releases/checksums`, `/api/releases/signing-plan`, [docs/RELEASE_SIGNING.md](RELEASE_SIGNING.md), release artifact workflow |
 | Plugin architecture | `plugins/`, `/api/plugins`, `/api/plugins/run`, example plugin manifest, VM sandbox |
 | Import/export backup | `/api/backup/export`, `/api/backup/import`, `workspace/backups/agenttrail-backup-*.json` |
 | Frontend structure | `public/modules/foundation.js` and `public/modules/product.js` own panels outside `app.js` |
 | Structured logging | `src/logger.js`, `workspace/.agenttrail/logs.jsonl`, `/api/logs` |
+| Observability metrics | `src/observability.js`, Prometheus-style `/api/metrics`, trace records in `workspace/.agenttrail/store.jsonl`, and aggregate local analytics without prompt text |
 | Config validation | `src/config.js`, `/api/config` |
 | File watching | `src/file-watcher.js`, `/api/watch/start`, `/api/watch/status`, `/api/watch/stop` |
 | Route catalog | `src/route-catalog.js`, `/api/routes` |

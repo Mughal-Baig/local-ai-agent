@@ -62,6 +62,7 @@ This section tracks the concrete work shipped after the roadmap was publicly ref
 | Codex Epic U pass | T140-T146 | Replaced the tiny start-only CLI with an Ollama-style `agenttrail` command: `run` REPL/scripting mode, streamed JSON-capable `/api/chat` calls, `pull/list/rm/ps/show`, `serve`, `create` from Modelfile-style build files, bash/zsh/fish completions, CLI docs, CI wiring, and a mock-backed integration test. |
 | Codex Epic V pass | T147-T152 | Added packaging and supply-chain foundation: BuildKit/OCI Dockerfile plus multi-arch GHCR workflow, publishable Homebrew formula generated from npm tarball SHA, npm provenance publish workflow, deterministic SPDX SBOM generation, checksum verification/signing scripts, reproducible `npm pack` check, release artifact workflow wiring, and supply-chain docs/tests. Real npm/Homebrew/GHCR publishing still requires registry ownership/secrets. |
 | Codex Epic W pass | T156-T160 | Added the security/privacy layer: redaction before model context and audit artifacts, optional AES-256-GCM encrypted receipts/reports/sessions, per-tool policies with permission-audit events, centralized network egress allowlists for URL/image/model/marketplace flows, `/api/security/privacy`, and a threat-model suite for path escape, exfiltration, injection, egress denial, and encrypted receipt readback. |
+| Codex Epic X pass | T161-T166 | Added the local observability layer: expanded structured logs, Prometheus-style `/api/metrics`, `/api/observability`, `/api/traces`, `/api/traces/content`, structured error taxonomy, per-run and recipe token/time accounting, persisted trace records, and an in-app privacy-preserving Observability dashboard. |
 
 ### Verified After These Passes
 
@@ -71,7 +72,7 @@ This section tracks the concrete work shipped after the roadmap was publicly ref
 
 ### Best Continuation Points
 
-- T161-T168: CI/CD release automation and public launch polish after package publication.
+- T167-T168: team/enterprise read-only receipt sharing after launch surfaces settle.
 - T098/T104: add time-to-first-token/tokens-per-second metrics and idle-unload policy UI.
 
 ---
@@ -320,12 +321,12 @@ This section tracks the concrete work shipped after the roadmap was publicly ref
 - [x] T160 Threat-model test suite (path escape, exfil, injection)
 
 ### Epic X — Observability
-- [~] T161 Structured logs (exists; expand)
-- [ ] T162 Metrics endpoint (Prometheus-style) for tokens/latency/errors
-- [ ] T163 Per-run trace timeline view
-- [ ] T164 Token + time accounting per run/recipe
-- [ ] T165 Error taxonomy + actionable messages
-- [ ] T166 Local analytics dashboard (privacy-preserving)
+- [x] T161 Structured logs (exists; expand)
+- [x] T162 Metrics endpoint (Prometheus-style) for tokens/latency/errors
+- [x] T163 Per-run trace timeline view
+- [x] T164 Token + time accounting per run/recipe
+- [x] T165 Error taxonomy + actionable messages
+- [x] T166 Local analytics dashboard (privacy-preserving)
 
 ### Epic Y — Team / enterprise (optional track)
 - [ ] T167 Read-only shared receipts view
@@ -400,8 +401,8 @@ This section tracks the concrete work shipped after the roadmap was publicly ref
 
 ## Status & bug sweep (latest)
 
-- Progress: **151 tasks done**, with 46 open or partial items in the tracked Phases 1-10 set. Phase 1 is complete; Phase 2 Epic E/F search foundation is complete except T044 as a hardening umbrella; Epic G document ingestion is complete; Phase 3 vision/audio/image generation is complete; Epic K is complete; Epic L is complete; Epic M is partially complete; Epic N/O now have cache, option passthrough, resources, and runtime visibility; Phase 6 now has a first-class bundled-runtime adapter seam plus Epic Q/R/S hardware, loading, and registry policy; Epic T native desktop distribution is complete at the repo/scaffolding level; Epic U CLI parity is complete; Epic V packaging/supply-chain foundation is complete; Epic W security/privacy is complete; and the public starter issues are cleared with tests/docs.
-- Focused test suite green: unit, desktop distribution, CLI integration, supply-chain, security/privacy threat-model, runtime hardware, runtime loading, model registry, bundled runtime, redaction, document extraction, API integration, v1 API, health, concurrency, model options, resources, smoke, recipe validation, receipt metadata, repo eval, release SBOM, reproducibility, and release checksums. All touched source files pass `node --check`.
+- Progress: **157 tasks done**, with 40 open or partial items in the tracked Phases 1-10 set. Phase 1 is complete; Phase 2 Epic E/F search foundation is complete except T044 as a hardening umbrella; Epic G document ingestion is complete; Phase 3 vision/audio/image generation is complete; Epic K is complete; Epic L is complete; Epic M is partially complete; Epic N/O now have cache, option passthrough, resources, and runtime visibility; Phase 6 now has a first-class bundled-runtime adapter seam plus Epic Q/R/S hardware, loading, and registry policy; Epic T native desktop distribution is complete at the repo/scaffolding level; Epic U CLI parity is complete; Epic V packaging/supply-chain foundation is complete; Epic W security/privacy is complete; Epic X observability is complete; and the public starter issues are cleared with tests/docs.
+- Focused test suite green: unit, observability, desktop distribution, CLI integration, supply-chain, security/privacy threat-model, runtime hardware, runtime loading, model registry, bundled runtime, redaction, document extraction, API integration, v1 API, health, concurrency, model options, resources, smoke, recipe validation, receipt metadata, repo eval, release SBOM, reproducibility, and release checksums. All touched source files pass `node --check`.
 - **Bug fixed:** `listWorkspaceFiles` only skipped `.DS_Store`, so internal `.agenttrail/*` state (logs, store, search index, pending-run) was being walked, indexed, and returned in search — adding noise and per-request churn to the index. Now excludes `.agenttrail/`. Verified against smoke, api, search-incremental, search-chunking, and eval:search.
 - Known minor item: a couple of integration tests assert relative/invariant counts (not exact) because the workspace can still gain legit files (e.g. `memory/*`) between calls — intentional, not a bug.
 

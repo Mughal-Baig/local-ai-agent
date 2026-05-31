@@ -40,6 +40,7 @@ Writes are off by default. The agent proposes a unified diff; you click **Apply*
 - **Search before answer**: keyword search plus versioned local vector search with Ollama embeddings when available.
 - **Diff-safe writes**: preview mode shows a unified diff in chat and lets the user apply it deliberately.
 - **Trust Score dashboard**: each run shows evidence, preview, receipt, memory, hardening, and eval signals.
+- **Local observability**: Prometheus-style metrics, run traces, token/time accounting, and aggregate analytics stay on the machine.
 - **Budgeted project memory**: structured memory is ranked by the current prompt/files/tools before it enters the model context.
 - **Receipt timeline, replay, and reports**: reopen a saved run, restore prompt/files/model/diffs, and export Markdown/HTML reports.
 - **Recipe-driven**: reusable local workflows live in plain JSON files anyone can add.
@@ -61,6 +62,7 @@ Popular local AI tools are often full platforms. This project is intentionally s
 | Model backend | Ollama, or any OpenAI-compatible local server (LM Studio, llama.cpp, vLLM, Jan) — see [Model Backends](docs/MODEL_BACKENDS.md) |
 | File access | Sandboxed workspace tools plus keyword search, versioned local vector store, and Ollama embedding index |
 | Trust UX | Trust Score, local signals, security scan, reviewable diff previews, explicit apply buttons, exportable reports, replay sessions, receipts, and tool history |
+| Observability | Structured logs, `/api/metrics`, per-run traces, token/time accounting, error taxonomy, and privacy-preserving local analytics |
 | Workflow system | Plain JSON recipes, role-based recipe packs, import/export UI, and marketplace manifest |
 | Foundation | Stable schemas, migrations, append-only store, permission engine, plugin manifests, backups, jobs, checksums |
 | Best use | Personal workspace agent starter kit and auditable local workflow lab |
@@ -107,6 +109,7 @@ Open `http://127.0.0.1:4173`, build the semantic index, ask for a change, review
 - OpenAI-compatible server mode: `/v1/chat/completions`, `/v1/models`, `/v1/embeddings`, streaming SSE, API keys, rate limits, request queue, and OpenAPI spec
 - Bounded model concurrency and graceful overload responses through `AGENTTRAIL_MAX_CONCURRENCY`, `AGENTTRAIL_MAX_QUEUE`, and `/api/concurrency`
 - Health/resources/runtime endpoints for deployment checks and system visibility: `/api/health`, `/api/resources`, `/api/runtime`
+- Observability endpoints: `/api/metrics`, `/api/observability`, `/api/traces`, `/api/traces/content`, and `/api/errors/taxonomy`
 - Structured JSON output endpoint for Ollama schema `format` and OpenAI-compatible `response_format.json_schema`, plus typed extraction recipes with readable schema-error reasons
 - Planner approval flow: generate a structured plan, edit it, approve it, then run the agent with that plan in context
 - Run guardrails: choose a step budget, use a deep-run override deliberately, and stop an active run so the backend stream aborts
@@ -129,6 +132,7 @@ Open `http://127.0.0.1:4173`, build the semantic index, ask for a change, review
 - Route catalog exposed at `/api/routes`
 - Config validation exposed at `/api/config`
 - Structured logs exposed at `/api/logs`
+- Prometheus-style local metrics and aggregate analytics exposed at `/api/metrics` and `/api/observability`
 - SQLite store exposed at `/api/sqlite/status`
 - File watcher controls exposed at `/api/watch/status`, `/api/watch/start`, and `/api/watch/stop`
 - Append-only local event store exposed at `/api/store/stats`
@@ -310,6 +314,7 @@ When write preview mode is enabled, `write_file` returns a diff preview instead 
 - Backup export: `workspace/backups/`
 - SQLite store: `workspace/.agenttrail/agenttrail.db`
 - Structured logs: `workspace/.agenttrail/logs.jsonl`
+- Run accounting and trace records: `workspace/.agenttrail/store.jsonl`
 - Versioned migration files: [migrations](migrations)
 
 ## Workspace
@@ -421,7 +426,7 @@ npm run package:mac-app
 **What the suite proves.** Three layers run with no cloud and no Ollama required (the smoke test points at a dead Ollama host on purpose):
 
 - **Unit** — foundation modules (schemas, permissions, store, migrations) behave as specified.
-- **Integration** — the API contract holds across endpoints.
+- **Integration** — the API contract holds across endpoints, including observability traces and metrics.
 - **Search benchmark** — seeds a deterministic local corpus, builds the vector store, then compares AgentTrail semantic recall and latency against a brute-force scanner.
 - **End-to-end smoke** — boots a real server on a temp workspace and asserts the full trust loop: the UI serves, `/api/status` reports `ok` with Ollama correctly detected as unavailable, the foundation score is **≥ 90**, **≥ 10** stable schemas are exposed, `write_file` is a permissioned tool, recipes load (including `code-review`), and a write → read → **preview diff** → search round-trip all succeed. It then shuts the server down.
 

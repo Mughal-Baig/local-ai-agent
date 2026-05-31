@@ -24,7 +24,8 @@ const { validateConfig } = require("./src/config");
 const { hashContent, chunkTextDetailed, rankChunks, scoreBm25Documents, fuseHybridScores, rerankDocuments, bestLateInteractionChunk } = require("./src/features/search");
 const { FlatVectorStore, summarizeVectorStore, vectorMapsFromStore, annCandidatePaths } = require("./src/vector-store");
 const { scanSecurityText } = require("./src/features/security");
-const { friendlyError } = require("./src/features/errors");
+const { ERROR_TAXONOMY, friendlyError } = require("./src/features/errors");
+const { createObservability } = require("./src/observability");
 const { redactTextOnly, redactValueOnly, protectTextForStorage, revealTextFromStorage, privacyStatus } = require("./src/privacy");
 const { validateNetworkEgress, normalizeNetworkAllowlist, hostMatchesAllowlist, isPrivateNetworkHost, networkPolicyStatus } = require("./src/network-policy");
 const { SqliteStore } = require("./src/sqlite-store");
@@ -218,6 +219,10 @@ const SQLITE = new SqliteStore(WORKSPACE_ROOT);
 const VECTOR_STORE = new FlatVectorStore(WORKSPACE_ROOT, VECTOR_STORE_PATH);
 const JOBS = new JobManager();
 const LOGGER = new StructuredLogger(WORKSPACE_ROOT);
+const OBSERVABILITY = createObservability({
+  maxTraces: Number(process.env.AGENTTRAIL_TRACE_LIMIT || 80),
+  maxTraceEvents: Number(process.env.AGENTTRAIL_TRACE_EVENT_LIMIT || 120)
+});
 const WATCHER = new FileWatcher(WORKSPACE_ROOT, (event) => {
   LOGGER.log("info", "workspace.change", event);
 });
@@ -268,6 +273,26 @@ const server = http.createServer(async (req, res) => {
 
     if (url.pathname === "/api/logs" && req.method === "GET") {
       return handleLogs(url, res);
+    }
+
+    if (url.pathname === "/api/metrics" && req.method === "GET") {
+      return handleMetrics(res);
+    }
+
+    if (url.pathname === "/api/observability" && req.method === "GET") {
+      return handleObservability(res);
+    }
+
+    if (url.pathname === "/api/traces" && req.method === "GET") {
+      return handleTraces(url, res);
+    }
+
+    if (url.pathname === "/api/traces/content" && req.method === "GET") {
+      return handleTraceContent(url, res);
+    }
+
+    if (url.pathname === "/api/errors/taxonomy" && req.method === "GET") {
+      return handleErrorTaxonomy(res);
     }
 
     if (url.pathname === "/api/sqlite/status" && req.method === "GET") {
@@ -671,12 +696,30 @@ const server = http.createServer(async (req, res) => {
 
     sendJson(res, 405, { error: "Method not allowed" });
   } catch (error) {
+    const payload = friendlyError(error, {
+      route: url.pathname,
+      status: error.status || 500,
+      ollamaHost: OLLAMA_HOST,
+      defaultModel: DEFAULT_MODEL,
+      embeddingModel: OLLAMA_EMBED_MODEL
+    });
+    OBSERVABILITY.recordError(error, {
+      route: url.pathname,
+      status: error.status || 500,
+      code: payload.code,
+      ollamaHost: OLLAMA_HOST,
+      defaultModel: DEFAULT_MODEL,
+      embeddingModel: OLLAMA_EMBED_MODEL
+    });
+    await LOGGER.log("error", "http.error", {
+      route: url.pathname,
+      method: req.method,
+      status: error.status || 500,
+      code: payload.code,
+      message: payload.error
+    });
     if (!res.headersSent) {
-      sendJson(res, 500, friendlyError(error, {
-        ollamaHost: OLLAMA_HOST,
-        defaultModel: DEFAULT_MODEL,
-        embeddingModel: OLLAMA_EMBED_MODEL
-      }));
+      sendJson(res, error.status || 500, payload);
     } else {
       res.end();
     }
@@ -811,7 +854,60 @@ async function handleStatus(res) {
 
 async function handleLogs(url, res) {
   const limit = Math.min(Math.max(Number(url.searchParams.get("limit") || 80), 1), 200);
-  sendJson(res, 200, { logs: await LOGGER.list(limit) });
+  const level = String(url.searchParams.get("level") || "").trim();
+  const event = String(url.searchParams.get("event") || "").trim();
+  const logs = await LOGGER.list(limit);
+  sendJson(res, 200, {
+    schema: "agenttrail.logs.v1",
+    filters: { level: level || null, event: event || null },
+    logs: logs.filter((entry) => {
+      if (level && entry.level !== level) return false;
+      if (event && entry.event !== event) return false;
+      return true;
+    })
+  });
+}
+
+function handleMetrics(res) {
+  res.writeHead(200, { "Content-Type": "text/plain; version=0.0.4; charset=utf-8" });
+  res.end(OBSERVABILITY.prometheus());
+}
+
+function handleObservability(res) {
+  sendJson(res, 200, {
+    ...OBSERVABILITY.snapshot(),
+    analytics: OBSERVABILITY.analytics(),
+    metricsEndpoint: "/api/metrics",
+    traceEndpoint: "/api/traces",
+    taxonomyEndpoint: "/api/errors/taxonomy"
+  });
+}
+
+function handleTraces(url, res) {
+  const limit = Math.min(Math.max(Number(url.searchParams.get("limit") || 24), 1), 80);
+  sendJson(res, 200, {
+    schema: "agenttrail.traces.v1",
+    traces: OBSERVABILITY.traceSummaries(limit)
+  });
+}
+
+function handleTraceContent(url, res) {
+  const id = String(url.searchParams.get("id") || "").trim();
+  if (!id) {
+    return sendJson(res, 400, { error: "A trace id is required." });
+  }
+  const trace = OBSERVABILITY.traceDetail(id);
+  if (!trace) {
+    return sendJson(res, 404, { error: `Trace not found: ${id}` });
+  }
+  sendJson(res, 200, { schema: "agenttrail.trace-detail.v1", trace });
+}
+
+function handleErrorTaxonomy(res) {
+  sendJson(res, 200, {
+    schema: "agenttrail.error-taxonomy.v1",
+    taxonomy: ERROR_TAXONOMY
+  });
 }
 
 function isValidModelName(name) {
@@ -1910,17 +2006,33 @@ async function handleStructuredOutput(req, res) {
   }
 
   const model = String(body.model || DEFAULT_MODEL).trim() || DEFAULT_MODEL;
-  const result = await generateStructuredOutput(model, prompt, descriptor, {
-    temperature: typeof body.temperature === "number" ? body.temperature : 0
-  });
-
-  await STORE.append("structured-output", {
+  const trace = OBSERVABILITY.startTrace("structured-output", {
     model,
     schemaId: descriptor.id,
-    ok: result.ok,
     backend: ACTIVE_BACKEND.api
   });
-  sendJson(res, result.ok ? 200 : 422, result);
+  OBSERVABILITY.recordInput(trace, prompt);
+  try {
+    const result = await generateStructuredOutput(model, prompt, descriptor, {
+      temperature: typeof body.temperature === "number" ? body.temperature : 0
+    });
+    OBSERVABILITY.recordToken(trace, result.raw || JSON.stringify(result.output || ""));
+    await STORE.append("structured-output", {
+      model,
+      schemaId: descriptor.id,
+      ok: result.ok,
+      backend: ACTIVE_BACKEND.api
+    });
+    await finishStandaloneTrace(trace, result.ok ? "ok" : "failed", {
+      reason: result.reason,
+      schemaId: descriptor.id
+    });
+    sendJson(res, result.ok ? 200 : 422, result);
+  } catch (error) {
+    OBSERVABILITY.recordError(error, { traceId: trace.id, route: "/api/structured-output" }, trace);
+    await finishStandaloneTrace(trace, "failed", { reason: "structured-output-error" });
+    throw error;
+  }
 }
 
 async function handleStructuredRecipeOutput(req, res) {
@@ -1954,23 +2066,43 @@ async function handleStructuredRecipeOutput(req, res) {
 
   const model = String(body.model || DEFAULT_MODEL).trim() || DEFAULT_MODEL;
   const prompt = await buildStructuredRecipePrompt(recipe, input, selectedFiles);
-  const result = await generateStructuredOutput(model, prompt, descriptor, {
-    temperature: typeof body.temperature === "number" ? body.temperature : 0
-  });
-  result.recipe = {
-    id: recipe.id,
-    title: recipe.title,
-    outputSchemaId: recipe.structuredOutput.schemaId || descriptor.id
-  };
-
-  await STORE.append("structured-output-recipe", {
+  const trace = OBSERVABILITY.startTrace("recipe", {
     model,
     recipeId: recipe.id,
     schemaId: descriptor.id,
-    ok: result.ok,
+    selectedFiles: selectedFiles.length,
     backend: ACTIVE_BACKEND.api
   });
-  sendJson(res, result.ok ? 200 : 422, result);
+  OBSERVABILITY.recordInput(trace, prompt);
+  try {
+    const result = await generateStructuredOutput(model, prompt, descriptor, {
+      temperature: typeof body.temperature === "number" ? body.temperature : 0
+    });
+    OBSERVABILITY.recordToken(trace, result.raw || JSON.stringify(result.output || ""));
+    result.recipe = {
+      id: recipe.id,
+      title: recipe.title,
+      outputSchemaId: recipe.structuredOutput.schemaId || descriptor.id
+    };
+
+    await STORE.append("structured-output-recipe", {
+      model,
+      recipeId: recipe.id,
+      schemaId: descriptor.id,
+      ok: result.ok,
+      backend: ACTIVE_BACKEND.api
+    });
+    await finishStandaloneTrace(trace, result.ok ? "ok" : "failed", {
+      reason: result.reason,
+      recipeId: recipe.id,
+      schemaId: descriptor.id
+    });
+    sendJson(res, result.ok ? 200 : 422, result);
+  } catch (error) {
+    OBSERVABILITY.recordError(error, { traceId: trace.id, route: "/api/structured-output/recipe" }, trace);
+    await finishStandaloneTrace(trace, "failed", { reason: "recipe-error", recipeId: recipe.id });
+    throw error;
+  }
 }
 
 async function buildStructuredRecipePrompt(recipe, input, selectedFiles) {
@@ -4093,11 +4225,14 @@ async function handleReadFile(url, res) {
     const file = await readWorkspaceFile(relativePath, MAX_FILE_BYTES);
     sendJson(res, 200, file);
   } catch (error) {
-    sendJson(res, error.status || 400, friendlyError(error, {
+    const status = error.status || 400;
+    const payload = friendlyError(error, {
       ollamaHost: OLLAMA_HOST,
       defaultModel: DEFAULT_MODEL,
       embeddingModel: OLLAMA_EMBED_MODEL
-    }));
+    });
+    OBSERVABILITY.recordError(error, { route: "/api/files/content", status, code: payload.code });
+    sendJson(res, status, payload);
   }
 }
 
@@ -4132,11 +4267,14 @@ async function handleWriteFile(req, res) {
     const result = await writeWorkspaceFile(relativePath, content);
     sendJson(res, 200, result);
   } catch (error) {
-    sendJson(res, error.status || 400, friendlyError(error, {
+    const status = error.status || 400;
+    const payload = friendlyError(error, {
       ollamaHost: OLLAMA_HOST,
       defaultModel: DEFAULT_MODEL,
       embeddingModel: OLLAMA_EMBED_MODEL
-    }));
+    });
+    OBSERVABILITY.recordError(error, { route: "/api/files/content", status, code: payload.code });
+    sendJson(res, status, payload);
   }
 }
 
@@ -5462,11 +5600,14 @@ async function handlePreviewFile(req, res) {
     const result = await previewWorkspaceFile(relativePath, content);
     sendJson(res, 200, result);
   } catch (error) {
-    sendJson(res, error.status || 400, friendlyError(error, {
+    const status = error.status || 400;
+    const payload = friendlyError(error, {
       ollamaHost: OLLAMA_HOST,
       defaultModel: DEFAULT_MODEL,
       embeddingModel: OLLAMA_EMBED_MODEL
-    }));
+    });
+    OBSERVABILITY.recordError(error, { route: "/api/files/preview", status, code: payload.code });
+    sendJson(res, status, payload);
   }
 }
 
@@ -5513,10 +5654,26 @@ async function handleChat(req, res) {
     if (isRunAbort(error, runAbort.signal)) {
       await STORE.append("run-cancelled", { reason: error.message || "Run cancelled by the user." });
       await LOGGER.log("info", "agent.cancelled", { reason: error.message || "cancelled" });
+      OBSERVABILITY.recordError(error, { code: "RUN_CANCELLED", traceId: res.agentTrailTrace?.id }, res.agentTrailTrace);
       sendEvent(res, "cancelled", { message: "Run stopped by user." });
+      await finishResponseTrace(res, "cancelled", { reason: "user-cancelled" });
       notificationMessage = "Agent run was stopped.";
     } else {
-      sendEvent(res, "error", { message: error.message || "The agent stopped unexpectedly." });
+      const payload = friendlyError(error, {
+        traceId: res.agentTrailTrace?.id,
+        ollamaHost: OLLAMA_HOST,
+        defaultModel: DEFAULT_MODEL,
+        embeddingModel: OLLAMA_EMBED_MODEL
+      });
+      OBSERVABILITY.recordError(error, {
+        code: payload.code,
+        traceId: res.agentTrailTrace?.id,
+        ollamaHost: OLLAMA_HOST,
+        defaultModel: DEFAULT_MODEL,
+        embeddingModel: OLLAMA_EMBED_MODEL
+      }, res.agentTrailTrace);
+      sendEvent(res, "error", { message: payload.error, code: payload.code, hint: payload.hint, action: payload.action, observed: true });
+      await finishResponseTrace(res, "failed", { reason: payload.code });
       notificationMessage = "Agent run failed.";
     }
   } finally {
@@ -5538,18 +5695,44 @@ async function runAgent(body, res, context = {}) {
   const approvedPlan = normalizeApprovedPlan(body.approvedPlan);
   const stepBudget = normalizeStepBudget(body.stepBudget);
   const signal = context.signal;
+  const requestedModel = String(body.model || "").trim();
+  const trace = OBSERVABILITY.startTrace("chat", {
+    requestedModel: requestedModel || null,
+    selectedFiles: selectedFiles.length,
+    securityMode,
+    stepBudget: stepBudget.maxSteps,
+    permissions: {
+      readFiles: permissions.readFiles,
+      writeFiles: permissions.writeFiles,
+      previewWrites: permissions.previewWrites
+    }
+  });
+  res.agentTrailTrace = trace;
+  OBSERVABILITY.recordInput(trace, messages.map((message) => message.content).join("\n\n"));
+  sendEvent(res, "trace", {
+    id: trace.id,
+    kind: trace.kind,
+    startedAt: trace.startedAt,
+    status: trace.status
+  });
   const status = await fetchOllamaModels();
 
   throwIfAborted(signal);
   if (!status.available) {
-    sendEvent(res, "error", {
-      message: backendUnavailableMessage(status)
-    });
+    const message = backendUnavailableMessage(status);
+    OBSERVABILITY.recordError(new Error(message), {
+      code: "MODEL_BACKEND",
+      traceId: trace.id,
+      ollamaHost: OLLAMA_HOST,
+      defaultModel: DEFAULT_MODEL
+    }, trace);
+    sendEvent(res, "error", { message, code: "MODEL_BACKEND", observed: true });
+    await finishResponseTrace(res, "failed", { reason: "backend-unavailable" });
     return;
   }
 
-  const requestedModel = String(body.model || "").trim();
   const model = requestedModel || status.models[0]?.name || DEFAULT_MODEL;
+  OBSERVABILITY.updateTrace(trace, { model });
   const toolHistory = [];
   const loopGuard = createLoopGuard();
   const visionContext = await collectVisionImages(selectedFiles);
@@ -5658,6 +5841,7 @@ async function runAgent(body, res, context = {}) {
           });
           await streamText(res, `${message}\n\nTry a narrower prompt, select the exact file, or use the deep-run budget only if the repeated step is intentional.`);
           sendEvent(res, "done", { ok: false, reason: "loop-detected", guardrail: loopCheck });
+          await finishResponseTrace(res, "failed", { reason: "loop-detected" });
           return;
         }
         throwIfAborted(signal);
@@ -5707,6 +5891,7 @@ async function runAgent(body, res, context = {}) {
       sendEvent(res, "memory-suggestions", memorySuggestions);
     }
     sendEvent(res, "done", { ok: true });
+    await finishResponseTrace(res, "ok", { reason: "completed" });
     return;
   }
 
@@ -5721,6 +5906,7 @@ async function runAgent(body, res, context = {}) {
   sendEvent(res, "budget", { ...stepBudget, exhausted: true, stepsUsed: stepBudget.maxSteps });
   await streamText(res, fallback);
   sendEvent(res, "done", { ok: false, reason: "step-budget-exhausted", budget: stepBudget });
+  await finishResponseTrace(res, "failed", { reason: "step-budget-exhausted" });
 }
 
 async function collectVisionImages(selectedFiles) {
@@ -8425,6 +8611,7 @@ async function streamText(res, text) {
 }
 
 function sendEvent(res, event, data) {
+  recordResponseEvent(res, event, data);
   if (res && typeof res.agentTrailEvent === "function") {
     res.agentTrailEvent(event, data);
     return;
@@ -8438,6 +8625,129 @@ function sendEvent(res, event, data) {
   } catch {
     // Client has already closed the event stream.
   }
+}
+
+function recordResponseEvent(res, event, data = {}) {
+  const trace = res && res.agentTrailTrace;
+  if (!trace) return;
+  if (event === "token") {
+    OBSERVABILITY.recordToken(trace, data.text || "");
+    return;
+  }
+  if (event === "tool") {
+    OBSERVABILITY.recordTool(trace, data.name || "tool", {
+      result: data.result || "",
+      hasPreview: Boolean(data.preview),
+      batch: data.batch || null
+    });
+  } else if (event === "error" && data.observed !== true) {
+    OBSERVABILITY.recordError(new Error(data.message || "Agent stream error"), {
+      code: data.code,
+      traceId: trace.id,
+      ollamaHost: OLLAMA_HOST,
+      defaultModel: DEFAULT_MODEL,
+      embeddingModel: OLLAMA_EMBED_MODEL
+    }, trace);
+  } else if (event !== "trace") {
+    OBSERVABILITY.recordEvent(trace, event, eventLabel(event, data), summarizeEventData(event, data));
+  }
+  if (event !== "token") {
+    void LOGGER.log(event === "error" ? "error" : "info", "agent.stream_event", {
+      traceId: trace.id,
+      event,
+      ...summarizeEventData(event, data)
+    });
+  }
+}
+
+function eventLabel(event, data = {}) {
+  if (data.message) return data.message;
+  if (data.reason) return data.reason;
+  if (data.verdict) return `${event}: ${data.verdict}`;
+  if (data.name) return `${event}: ${data.name}`;
+  return event;
+}
+
+function summarizeEventData(event, data = {}) {
+  if (!data || typeof data !== "object") return {};
+  if (event === "tool") {
+    return {
+      name: data.name || "tool",
+      result: data.result || "",
+      hasPreview: Boolean(data.preview),
+      batch: data.batch || null
+    };
+  }
+  if (event === "reflection") {
+    return {
+      score: data.score,
+      verdict: data.verdict,
+      warnings: Array.isArray(data.warnings) ? data.warnings.length : 0
+    };
+  }
+  if (event === "budget") {
+    return {
+      maxSteps: data.maxSteps,
+      override: Boolean(data.override),
+      exhausted: Boolean(data.exhausted),
+      reason: data.reason || null
+    };
+  }
+  if (event === "vision") {
+    return {
+      count: data.count || 0,
+      warnings: Array.isArray(data.warnings) ? data.warnings.length : 0,
+      model: data.model && data.model.name
+    };
+  }
+  if (event === "memory-suggestions") {
+    return { count: Array.isArray(data.suggestions) ? data.suggestions.length : 0 };
+  }
+  return {
+    message: data.message || null,
+    reason: data.reason || null,
+    ok: typeof data.ok === "boolean" ? data.ok : null
+  };
+}
+
+async function finishResponseTrace(res, status, fields = {}) {
+  const trace = res && res.agentTrailTrace;
+  if (!trace || trace.finishedAt) return null;
+  const finished = OBSERVABILITY.finishTrace(trace, status, fields);
+  if (!finished) return null;
+  await persistFinishedTrace(finished, status);
+  return finished;
+}
+
+async function finishStandaloneTrace(trace, status, fields = {}) {
+  if (!trace || trace.finishedAt) return null;
+  const finished = OBSERVABILITY.finishTrace(trace, status, fields);
+  if (!finished) return null;
+  await persistFinishedTrace(finished, status);
+  return finished;
+}
+
+async function persistFinishedTrace(finished, status) {
+  const accounting = {
+    schema: "agenttrail.run-accounting.v1",
+    traceId: finished.id,
+    kind: finished.kind,
+    status: finished.status,
+    startedAt: finished.startedAt,
+    finishedAt: finished.finishedAt,
+    durationMs: finished.durationMs,
+    inputTokens: finished.counters.inputTokens,
+    outputTokens: finished.counters.outputTokens,
+    tokenEvents: finished.counters.tokenEvents,
+    toolCalls: finished.counters.toolCalls,
+    metadata: finished.metadata
+  };
+  await STORE.append("run-accounting", accounting);
+  await STORE.append("run-trace", {
+    schema: "agenttrail.trace-record.v1",
+    trace: finished
+  });
+  await LOGGER.log(status === "ok" ? "info" : "warn", "agent.trace.finished", accounting);
 }
 
 function sendJson(res, status, data) {

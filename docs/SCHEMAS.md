@@ -18,6 +18,10 @@ Current schema families:
 - `agenttrail.permission-audit.v1`
 - `agenttrail.privacy.v1`
 - `agenttrail.network-policy.v1`
+- `agenttrail.trace.v1`
+- `agenttrail.run-accounting.v1`
+- `agenttrail.local-analytics.v1`
+- `agenttrail.error.v1`
 - `agenttrail.plugin.v1`
 - `agenttrail.job.v1`
 - `agenttrail.backup.v1`

@@ -311,7 +311,7 @@ select:hover, .search-input:hover { border-color: var(--line-strong); }
 .compact-toggle { min-height: 26px; margin-bottom: 8px; font-size: 0.78rem; }
 
 /* ---------- Model scores ---------- */
-.model-score-list, .pending-changes, .receipt-timeline, .eval-summary {
+.model-score-list, .pending-changes, .receipt-timeline, .eval-summary, .observability-summary {
   display: grid;
   gap: 8px;
   margin-top: 10px;
@@ -649,6 +649,27 @@ select:hover, .search-input:hover { border-color: var(--line-strong); }
 .mini-row span { color: var(--muted); font-size: 0.72rem; font-weight: 600; }
 .mini-row.muted { color: var(--muted); font-size: 0.78rem; font-weight: 600; }
 
+.observability-summary { grid-template-columns: 1fr 1fr; }
+
+.metric-tile {
+  min-width: 0;
+  padding: 9px 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--panel-2);
+}
+
+.metric-tile strong, .metric-tile span {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.metric-tile strong { color: var(--clay-deep); font-size: 0.7rem; }
+.metric-tile span { margin-top: 3px; color: var(--muted); font-size: 0.7rem; font-weight: 700; }
+.trace-row strong { color: #3c5238; }
+
 /* ---------- Trail items ---------- */
 .trail-item {
   display: grid;
@@ -885,6 +906,7 @@ select:hover, .search-input:hover { border-color: var(--line-strong); }
 .tool-chip.error { border-color: #ecd2c8; background: var(--rose-soft); color: #7c3623; }
 .tool-chip.reflection { border-color: #cfe0c6; background: var(--sage-soft); color: #3c5238; }
 .tool-chip.memory { border-color: #d7c7e8; background: #f1eaf6; color: #54386a; }
+.tool-chip.trace { border-color: #bfd7d0; background: #eef7f4; color: #35564c; }
 .message-actions { display: flex; gap: 8px; margin-top: 12px; }
 .message-action {
   min-height: 28px;

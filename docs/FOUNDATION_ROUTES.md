@@ -5,6 +5,11 @@ AgentTrail v0.7 expands the foundation API:
 - `/api/routes`
 - `/api/config`
 - `/api/logs`
+- `/api/metrics`
+- `/api/observability`
+- `/api/traces`
+- `/api/traces/content`
+- `/api/errors/taxonomy`
 - `/api/sqlite/status`
 - `/api/watch/status`
 - `/api/watch/start`
