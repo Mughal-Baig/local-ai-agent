@@ -32,7 +32,7 @@ flowchart TB
 | Security/privacy | `src/features/security.js`, `src/privacy.js`, `src/network-policy.js` |
 | Observability | `src/observability.js`, `src/logger.js` |
 | Team/RBAC | `src/team-enterprise.js`, `team/users.json` |
-| Runtime adapters | `src/model-adapters.js`, `src/bundled-runtime.js` |
+| Runtime adapters | `src/model-adapters.js`, `src/bundled-runtime.js`, `src/model-ecosystem.js` |
 | Release proof | `src/release.js`, `scripts/generate-sbom.js`, `scripts/verify-checksums.js` |
 
 ## Request Lifecycle
@@ -68,5 +68,6 @@ AgentTrail intentionally avoids a heavy dependency stack. Most features are plai
 - New tools: add schema in `src/tool-schemas.js`, permission policy in `src/permissions.js`, route/test/docs coverage.
 - New recipes: add JSON in `recipes/`, then update packs.
 - New model backend: implement adapter behavior in `src/model-adapters.js`.
+- New model ecosystem helper: add manifest/delegate logic in `src/model-ecosystem.js`.
 - New docs route: update `scripts/generate-docs-site.js`.
 - New API route: update `src/route-catalog.js`, regenerate [API_REFERENCE.md](API_REFERENCE.md), add tests.

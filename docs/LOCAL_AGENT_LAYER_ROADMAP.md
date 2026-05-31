@@ -67,6 +67,7 @@ This section tracks the concrete work shipped after the roadmap was publicly ref
 | Codex Epic Z pass | T173-T179 | Added the quality engineering layer: expanded quality tests, V8 coverage gate, UI E2E smoke with optional Playwright, shared path/diff fuzz tests, deterministic performance regression budgets, cross-platform Node matrix workflow, and eval category scoreboard. |
 | Codex Epic AA pass | T180-T187 | Added the documentation layer: generated searchable static docs site, visual 60-second quick start, recipe authoring guide, LM Studio/llama.cpp/vLLM backend setup guide, architecture deep dive, generated API reference, expanded troubleshooting FAQ, and video walkthrough storyboards. |
 | Codex Epic AB pass | T188-T195 | Added the community and growth layer: launch response workflow and macros, recipe marketplace curation, good-first issue backlog plus labels, contribution governance, changelog/release discipline, showcase gallery, honest comparison benchmark fixtures, plugin SDK docs, and example permissioned plugin manifests. |
+| Codex Epic AC pass | T196-T200 | Added the model ecosystem layer: LoRA adapter manifests/runtime hints, fine-tuning launch delegation, quantization command wrapper, safetensors-to-GGUF conversion helper, per-task model evaluation suite, API routes, docs, eval checks, and unit/integration coverage. |
 
 ### Verified After These Passes
 
@@ -76,7 +77,7 @@ This section tracks the concrete work shipped after the roadmap was publicly ref
 
 ### Best Continuation Points
 
-- T196-T197: model ecosystem next, especially LoRA/adapter loading and a fine-tuning launcher wrapper.
+- T201-T205: advanced agent next, especially multi-agent orchestration, background/scheduled runs, long-running journals, sub-agent budgets, and deterministic replay diffing.
 - T098/T104: add time-to-first-token/tokens-per-second metrics and idle-unload policy UI.
 
 ---
@@ -378,11 +379,11 @@ This section tracks the concrete work shipped after the roadmap was publicly ref
 ## Phase 10 — Ecosystem & advanced (stretch)
 
 ### Epic AC — Model ecosystem
-- [ ] T196 LoRA/adapter loading
-- [ ] T197 Fine-tuning launcher (delegates to a trainer)
-- [ ] T198 Quantization tooling wrapper
-- [ ] T199 Model conversion helpers (safetensors → GGUF)
-- [ ] T200 Model evaluation suite (per-task scores)
+- [x] T196 LoRA/adapter loading
+- [x] T197 Fine-tuning launcher (delegates to a trainer)
+- [x] T198 Quantization tooling wrapper
+- [x] T199 Model conversion helpers (safetensors → GGUF)
+- [x] T200 Model evaluation suite (per-task scores)
 
 ### Epic AD — Advanced agent
 - [ ] T201 Multi-agent orchestration (roles, hand-offs)
@@ -401,16 +402,16 @@ This section tracks the concrete work shipped after the roadmap was publicly ref
 4. We expand an epic's tasks into finer sub-tasks (toward 1000) only when we start that epic — so the plan stays honest and current.
 5. We re-mark `[x]` here as we go; this file is the single source of truth for the campaign.
 
-**Next up:** Epic AC model ecosystem: LoRA/adapter loading, fine-tuning launcher, quantization wrapper, conversion helpers, and model evaluation suite.
+**Next up:** Epic AD advanced agent: multi-agent orchestration, scheduled runs, journals, sub-agent budgets, and deterministic replay diffing.
 
 ## Status & bug sweep (latest)
 
-- Progress: **186 tasks done**, with 11 open or partial items in the tracked Phases 1-10 set. Phase 1 is complete; Phase 2 Epic E/F search foundation is complete except T044 as a hardening umbrella; Epic G document ingestion is complete; Phase 3 vision/audio/image generation is complete; Epic K is complete; Epic L is complete; Epic M is partially complete; Epic N/O now have cache, option passthrough, resources, and runtime visibility; Phase 6 now has a first-class bundled-runtime adapter seam plus Epic Q/R/S hardware, loading, and registry policy; Epic T native desktop distribution is complete at the repo/scaffolding level; Epic U CLI parity is complete; Epic V packaging/supply-chain foundation is complete; Epic W security/privacy is complete; Epic X observability is complete; Epic Y team/enterprise is complete; Epic Z quality engineering is complete; Epic AA documentation is complete; Epic AB community/growth is complete; and the public starter issues are cleared with tests/docs.
-- Focused test suite green: unit, observability, team enterprise, quality engineering, docs generation, community-growth checks, coverage gate, performance regression, UI E2E, desktop distribution, CLI integration, supply-chain, security/privacy threat-model, runtime hardware, runtime loading, model registry, bundled runtime, redaction, document extraction, API integration, v1 API, health, concurrency, model options, resources, smoke, recipe validation, receipt metadata, repo eval, release SBOM, reproducibility, and release checksums. All touched source files pass `node --check`.
+- Progress: **191 tasks done**, with 6 open or partial items in the tracked Phases 1-10 set. Phase 1 is complete; Phase 2 Epic E/F search foundation is complete except T044 as a hardening umbrella; Epic G document ingestion is complete; Phase 3 vision/audio/image generation is complete; Epic K is complete; Epic L is complete; Epic M is partially complete; Epic N/O now have cache, option passthrough, resources, and runtime visibility; Phase 6 now has a first-class bundled-runtime adapter seam plus Epic Q/R/S hardware, loading, registry policy, and Epic AC model ecosystem helpers; Epic T native desktop distribution is complete at the repo/scaffolding level; Epic U CLI parity is complete; Epic V packaging/supply-chain foundation is complete; Epic W security/privacy is complete; Epic X observability is complete; Epic Y team/enterprise is complete; Epic Z quality engineering is complete; Epic AA documentation is complete; Epic AB community/growth is complete; and the public starter issues are cleared with tests/docs.
+- Focused test suite green: unit, observability, team enterprise, quality engineering, docs generation, community-growth checks, model ecosystem checks, coverage gate, performance regression, UI E2E, desktop distribution, CLI integration, supply-chain, security/privacy threat-model, runtime hardware, runtime loading, model registry, bundled runtime, redaction, document extraction, API integration, v1 API, health, concurrency, model options, resources, smoke, recipe validation, receipt metadata, repo eval, release SBOM, reproducibility, and release checksums. All touched source files pass `node --check`.
 - **Bug fixed:** `listWorkspaceFiles` only skipped `.DS_Store`, so internal `.agenttrail/*` state (logs, store, search index, pending-run) was being walked, indexed, and returned in search — adding noise and per-request churn to the index. Now excludes `.agenttrail/`. Verified against smoke, api, search-incremental, search-chunking, and eval:search.
 - Known minor item: a couple of integration tests assert relative/invariant counts (not exact) because the workspace can still gain legit files (e.g. `memory/*`) between calls — intentional, not a bug.
 
-Next code target: T196 LoRA/adapter loading, then T197 fine-tuning launcher.
+Next code target: T201 multi-agent orchestration, then T202 background/scheduled agent runs.
 
 ---
 

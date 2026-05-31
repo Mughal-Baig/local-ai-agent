@@ -21,6 +21,7 @@ This table maps the requested 30-item top-1% and foundation list to the v0.7 imp
 | Security hardening | `/api/security/scan`, `/api/security/privacy`, prompt injection, exfiltration, path escape, hidden instruction, destructive command, secret-like value detection, egress allowlists, optional encrypted receipts |
 | Project memory with citations | `/api/memory/citations`, revision history in `workspace/memory/history/` |
 | Model benchmark dashboard | `/api/benchmarks`, `/api/benchmarks/run`, `/api/models/compare`, `/api/models/vision-capability`, benchmark history, vision-readiness scoring |
+| Model ecosystem | `/api/model-ecosystem/*`, LoRA adapter manifests, fine-tuning launch delegation, quantization wrapper, safetensors-to-GGUF conversion plans, and per-task model eval suites |
 | MCP support | `mcp/server.js`, `mcp/agenttrail.mcp.json`, approval-required tools, MCP receipts |
 | Recipe marketplace | coder/founder/security/student/writer packs, `marketplace/recipes.json`, `/api/packs/import`, `/api/marketplace/import-url` |
 | Beautiful reports | polished Markdown/HTML exports with trail, citations, trust score, diffs |
@@ -48,7 +49,7 @@ This table maps the requested 30-item top-1% and foundation list to the v0.7 imp
 | Quality engineering | V8 coverage gate, path/diff fuzz tests, UI E2E smoke, deterministic performance regression budgets, cross-platform Node matrix, and eval scoreboard |
 | Documentation foundation | searchable static docs site, 60-second guide, recipe authoring guide, backend setup guides, architecture deep dive, generated API reference, FAQ, and video walkthrough plans |
 | Migration system | `src/migrations.js`, `migrations/*.json`, `/api/migrations`, migration state in `workspace/.agenttrail/migrations.json` |
-| Model adapter layer | `src/model-adapters.js`, status exposes Ollama plus planned LM Studio, llama.cpp, OpenAI-compatible adapters |
+| Model adapter layer | `src/model-adapters.js`, status exposes Ollama plus planned LM Studio, llama.cpp, OpenAI-compatible adapters; `src/model-ecosystem.js` adds trainer/adapter/quantize/convert/eval helpers |
 | Stronger vector index | file hashes, chunk metadata, chunk citation search, provider/model/dimensions, status counts |
 | Background jobs | `src/jobs.js`, `/api/jobs`, `/api/jobs/start`, Foundation panel job actions |
 | Better error handling | `src/features/errors.js` adds a structured taxonomy with actionable hints for Ollama, embeddings, large files, permissions, path escapes, egress blocks, encryption, rate limits, and timeouts |

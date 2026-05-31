@@ -282,6 +282,7 @@ When write preview mode is enabled, `write_file` returns a diff preview instead 
 - CLI and editor integrations: Ollama-style `agenttrail run/pull/list/rm/ps/show/serve/create`, `agenttrail-chat`, shell completions, [docs/CLI.md](docs/CLI.md), [docs/INTEGRATIONS.md](docs/INTEGRATIONS.md), and the VS Code MVP in [editor/vscode-agenttrail](editor/vscode-agenttrail)
 - Physical desktop app: `npm run package:mac-app` builds `dist/mac/AgentTrail.app`; Windows tray and Linux desktop/package templates live in [desktop](desktop) and [installers](installers)
 - Model scoring and benchmarking: `/api/status`, `/api/models/vision-capability`, `/api/benchmarks`
+- Model ecosystem: LoRA/adapter manifests, fine-tuning launcher, quantization wrapper, safetensors-to-GGUF conversion helpers, and per-task model evals in [docs/MODEL_ECOSYSTEM.md](docs/MODEL_ECOSYSTEM.md)
 - Throughput and resource visibility: `/api/concurrency`, `/api/health`, `/api/resources`, `/api/runtime`, and `npm run load:test`
 - Agent-as-API: `/v1/chat/completions`, `/v1/models`, `/v1/embeddings`, `/v1/openapi.json`, plus [docs/OPENAI_COMPATIBLE_API.md](docs/OPENAI_COMPATIBLE_API.md)
 - Agent eval harness and history: `npm run eval`, `npm run eval:search`, `npm run bench:search`, `/api/evals`, `/api/evals/history`
@@ -311,6 +312,7 @@ When write preview mode is enabled, `write_file` returns a diff preview instead 
 - Permission engine: [src/permissions.js](src/permissions.js)
 - Privacy and network policy: [src/privacy.js](src/privacy.js), [src/network-policy.js](src/network-policy.js)
 - Model adapters: [src/model-adapters.js](src/model-adapters.js)
+- Model ecosystem: [src/model-ecosystem.js](src/model-ecosystem.js), [docs/MODEL_ECOSYSTEM.md](docs/MODEL_ECOSYSTEM.md)
 - Migration system: [src/migrations.js](src/migrations.js)
 - Vector-store migrations: [src/vector-store.js](src/vector-store.js)
 - Append-only store: [src/json-store.js](src/json-store.js)
@@ -365,6 +367,7 @@ Supported variables:
 - `AGENTTRAIL_BUNDLED_THREADS` / `AGENTTRAIL_CPU_SIMD`: bundled runtime CPU thread and SIMD tuning overrides
 - `AGENTTRAIL_BUNDLED_QUANTIZATION`, `AGENTTRAIL_KV_CACHE_TYPE`, `AGENTTRAIL_CONTEXT_SHIFT`, `AGENTTRAIL_BUNDLED_MMAP`, `AGENTTRAIL_TENSOR_SPLIT`: bundled model-loading internals for quantization, KV-cache shifting, mmap, batching, and multi-GPU split policy
 - `AGENTTRAIL_MODEL_REGISTRY_DIR`, `AGENTTRAIL_REGISTRY_TOKEN`, `HUGGINGFACE_TOKEN`: bundled model registry location and optional registry auth for resumable/checksummed GGUF pulls
+- `AGENTTRAIL_TRAINER_COMMAND`, `AGENTTRAIL_QUANTIZE_COMMAND`, `AGENTTRAIL_CONVERT_COMMAND`: explicit no-shell delegate commands for fine-tuning, quantization, and safetensors-to-GGUF conversion
 - `AGENTTRAIL_MAX_CONCURRENCY` / `AGENTTRAIL_MAX_QUEUE`: bounded `/api/chat` concurrency and backpressure controls, default `4` / `64`
 - `AGENTTRAIL_CACHE`: set to `off` to disable the in-memory response cache (default on); `AGENTTRAIL_CACHE_TTL_MS` tunes the TTL
 - `AGENTTRAIL_MAX_PROMPT_CHARS`: prompt budget cap for assembled context, default `24000`
@@ -437,6 +440,7 @@ npm run test:memory-suggestions
 npm run test:memory-retrieval
 npm run test:memory-history
 npm run test:memory-scopes
+npm run test:ecosystem
 npm run test:ui
 npm run test:quality
 npm run test:docs

@@ -65,6 +65,7 @@ async function main() {
       "/api/onboarding",
       "/api/demo/public",
       "/api/models/compare",
+      "/api/model-ecosystem",
       "/api/benchmarks/history",
       "/api/releases/signing-plan"
     ];

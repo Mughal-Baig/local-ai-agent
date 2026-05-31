@@ -11,6 +11,7 @@ const SITE_DOCS = [
   ["GETTING_STARTED.md", "Start Here", "Install, open, run a safe first task, and export proof.", ["quickstart", "install", "demo"]],
   ["RECIPE_AUTHORING.md", "Recipe Authoring", "Create safe reusable recipes with validation and examples.", ["recipes", "marketplace", "workflow"]],
   ["BACKEND_SETUP.md", "Backend Setup", "Configure Ollama, LM Studio, llama.cpp, vLLM, and OpenAI-compatible local servers.", ["models", "backend", "runtime"]],
+  ["MODEL_ECOSYSTEM.md", "Model Ecosystem", "LoRA adapters, fine-tuning launchers, quantization, GGUF conversion, and per-task evals.", ["models", "lora", "evaluation"]],
   ["ARCHITECTURE.md", "Architecture", "How the local agent layer, tools, memory, receipts, and security fit together.", ["architecture", "security", "local-first"]],
   ["API_REFERENCE.md", "API Reference", "Generated route and OpenAI-compatible API reference.", ["api", "routes", "openapi"]],
   ["TROUBLESHOOTING.md", "Troubleshooting And FAQ", "Fix Ollama, model, file, receipt, performance, and CI issues.", ["faq", "help", "debugging"]],

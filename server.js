@@ -85,6 +85,14 @@ const {
   copyModel,
   shareModel
 } = require("./src/model-registry");
+const {
+  modelEcosystemStatus,
+  registerLoraAdapter,
+  launchFineTune,
+  quantizeModel,
+  convertModelToGguf,
+  runModelEvaluationSuite
+} = require("./src/model-ecosystem");
 
 loadDotEnv();
 const execFileAsync = promisify(execFile);
@@ -668,6 +676,30 @@ const server = http.createServer(async (req, res) => {
       return handleModelRegistryShare(req, res);
     }
 
+    if (url.pathname === "/api/model-ecosystem" && req.method === "GET") {
+      return handleModelEcosystemStatus(res);
+    }
+
+    if (url.pathname === "/api/model-ecosystem/adapters" && req.method === "POST") {
+      return handleModelEcosystemAdapter(req, res);
+    }
+
+    if (url.pathname === "/api/model-ecosystem/fine-tune" && req.method === "POST") {
+      return handleModelEcosystemFineTune(req, res);
+    }
+
+    if (url.pathname === "/api/model-ecosystem/quantize" && req.method === "POST") {
+      return handleModelEcosystemQuantize(req, res);
+    }
+
+    if (url.pathname === "/api/model-ecosystem/convert" && req.method === "POST") {
+      return handleModelEcosystemConvert(req, res);
+    }
+
+    if (url.pathname === "/api/model-ecosystem/evaluate" && req.method === "POST") {
+      return handleModelEcosystemEvaluate(req, res);
+    }
+
     if (url.pathname === "/api/runs/pending" && req.method === "GET") {
       return handleGetPendingRun(res);
     }
@@ -1199,6 +1231,80 @@ async function handleModelRegistryShare(req, res) {
     sendJson(res, 200, share);
   } catch (error) {
     sendJson(res, 400, { error: error.message || "Model share failed." });
+  }
+}
+
+async function handleModelEcosystemStatus(res) {
+  try {
+    const ecosystem = await modelEcosystemStatus(WORKSPACE_ROOT, process.env);
+    sendJson(res, 200, { ok: true, ecosystem });
+  } catch (error) {
+    sendJson(res, 500, { error: error.message || "Could not read model ecosystem status." });
+  }
+}
+
+async function handleModelEcosystemAdapter(req, res) {
+  try {
+    const body = await readJsonBody(req);
+    const adapter = await registerLoraAdapter(WORKSPACE_ROOT, body, process.env);
+    await STORE.append("model-ecosystem-adapter", { name: adapter.name, baseModel: adapter.baseModel, sha256: adapter.sha256 });
+    SQLITE.insert("model-ecosystem-adapter", { name: adapter.name, baseModel: adapter.baseModel, sha256: adapter.sha256 });
+    sendJson(res, 200, { ok: true, adapter });
+  } catch (error) {
+    sendJson(res, 400, { error: error.message || "LoRA adapter registration failed." });
+  }
+}
+
+async function handleModelEcosystemFineTune(req, res) {
+  try {
+    const body = await readJsonBody(req);
+    const run = await launchFineTune(WORKSPACE_ROOT, body, process.env);
+    await STORE.append("model-ecosystem-fine-tune", { name: run.name, baseModel: run.baseModel, status: run.status });
+    SQLITE.insert("model-ecosystem-fine-tune", { name: run.name, baseModel: run.baseModel, status: run.status });
+    sendJson(res, 200, { ok: true, run });
+  } catch (error) {
+    sendJson(res, 400, { error: error.message || "Fine-tune launch failed." });
+  }
+}
+
+async function handleModelEcosystemQuantize(req, res) {
+  try {
+    const body = await readJsonBody(req);
+    const job = await quantizeModel(WORKSPACE_ROOT, body, process.env);
+    await STORE.append("model-ecosystem-quantize", { name: job.name, quantization: job.quantization, status: job.status });
+    SQLITE.insert("model-ecosystem-quantize", { name: job.name, quantization: job.quantization, status: job.status });
+    sendJson(res, 200, { ok: true, job });
+  } catch (error) {
+    sendJson(res, 400, { error: error.message || "Quantization job failed." });
+  }
+}
+
+async function handleModelEcosystemConvert(req, res) {
+  try {
+    const body = await readJsonBody(req);
+    const conversion = await convertModelToGguf(WORKSPACE_ROOT, body, process.env);
+    await STORE.append("model-ecosystem-convert", { name: conversion.name, sourceFormat: conversion.sourceFormat, status: conversion.status });
+    SQLITE.insert("model-ecosystem-convert", { name: conversion.name, sourceFormat: conversion.sourceFormat, status: conversion.status });
+    sendJson(res, 200, { ok: true, conversion });
+  } catch (error) {
+    sendJson(res, 400, { error: error.message || "Model conversion failed." });
+  }
+}
+
+async function handleModelEcosystemEvaluate(req, res) {
+  try {
+    const body = await readJsonBody(req);
+    const evaluation = await runModelEvaluationSuite(
+      WORKSPACE_ROOT,
+      body,
+      process.env,
+      (model, prompt, options) => generateCompletion(model, prompt, options)
+    );
+    await STORE.append("model-ecosystem-evaluate", { model: evaluation.model, score: evaluation.score, mode: evaluation.mode });
+    SQLITE.insert("model-ecosystem-evaluate", { model: evaluation.model, score: evaluation.score, mode: evaluation.mode });
+    sendJson(res, 200, { ok: true, evaluation });
+  } catch (error) {
+    sendJson(res, 400, { error: error.message || "Model evaluation failed." });
   }
 }
 

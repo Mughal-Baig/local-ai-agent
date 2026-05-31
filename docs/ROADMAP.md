@@ -6,6 +6,7 @@
 - Add a recorded GIF/video in addition to the animated SVG proof.
 - Add real signed native desktop binaries after certificate setup.
 - Turn the community launch kit into real public posts, pinned discussions, and curated user showcases.
+- Validate model ecosystem delegates against real LLaMA-Factory/Axolotl/llama.cpp toolchains on a hardware box.
 
 ## Later
 
@@ -46,6 +47,7 @@
 - Quality engineering layer: coverage gate, UI E2E smoke, path/diff fuzzing, performance regression budgets, cross-platform matrix, and eval scoreboard.
 - Documentation layer: searchable docs site, visual quick start, recipe guide, backend guides, architecture deep dive, generated API reference, expanded FAQ, and video walkthrough shot lists.
 - Community and growth layer: launch response workflow, recipe marketplace curation, good-first issue backlog, labels, governance, changelog discipline, showcase gallery, honest comparison benchmarks, and plugin SDK examples.
+- Model ecosystem layer: LoRA adapter manifests, fine-tuning launcher, quantization wrapper, safetensors-to-GGUF conversion helper, and per-task model evaluation suite.
 
 ## Not Planned
 

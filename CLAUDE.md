@@ -18,7 +18,7 @@ Codex completed Epic W (T156-T160):
 - T159: optional AES-256-GCM encrypted-at-rest managed artifacts via `AGENTTRAIL_ENCRYPT_AT_REST` + `AGENTTRAIL_ENCRYPTION_KEY`; receipts decrypt through normal read APIs when the key is present.
 - T160: added `npm run test:security-privacy`, covering path escape, exfiltration, prompt injection, egress denial, redaction, policies, and encrypted receipt readback.
 
-Recommended verification before changing this layer: `npm run test:security-privacy`, `npm run test:redact`, `npm run test:quality`, `npm run test:docs`, `npm run test:community`, `npm run coverage`, `npm run bench:quality`, `npm run test:unit`, `npm run test:integration`, `npm test`, and `npm run eval`.
+Recommended verification before changing this layer: `npm run test:security-privacy`, `npm run test:redact`, `npm run test:quality`, `npm run test:docs`, `npm run test:community`, `npm run test:ecosystem`, `npm run coverage`, `npm run bench:quality`, `npm run test:unit`, `npm run test:integration`, `npm test`, and `npm run eval`.
 
 ## Latest Codex Roadmap Pass
 
@@ -387,4 +387,13 @@ Next section records the Epic AB community and growth pass.
 - Community assets are now checked with `npm run test:community`; CI and `npm run eval` cover the Epic AB public-growth surface.
 - Tests/docs updated: README, docs site, roadmap progress, repo eval, release artifact list, SBOM/checksum paths, and community-growth unit coverage.
 
-Next open: Epic AC model ecosystem, starting with T196 LoRA/adapter loading and T197 fine-tuning launcher.
+Next section records the Epic AC model ecosystem pass.
+
+## Latest Codex Pass - Epic AC model ecosystem
+
+- T196-T200 are implemented through `src/model-ecosystem.js`, `/api/model-ecosystem/*`, `docs/MODEL_ECOSYSTEM.md`, route/API docs, and `tests/unit|integration/model-ecosystem.test.js`.
+- Added LoRA adapter manifests with runtime hints, dry-run-first fine-tuning launch delegation, quantization command wrappers, safetensors-to-GGUF conversion helpers, and a per-task model evaluation suite.
+- Delegates use `execFile` with no shell. Heavy tools are never installed automatically; users configure `AGENTTRAIL_TRAINER_COMMAND`, `AGENTTRAIL_QUANTIZE_COMMAND`, and `AGENTTRAIL_CONVERT_COMMAND`, then opt into execution with `dryRun=false`.
+- Tests/docs updated: README, runtime/model backend docs, docs site, generated API reference, repo eval, release artifact list, SBOM/checksum paths, and roadmap progress.
+
+Next open: Epic AD advanced agent, starting with T201 multi-agent orchestration and T202 background/scheduled agent runs.

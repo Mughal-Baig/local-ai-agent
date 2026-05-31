@@ -148,6 +148,59 @@
       ]
     },
     {
+      "file": "MODEL_ECOSYSTEM.md",
+      "title": "Model Ecosystem",
+      "description": "LoRA adapters, fine-tuning launchers, quantization, GGUF conversion, and per-task evals.",
+      "tags": [
+        "models",
+        "lora",
+        "evaluation"
+      ],
+      "href": "../MODEL_ECOSYSTEM.md",
+      "sections": [
+        {
+          "title": "What It Covers",
+          "anchor": "what-it-covers",
+          "snippet": "Status lives at: curl http://127.0.0.1:4173/api/model-ecosystem"
+        },
+        {
+          "title": "Delegate Commands",
+          "anchor": "delegate-commands",
+          "snippet": "AgentTrail uses `execFile`, not a shell. Configure commands as either a quoted command string or a JSON array. JSON arrays are safest when paths contain spaces. export AGENTTRAIL_TRAINER_COMMAND='[\"/usr/local/bin/llam..."
+        },
+        {
+          "title": "LoRA Adapter Registration",
+          "anchor": "lora-adapter-registration",
+          "snippet": "curl -X POST http://127.0.0.1:4173/api/model-ecosystem/adapters \\ -H 'content-type: application/json' \\ -d '{ \"name\": \"coder/lora\", \"baseModel\": \"tiny/q4\", \"adapterPath\": \"/models/adapters/coder.safetensors\","
+        },
+        {
+          "title": "Fine-Tuning Launcher",
+          "anchor": "fine-tuning-launcher",
+          "snippet": "curl -X POST http://127.0.0.1:4173/api/model-ecosystem/fine-tune \\ -H 'content-type: application/json' \\ -d '{ \"name\": \"support-lora\", \"baseModel\": \"tiny/q4\", \"datasetPath\": \"/workspace/train.jsonl\","
+        },
+        {
+          "title": "Quantization Wrapper",
+          "anchor": "quantization-wrapper",
+          "snippet": "curl -X POST http://127.0.0.1:4173/api/model-ecosystem/quantize \\ -H 'content-type: application/json' \\ -d '{ \"name\": \"tiny-q5\", \"sourcePath\": \"/models/tiny-f16.gguf\", \"quantization\": \"Q5_K_M\""
+        },
+        {
+          "title": "Safetensors To GGUF",
+          "anchor": "safetensors-to-gguf",
+          "snippet": "curl -X POST http://127.0.0.1:4173/api/model-ecosystem/convert \\ -H 'content-type: application/json' \\ -d '{ \"name\": \"tiny-gguf\", \"sourcePath\": \"/models/tiny/model.safetensors\" }' The conversion helper stores source c..."
+        },
+        {
+          "title": "Per-Task Evaluation",
+          "anchor": "per-task-evaluation",
+          "snippet": "curl -X POST http://127.0.0.1:4173/api/model-ecosystem/evaluate \\ -H 'content-type: application/json' \\ -d '{ \"model\": \"llama3.2\", \"runPrompts\": false }' Offline mode creates a deterministic rubric for:"
+        },
+        {
+          "title": "Safety Model",
+          "anchor": "safety-model",
+          "snippet": "Commands run without shell interpolation. Paths must point to readable local files. Heavy tools are never installed automatically. Dry-run is the default. Every run writes a JSON manifest and is visible through `/api/..."
+        }
+      ]
+    },
+    {
       "file": "ARCHITECTURE.md",
       "title": "Architecture",
       "description": "How the local agent layer, tools, memory, receipts, and security fit together.",
@@ -1132,6 +1185,114 @@
     },
     {
       "type": "doc",
+      "title": "Model Ecosystem",
+      "description": "LoRA adapters, fine-tuning launchers, quantization, GGUF conversion, and per-task evals.",
+      "href": "../MODEL_ECOSYSTEM.md",
+      "tags": [
+        "models",
+        "lora",
+        "evaluation"
+      ],
+      "text": "Model Ecosystem Epic AC adds a local model ecosystem layer around AgentTrail's existing model registry. It does not bundle heavy native training or conversion stacks. Instead, AgentTrail creates auditable manifests, validates local paths, stores run records, and delegates to user-installed tools through explicit no-shell commands. What It Covers Task API Artifact --- --- --- LoRA/adapter loading POST /api/model-ecosystem/adapters agenttrail.lora-adapter.v1 Fine-tuning launcher POST /api/model-ecosystem/fine-tune agenttrail.fine-tune-launch.v1 Quantization wrapper POST /api/model-ecosystem/quantize agenttrail.quantization-job.v1 Safetensors to GGUF conversion POST /api/model-ecosystem/convert agenttrail.model-conversion.v1 Per-task model evaluation POST /api/model-ecosystem/evaluate agenttrail.model-eval-suite.v1 Status lives at: Delegate Commands AgentTrail uses execFile , not a shell. Configure commands as either a quoted command string or a JSON array. JSON arrays are safest when paths contain spaces. Supported placeholders: - {task} - {name} - {baseModel} - {dataset} - {config} - {source} - {input} - {output} - {quantization} - {format} - {sourceFormat} - {method} Requests default to dry-run planning. Set \"dryRun\": false to execute the configured delegate command. LoRA Adapter Registration The manifest includes checksum, rank/alpha metadata, runtime hints, and llama.cpp-style adapter args. Fine-Tuning Launcher AgentTrail writes a config JSON, output directory, launch manifest, and command plan. It delegates training only when a trainer command is configured and dryRun is false. Quantization Wrapper Supported presets include Q4_K_M , Q5_K_M , Q8_0 , F16 , and F32 . Safetensors To GGUF The conversion helper stores source checksum, inferred source format, target GGUF path, delegate command, and output checksum when the output exists. Per-Task Evaluation Offline mode creates a deterministic rubric for: - tool use - diff-safe coding - planning - long context - safety Set runPrompts to true to run evaluation prompts through the configured backend and score expected keywords in each response. Safety Model - Commands run without shell interpolation. - Paths must point to readable local files. - Heavy tools are never installed automatically. - Dry-run is the default. - Every run writes a JSON manifest and is visible through /api/model-ecosystem ."
+    },
+    {
+      "type": "section",
+      "title": "Model Ecosystem - What It Covers",
+      "description": "Status lives at: curl http://127.0.0.1:4173/api/model-ecosystem",
+      "href": "../MODEL_ECOSYSTEM.md#what-it-covers",
+      "tags": [
+        "models",
+        "lora",
+        "evaluation"
+      ],
+      "text": "What It Covers Status lives at: curl http://127.0.0.1:4173/api/model-ecosystem"
+    },
+    {
+      "type": "section",
+      "title": "Model Ecosystem - Delegate Commands",
+      "description": "AgentTrail uses `execFile`, not a shell. Configure commands as either a quoted command string or a JSON array. JSON arrays are safest when paths contain spaces. export AGENTTRAIL_TRAINER_COMMAND='[\"/usr/local/bin/llam...",
+      "href": "../MODEL_ECOSYSTEM.md#delegate-commands",
+      "tags": [
+        "models",
+        "lora",
+        "evaluation"
+      ],
+      "text": "Delegate Commands AgentTrail uses `execFile`, not a shell. Configure commands as either a quoted command string or a JSON array. JSON arrays are safest when paths contain spaces. export AGENTTRAIL_TRAINER_COMMAND='[\"/usr/local/bin/llam..."
+    },
+    {
+      "type": "section",
+      "title": "Model Ecosystem - LoRA Adapter Registration",
+      "description": "curl -X POST http://127.0.0.1:4173/api/model-ecosystem/adapters \\ -H 'content-type: application/json' \\ -d '{ \"name\": \"coder/lora\", \"baseModel\": \"tiny/q4\", \"adapterPath\": \"/models/adapters/coder.safetensors\",",
+      "href": "../MODEL_ECOSYSTEM.md#lora-adapter-registration",
+      "tags": [
+        "models",
+        "lora",
+        "evaluation"
+      ],
+      "text": "LoRA Adapter Registration curl -X POST http://127.0.0.1:4173/api/model-ecosystem/adapters \\ -H 'content-type: application/json' \\ -d '{ \"name\": \"coder/lora\", \"baseModel\": \"tiny/q4\", \"adapterPath\": \"/models/adapters/coder.safetensors\","
+    },
+    {
+      "type": "section",
+      "title": "Model Ecosystem - Fine-Tuning Launcher",
+      "description": "curl -X POST http://127.0.0.1:4173/api/model-ecosystem/fine-tune \\ -H 'content-type: application/json' \\ -d '{ \"name\": \"support-lora\", \"baseModel\": \"tiny/q4\", \"datasetPath\": \"/workspace/train.jsonl\",",
+      "href": "../MODEL_ECOSYSTEM.md#fine-tuning-launcher",
+      "tags": [
+        "models",
+        "lora",
+        "evaluation"
+      ],
+      "text": "Fine-Tuning Launcher curl -X POST http://127.0.0.1:4173/api/model-ecosystem/fine-tune \\ -H 'content-type: application/json' \\ -d '{ \"name\": \"support-lora\", \"baseModel\": \"tiny/q4\", \"datasetPath\": \"/workspace/train.jsonl\","
+    },
+    {
+      "type": "section",
+      "title": "Model Ecosystem - Quantization Wrapper",
+      "description": "curl -X POST http://127.0.0.1:4173/api/model-ecosystem/quantize \\ -H 'content-type: application/json' \\ -d '{ \"name\": \"tiny-q5\", \"sourcePath\": \"/models/tiny-f16.gguf\", \"quantization\": \"Q5_K_M\"",
+      "href": "../MODEL_ECOSYSTEM.md#quantization-wrapper",
+      "tags": [
+        "models",
+        "lora",
+        "evaluation"
+      ],
+      "text": "Quantization Wrapper curl -X POST http://127.0.0.1:4173/api/model-ecosystem/quantize \\ -H 'content-type: application/json' \\ -d '{ \"name\": \"tiny-q5\", \"sourcePath\": \"/models/tiny-f16.gguf\", \"quantization\": \"Q5_K_M\""
+    },
+    {
+      "type": "section",
+      "title": "Model Ecosystem - Safetensors To GGUF",
+      "description": "curl -X POST http://127.0.0.1:4173/api/model-ecosystem/convert \\ -H 'content-type: application/json' \\ -d '{ \"name\": \"tiny-gguf\", \"sourcePath\": \"/models/tiny/model.safetensors\" }' The conversion helper stores source c...",
+      "href": "../MODEL_ECOSYSTEM.md#safetensors-to-gguf",
+      "tags": [
+        "models",
+        "lora",
+        "evaluation"
+      ],
+      "text": "Safetensors To GGUF curl -X POST http://127.0.0.1:4173/api/model-ecosystem/convert \\ -H 'content-type: application/json' \\ -d '{ \"name\": \"tiny-gguf\", \"sourcePath\": \"/models/tiny/model.safetensors\" }' The conversion helper stores source c..."
+    },
+    {
+      "type": "section",
+      "title": "Model Ecosystem - Per-Task Evaluation",
+      "description": "curl -X POST http://127.0.0.1:4173/api/model-ecosystem/evaluate \\ -H 'content-type: application/json' \\ -d '{ \"model\": \"llama3.2\", \"runPrompts\": false }' Offline mode creates a deterministic rubric for:",
+      "href": "../MODEL_ECOSYSTEM.md#per-task-evaluation",
+      "tags": [
+        "models",
+        "lora",
+        "evaluation"
+      ],
+      "text": "Per-Task Evaluation curl -X POST http://127.0.0.1:4173/api/model-ecosystem/evaluate \\ -H 'content-type: application/json' \\ -d '{ \"model\": \"llama3.2\", \"runPrompts\": false }' Offline mode creates a deterministic rubric for:"
+    },
+    {
+      "type": "section",
+      "title": "Model Ecosystem - Safety Model",
+      "description": "Commands run without shell interpolation. Paths must point to readable local files. Heavy tools are never installed automatically. Dry-run is the default. Every run writes a JSON manifest and is visible through `/api/...",
+      "href": "../MODEL_ECOSYSTEM.md#safety-model",
+      "tags": [
+        "models",
+        "lora",
+        "evaluation"
+      ],
+      "text": "Safety Model Commands run without shell interpolation. Paths must point to readable local files. Heavy tools are never installed automatically. Dry-run is the default. Every run writes a JSON manifest and is visible through `/api/..."
+    },
+    {
+      "type": "doc",
       "title": "Architecture",
       "description": "How the local agent layer, tools, memory, receipts, and security fit together.",
       "href": "../ARCHITECTURE.md",
@@ -1140,7 +1301,7 @@
         "security",
         "local-first"
       ],
-      "text": "Architecture Deep Dive AgentTrail is a local-first agent layer around model runtimes. It does not try to replace Ollama; it adds auditable tools, receipts, memory, safe writes, search, security, and reports. System Map Core Modules Area Files --- --- Server and routes server.js , src/route-catalog.js Tool permissions src/permissions.js , src/tool-schemas.js Search and vectors src/features/search.js , src/vector-store.js Safe paths and diffs src/workspace-safety.js Memory and sessions server.js , src/schemas.js Security/privacy src/features/security.js , src/privacy.js , src/network-policy.js Observability src/observability.js , src/logger.js Team/RBAC src/team-enterprise.js , team/users.json Runtime adapters src/model-adapters.js , src/bundled-runtime.js Release proof src/release.js , scripts/generate-sbom.js , scripts/verify-checksums.js Request Lifecycle 1. User selects files, permissions, model, and optional recipe. 2. Server builds bounded context from selected files, memory, and search results. 3. Model produces text and optional tool calls. 4. Tool arguments are schema-validated and permission-checked. 5. Write-like tools produce diff previews unless explicitly allowed. 6. Observability records trace, timing, tool counts, and classified errors. 7. Receipts/reports preserve what happened for replay and review. Local Data Boundaries Data Location --- --- Workspace files workspace/ Receipts workspace/receipts/ Reports workspace/reports/ Memory workspace/memory/ and optional .local-agent/ Search indexes workspace/.agenttrail/ Logs/traces workspace/.agenttrail/store.jsonl , workspace/.agenttrail/logs.jsonl Team users team/users.json The path resolver blocks reads/writes outside the workspace, and the network policy blocks non-allowlisted egress for configured network flows. Why The Foundation Is Small AgentTrail intentionally avoids a heavy dependency stack. Most features are plain Node modules and deterministic tests. This keeps the project auditable: contributors can inspect the agent loop, permissions, search, memory, and receipts without reverse-engineering a framework. Extension Points - New tools: add schema in src/tool-schemas.js , permission policy in src/permissions.js , route/test/docs coverage. - New recipes: add JSON in recipes/ , then update packs. - New model backend: implement adapter behavior in src/model-adapters.js . - New docs route: update scripts/generate-docs-site.js . - New API route: update src/route-catalog.js , regenerate API_REFERENCE.md API_REFERENCE.md , add tests."
+      "text": "Architecture Deep Dive AgentTrail is a local-first agent layer around model runtimes. It does not try to replace Ollama; it adds auditable tools, receipts, memory, safe writes, search, security, and reports. System Map Core Modules Area Files --- --- Server and routes server.js , src/route-catalog.js Tool permissions src/permissions.js , src/tool-schemas.js Search and vectors src/features/search.js , src/vector-store.js Safe paths and diffs src/workspace-safety.js Memory and sessions server.js , src/schemas.js Security/privacy src/features/security.js , src/privacy.js , src/network-policy.js Observability src/observability.js , src/logger.js Team/RBAC src/team-enterprise.js , team/users.json Runtime adapters src/model-adapters.js , src/bundled-runtime.js , src/model-ecosystem.js Release proof src/release.js , scripts/generate-sbom.js , scripts/verify-checksums.js Request Lifecycle 1. User selects files, permissions, model, and optional recipe. 2. Server builds bounded context from selected files, memory, and search results. 3. Model produces text and optional tool calls. 4. Tool arguments are schema-validated and permission-checked. 5. Write-like tools produce diff previews unless explicitly allowed. 6. Observability records trace, timing, tool counts, and classified errors. 7. Receipts/reports preserve what happened for replay and review. Local Data Boundaries Data Location --- --- Workspace files workspace/ Receipts workspace/receipts/ Reports workspace/reports/ Memory workspace/memory/ and optional .local-agent/ Search indexes workspace/.agenttrail/ Logs/traces workspace/.agenttrail/store.jsonl , workspace/.agenttrail/logs.jsonl Team users team/users.json The path resolver blocks reads/writes outside the workspace, and the network policy blocks non-allowlisted egress for configured network flows. Why The Foundation Is Small AgentTrail intentionally avoids a heavy dependency stack. Most features are plain Node modules and deterministic tests. This keeps the project auditable: contributors can inspect the agent loop, permissions, search, memory, and receipts without reverse-engineering a framework. Extension Points - New tools: add schema in src/tool-schemas.js , permission policy in src/permissions.js , route/test/docs coverage. - New recipes: add JSON in recipes/ , then update packs. - New model backend: implement adapter behavior in src/model-adapters.js . - New model ecosystem helper: add manifest/delegate logic in src/model-ecosystem.js . - New docs route: update scripts/generate-docs-site.js . - New API route: update src/route-catalog.js , regenerate API_REFERENCE.md API_REFERENCE.md , add tests."
     },
     {
       "type": "section",
@@ -1224,7 +1385,7 @@
         "routes",
         "openapi"
       ],
-      "text": "API Reference Generated from src/route-catalog.js and docs/openapi/agenttrail-v1-openapi.json . Do not edit route tables by hand; run npm run docs:api . AgentTrail exposes two API layers: local app endpoints under /api/ and an OpenAI-compatible facade under /v1/ . By default the server binds to 127.0.0.1 and keeps data inside the configured workspace. Local App Routes Area Module Routes --- --- --- search server.js + src/features/search.js /api/search <br /api/search-index <br /api/search/chunks attachments server.js /api/attachments <br /api/files/content documents server.js + src/document-ingestion.js /api/documents/extract <br /api/documents/ocr <br /api/documents/ingest-url audio server.js + src/audio-transcription.js /api/audio/transcribe <br /api/audio/speak <br /api/files/raw image-generation server.js + src/image-generation.js /api/images/generate <br /api/files/raw memory server.js /api/memory <br /api/memory/scopes <br /api/memory/structured <br /api/memory/retrieve <br /api/memory/history <br /api/memory/history/diff <br /api/memory/history/revert <br /api/memory/suggestions <br /api/memory/suggestions/apply <br /api/memory/citations reports server.js /api/reports <br /api/trust/badge sessions server.js /api/sessions <br /api/replay/plan <br /api/runs/pending <br /api/runs/pending/from-receipt <br /api/receipts/resume planner server.js + src/structured-output.js /api/agent/plan <br /api/chat tools src/permissions.js + src/tool-schemas.js /api/permissions <br /api/tools/schemas <br /api/tools/capability <br /api/mcp models server.js /api/models <br /api/models/pull <br /api/models/delete <br /api/models/vision-capability model-registry server.js + src/model-registry.js /api/model-registry <br /api/model-registry/show <br /api/model-registry/pull <br /api/model-registry/import <br /api/model-registry/create <br /api/model-registry/cp <br /api/model-registry/share system server.js /api/health <br /api/resources <br /api/runtime <br /api/concurrency <br /api/updates/check openai-compatible-api server.js /v1/chat/completions <br /v1/models <br /v1/embeddings <br /v1/openapi.json structured-output src/structured-output.js /api/structured-output/schemas <br /api/structured-output <br /api/structured-output/recipe security src/features/security.js + src/privacy.js + src/network-policy.js /api/security/scan <br /api/security/privacy observability src/observability.js + src/logger.js /api/logs <br /api/metrics <br /api/observability <br /api/traces <br /api/traces/content <br /api/errors/taxonomy team-enterprise src/team-enterprise.js /api/team/status <br /api/team/users <br /api/team/users/select <br /api/team/rbac <br /api/team/receipts <br /api/team/receipts/content <br /api/team/sync/status <br /api/team/sync/export <br /api/team/audit/export <br /api/team/sso <br /api/team/sso/validate foundation src/foundation.js /api/foundation <br /api/schemas <br /api/migrations plugins src/plugin-loader.js + src/plugin-sandbox.js /api/plugins <br /api/plugins/run jobs src/jobs.js /api/jobs <br /api/jobs/start backup server.js /api/backup/export <br /api/backup/import OpenAI-Compatible Routes Spec: docs/openapi/agenttrail-v1-openapi.json Method Path Operation Summary --- --- --- --- POST /v1/chat/completions createChatCompletion Run AgentTrail through an OpenAI-compatible chat-completions interface GET /v1/models listModels List models from the active local backend POST /v1/embeddings createEmbedding Create embeddings through the active local backend GET /v1/openapi.json getOpenApiSpec Return this OpenAPI document Auth And Rate Controls - /api/ is intended for the local browser app and local CLI. - /v1/ can require AGENTTRAIL_V1_API_KEY or AGENTTRAIL_V1_API_KEYS . - /v1/ uses AGENTTRAIL_V1_RATE_LIMIT_PER_MINUTE , AGENTTRAIL_V1_QUEUE_CONCURRENCY , and AGENTTRAIL_V1_QUEUE_MAX for local rate limiting and backpressure. - Network egress remains governed by AGENTTRAIL_EGRESS_ALLOWLIST and related privacy settings. Examples Route Ownership Use the module column to find the implementation owner before changing behavior. New endpoints should be added to src/route-catalog.js , covered in tests, and regenerated here."
+      "text": "API Reference Generated from src/route-catalog.js and docs/openapi/agenttrail-v1-openapi.json . Do not edit route tables by hand; run npm run docs:api . AgentTrail exposes two API layers: local app endpoints under /api/ and an OpenAI-compatible facade under /v1/ . By default the server binds to 127.0.0.1 and keeps data inside the configured workspace. Local App Routes Area Module Routes --- --- --- search server.js + src/features/search.js /api/search <br /api/search-index <br /api/search/chunks attachments server.js /api/attachments <br /api/files/content documents server.js + src/document-ingestion.js /api/documents/extract <br /api/documents/ocr <br /api/documents/ingest-url audio server.js + src/audio-transcription.js /api/audio/transcribe <br /api/audio/speak <br /api/files/raw image-generation server.js + src/image-generation.js /api/images/generate <br /api/files/raw memory server.js /api/memory <br /api/memory/scopes <br /api/memory/structured <br /api/memory/retrieve <br /api/memory/history <br /api/memory/history/diff <br /api/memory/history/revert <br /api/memory/suggestions <br /api/memory/suggestions/apply <br /api/memory/citations reports server.js /api/reports <br /api/trust/badge sessions server.js /api/sessions <br /api/replay/plan <br /api/runs/pending <br /api/runs/pending/from-receipt <br /api/receipts/resume planner server.js + src/structured-output.js /api/agent/plan <br /api/chat tools src/permissions.js + src/tool-schemas.js /api/permissions <br /api/tools/schemas <br /api/tools/capability <br /api/mcp models server.js /api/models <br /api/models/pull <br /api/models/delete <br /api/models/vision-capability model-registry server.js + src/model-registry.js /api/model-registry <br /api/model-registry/show <br /api/model-registry/pull <br /api/model-registry/import <br /api/model-registry/create <br /api/model-registry/cp <br /api/model-registry/share model-ecosystem server.js + src/model-ecosystem.js /api/model-ecosystem <br /api/model-ecosystem/adapters <br /api/model-ecosystem/fine-tune <br /api/model-ecosystem/quantize <br /api/model-ecosystem/convert <br /api/model-ecosystem/evaluate system server.js /api/health <br /api/resources <br /api/runtime <br /api/concurrency <br /api/updates/check openai-compatible-api server.js /v1/chat/completions <br /v1/models <br /v1/embeddings <br /v1/openapi.json structured-output src/structured-output.js /api/structured-output/schemas <br /api/structured-output <br /api/structured-output/recipe security src/features/security.js + src/privacy.js + src/network-policy.js /api/security/scan <br /api/security/privacy observability src/observability.js + src/logger.js /api/logs <br /api/metrics <br /api/observability <br /api/traces <br /api/traces/content <br /api/errors/taxonomy team-enterprise src/team-enterprise.js /api/team/status <br /api/team/users <br /api/team/users/select <br /api/team/rbac <br /api/team/receipts <br /api/team/receipts/content <br /api/team/sync/status <br /api/team/sync/export <br /api/team/audit/export <br /api/team/sso <br /api/team/sso/validate foundation src/foundation.js /api/foundation <br /api/schemas <br /api/migrations plugins src/plugin-loader.js + src/plugin-sandbox.js /api/plugins <br /api/plugins/run jobs src/jobs.js /api/jobs <br /api/jobs/start backup server.js /api/backup/export <br /api/backup/import OpenAI-Compatible Routes Spec: docs/openapi/agenttrail-v1-openapi.json Method Path Operation Summary --- --- --- --- POST /v1/chat/completions createChatCompletion Run AgentTrail through an OpenAI-compatible chat-completions interface GET /v1/models listModels List models from the active local backend POST /v1/embeddings createEmbedding Create embeddings through the active local backend GET /v1/openapi.json getOpenApiSpec Return this OpenAPI document Auth And Rate Controls - /api/ is intended for the local browser app and local CLI. - /v1/ can require AGENTTRAIL_V1_API_KEY or AGENTTRAIL_V1_API_KEYS . - /v1/ uses AGENTTRAIL_V1_RATE_LIMIT_PER_MINUTE , AGENTTRAIL_V1_QUEUE_CONCURRENCY , and AGENTTRAIL_V1_QUEUE_MAX for local rate limiting and backpressure. - Network egress remains governed by AGENTTRAIL_EGRESS_ALLOWLIST and related privacy settings. Examples Route Ownership Use the module column to find the implementation owner before changing behavior. New endpoints should be added to src/route-catalog.js , covered in tests, and regenerated here."
     },
     {
       "type": "section",

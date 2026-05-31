@@ -79,6 +79,7 @@
     "test:hardware": "node tests/unit/runtime-hardware.test.js",
     "test:loading": "node tests/unit/runtime-loading.test.js",
     "test:registry": "node tests/unit/model-registry.test.js && node tests/integration/model-registry.test.js",
+    "test:ecosystem": "node tests/unit/model-ecosystem.test.js && node tests/integration/model-ecosystem.test.js",
     "test:desktop": "node tests/unit/desktop-distribution.test.js",
     "test:supply-chain": "node tests/unit/supply-chain.test.js",
     "test:security-privacy": "node tests/unit/security-privacy.test.js && node tests/integration/threat-model.test.js",

@@ -1,8 +1,8 @@
 {
   "schema": "agenttrail.eval-scoreboard.v1",
   "total": {
-    "passed": 160,
-    "checks": 160
+    "passed": 165,
+    "checks": 165
   },
   "categories": [
     {
@@ -37,6 +37,13 @@
       "category": "foundation",
       "passed": 25,
       "total": 25,
+      "failed": [],
+      "score": 100
+    },
+    {
+      "category": "model-ecosystem",
+      "passed": 5,
+      "total": 5,
       "failed": [],
       "score": 100
     },

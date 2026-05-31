@@ -9,6 +9,7 @@
 - `src/runtime-hardware.js` covers Epic Q policy: Metal on Apple Silicon, CUDA/ROCm/Vulkan path detection, CPU fallback with SIMD/thread tuning, automatic backend selection, and explicit GPU-layer offload via `AGENTTRAIL_BUNDLED_GPU_LAYERS`.
 - `src/runtime-loading.js` covers Epic R policy: quantization-aware GGUF detection, KV-cache/context-shift settings, batch/micro-batch settings, mmap/mlock flags, multi-GPU split config, and the `bench:runtime` comparison harness.
 - `src/model-registry.js` covers Epic S distribution: resumable/checksummed pulls, Hugging Face/OCI reference parsing, Modelfile-style derived models, local model library metadata/tags, create/cp/show/share operations, and checksum/signature provenance verification.
+- `src/model-ecosystem.js` covers Epic AC ecosystem helpers: LoRA adapter manifests, fine-tuning launch delegation, quantization wrappers, safetensors-to-GGUF conversion plans, and per-task model evaluation.
 - Default behavior is unchanged: Ollama or any OpenAI-compatible server.
 
 ## Decision (T105)
@@ -35,5 +36,11 @@ Prefer an **optional `node-llama-cpp`** dependency over spawning `llama-server`:
 - `/api/model-registry/pull` supports `file://`, `http(s)`, and `hf://owner/repo/path.gguf?revision=main` sources with resume and SHA-256 verification.
 - `/api/model-registry/create`, `/api/model-registry/cp`, `/api/model-registry/show`, and `/api/model-registry/share` provide Modelfile-style create/copy/show/share operations.
 
-## Still open (the moonshot — Epics P–S)
+## Ecosystem knobs (Epic AC)
+- `AGENTTRAIL_TRAINER_COMMAND` delegates fine-tuning to an installed trainer such as LLaMA-Factory, Axolotl, or a local script.
+- `AGENTTRAIL_QUANTIZE_COMMAND` delegates GGUF quantization to a local `llama-quantize` compatible command.
+- `AGENTTRAIL_CONVERT_COMMAND` delegates safetensors-to-GGUF conversion to a local converter such as `convert-hf-to-gguf.py`.
+- `/api/model-ecosystem/*` stores auditable manifests and defaults to dry-run planning until `dryRun=false`.
+
+## Still open (the moonshot)
 Real-hardware validation for `node-llama-cpp` and production GGUF load testing still require native toolchains and real hardware.

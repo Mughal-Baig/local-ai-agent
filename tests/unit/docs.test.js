@@ -19,6 +19,7 @@ async function main() {
   const quickStart = await read("docs/GETTING_STARTED.md");
   const recipes = await read("docs/RECIPE_AUTHORING.md");
   const backends = await read("docs/BACKEND_SETUP.md");
+  const modelEcosystem = await read("docs/MODEL_ECOSYSTEM.md");
   const architecture = await read("docs/ARCHITECTURE.md");
   const troubleshooting = await read("docs/TROUBLESHOOTING.md");
   const videos = await read("docs/VIDEO_WALKTHROUGHS.md");
@@ -40,6 +41,7 @@ async function main() {
 
   assert.match(apiReference, /Generated from `src\/route-catalog\.js`/);
   assert.match(apiReference, /\/api\/team\/status/);
+  assert.match(apiReference, /\/api\/model-ecosystem\/evaluate/);
   assert.match(apiReference, /\/v1\/chat\/completions/);
 
   assert.match(quickStart, /60-Second Flow/);
@@ -49,6 +51,9 @@ async function main() {
   assert.match(backends, /LM Studio/);
   assert.match(backends, /llama\.cpp/);
   assert.match(backends, /vLLM/);
+  assert.match(modelEcosystem, /LoRA Adapter Registration/);
+  assert.match(modelEcosystem, /Safetensors To GGUF/);
+  assert.equal(searchIndex.docs.some((doc) => doc.file === "MODEL_ECOSYSTEM.md"), true);
   assert.match(architecture, /System Map/);
   assert.match(architecture, /workspace-safety/);
   assert.match(troubleshooting, /FAQ/);

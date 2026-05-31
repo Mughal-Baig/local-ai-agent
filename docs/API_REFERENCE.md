@@ -20,6 +20,7 @@ AgentTrail exposes two API layers: local app endpoints under `/api/*` and an Ope
 | tools | src/permissions.js + src/tool-schemas.js | `/api/permissions`<br>`/api/tools/schemas`<br>`/api/tools/capability`<br>`/api/mcp` |
 | models | server.js | `/api/models`<br>`/api/models/pull`<br>`/api/models/delete`<br>`/api/models/vision-capability` |
 | model-registry | server.js + src/model-registry.js | `/api/model-registry`<br>`/api/model-registry/show`<br>`/api/model-registry/pull`<br>`/api/model-registry/import`<br>`/api/model-registry/create`<br>`/api/model-registry/cp`<br>`/api/model-registry/share` |
+| model-ecosystem | server.js + src/model-ecosystem.js | `/api/model-ecosystem`<br>`/api/model-ecosystem/adapters`<br>`/api/model-ecosystem/fine-tune`<br>`/api/model-ecosystem/quantize`<br>`/api/model-ecosystem/convert`<br>`/api/model-ecosystem/evaluate` |
 | system | server.js | `/api/health`<br>`/api/resources`<br>`/api/runtime`<br>`/api/concurrency`<br>`/api/updates/check` |
 | openai-compatible-api | server.js | `/v1/chat/completions`<br>`/v1/models`<br>`/v1/embeddings`<br>`/v1/openapi.json` |
 | structured-output | src/structured-output.js | `/api/structured-output/schemas`<br>`/api/structured-output`<br>`/api/structured-output/recipe` |
