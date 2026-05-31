@@ -50,6 +50,7 @@
     "test": "node scripts/smoke-test.js",
     "test:unit": "node tests/unit/foundation.test.js",
     "test:documents": "node tests/unit/pdf-extraction.test.js",
+    "test:audio": "node tests/unit/audio-transcription.test.js && node tests/integration/audio-transcription.test.js",
     "test:vision": "node tests/integration/vision-input.test.js",
     "test:search": "node tests/unit/search-chunking.test.js",
     "test:integration": "node tests/integration/api.test.js",

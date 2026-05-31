@@ -31,6 +31,7 @@ const { FileWatcher } = require("./src/file-watcher");
 const { runPluginTool } = require("./src/plugin-sandbox");
 const { routeCatalog } = require("./src/route-catalog");
 const { isSupportedDocument, isImageDocument, detectDocumentType, extractDocumentText, buildExtractedDocumentMarkdown } = require("./src/document-ingestion");
+const { isAudioDocument, defaultAudioMediaType, normalizeTranscriptLanguage, normalizeTranscriptText, buildTranscriptMarkdown } = require("./src/audio-transcription");
 
 loadDotEnv();
 const execFileAsync = promisify(execFile);
@@ -108,14 +109,18 @@ const URL_INGEST_TIMEOUT_MS = Number(process.env.AGENTTRAIL_URL_INGEST_TIMEOUT_M
 const URL_INGEST_MAX_REDIRECTS = 3;
 const OCR_TIMEOUT_MS = Number(process.env.AGENTTRAIL_OCR_TIMEOUT_MS || 30000);
 const OCR_MAX_OUTPUT_BYTES = Number(process.env.AGENTTRAIL_OCR_MAX_OUTPUT_BYTES || 1024 * 1024);
+const TRANSCRIBE_TIMEOUT_MS = Number(process.env.AGENTTRAIL_TRANSCRIBE_TIMEOUT_MS || 120000);
+const TRANSCRIBE_MAX_OUTPUT_BYTES = Number(process.env.AGENTTRAIL_TRANSCRIBE_MAX_OUTPUT_BYTES || 2 * 1024 * 1024);
+const MAX_TRANSCRIBE_AUDIO_BYTES = Number(process.env.AGENTTRAIL_TRANSCRIBE_MAX_BYTES || 25 * 1024 * 1024);
 const MAX_VISION_IMAGES = Number(process.env.AGENTTRAIL_MAX_VISION_IMAGES || 4);
 const MAX_VISION_IMAGE_BYTES = Number(process.env.AGENTTRAIL_MAX_VISION_IMAGE_BYTES || 2 * 1024 * 1024);
 const MAX_ATTACHMENT_TEXT_BYTES = Number(process.env.AGENTTRAIL_MAX_ATTACHMENT_TEXT_BYTES || MAX_FILE_BYTES);
 const MAX_ATTACHMENT_BINARY_BYTES = Number(process.env.AGENTTRAIL_MAX_ATTACHMENT_BINARY_BYTES || MAX_FILE_BYTES);
 const MAX_ATTACHMENT_IMAGE_BYTES = Number(process.env.AGENTTRAIL_MAX_ATTACHMENT_IMAGE_BYTES || MAX_VISION_IMAGE_BYTES);
+const MAX_ATTACHMENT_AUDIO_BYTES = Number(process.env.AGENTTRAIL_MAX_ATTACHMENT_AUDIO_BYTES || Math.min(MAX_TRANSCRIBE_AUDIO_BYTES, 8 * 1024 * 1024));
 const MAX_ATTACHMENT_BODY_BYTES = Number(
   process.env.AGENTTRAIL_MAX_ATTACHMENT_BODY_BYTES ||
-  Math.max(MAX_BODY_BYTES, Math.ceil(MAX_ATTACHMENT_IMAGE_BYTES * Math.max(1, MAX_VISION_IMAGES) * 1.4) + 128 * 1024)
+  Math.max(MAX_BODY_BYTES, Math.ceil(Math.max(MAX_ATTACHMENT_IMAGE_BYTES * Math.max(1, MAX_VISION_IMAGES), MAX_ATTACHMENT_AUDIO_BYTES) * 1.4) + 128 * 1024)
 );
 const LOCAL_EMBED_DIMS = 192;
 const VISION_PROBE_IMAGE_BASE64 = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAFgwJ/lA8t4wAAAABJRU5ErkJggg==";
@@ -481,6 +486,10 @@ const server = http.createServer(async (req, res) => {
 
     if (url.pathname === "/api/documents/ingest-url" && req.method === "POST") {
       return handleUrlIngest(req, res);
+    }
+
+    if (url.pathname === "/api/audio/transcribe" && req.method === "POST") {
+      return handleAudioTranscribe(req, res);
     }
 
     if (url.pathname === "/api/files/content" && req.method === "GET") {
@@ -3137,6 +3146,7 @@ async function handleAttachments(req, res) {
     const encoding = file.encoding === "base64" ? "base64" : "text";
     const relativePath = `${ATTACHMENTS_DIR}/${stamp}/${safeName}`;
     const isImage = isImageDocument(safeName, type);
+    const isAudio = isAudioDocument(safeName, type);
 
     try {
       if (encoding === "base64") {
@@ -3144,7 +3154,7 @@ async function handleAttachments(req, res) {
         if (!data.length) {
           throw new Error("Attachment is empty");
         }
-        const maxBytes = isImage ? MAX_ATTACHMENT_IMAGE_BYTES : MAX_ATTACHMENT_BINARY_BYTES;
+        const maxBytes = isImage ? MAX_ATTACHMENT_IMAGE_BYTES : (isAudio ? MAX_ATTACHMENT_AUDIO_BYTES : MAX_ATTACHMENT_BINARY_BYTES);
         if (data.length > maxBytes) {
           throw new Error(`Attachment is too large (${data.length} bytes)`);
         }
@@ -3173,6 +3183,7 @@ async function handleAttachments(req, res) {
           `- Size: ${binary.size} bytes`,
           "",
           "This attachment was saved as a binary file. AgentTrail selected this note as context so the agent can see that the file exists without reading raw binary bytes.",
+          isAudio ? "This audio file can be transcribed locally through /api/audio/transcribe." : null,
           ocrError ? "" : null,
           ocrError ? `OCR note: ${ocrError}` : null
         ].filter((line) => line !== null).join("\n"));
@@ -3184,6 +3195,8 @@ async function handleAttachments(req, res) {
           contextPath: note.path,
           notePath: note.path,
           visionPath: isImage ? binary.path : null,
+          audioPath: isAudio ? binary.path : null,
+          transcriptionReady: isAudio,
           receiptPath: documentNote && documentNote.receipt ? documentNote.receipt.path : null,
           extracted: Boolean(documentNote),
           extraction: documentNote ? documentNote.extraction : null,
@@ -3318,6 +3331,56 @@ async function handleDocumentOcrBody(body, res, sourcePath) {
   }
 }
 
+async function handleAudioTranscribe(req, res) {
+  const body = await readJsonBody(req);
+  const sourcePath = normalizeRelativePath(body.path || body.sourcePath || "");
+  if (!sourcePath) {
+    return sendJson(res, 400, { error: "Audio path is required." });
+  }
+  if (!isAudioDocument(sourcePath, body.mediaType || "")) {
+    return sendJson(res, 400, { error: "Speech-to-text currently supports WAV, MP3, M4A, AAC, FLAC, OGG, Opus, WebM, MP4, and MOV files." });
+  }
+  try {
+    const file = await readWorkspaceBinaryFile(sourcePath, MAX_TRANSCRIBE_AUDIO_BYTES);
+    const note = await writeAudioTranscriptNote(file.path, {
+      originalName: body.originalName || path.basename(file.path),
+      mediaType: body.mediaType || defaultAudioMediaType(file.path),
+      outputPath: body.outputPath,
+      language: body.language || body.transcribeLanguage,
+      prompt: body.prompt || body.initialPrompt,
+      operation: body.operation || "audio-transcribe"
+    });
+    await STORE.append("audio-transcribe", {
+      path: file.path,
+      outputPath: note.path,
+      type: note.transcription.type,
+      chars: note.transcription.charCount,
+      engine: note.transcription.engine
+    });
+    SQLITE.insert("audio-transcribe", {
+      path: file.path,
+      outputPath: note.path,
+      type: note.transcription.type,
+      engine: note.transcription.engine
+    });
+    await LOGGER.log("info", "audio.transcribe", {
+      path: file.path,
+      outputPath: note.path,
+      engine: note.transcription.engine
+    });
+    sendJson(res, 200, {
+      ok: true,
+      source: { path: file.path, size: file.size, modifiedAt: file.modifiedAt },
+      output: { path: note.path, size: note.size, modifiedAt: note.modifiedAt },
+      transcription: note.transcription,
+      progress: note.progress,
+      receipt: note.receipt
+    });
+  } catch (error) {
+    sendJson(res, error.status || 400, { error: error.message || "Could not transcribe audio." });
+  }
+}
+
 async function handleUrlIngest(req, res) {
   const body = await readJsonBody(req);
   const sourceUrl = String(body.url || body.sourceUrl || "").trim();
@@ -3384,6 +3447,82 @@ async function handleUrlIngest(req, res) {
   } catch (error) {
     sendJson(res, error.status || 400, { error: error.message || "Could not ingest URL." });
   }
+}
+
+async function writeAudioTranscriptNote(sourcePath, options = {}) {
+  const startedAt = new Date().toISOString();
+  const progress = [
+    ingestionProgressStep("validate-source", "Validated audio source", 12, { sourcePath }),
+    ingestionProgressStep("load-source", "Loaded audio file for transcription", 28, { sourcePath })
+  ];
+  const language = normalizeTranscriptLanguage(options.language);
+  const transcript = await runLocalTranscription(resolveWorkspacePath(sourcePath), {
+    language,
+    prompt: options.prompt || ""
+  });
+  const text = normalizeTranscriptText(transcript.text);
+  const warnings = [];
+  if (!text) {
+    warnings.push("Speech-to-text command returned no transcript text.");
+  }
+  if (transcript.stderr) {
+    warnings.push(`Transcription stderr: ${truncate(transcript.stderr, 180)}`);
+  }
+  const transcription = {
+    ok: Boolean(text),
+    type: "audio",
+    engine: transcript.engine,
+    language,
+    sourcePath,
+    text,
+    charCount: text.length,
+    partCount: 1,
+    warnings
+  };
+  progress.push(ingestionProgressStep("transcribe-audio", `Ran local speech-to-text with ${transcript.engine}`, 62, {
+    engine: transcript.engine,
+    language,
+    characters: transcription.charCount
+  }));
+  const outputPath = options.outputPath
+    ? normalizeRelativePath(options.outputPath)
+    : `${sourcePath}.agenttrail-transcript.md`;
+  const result = await writeWorkspaceFile(outputPath, buildTranscriptMarkdown({
+    sourcePath,
+    originalName: options.originalName || path.basename(sourcePath),
+    mediaType: options.mediaType || defaultAudioMediaType(sourcePath),
+    transcription
+  }));
+  progress.push(ingestionProgressStep("write-sidecar", "Wrote searchable audio transcript Markdown sidecar", 82, { outputPath: result.path }));
+  const receipt = options.receipt === false ? null : await writeIngestionReceipt({
+    operation: options.operation || "audio-transcribe",
+    startedAt,
+    finishedAt: new Date().toISOString(),
+    sourcePath,
+    originalName: options.originalName || path.basename(sourcePath),
+    mediaType: options.mediaType || defaultAudioMediaType(sourcePath),
+    outputPath: result.path,
+    outputSize: result.size,
+    extraction: transcription,
+    progress
+  });
+  if (receipt) {
+    progress.push(ingestionProgressStep("save-receipt", "Saved transcription receipt", 100, { receiptPath: receipt.path }));
+  }
+  return {
+    ...result,
+    progress,
+    receipt,
+    transcription: {
+      ok: transcription.ok,
+      type: transcription.type,
+      engine: transcription.engine,
+      language: transcription.language,
+      partCount: transcription.partCount,
+      charCount: transcription.charCount,
+      warnings: transcription.warnings
+    }
+  };
 }
 
 async function writeOcrDocumentNote(sourcePath, options = {}) {
@@ -3531,6 +3670,40 @@ function ingestionProgressStep(id, label, percent, detail = {}) {
   };
 }
 
+async function runLocalTranscription(absolutePath, options = {}) {
+  const command = process.env.AGENTTRAIL_TRANSCRIBE_COMMAND || "whisper-cli";
+  const language = normalizeTranscriptLanguage(options.language);
+  const args = transcribeCommandArgs(absolutePath, language, options.prompt || "");
+  try {
+    const result = await execFileAsync(command, args, {
+      cwd: PROJECT_ROOT,
+      timeout: TRANSCRIBE_TIMEOUT_MS,
+      maxBuffer: TRANSCRIBE_MAX_OUTPUT_BYTES
+    });
+    return {
+      engine: path.basename(command),
+      text: result.stdout || "",
+      stderr: result.stderr || ""
+    };
+  } catch (error) {
+    if (error.code === "ENOENT") {
+      throw httpError(501, `Local speech-to-text command "${command}" was not found. Install whisper.cpp's whisper-cli or set AGENTTRAIL_TRANSCRIBE_COMMAND to a local transcription executable.`);
+    }
+    const details = error.stderr || error.stdout || error.message || "Speech-to-text command failed.";
+    throw httpError(502, `Local speech-to-text failed: ${truncate(details, 300)}`);
+  }
+}
+
+function transcribeCommandArgs(inputPath, language, prompt = "") {
+  const template = process.env.AGENTTRAIL_TRANSCRIBE_ARGS
+    ? parseCommandArgs(process.env.AGENTTRAIL_TRANSCRIBE_ARGS)
+    : ["-f", "{{input}}", "-l", "{{language}}", "--no-timestamps"];
+  return template.map((arg) => String(arg)
+    .replace(/\{\{input\}\}/g, inputPath)
+    .replace(/\{\{language\}\}/g, language)
+    .replace(/\{\{prompt\}\}/g, String(prompt || "")));
+}
+
 async function runLocalOcr(absolutePath, options = {}) {
   const command = process.env.AGENTTRAIL_OCR_COMMAND || "tesseract";
   const language = normalizeOcrLanguage(options.language);
@@ -3596,6 +3769,7 @@ async function writeIngestionReceipt(details) {
     .slice(0, 90) || "ingestion";
   const receiptPath = `${RECEIPTS_DIR}/ingestion/${stamp}-${slug}.md`;
   const extraction = details.extraction || {};
+  const isAudioTranscript = extraction.type === "audio";
   const progressRows = (details.progress || []).map((step) => {
     const suffix = step.detail && Object.keys(step.detail).length
       ? ` (${Object.entries(step.detail).map(([key, value]) => `${key}: ${Array.isArray(value) ? value.join(", ") : value}`).join("; ")})`
@@ -3616,9 +3790,9 @@ async function writeIngestionReceipt(details) {
     `Output file: ${details.outputPath || "unknown"}`,
     `Media type: ${details.mediaType || "application/octet-stream"}`,
     `Document type: ${extraction.type || "unknown"}`,
-    extraction.engine ? `OCR engine: ${extraction.engine}` : null,
-    extraction.language ? `OCR language: ${extraction.language}` : null,
-    `Extracted characters: ${extraction.charCount || 0}`,
+    extraction.engine ? `${isAudioTranscript ? "Transcription" : "OCR"} engine: ${extraction.engine}` : null,
+    extraction.language ? `${isAudioTranscript ? "Transcription" : "OCR"} language: ${extraction.language}` : null,
+    `${isAudioTranscript ? "Transcript" : "Extracted"} characters: ${extraction.charCount || 0}`,
     `Status: ${extraction.ok ? "completed" : "completed-with-empty-text"}`,
     "",
     "## Progress",

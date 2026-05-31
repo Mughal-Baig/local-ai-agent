@@ -99,7 +99,7 @@ A polished, self-contained Markdown export for sharing (`POST /api/reports`): tr
 
 ## 4. Ingestion Receipt (`receipts/ingestion/<timestamp>-<source>.md`)
 
-Saved automatically when AgentTrail extracts a document attachment, OCRs an image attachment or workspace image through `/api/documents/ocr`, extracts a workspace document through `/api/documents/extract`, or ingests an allowlisted URL through `/api/documents/ingest-url`.
+Saved automatically when AgentTrail extracts a document attachment, OCRs an image attachment or workspace image through `/api/documents/ocr`, transcribes local audio through `/api/audio/transcribe`, extracts a workspace document through `/api/documents/extract`, or ingests an allowlisted URL through `/api/documents/ingest-url`.
 
 Each ingestion API response also includes a `progress` array with completed steps and percentages, plus a `receipt.path` that points to the Markdown receipt.
 

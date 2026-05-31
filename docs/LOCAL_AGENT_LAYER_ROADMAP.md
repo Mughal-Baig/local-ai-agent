@@ -48,16 +48,17 @@ This section tracks the concrete work shipped after the roadmap was publicly ref
 | Codex continuation | T066 | Added drag/drop and pasted-image intake in the chat composer, matched browser image limits to the vision backend, allowed larger image attachment request bodies, selected dropped image pixels for vision runs, and covered the path in API/UI smoke/eval checks. |
 | Codex continuation | T068 | Added vision-model capability detection with model-name heuristics, optional tiny-image backend probe at `/api/models/vision-capability`, Vision scores in the UI/model benchmarks, run warnings when image payloads target clearly non-vision models, and mock Ollama tests. |
 | Codex continuation | T067 | Added screenshot-to-action planning: a composer button opens screenshot intake, attaches selected image pixels to `/api/agent/plan`, adds vision metadata/warnings to planner prompts and receipts, and turns screenshots into editable plans before tool execution. |
+| Codex continuation | T070 | Added local speech-to-text through `/api/audio/transcribe`, a whisper.cpp-compatible command adapter, audio attachment metadata, searchable transcript sidecars, ingestion receipts, route/eval/CI coverage, and mock-command tests. |
 
 ### Verified After These Passes
 
-- Local suites covered: `npm run test:unit`, `npm run test:documents`, `npm run test:search`, `npm run test:rerank`, `npm run test:integration`, `npm run test:backend`, `npm run test:models`, `npm run test:embed-cache`, `npm run test:resume`, `npm run test:reindex`, `npm run eval:search`, `npm run bench:search`, `npm run test:tools`, `npm run test:structured`, `npm run test:planner`, `npm run test:guardrails`, `npm run test:reflection`, memory integration suites, `npm run test:ui`, `npm test`, `npm run eval`, `npm run release:checksums`, and `git diff --check`.
-- GitHub CI and GitHub Pages passed for the latest search commits.
+- Local suites covered: `npm run test:unit`, `npm run test:documents`, `npm run test:audio`, `npm run test:search`, `npm run test:rerank`, `npm run test:integration`, `npm run test:backend`, `npm run test:models`, `npm run test:embed-cache`, `npm run test:resume`, `npm run test:reindex`, `npm run eval:search`, `npm run bench:search`, `npm run test:tools`, `npm run test:structured`, `npm run test:planner`, `npm run test:guardrails`, `npm run test:reflection`, memory integration suites, `npm run test:ui`, `npm test`, `npm run eval`, `npm run release:checksums`, and `git diff --check`.
+- GitHub CI and GitHub Pages passed for the latest roadmap commits.
 - Known follow-up: GitHub Actions reports a future Node 20 action-runtime deprecation warning. It is not a test failure, but the workflows should be updated before GitHub forces Node 24 defaults.
 
 ### Best Continuation Points
 
-- T070: Local speech-to-text with a whisper.cpp-compatible adapter.
+- T071: Voice prompt input in the UI.
 
 ---
 
@@ -162,7 +163,7 @@ This section tracks the concrete work shipped after the roadmap was publicly ref
 - [x] T069 Tests with a mock vision backend (`tests/integration/vision-input.test.js`)
 
 ### Epic I — Audio
-- [ ] T070 Local speech-to-text (whisper.cpp integration)
+- [x] T070 Local speech-to-text (whisper.cpp integration)
 - [ ] T071 Voice prompt input in the UI
 - [ ] T072 Local text-to-speech for responses
 - [ ] T073 Audio file transcription recipe + receipt
@@ -381,16 +382,16 @@ This section tracks the concrete work shipped after the roadmap was publicly ref
 4. We expand an epic's tasks into finer sub-tasks (toward 1000) only when we start that epic — so the plan stays honest and current.
 5. We re-mark `[x]` here as we go; this file is the single source of truth for the campaign.
 
-**Next up:** start Phase 3 audio with local speech-to-text.
+**Next up:** continue Phase 3 audio with voice prompt input in the UI.
 
 ## Status & bug sweep (latest)
 
-- Progress: **71 tasks done**, 126 open (across Phases 1-10). Phase 1 (agent reliability) is complete; Phase 2 Epic E/F search foundation complete (T044-T058 done except T044 remains hardening umbrella), Epic G document ingestion is complete, and Phase 3 vision now has local image payload support, drag/drop composer intake, screenshot-to-action planning, vision-model capability detection, plus mock backend coverage.
+- Progress: **72 tasks done**, 125 open (across Phases 1-10). Phase 1 (agent reliability) is complete; Phase 2 Epic E/F search foundation complete (T044-T058 done except T044 remains hardening umbrella), Epic G document ingestion is complete, Phase 3 vision is complete, and Phase 3 audio now has local speech-to-text with searchable transcript sidecars and receipts.
 - Focused test suite green: unit, document extraction, API integration, smoke, repo eval, and release checksums. All touched source files pass `node --check`.
 - **Bug fixed:** `listWorkspaceFiles` only skipped `.DS_Store`, so internal `.agenttrail/*` state (logs, store, search index, pending-run) was being walked, indexed, and returned in search — adding noise and per-request churn to the index. Now excludes `.agenttrail/`. Verified against smoke, api, search-incremental, search-chunking, and eval:search.
 - Known minor item: a couple of integration tests assert relative/invariant counts (not exact) because the workspace can still gain legit files (e.g. `memory/*`) between calls — intentional, not a bug.
 
-Next code target: T070 local speech-to-text with a whisper.cpp-compatible adapter.
+Next code target: T071 voice prompt input in the UI.
 
 ---
 

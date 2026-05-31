@@ -49,7 +49,7 @@ Best next Claude tasks:
 
 - Work on docs and UI copy around native tool calling, structured outputs, planner approval, run guardrails, reflection, loop safety, structured memory, memory suggestions, ranked memory retrieval, memory history, scoped memory, markdown-aware chunk citations, hybrid search score parts, reranking, embedding cache, and search evals.
 - Do not rework `server.js` tool-calling, structured-output, planner, run-cancellation, loop/reflection, memory internals, search chunking, hybrid ranking, reranking, embedding cache, search benchmarks, or resumable-run internals unless you also run the matching scripts: `npm run test:tools`, `npm run test:structured`, `npm run test:planner`, `npm run test:guardrails`, `npm run test:reflection`, `npm run test:memory`, `npm run test:memory-suggestions`, `npm run test:memory-retrieval`, `npm run test:memory-history`, `npm run test:memory-scopes`, `npm run test:search`, `npm run test:rerank`, `npm run test:embed-cache`, `npm run test:resume`, `npm run eval:search`, and `npm run bench:search`.
-- Next code target should be T070 local speech-to-text, not the runtime moonshot.
+- Next code target should be T071 voice prompt input in the UI, not the runtime moonshot.
 
 ## Latest Claude Pass
 
@@ -63,7 +63,7 @@ Reviewed Codex's work and continued the roadmap:
 
 - T038 original partial: pending-run snapshot. Added `/api/runs/pending`, `/api/runs/pending/clear`, a resume banner in the UI, route catalog coverage, and `npm run test:resume`. Receipt-derived resume is completed in the latest Codex pass below.
 
-Still open and recommended next: T070 local speech-to-text with a whisper.cpp-compatible adapter.
+Still open and recommended next: T071 voice prompt input in the UI.
 
 ## Latest Claude Pass - UI redesign + handoff completion
 
@@ -211,4 +211,11 @@ Still open and recommended next: T070 local speech-to-text with a whisper.cpp-co
 - The planner safely treats image files as image context instead of trying to read binary pixels as text, while still preserving path/hash/size metadata for receipts and auditability.
 - Tests/evals/docs updated: planner integration covers image payloads in OpenAI-compatible planning, UI smoke checks the screenshot-action surface, repo eval checks the feature, and README/model-backend/top-1%/roadmap docs were updated.
 
-Next open: T070 local speech-to-text with a whisper.cpp-compatible adapter.
+## Latest Codex Pass - Local speech-to-text
+
+- T070 is done: `/api/audio/transcribe` runs a local, configurable whisper.cpp-compatible command (`AGENTTRAIL_TRANSCRIBE_COMMAND` + `AGENTTRAIL_TRANSCRIBE_ARGS`) against workspace audio/video files.
+- Audio attachments now carry `audioPath` and `transcriptionReady` metadata, while transcription writes searchable `*.agenttrail-transcript.md` sidecars and ingestion receipts under `workspace/receipts/ingestion/`.
+- The new `src/audio-transcription.js` helper handles audio detection, media types, transcript cleanup, and Markdown transcript formatting without adding external dependencies.
+- Tests/evals/docs updated: unit + integration coverage use `tests/fixtures/mock-transcribe.js`, CI runs the audio suite, route catalog/foundation routes expose `/api/audio/transcribe`, repo eval checks the feature, and README/model-backend/top-1%/roadmap docs were updated.
+
+Next open: T071 voice prompt input in the UI.
