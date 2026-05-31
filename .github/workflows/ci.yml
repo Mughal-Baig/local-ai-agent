@@ -1,5 +1,8 @@
 name: CI
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+
 on:
   push:
     branches: [main]
@@ -19,6 +22,7 @@ jobs:
       - run: node --check src/tool-schemas.js
       - run: node --check src/document-ingestion.js
       - run: node --check src/audio-transcription.js
+      - run: node --check src/image-generation.js
       - run: node --check tests/fixtures/mock-tts.js
       - run: node --check scripts/smoke-test.js
       - run: node --check scripts/evaluate-agenttrail.js
@@ -26,6 +30,8 @@ jobs:
       - run: node tests/unit/pdf-extraction.test.js
       - run: node tests/unit/audio-transcription.test.js
       - run: node tests/integration/audio-transcription.test.js
+      - run: node tests/unit/image-generation.test.js
+      - run: node tests/integration/image-generation.test.js
       - run: node tests/integration/vision-input.test.js
       - run: node tests/unit/search-chunking.test.js
       - run: node tests/unit/rerank.test.js

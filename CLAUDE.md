@@ -49,7 +49,7 @@ Best next Claude tasks:
 
 - Work on docs and UI copy around native tool calling, structured outputs, planner approval, run guardrails, reflection, loop safety, structured memory, memory suggestions, ranked memory retrieval, memory history, scoped memory, markdown-aware chunk citations, hybrid search score parts, reranking, embedding cache, and search evals.
 - Do not rework `server.js` tool-calling, structured-output, planner, run-cancellation, loop/reflection, memory internals, search chunking, hybrid ranking, reranking, embedding cache, search benchmarks, or resumable-run internals unless you also run the matching scripts: `npm run test:tools`, `npm run test:structured`, `npm run test:planner`, `npm run test:guardrails`, `npm run test:reflection`, `npm run test:memory`, `npm run test:memory-suggestions`, `npm run test:memory-retrieval`, `npm run test:memory-history`, `npm run test:memory-scopes`, `npm run test:search`, `npm run test:rerank`, `npm run test:embed-cache`, `npm run test:resume`, `npm run eval:search`, and `npm run bench:search`.
-- Next code target should be T074 optional local image-generation backend adapter, not the runtime moonshot.
+- Next code target should be T076 OpenAI-compatible server mode, now that Epic J image generation is complete.
 
 ## Latest Claude Pass
 
@@ -63,7 +63,7 @@ Reviewed Codex's work and continued the roadmap:
 
 - T038 original partial: pending-run snapshot. Added `/api/runs/pending`, `/api/runs/pending/clear`, a resume banner in the UI, route catalog coverage, and `npm run test:resume`. Receipt-derived resume is completed in the latest Codex pass below.
 
-Still open and recommended next: T074 optional local image-generation backend adapter.
+Still open and recommended next: T076 OpenAI-compatible server mode.
 
 ## Latest Claude Pass - UI redesign + handoff completion
 
@@ -225,4 +225,11 @@ Still open and recommended next: T074 optional local image-generation backend ad
 - T073 is done: `recipes/audio-transcription.json` is an actionable recipe. When selected with a local audio file, it runs transcription, saves a searchable transcript sidecar, selects it for context, and logs the receipt.
 - Tests/evals/docs updated: mock TTS fixture, expanded audio integration coverage, UI smoke checks voice/TTS/recipe surfaces, repo eval checks all three tasks, route catalog/foundation docs/env/README/roadmap were updated.
 
-Next open: T074 optional local image-generation backend adapter.
+## Latest Codex Pass - Image generation + GitHub warning
+
+- GitHub Actions Node 20 warning is addressed: CI, Pages, and release-artifact workflows now set `FORCE_JAVASCRIPT_ACTIONS_TO_NODE24=true`.
+- T074 is done: `/api/images/generate` can call local Automatic1111/Forge-style `/sdapi/v1/txt2img` servers or OpenAI-compatible SD/Flux image endpoints through `src/image-generation.js`.
+- T075 is done: generated images are saved under the workspace, exposed through `/api/files/raw`, and paired with Markdown provenance containing prompt, backend, endpoint, parameters, seeds, output paths, bytes, and hashes.
+- Tests/evals/docs updated: `npm run test:images`, mock local image backend integration test, route catalog/foundation coverage, README/env/docs/roadmap/eval updates, and CI coverage.
+
+Next open: T076 OpenAI-compatible server mode.

@@ -5,6 +5,7 @@ const ROUTE_CATALOG = [
   { area: "attachments", module: "server.js", routes: ["/api/attachments", "/api/files/content"] },
   { area: "documents", module: "server.js + src/document-ingestion.js", routes: ["/api/documents/extract", "/api/documents/ocr", "/api/documents/ingest-url"] },
   { area: "audio", module: "server.js + src/audio-transcription.js", routes: ["/api/audio/transcribe", "/api/audio/speak", "/api/files/raw"] },
+  { area: "image-generation", module: "server.js + src/image-generation.js", routes: ["/api/images/generate", "/api/files/raw"] },
   { area: "memory", module: "server.js", routes: ["/api/memory", "/api/memory/scopes", "/api/memory/structured", "/api/memory/retrieve", "/api/memory/history", "/api/memory/history/diff", "/api/memory/history/revert", "/api/memory/suggestions", "/api/memory/suggestions/apply", "/api/memory/citations"] },
   { area: "reports", module: "server.js", routes: ["/api/reports", "/api/trust/badge"] },
   { area: "sessions", module: "server.js", routes: ["/api/sessions", "/api/replay/plan", "/api/runs/pending", "/api/runs/pending/from-receipt", "/api/receipts/resume"] },

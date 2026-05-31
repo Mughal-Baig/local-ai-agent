@@ -96,6 +96,7 @@ Open `http://127.0.0.1:4173`, build the semantic index, ask for a change, review
 - First-run setup checklist for Ollama, models, workspace files, recipes, and receipts
 - Attachment picker plus drag/drop and paste image intake that copies local files into `workspace/attachments/`, extracts selectable PDF/DOCX/PPTX/XLSX/HTML/Markdown/code/image text into context notes, and selects image pixels for local vision models
 - Screenshot-to-action flow that turns an attached screenshot into an editable describe-and-plan run before execution
+- Optional local image generation through SD/Flux-style servers via `/api/images/generate`, with generated files and provenance saved in the workspace
 - Local speech-to-text adapter for WAV/MP3/M4A/FLAC/WebM/MP4/MOV files through `/api/audio/transcribe`, voice prompt recording in the composer, and local text-to-speech playback for assistant responses
 - Permission toggles for file reads, file writes, write preview mode, and security hardening mode
 - Ollama integration for local models
@@ -250,6 +251,7 @@ When write preview mode is enabled, `write_file` returns a diff preview instead 
 - Document text extraction: `/api/documents/extract`, `/api/documents/ocr`, `/api/documents/ingest-url`, automatic PDF/DOCX/PPTX/XLSX/HTML/Markdown/code/image attachment notes, progress steps, and ingestion receipts for searchable context
 - Vision-model image input: selected, dragged, or pasted PNG/JPEG/TIFF/BMP/WebP files are sent as local image payloads to Ollama vision models and OpenAI-compatible local servers
 - Screenshot-to-action: composer button creates a vision-backed editable plan from the selected screenshot before running tools
+- Local image generation: `/api/images/generate` talks to local Automatic1111/Forge or OpenAI-compatible Flux/SD servers, saves image artifacts, and writes Markdown provenance beside them
 - Local audio transcription: `/api/audio/transcribe` runs a local whisper.cpp-compatible command, writes searchable transcript sidecars, and saves ingestion receipts; the Audio Transcription recipe can run it from selected audio
 - Local response speech: `/api/audio/speak` runs a local TTS command, saves response audio, and gives assistant messages a Speak control
 - MCP bridge: [mcp/server.js](mcp/server.js) and [mcp/agenttrail.mcp.json](mcp/agenttrail.mcp.json)
@@ -333,6 +335,12 @@ Supported variables:
 - `AGENTTRAIL_TTS_ARGS`: optional TTS argument template, default `-o {{output}} {{text}}`
 - `AGENTTRAIL_TTS_FORMAT`: default TTS output extension, default `aiff`
 - `AGENTTRAIL_TTS_MAX_TEXT_CHARS`: max characters per speech request, default `8000`
+- `AGENTTRAIL_IMAGE_BACKEND`: optional local image backend, `automatic1111` or `openai-compatible`, default `automatic1111`
+- `AGENTTRAIL_IMAGE_HOST`: local SD/Flux server host, default `http://127.0.0.1:7860`
+- `AGENTTRAIL_IMAGE_ENDPOINT`: generation endpoint, default depends on backend
+- `AGENTTRAIL_IMAGE_MODEL`: optional model name for OpenAI-compatible image servers
+- `AGENTTRAIL_IMAGE_FORMAT`: preferred saved output format, default `png`
+- `AGENTTRAIL_IMAGE_ALLOW_REMOTE`: allow non-local image endpoints, default `false`
 - `AGENTTRAIL_MAX_VISION_IMAGES`: max selected images sent to a vision model, default `4`
 - `AGENTTRAIL_MAX_VISION_IMAGE_BYTES`: max bytes per selected vision image, default `2097152`
 - `AGENTTRAIL_MAX_ATTACHMENT_AUDIO_BYTES`: max bytes for saved audio attachments, default `8388608`

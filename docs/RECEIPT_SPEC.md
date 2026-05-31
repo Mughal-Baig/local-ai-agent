@@ -101,6 +101,8 @@ A polished, self-contained Markdown export for sharing (`POST /api/reports`): tr
 
 Saved automatically when AgentTrail extracts a document attachment, OCRs an image attachment or workspace image through `/api/documents/ocr`, transcribes local audio through `/api/audio/transcribe`, synthesizes local response audio through `/api/audio/speak`, extracts a workspace document through `/api/documents/extract`, or ingests an allowlisted URL through `/api/documents/ingest-url`.
 
+Image generation uses a neighboring provenance artifact instead of the ingestion receipt template: `/api/images/generate` saves images under the workspace and writes `<image>.provenance.md` with prompt, backend, endpoint, parameters, seeds, paths, bytes, and hashes.
+
 Each ingestion API response also includes a `progress` array with completed steps and percentages, plus a `receipt.path` that points to the Markdown receipt.
 
 ```markdown

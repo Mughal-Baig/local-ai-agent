@@ -41,6 +41,18 @@ const {
   normalizeTtsVoice,
   normalizeSpeechText
 } = require("./src/audio-transcription");
+const {
+  normalizeImagePrompt,
+  normalizeImageBackend,
+  defaultImageEndpoint,
+  normalizeImageDimensions,
+  normalizeImageFormat,
+  imageMediaTypeForFormat,
+  detectGeneratedImageFormat,
+  buildImageGenerationPayload,
+  parseGeneratedImages,
+  buildImageProvenanceMarkdown
+} = require("./src/image-generation");
 
 loadDotEnv();
 const execFileAsync = promisify(execFile);
@@ -124,6 +136,11 @@ const MAX_TRANSCRIBE_AUDIO_BYTES = Number(process.env.AGENTTRAIL_TRANSCRIBE_MAX_
 const TTS_TIMEOUT_MS = Number(process.env.AGENTTRAIL_TTS_TIMEOUT_MS || 120000);
 const TTS_MAX_TEXT_CHARS = Number(process.env.AGENTTRAIL_TTS_MAX_TEXT_CHARS || 8000);
 const TTS_MAX_OUTPUT_BYTES = Number(process.env.AGENTTRAIL_TTS_MAX_OUTPUT_BYTES || 25 * 1024 * 1024);
+const IMAGE_GEN_TIMEOUT_MS = Number(process.env.AGENTTRAIL_IMAGE_TIMEOUT_MS || 180000);
+const IMAGE_GEN_MAX_PROMPT_CHARS = Number(process.env.AGENTTRAIL_IMAGE_MAX_PROMPT_CHARS || 4000);
+const IMAGE_GEN_MAX_RESPONSE_BYTES = Number(process.env.AGENTTRAIL_IMAGE_MAX_RESPONSE_BYTES || 35 * 1024 * 1024);
+const IMAGE_GEN_MAX_OUTPUT_BYTES = Number(process.env.AGENTTRAIL_IMAGE_MAX_OUTPUT_BYTES || 25 * 1024 * 1024);
+const IMAGE_GEN_MAX_COUNT = Number(process.env.AGENTTRAIL_IMAGE_MAX_COUNT || 4);
 const MAX_VISION_IMAGES = Number(process.env.AGENTTRAIL_MAX_VISION_IMAGES || 4);
 const MAX_VISION_IMAGE_BYTES = Number(process.env.AGENTTRAIL_MAX_VISION_IMAGE_BYTES || 2 * 1024 * 1024);
 const MAX_ATTACHMENT_TEXT_BYTES = Number(process.env.AGENTTRAIL_MAX_ATTACHMENT_TEXT_BYTES || MAX_FILE_BYTES);
@@ -506,6 +523,10 @@ const server = http.createServer(async (req, res) => {
 
     if (url.pathname === "/api/audio/speak" && req.method === "POST") {
       return handleAudioSpeak(req, res);
+    }
+
+    if (url.pathname === "/api/images/generate" && req.method === "POST") {
+      return handleImageGenerate(req, res);
     }
 
     if (url.pathname === "/api/files/raw" && req.method === "GET") {
@@ -3464,6 +3485,54 @@ async function handleAudioSpeak(req, res) {
   }
 }
 
+async function handleImageGenerate(req, res) {
+  const body = await readJsonBody(req);
+  const prompt = normalizeImagePrompt(body.prompt || body.text || "");
+  if (!prompt) {
+    return sendJson(res, 400, { error: "Prompt is required for local image generation." });
+  }
+  if (prompt.length > IMAGE_GEN_MAX_PROMPT_CHARS) {
+    return sendJson(res, 400, { error: `Prompt is too long for one image request (${prompt.length} > ${IMAGE_GEN_MAX_PROMPT_CHARS} characters).` });
+  }
+  try {
+    const result = await writeGeneratedImages(prompt, body);
+    await STORE.append("image-generate", {
+      promptHash: hashContent(prompt),
+      backend: result.backend,
+      endpoint: result.endpoint,
+      count: result.images.length,
+      provenancePath: result.provenance.path
+    });
+    SQLITE.insert("image-generate", {
+      backend: result.backend,
+      count: result.images.length,
+      provenancePath: result.provenance.path
+    });
+    await LOGGER.log("info", "image.generate", {
+      backend: result.backend,
+      endpoint: result.endpoint,
+      count: result.images.length,
+      provenancePath: result.provenance.path
+    });
+    sendJson(res, 200, {
+      ok: true,
+      prompt: { charCount: prompt.length },
+      backend: result.backend,
+      endpoint: result.endpoint,
+      model: result.model,
+      parameters: result.parameters,
+      images: result.images.map((image) => ({
+        ...image,
+        imageUrl: `/api/files/raw?path=${encodeURIComponent(image.path)}`
+      })),
+      provenance: result.provenance,
+      progress: result.progress
+    });
+  } catch (error) {
+    sendJson(res, error.status || 400, { error: error.message || "Could not generate local image." });
+  }
+}
+
 async function handleUrlIngest(req, res) {
   const body = await readJsonBody(req);
   const sourceUrl = String(body.url || body.sourceUrl || "").trim();
@@ -3663,6 +3732,184 @@ async function writeSpeechAudio(text, options = {}) {
     progress,
     receipt
   };
+}
+
+async function writeGeneratedImages(prompt, options = {}) {
+  const startedAt = new Date().toISOString();
+  const backend = normalizeImageBackend(options.backend || process.env.AGENTTRAIL_IMAGE_BACKEND || "automatic1111");
+  const requested = {
+    ...options,
+    prompt,
+    backend,
+    count: Math.max(1, Math.min(IMAGE_GEN_MAX_COUNT, Number(options.count || options.n || 1) || 1))
+  };
+  const dimensions = normalizeImageDimensions(requested);
+  const format = normalizeImageFormat(options.format || process.env.AGENTTRAIL_IMAGE_FORMAT || "png");
+  const progress = [
+    ingestionProgressStep("validate-prompt", "Validated local image prompt", 12, { characters: prompt.length }),
+    ingestionProgressStep("prepare-request", "Prepared local image generation request", 28, {
+      backend,
+      width: dimensions.width,
+      height: dimensions.height,
+      count: requested.count
+    })
+  ];
+  const generation = await runLocalImageGeneration(requested);
+  progress.push(ingestionProgressStep("generate-image", `Ran local image generation with ${generation.backend}`, 72, {
+    endpoint: generation.endpoint,
+    returned: generation.images.length
+  }));
+
+  const outputs = [];
+  for (const [index, image] of generation.images.slice(0, requested.count).entries()) {
+    if (image.buffer.length > IMAGE_GEN_MAX_OUTPUT_BYTES) {
+      throw httpError(400, `Generated image is too large (${image.buffer.length} bytes).`);
+    }
+    const imageFormat = detectGeneratedImageFormat(image.buffer, image.mediaType || imageMediaTypeForFormat(format));
+    const outputPath = defaultGeneratedImagePath(options.outputPath, imageFormat, index, generation.images.length);
+    const written = await writeWorkspaceBinaryFile(outputPath, image.buffer);
+    outputs.push({
+      path: written.path,
+      size: written.size,
+      modifiedAt: written.modifiedAt,
+      mediaType: imageMediaTypeForFormat(imageFormat),
+      format: imageFormat,
+      hash: hashContent(image.buffer.toString("base64")),
+      seed: image.seed
+    });
+  }
+  if (!outputs.length) {
+    throw httpError(502, "Local image generation server returned no usable image.");
+  }
+  progress.push(ingestionProgressStep("save-images", "Saved generated image artifact(s) to workspace", 86, {
+    outputs: outputs.map((output) => output.path)
+  }));
+
+  const provenancePath = defaultImageProvenancePath(outputs[0].path);
+  const provenance = await writeWorkspaceFile(provenancePath, buildImageProvenanceMarkdown({
+    startedAt,
+    finishedAt: new Date().toISOString(),
+    backend: generation.backend,
+    endpoint: generation.endpoint,
+    model: generation.model,
+    prompt,
+    negativePrompt: requested.negativePrompt,
+    parameters: generation.parameters,
+    outputs
+  }));
+  progress.push(ingestionProgressStep("save-provenance", "Saved image generation provenance", 100, {
+    provenancePath: provenance.path
+  }));
+
+  return {
+    backend: generation.backend,
+    endpoint: generation.endpoint,
+    model: generation.model,
+    parameters: generation.parameters,
+    images: outputs,
+    provenance,
+    progress
+  };
+}
+
+async function runLocalImageGeneration(options = {}) {
+  const backend = normalizeImageBackend(options.backend || process.env.AGENTTRAIL_IMAGE_BACKEND || "automatic1111");
+  const host = trimTrailingSlash(options.host || process.env.AGENTTRAIL_IMAGE_HOST || "http://127.0.0.1:7860");
+  const endpointPath = options.endpoint || process.env.AGENTTRAIL_IMAGE_ENDPOINT || defaultImageEndpoint(backend);
+  const endpoint = new URL(endpointPath, `${host}/`);
+  validateImageGenerationEndpoint(endpoint);
+  const payload = buildImageGenerationPayload({
+    ...options,
+    backend,
+    model: options.model || process.env.AGENTTRAIL_IMAGE_MODEL || ""
+  });
+  const headers = { "Content-Type": "application/json" };
+  const apiKey = process.env.AGENTTRAIL_IMAGE_API_KEY || "";
+  if (apiKey) {
+    headers.Authorization = `Bearer ${apiKey}`;
+  }
+  let response;
+  try {
+    response = await fetch(endpoint.href, {
+      method: "POST",
+      headers,
+      body: JSON.stringify(payload),
+      signal: AbortSignal.timeout(IMAGE_GEN_TIMEOUT_MS)
+    });
+  } catch (error) {
+    throw httpError(502, `Local image generation request failed: ${error.message}`);
+  }
+  const declaredLength = Number(response.headers.get("content-length") || 0);
+  if (declaredLength > IMAGE_GEN_MAX_RESPONSE_BYTES) {
+    throw httpError(413, `Image generation response is too large (${declaredLength} bytes).`);
+  }
+  const raw = await readResponseBodyLimited(response, IMAGE_GEN_MAX_RESPONSE_BYTES);
+  const text = raw.toString("utf8");
+  if (!response.ok) {
+    throw httpError(502, `Image generation failed: HTTP ${response.status} ${truncate(text, 300)}`.trim());
+  }
+  let json;
+  try {
+    json = JSON.parse(text || "{}");
+  } catch {
+    throw httpError(502, "Image generation server did not return valid JSON.");
+  }
+  const images = parseGeneratedImages(json);
+  if (!images.length) {
+    throw httpError(502, "Image generation server returned JSON but no base64 image.");
+  }
+  return {
+    backend,
+    endpoint: endpoint.href,
+    model: payload.model || "",
+    parameters: imageGenerationProvenanceParameters(payload, backend),
+    images
+  };
+}
+
+function validateImageGenerationEndpoint(endpoint) {
+  if (!["http:", "https:"].includes(endpoint.protocol)) {
+    throw httpError(400, "Image generation endpoint only supports http:// and https:// URLs.");
+  }
+  const allowRemote = String(process.env.AGENTTRAIL_IMAGE_ALLOW_REMOTE || "false").toLowerCase() === "true";
+  if (!allowRemote && !isPrivateUrlHost(endpoint.hostname)) {
+    throw httpError(403, "Image generation endpoints must be local/private unless AGENTTRAIL_IMAGE_ALLOW_REMOTE=true.");
+  }
+}
+
+function imageGenerationProvenanceParameters(payload, backend) {
+  if (normalizeImageBackend(backend) === "openai-compatible") {
+    return {
+      size: payload.size,
+      count: payload.n || 1,
+      response_format: payload.response_format || "b64_json"
+    };
+  }
+  return {
+    width: payload.width,
+    height: payload.height,
+    steps: payload.steps,
+    batch_size: payload.batch_size,
+    seed: payload.seed !== undefined ? payload.seed : "backend-default",
+    cfg_scale: payload.cfg_scale !== undefined ? payload.cfg_scale : "backend-default",
+    sampler_name: payload.sampler_name || "backend-default"
+  };
+}
+
+function defaultGeneratedImagePath(requestedPath, format, index, total) {
+  const extension = normalizeImageFormat(format);
+  if (requestedPath) {
+    const normalized = normalizeRelativePath(requestedPath);
+    const withoutExtension = normalized.replace(/\.[a-z0-9]+$/i, "");
+    return `${withoutExtension}${total > 1 ? `-${index + 1}` : ""}.${extension}`;
+  }
+  const stamp = new Date().toISOString().replace(/[:.]/g, "-");
+  return `images/generated/image-${stamp}${total > 1 ? `-${index + 1}` : ""}.${extension}`;
+}
+
+function defaultImageProvenancePath(imagePath) {
+  const base = normalizeRelativePath(imagePath).replace(/\.[a-z0-9]+$/i, "");
+  return `${base}.provenance.md`;
 }
 
 async function writeOcrDocumentNote(sourcePath, options = {}) {
@@ -8044,6 +8291,9 @@ function contentType(filePath) {
       ".svg": "image/svg+xml; charset=utf-8",
       ".gif": "image/gif",
       ".png": "image/png",
+      ".jpg": "image/jpeg",
+      ".jpeg": "image/jpeg",
+      ".webp": "image/webp",
       ".ico": "image/x-icon",
       ".aiff": "audio/aiff",
       ".aif": "audio/aiff",

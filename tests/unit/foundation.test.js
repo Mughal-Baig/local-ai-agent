@@ -20,6 +20,7 @@ const { SqliteStore } = require("../../src/sqlite-store");
 const { FlatVectorStore, VECTOR_STORE_VERSION, annCandidatePaths, buildVectorAnnIndex, migrateVectorStore, vectorMapsFromStore, vectorStoreFromIndex } = require("../../src/vector-store");
 const { runPluginTool } = require("../../src/plugin-sandbox");
 const { routeCatalog } = require("../../src/route-catalog");
+const { normalizeImageBackend, buildImageGenerationPayload } = require("../../src/image-generation");
 
 main().catch((error) => {
   console.error(error);
@@ -61,6 +62,7 @@ async function main() {
   assert.equal(routeCatalog().some((route) => route.routes.includes("/api/runs/pending")), true);
   assert.equal(routeCatalog().some((route) => route.routes.includes("/api/audio/transcribe")), true);
   assert.equal(routeCatalog().some((route) => route.routes.includes("/api/audio/speak")), true);
+  assert.equal(routeCatalog().some((route) => route.routes.includes("/api/images/generate")), true);
   assert.equal(routeCatalog().some((route) => route.routes.includes("/api/tools/schemas")), true);
   assert.equal(routeCatalog().some((route) => route.routes.includes("/api/structured-output")), true);
   assert.equal(listToolSchemas().some((tool) => tool.name === "search_workspace"), true);
@@ -69,6 +71,8 @@ async function main() {
   assert.equal(validateToolArguments("read_file", {}).ok, false);
   assert.deepEqual(repairToolArguments("read_file", { file: "welcome.md" }), { path: "welcome.md" });
   assert.deepEqual(repairToolArguments("search_workspace", { q: "receipt", limit: "3" }), { query: "receipt", limit: 3 });
+  assert.equal(normalizeImageBackend("sd-webui"), "automatic1111");
+  assert.equal(buildImageGenerationPayload({ backend: "openai-compatible", prompt: "x", width: 512, height: 512 }).size, "512x512");
   const taskSchema = listStructuredOutputSchemas().find((schema) => schema.id === "task-list").schema;
   assert.equal(validateSchema("projectMemory", withSchema("projectMemory", {
     updatedAt: new Date().toISOString(),
