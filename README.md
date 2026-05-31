@@ -196,6 +196,8 @@ Other install paths:
 ```bash
 npm link
 agenttrail
+agenttrail run llama3.2 "summarize workspace/welcome.md"
+agenttrail list --json
 docker build -t agenttrail .
 docker run --rm -p 4173:4173 -v "$PWD/workspace:/app/workspace" agenttrail
 docker compose up --build
@@ -264,7 +266,7 @@ When write preview mode is enabled, `write_file` returns a diff preview instead 
 - MCP bridge: [mcp/server.js](mcp/server.js) and [mcp/agenttrail.mcp.json](mcp/agenttrail.mcp.json)
 - Recipe marketplace: [marketplace/recipes.json](marketplace/recipes.json), [recipe-packs](recipe-packs), `/api/packs/import`
 - One-command install surfaces: `bin/agenttrail.js`, [Dockerfile](Dockerfile), [docker-compose.yml](docker-compose.yml), [install.sh](install.sh), [Formula/agenttrail.rb](Formula/agenttrail.rb), [desktop](desktop)
-- CLI and editor integrations: `bin/agenttrail-chat.js`, `agenttrail-chat`, [docs/INTEGRATIONS.md](docs/INTEGRATIONS.md), and the VS Code MVP in [editor/vscode-agenttrail](editor/vscode-agenttrail)
+- CLI and editor integrations: Ollama-style `agenttrail run/pull/list/rm/ps/show/serve/create`, `agenttrail-chat`, shell completions, [docs/CLI.md](docs/CLI.md), [docs/INTEGRATIONS.md](docs/INTEGRATIONS.md), and the VS Code MVP in [editor/vscode-agenttrail](editor/vscode-agenttrail)
 - Physical desktop app: `npm run package:mac-app` builds `dist/mac/AgentTrail.app`; Windows tray and Linux desktop/package templates live in [desktop](desktop) and [installers](installers)
 - Model scoring and benchmarking: `/api/status`, `/api/models/vision-capability`, `/api/benchmarks`
 - Throughput and resource visibility: `/api/concurrency`, `/api/health`, `/api/resources`, `/api/runtime`, and `npm run load:test`

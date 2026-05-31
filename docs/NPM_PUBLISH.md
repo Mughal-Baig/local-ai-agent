@@ -17,4 +17,6 @@ After publishing:
 
 ```bash
 npx agenttrail
+npx agenttrail run llama3.2 "hello"
+npx agenttrail list --json
 ```

@@ -8,6 +8,7 @@ const RELEASE_ARTIFACTS = [
   "server.js",
   "package.json",
   "bin/agenttrail.js",
+  "src/cli.js",
   "mcp/server.js",
   "scripts/package-mac-app.js",
   "scripts/sign-mac-app.js",
@@ -18,6 +19,7 @@ const RELEASE_ARTIFACTS = [
   "updates/latest.json",
   "docs/agenttrail-demo.gif",
   "docs/MAC_APP.md",
+  "docs/CLI.md",
   "Dockerfile",
   "docker-compose.yml",
   "install.sh"

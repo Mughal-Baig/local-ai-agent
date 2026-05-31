@@ -22,7 +22,24 @@ AGENTTRAIL_URL=http://127.0.0.1:4173 node scripts/load-test.js /api/health 20 50
 ```
 Reports ok/fail, requests/sec, avg and p95 latency.
 
-## CLI pipe mode (T089)
+## CLI parity and pipe mode (T089, T140-T146)
+
+Ollama-style AgentTrail CLI:
+
+```bash
+agenttrail serve
+agenttrail run llama3.2
+agenttrail run llama3.2 "summarize the README"
+agenttrail pull llama3.2
+agenttrail list --json
+agenttrail ps
+agenttrail show llama3.2
+agenttrail create my/derived -f Modelfile
+agenttrail completion zsh
+```
+
+Legacy pipe helper:
+
 ```bash
 echo "summarize the README" | node bin/agenttrail-chat.js
 node bin/agenttrail-chat.js "write release notes"

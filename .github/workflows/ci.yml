@@ -17,7 +17,9 @@ jobs:
         with:
           node-version: "22"
       - run: node --check server.js
+      - run: node --check bin/agenttrail.js
       - run: node --check bin/agenttrail-chat.js
+      - run: node --check src/cli.js
       - run: node --check public/app.js
       - run: node --check src/model-adapters.js
       - run: node --check src/tool-schemas.js
@@ -45,6 +47,7 @@ jobs:
       - run: node --check tests/unit/model-registry.test.js
       - run: node --check tests/unit/desktop-distribution.test.js
       - run: node --check tests/integration/model-registry.test.js
+      - run: node --check tests/integration/cli.test.js
       - run: node --check tests/integration/openai-compatible-server.test.js
       - run: node --check tests/integration/health.test.js
       - run: node --check tests/integration/concurrency.test.js
@@ -70,6 +73,7 @@ jobs:
       - run: node tests/integration/openai-compatible-server.test.js
       - run: node tests/integration/model-management.test.js
       - run: node tests/integration/model-registry.test.js
+      - run: node tests/integration/cli.test.js
       - run: node tests/integration/embedding-cache.test.js
       - run: node scripts/eval-search.js
       - run: node scripts/benchmark-search.js

@@ -4,7 +4,7 @@
 
 - Add true local embedding backends behind optional dependencies.
 - Add a recorded GIF/video in addition to the animated SVG proof.
-- Add CLI parity commands for `agenttrail run`, `pull`, `list`, `serve`, and `create`.
+- Add signed release automation and package publishing polish.
 
 ## Later
 
@@ -38,6 +38,7 @@
 - Shareable Markdown/HTML reports.
 - MCP approval manifest.
 - Native desktop distribution scaffolding: macOS menu-bar app, Windows tray launcher, Linux package templates, update channel, signing dry-runs, onboarding, and long-run notifications.
+- CLI parity commands: `agenttrail run`, `pull`, `list`, `rm`, `ps`, `show`, `serve`, `create`, JSON scripting, shell completions, and integration tests.
 
 ## Not Planned
 

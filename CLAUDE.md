@@ -310,3 +310,13 @@ Next open: real `node-llama-cpp` validation with a tiny GGUF on actual hardware,
 - New test/docs: `npm run test:desktop`, `docs/DESKTOP_DISTRIBUTION.md`, expanded desktop/signing docs, release workflow dry-runs for macOS/Windows signing, and checksum coverage for desktop-critical files.
 
 Next open: real `node-llama-cpp` validation with a tiny GGUF on actual hardware, then Epic U CLI parity.
+
+## Latest Codex Pass - Epic U CLI parity
+
+- T140-T146 are implemented through `src/cli.js` and `bin/agenttrail.js`: `agenttrail run <model>` REPL/scripting mode, streamed `/api/chat` output, `--json` automation output, and `--url/--host/--port` targeting.
+- Ollama-style model commands now exist: `agenttrail pull`, `list`, `rm`, `ps`, and `show`, with registry-aware `show` and `pull --source` support where AgentTrail owns the GGUF registry.
+- `agenttrail serve` starts the headless local API/UI server, and `agenttrail create <name> -f Modelfile` creates a derived registry model through `/api/model-registry/create`.
+- Shell completions are available through `agenttrail completion bash|zsh|fish`.
+- Tests/docs updated: `npm run test:cli`, CI node checks and integration step, `docs/CLI.md`, integration docs, README/NPM docs, roadmap progress, repo eval, and release checksums.
+
+Next open: real `node-llama-cpp` validation with a tiny GGUF on actual hardware, then Epic V packaging and supply-chain polish.

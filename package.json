@@ -64,6 +64,7 @@
     "test:backend": "node tests/integration/openai-backend.test.js",
     "test:v1": "node tests/integration/openai-compatible-server.test.js",
     "test:models": "node tests/integration/model-management.test.js",
+    "test:cli": "node tests/integration/cli.test.js",
     "test:embed-cache": "node tests/integration/embedding-cache.test.js",
     "eval:search": "node scripts/eval-search.js",
     "bench:search": "node scripts/benchmark-search.js",
