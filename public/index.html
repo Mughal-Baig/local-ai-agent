@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>AgentTrail</title>
     <link rel="icon" href="/logo.svg" />
-    <link rel="stylesheet" href="/styles.css?v=16" />
+    <link rel="stylesheet" href="/styles.css?v=17" />
   </head>
   <body>
     <div class="app-shell">
@@ -48,6 +48,9 @@
           <div class="topbar-right">
             <span id="workspaceStatus" class="topbar-status"></span>
             <span class="trust-pill" title="Trust score">Trust <strong id="trustScore">60</strong></span>
+            <button id="themeToggle" class="icon-btn theme-toggle" type="button" aria-label="Toggle theme" title="Theme: system">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+            </button>
             <button id="toolsToggleTop" class="icon-btn" type="button" aria-label="Tools and settings" title="Tools &amp; settings">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
             </button>
@@ -422,7 +425,7 @@
       </div>
     </aside>
 
-    <script src="/app.js?v=26"></script>
+    <script src="/app.js?v=27"></script>
     <script src="/modules/foundation.js?v=1"></script>
     <script src="/modules/product.js?v=1"></script>
   </body>

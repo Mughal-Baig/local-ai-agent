@@ -44,6 +44,8 @@ async function main() {
   assert.match(apiReference, /\/api\/team\/status/);
   assert.match(apiReference, /\/api\/model-ecosystem\/evaluate/);
   assert.match(apiReference, /\/api\/advanced-agent\/replay-diff/);
+  assert.match(apiReference, /\/api\/conversations\/export/);
+  assert.match(apiReference, /\/api\/redact/);
   assert.match(apiReference, /\/v1\/chat\/completions/);
 
   assert.match(quickStart, /60-Second Flow/);

@@ -1350,3 +1350,37 @@ textarea:focus, select:focus, input:focus, button:focus-visible {
 }
 
 .topbar-status { max-width: 200px; font-size: 0.74rem; color: var(--faint); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* ============================================================
+   T225 - Dark theme. Everything is driven by CSS variables, so
+   overriding them under [data-theme="dark"] flips the whole UI.
+   ============================================================ */
+[data-theme="dark"] {
+  --bg: #1c1b19;
+  --bg-tint: #232220;
+  --panel: #26241f;
+  --panel-2: #2b2926;
+  --ink: #ece9e1;
+  --ink-soft: #d6d2c8;
+  --muted: #a59f93;
+  --faint: #7c766b;
+  --line: #393631;
+  --line-strong: #4a463f;
+  --clay: #d98a6a;
+  --clay-deep: #e2a384;
+  --clay-soft: #3c2d25;
+  --clay-faint: #2c2420;
+  --sage: #8aa37f;
+  --sage-soft: #28302433;
+  --amber: #d4ab5f;
+  --amber-soft: #322a1733;
+  --rose: #d2806a;
+  --rose-soft: #34231c66;
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+  --shadow-lg: 0 24px 60px rgba(0, 0, 0, 0.55);
+}
+[data-theme="dark"] .bubble pre,
+[data-theme="dark"] .diff pre,
+[data-theme="dark"] .diff-block { background: #14130f; }
+.theme-toggle svg { width: 18px; height: 18px; }

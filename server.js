@@ -25,6 +25,7 @@ const { hashContent, chunkTextDetailed, rankChunks, scoreBm25Documents, fuseHybr
 const { FlatVectorStore, summarizeVectorStore, vectorMapsFromStore, annCandidatePaths } = require("./src/vector-store");
 const workspaceSafety = require("./src/workspace-safety");
 const { scanSecurityText } = require("./src/features/security");
+const { redactSecrets } = require("./src/features/redact");
 const { ERROR_TAXONOMY, friendlyError } = require("./src/features/errors");
 const { createObservability } = require("./src/observability");
 const {
@@ -292,6 +293,30 @@ const server = http.createServer(async (req, res) => {
 
     if (url.pathname === "/api/resources" && req.method === "GET") {
       return handleResources(res);
+    }
+
+    if (url.pathname === "/api/redact" && req.method === "POST") {
+      return handleRedact(req, res);
+    }
+
+    if (url.pathname === "/api/conversations/export" && req.method === "POST") {
+      return handleConversationExport(req, res);
+    }
+
+    if (url.pathname === "/api/conversations" && req.method === "GET") {
+      return handleListConversations(url, res);
+    }
+
+    if (url.pathname === "/api/conversations" && req.method === "POST") {
+      return handleSaveConversation(req, res);
+    }
+
+    if (url.pathname === "/api/conversations/get" && req.method === "GET") {
+      return handleGetConversation(url, res);
+    }
+
+    if (url.pathname === "/api/conversations/delete" && req.method === "POST") {
+      return handleDeleteConversation(req, res);
     }
 
     if (url.pathname === "/api/runtime" && req.method === "GET") {
@@ -871,6 +896,121 @@ server.listen(PORT, HOST, () => {
   console.log(`Workspace root: ${WORKSPACE_ROOT}`);
   console.log(`Model backend: ${ACTIVE_BACKEND.title} (${ACTIVE_BACKEND.api}) at ${BACKEND_HOST}`);
 });
+
+// Epic AE - conversation store API foundation (T206-T211): persist, list, search, open, rename, pin, delete.
+const CONVERSATIONS_DIR = ".agenttrail/conversations";
+const MAX_CONVERSATION_BYTES = 1024 * 1024;
+function conversationPath(id) { return `${CONVERSATIONS_DIR}/${id}.json`; }
+function safeConversationId(id) { return /^[A-Za-z0-9_-]{1,64}$/.test(String(id || "")) ? String(id) : null; }
+
+async function handleSaveConversation(req, res) {
+  const body = await readJsonBody(req);
+  const id = safeConversationId(body.id) || `c-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`;
+  const messages = (Array.isArray(body.messages) ? body.messages : [])
+    .filter((m) => m && (m.role === "user" || m.role === "assistant") && typeof m.content === "string")
+    .slice(0, 2000)
+    .map((m) => ({ role: m.role, content: m.content }));
+  let existing = null;
+  try { existing = JSON.parse((await readWorkspaceFile(conversationPath(id), MAX_CONVERSATION_BYTES)).content); } catch { existing = null; }
+  const firstUser = messages.find((m) => m.role === "user");
+  const autoTitle = firstUser ? firstUser.content.replace(/\s+/g, " ").trim().slice(0, 60) : "";
+  const title = String(body.title || (existing && existing.title) || autoTitle || "New conversation").slice(0, 120);
+  const now = new Date().toISOString();
+  const record = {
+    id,
+    title,
+    pinned: body.pinned !== undefined ? Boolean(body.pinned) : (existing ? Boolean(existing.pinned) : false),
+    createdAt: existing ? existing.createdAt : now,
+    updatedAt: now,
+    messages
+  };
+  await writeWorkspaceFile(conversationPath(id), JSON.stringify(record, null, 2));
+  sendJson(res, 200, { ok: true, id, title: record.title, pinned: record.pinned, updatedAt: record.updatedAt, messageCount: messages.length });
+}
+
+async function handleListConversations(url, res) {
+  const q = String(url.searchParams.get("q") || "").trim().toLowerCase();
+  const dir = resolveWorkspacePath(CONVERSATIONS_DIR);
+  let files = [];
+  try { files = (await fsp.readdir(dir)).filter((f) => f.endsWith(".json")); } catch { files = []; }
+  const items = [];
+  for (const f of files) {
+    try {
+      const rec = JSON.parse(await fsp.readFile(path.join(dir, f), "utf8"));
+      if (q) {
+        const hay = `${rec.title || ""} ${(rec.messages || []).map((m) => m.content).join(" ")}`.toLowerCase();
+        if (!hay.includes(q)) continue;
+      }
+      items.push({ id: rec.id, title: rec.title, pinned: Boolean(rec.pinned), updatedAt: rec.updatedAt, messageCount: (rec.messages || []).length });
+    } catch {
+      // skip unreadable conversation files
+    }
+  }
+  items.sort((a, b) => (Number(b.pinned) - Number(a.pinned)) || String(b.updatedAt || "").localeCompare(String(a.updatedAt || "")));
+  sendJson(res, 200, { conversations: items.slice(0, 200) });
+}
+
+async function handleGetConversation(url, res) {
+  const id = safeConversationId(url.searchParams.get("id"));
+  if (!id) return sendJson(res, 400, { error: "A valid conversation id is required." });
+  try {
+    const rec = JSON.parse((await readWorkspaceFile(conversationPath(id), MAX_CONVERSATION_BYTES)).content);
+    sendJson(res, 200, { conversation: rec });
+  } catch {
+    sendJson(res, 404, { error: "Conversation not found." });
+  }
+}
+
+async function handleDeleteConversation(req, res) {
+  const body = await readJsonBody(req);
+  const id = safeConversationId(body.id);
+  if (!id) return sendJson(res, 400, { error: "A valid conversation id is required." });
+  try { await fsp.unlink(resolveWorkspacePath(conversationPath(id))); } catch { /* already gone */ }
+  sendJson(res, 200, { ok: true, id });
+}
+
+// T212 - export a single conversation as Markdown / JSON / HTML (secrets redacted).
+async function handleConversationExport(req, res) {
+  const esc = (v) => String(v).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  const body = await readJsonBody(req);
+  const format = String(body.format || "markdown").toLowerCase();
+  const title = redactSecrets(String(body.title || "AgentTrail conversation").slice(0, 200)).redacted;
+  const messages = (Array.isArray(body.messages) ? body.messages : [])
+    .filter((m) => m && (m.role === "user" || m.role === "assistant") && typeof m.content === "string")
+    .slice(0, 1000)
+    .map((m) => ({ role: m.role, content: redactSecrets(m.content).redacted }));
+  const exportedAt = new Date().toISOString();
+  let content;
+  let filename;
+  let contentType;
+  if (format === "json") {
+    content = JSON.stringify({ title, exportedAt, messages }, null, 2);
+    filename = "conversation.json";
+    contentType = "application/json";
+  } else if (format === "html") {
+    const rows = messages
+      .map((m) => `<div class="msg ${m.role}"><b>${m.role === "user" ? "You" : "AgentTrail"}</b><p>${esc(m.content).replace(/\n/g, "<br>")}</p></div>`)
+      .join("\n");
+    content = `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>${esc(title)}</title><style>body{font-family:system-ui,sans-serif;max-width:760px;margin:40px auto;color:#1f1e1d;padding:0 16px}.msg{margin:14px 0;padding:12px 14px;border:1px solid #e2ddd0;border-radius:10px}.msg.user{background:#f8efe9}b{color:#b35f43}h1{font-family:Georgia,serif}</style></head><body><h1>${esc(title)}</h1><p style="color:#75716a">Exported ${esc(exportedAt)} - local, nothing left your machine</p>${rows}</body></html>`;
+    filename = "conversation.html";
+    contentType = "text/html";
+  } else {
+    const rows = messages
+      .map((m) => `**${m.role === "user" ? "You" : "AgentTrail"}:**\n\n${m.content}`)
+      .join("\n\n---\n\n");
+    content = `# ${title}\n\n_Exported ${exportedAt} - local_\n\n${rows}\n`;
+    filename = "conversation.md";
+    contentType = "text/markdown";
+  }
+  sendJson(res, 200, { format, filename, contentType, messageCount: messages.length, content });
+}
+
+// T156/T240 - detect and redact secrets in arbitrary text (context, receipts, exports).
+async function handleRedact(req, res) {
+  const body = await readJsonBody(req);
+  const { redacted, count } = redactSecrets(body.text || "");
+  sendJson(res, 200, { redacted, count });
+}
 
 // Epic O — resource management: CPU/RAM/disk usage, per-model RAM estimate, and a
 // quantization recommendation based on free memory (T099-T103).

@@ -15,6 +15,7 @@ AgentTrail exposes two API layers: local app endpoints under `/api/*` and an Ope
 | image-generation | server.js + src/image-generation.js | `/api/images/generate`<br>`/api/files/raw` |
 | memory | server.js | `/api/memory`<br>`/api/memory/scopes`<br>`/api/memory/structured`<br>`/api/memory/retrieve`<br>`/api/memory/history`<br>`/api/memory/history/diff`<br>`/api/memory/history/revert`<br>`/api/memory/suggestions`<br>`/api/memory/suggestions/apply`<br>`/api/memory/citations` |
 | reports | server.js | `/api/reports`<br>`/api/trust/badge` |
+| conversations | server.js | `/api/conversations`<br>`/api/conversations/get`<br>`/api/conversations/delete`<br>`/api/conversations/export` |
 | sessions | server.js | `/api/sessions`<br>`/api/replay/plan`<br>`/api/runs/pending`<br>`/api/runs/pending/from-receipt`<br>`/api/receipts/resume` |
 | planner | server.js + src/structured-output.js | `/api/agent/plan`<br>`/api/chat` |
 | tools | src/permissions.js + src/tool-schemas.js | `/api/permissions`<br>`/api/tools/schemas`<br>`/api/tools/capability`<br>`/api/mcp` |
@@ -25,7 +26,7 @@ AgentTrail exposes two API layers: local app endpoints under `/api/*` and an Ope
 | system | server.js | `/api/health`<br>`/api/resources`<br>`/api/runtime`<br>`/api/concurrency`<br>`/api/updates/check` |
 | openai-compatible-api | server.js | `/v1/chat/completions`<br>`/v1/models`<br>`/v1/embeddings`<br>`/v1/openapi.json` |
 | structured-output | src/structured-output.js | `/api/structured-output/schemas`<br>`/api/structured-output`<br>`/api/structured-output/recipe` |
-| security | src/features/security.js + src/privacy.js + src/network-policy.js | `/api/security/scan`<br>`/api/security/privacy` |
+| security | src/features/security.js + src/privacy.js + src/network-policy.js + src/features/redact.js | `/api/security/scan`<br>`/api/security/privacy`<br>`/api/redact` |
 | observability | src/observability.js + src/logger.js | `/api/logs`<br>`/api/metrics`<br>`/api/observability`<br>`/api/traces`<br>`/api/traces/content`<br>`/api/errors/taxonomy` |
 | team-enterprise | src/team-enterprise.js | `/api/team/status`<br>`/api/team/users`<br>`/api/team/users/select`<br>`/api/team/rbac`<br>`/api/team/receipts`<br>`/api/team/receipts/content`<br>`/api/team/sync/status`<br>`/api/team/sync/export`<br>`/api/team/audit/export`<br>`/api/team/sso`<br>`/api/team/sso/validate` |
 | foundation | src/foundation.js | `/api/foundation`<br>`/api/schemas`<br>`/api/migrations` |

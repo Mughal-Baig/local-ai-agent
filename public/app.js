@@ -170,6 +170,7 @@ const els = {
   closeTools: document.querySelector("#closeTools"),
   refreshResources: document.querySelector("#refreshResources"),
   resourcesSummary: document.querySelector("#resourcesSummary"),
+  themeToggle: document.querySelector("#themeToggle"),
   refreshObservability: document.querySelector("#refreshObservability"),
   observabilitySummary: document.querySelector("#observabilitySummary"),
   traceTimeline: document.querySelector("#traceTimeline"),
@@ -212,6 +213,51 @@ document.addEventListener("DOMContentLoaded", async () => {
   ]);
   els.prompt.focus();
 });
+
+let themePreference = "system";
+
+function resolvedTheme(pref) {
+  if (pref === "system") {
+    return window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+  }
+  return pref;
+}
+
+function applyThemePreference(pref) {
+  document.documentElement.dataset.theme = resolvedTheme(pref);
+  if (els.themeToggle) {
+    els.themeToggle.title = `Theme: ${pref}`;
+  }
+}
+
+function initTheme() {
+  try {
+    themePreference = localStorage.getItem("agenttrail-theme") || "system";
+  } catch {
+    themePreference = "system";
+  }
+  applyThemePreference(themePreference);
+  try {
+    window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => {
+      if (themePreference === "system") {
+        applyThemePreference("system");
+      }
+    });
+  } catch {
+    // matchMedia unavailable; ignore
+  }
+}
+
+function cycleTheme() {
+  themePreference = themePreference === "light" ? "dark" : themePreference === "dark" ? "system" : "light";
+  try {
+    localStorage.setItem("agenttrail-theme", themePreference);
+  } catch {
+    // storage unavailable; theme still applies for the session
+  }
+  applyThemePreference(themePreference);
+  addTrail("system", `Theme set to ${themePreference}`);
+}
 
 function bindEvents() {
   els.refreshStatus.addEventListener("click", refreshStatus);
@@ -285,6 +331,10 @@ function bindEvents() {
   }
   if (els.refreshResources) {
     els.refreshResources.addEventListener("click", refreshResources);
+  }
+  initTheme();
+  if (els.themeToggle) {
+    els.themeToggle.addEventListener("click", cycleTheme);
   }
   if (els.refreshObservability) {
     els.refreshObservability.addEventListener("click", refreshObservability);

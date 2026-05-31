@@ -16,9 +16,11 @@ This table maps the requested 30-item top-1% and foundation list to the v0.7 imp
 | OpenAI-compatible server mode | `/v1/chat/completions`, `/v1/models`, `/v1/embeddings`, streaming SSE, optional API-key auth, local rate limiting, request queue headers, `/v1/openapi.json`, and client docs |
 | Diff-safe file writing | permission engine, preview-first writes, Diff Review center, explicit Apply buttons |
 | Replayable receipts | `/api/sessions`, `/api/sessions/content`, `/api/replay/plan`, `/api/receipts/resume`, `/api/runs/pending/from-receipt`, saved model/prompt/files/diffs/trail |
+| Conversation portability | `/api/conversations`, `/api/conversations/get`, `/api/conversations/delete`, `/api/conversations/export`, redacted Markdown/JSON/HTML chat export, and persisted light/dark/system theme toggle |
 | Trust Score | browser Trust Score dashboard plus `/api/foundation` score |
 | Run observability | `/api/metrics`, `/api/observability`, `/api/traces`, token/time accounting, error taxonomy, and the in-app trace timeline |
 | Security hardening | `/api/security/scan`, `/api/security/privacy`, prompt injection, exfiltration, path escape, hidden instruction, destructive command, secret-like value detection, egress allowlists, optional encrypted receipts |
+| Redaction API | `/api/redact` exposes the same local secret masking used by conversation exports and audit artifacts |
 | Project memory with citations | `/api/memory/citations`, revision history in `workspace/memory/history/` |
 | Model benchmark dashboard | `/api/benchmarks`, `/api/benchmarks/run`, `/api/models/compare`, `/api/models/vision-capability`, benchmark history, vision-readiness scoring |
 | Model ecosystem | `/api/model-ecosystem/*`, LoRA adapter manifests, fine-tuning launch delegation, quantization wrapper, safetensors-to-GGUF conversion plans, and per-task model eval suites |

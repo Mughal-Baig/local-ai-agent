@@ -139,6 +139,9 @@ async function main() {
   checks.push(await check("Advanced agent journal resume exists", async () => includes("src/advanced-agent.js", ["agenttrail.task-journal.v1", "resumeTaskJournal"]) && includes("server.js", ["/api/advanced-agent/journal/resume", "persistPendingRun"])));
   checks.push(await check("Advanced agent sub-agent budget isolation exists", async () => includes("src/advanced-agent.js", ["agenttrail.sub-agent.v1", "spawnSubAgent", "budgetIsolation"]) && includes("tests/unit/advanced-agent.test.js", ["parentBudget", "maxTokens"])));
   checks.push(await check("Advanced agent deterministic replay diff exists", async () => includes("src/advanced-agent.js", ["agenttrail.replay-diff.v1", "diffReplayRuns", "canonicalReplay"]) && includes("server.js", ["/api/advanced-agent/replay-diff", "handleAdvancedAgentReplayDiff"]) && includes("tests/integration/advanced-agent.test.js", ["replay-diff"])));
+  checks.push(await check("Conversation export API exists", async () => includes("server.js", ["/api/conversations/export", "handleConversationExport", "CONVERSATIONS_DIR"]) && includes("tests/integration/conversation-export.test.js", ["Renamed chat", "Conversation export test passed"])));
+  checks.push(await check("Redaction API endpoint exists", async () => includes("server.js", ["/api/redact", "handleRedact", "redactSecrets"]) && includes("tests/integration/redact.test.js", ["Redact endpoint test passed"])));
+  checks.push(await check("Theme toggle exists", async () => includes("public/index.html", ["themeToggle"]) && includes("public/app.js", ["agenttrail-theme", "cycleTheme"]) && includes("public/styles.css", ["[data-theme=\"dark\"]"])));
   checks.push(await check("Epic U CLI parity exists", async () => includes("src/cli.js", ["runCommand", "pullCommand", "completionScript", "/api/model-registry/create"]) && includes("bin/agenttrail.js", ["runCli"]) && includes("tests/integration/cli.test.js", ["agenttrail-cli", "CLI integration test passed"]) && includes("docs/CLI.md", ["agenttrail run", "agenttrail create"])));
   checks.push(await check("CLI and VS Code integrations exist", async () => includes("bin/agenttrail-chat.js", ["/api/chat", "AGENTTRAIL_URL"]) && includes("editor/vscode-agenttrail/package.json", ["agenttrail.ask", "AgentTrail: Ask about selection"]) && includes("docs/INTEGRATIONS.md", ["CLI parity and pipe mode", "VS Code"])));
   checks.push(await check("Model option passthrough exists", async () => includes("server.js", ["buildModelOptions", "OLLAMA_NUM_CTX", "OLLAMA_NUM_GPU", "OLLAMA_NUM_THREAD"]) && includes("tests/integration/model-options.test.js", ["num_gpu", "num_ctx"])));
@@ -245,6 +248,7 @@ function categoryFor(name) {
   const text = String(name || "").toLowerCase();
   if (/community|launch response|marketplace|good-first|governance|changelog|showcase|comparison/.test(text)) return "community";
   if (/advanced agent|multi-agent|scheduled|journal|sub-agent|replay diff|deterministic replay/.test(text)) return "advanced-agent";
+  if (/conversation|theme toggle/.test(text)) return "conversation-ux";
   if (/model ecosystem|lora|fine-tuning|quantization|safetensors|gguf conversion|per-task eval/.test(text)) return "model-ecosystem";
   if (/quality|coverage|fuzz|performance|matrix|ui e2e|scoreboard/.test(text)) return "quality";
   if (/docs|guide|api reference|troubleshooting|walkthrough|architecture|backend setup|recipe authoring/.test(text)) return "docs";

@@ -8,6 +8,18 @@ This folder is the working source copy that may be synced to GitHub by Codex.
 - If you reference the roadmap, link to `docs/LOCAL_AGENT_LAYER_ROADMAP.md`.
 - Keep stale generated files out of commits: `*.bak`, `docs/.Rhistory`, `docs/preview.svg`, and `docs/demo-flow.svg`.
 
+## Latest Claude Import + Codex Hardening - Conversation Export And Theme
+
+Claude added a Phase 11/12 starter pass and Codex imported, checked, and hardened it:
+
+- T206-T211 API foundation: `server.js` now has local conversation record endpoints for save/list/search/open/rename/pin/delete under `/api/conversations*`. UI wiring for a full chat-history drawer is still open.
+- T212: `/api/conversations/export` exports a single conversation as Markdown, JSON, or HTML with secret redaction.
+- T225: the browser has a persisted light/dark/system theme toggle using `localStorage` key `agenttrail-theme` and `[data-theme="dark"]` CSS variables.
+- T240: `/api/redact` exposes the same local secret masking used by conversation export and audit surfaces.
+- Tests/scripts: `npm run test:conv-export` and `npm run test:redact-api`; CI runs both.
+
+Recommended verification before changing this layer: `npm run test:conv-export`, `npm run test:redact-api`, `npm run test:docs`, `npm run eval`, `npm test`, and `git diff --check`.
+
 ## Latest Codex Pass - Epic AD Advanced Agent
 
 Codex completed Epic AD (T201-T205):

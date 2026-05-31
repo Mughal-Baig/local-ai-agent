@@ -99,6 +99,8 @@ const RELEASE_ARTIFACTS = [
   "tests/integration/model-ecosystem.test.js",
   "tests/unit/advanced-agent.test.js",
   "tests/integration/advanced-agent.test.js",
+  "tests/integration/conversation-export.test.js",
+  "tests/integration/redact.test.js",
   "tests/unit/quality-engineering.test.js",
   "tests/unit/workspace-safety-fuzz.test.js",
   "tests/unit/docs.test.js",

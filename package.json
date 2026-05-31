@@ -91,6 +91,8 @@
     "test:community": "node scripts/generate-docs-site.js --check && node tests/unit/community-growth.test.js",
     "test:fuzz": "node tests/unit/workspace-safety-fuzz.test.js",
     "coverage": "node scripts/coverage-report.js",
+    "test:conv-export": "node tests/integration/conversation-export.test.js",
+    "test:redact-api": "node tests/integration/redact.test.js",
     "test:redact": "node tests/unit/redact.test.js",
     "test:documents": "node tests/unit/pdf-extraction.test.js",
     "test:audio": "node tests/unit/audio-transcription.test.js && node tests/integration/audio-transcription.test.js",

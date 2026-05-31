@@ -50,6 +50,7 @@
 - Community and growth layer: launch response workflow, recipe marketplace curation, good-first issue backlog, labels, governance, changelog discipline, showcase gallery, honest comparison benchmarks, and plugin SDK examples.
 - Model ecosystem layer: LoRA adapter manifests, fine-tuning launcher, quantization wrapper, safetensors-to-GGUF conversion helper, and per-task model evaluation suite.
 - Advanced agent layer: multi-agent orchestration plans, scheduled-run manifests, resumable task journals, budget-isolated sub-agents, and deterministic replay diffs.
+- Conversation export and theme starter: persistent conversation API foundation, redacted Markdown/JSON/HTML export, `/api/redact`, and a local light/dark/system theme toggle.
 
 ## Not Planned
 

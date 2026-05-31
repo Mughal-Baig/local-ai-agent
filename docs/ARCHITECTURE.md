@@ -17,6 +17,7 @@ flowchart TB
   Tools --> Memory["Project/global memory"]
   Tools --> Diff["Preview-safe file writes"]
   Tools --> Receipts["Receipts and reports"]
+  Server --> Conversations["Conversation records"]
   Server --> Advanced["Advanced agent manifests"]
   Server --> Security["Permissions, RBAC, redaction, egress policy"]
 ```
@@ -30,6 +31,7 @@ flowchart TB
 | Search and vectors | `src/features/search.js`, `src/vector-store.js` |
 | Safe paths and diffs | `src/workspace-safety.js` |
 | Memory and sessions | `server.js`, `src/schemas.js` |
+| Conversations | `server.js`, `workspace/.agenttrail/conversations/` |
 | Security/privacy | `src/features/security.js`, `src/privacy.js`, `src/network-policy.js` |
 | Observability | `src/observability.js`, `src/logger.js` |
 | Team/RBAC | `src/team-enterprise.js`, `team/users.json` |
@@ -54,6 +56,7 @@ flowchart TB
 | Workspace files | `workspace/` |
 | Receipts | `workspace/receipts/` |
 | Reports | `workspace/reports/` |
+| Conversations | `workspace/.agenttrail/conversations/` |
 | Memory | `workspace/memory/` and optional `.local-agent/` |
 | Search indexes | `workspace/.agenttrail/` |
 | Advanced agent plans/schedules/journals | `workspace/.agenttrail/advanced-agent/` |

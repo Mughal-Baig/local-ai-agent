@@ -69,17 +69,18 @@ This section tracks the concrete work shipped after the roadmap was publicly ref
 | Codex Epic AB pass | T188-T195 | Added the community and growth layer: launch response workflow and macros, recipe marketplace curation, good-first issue backlog plus labels, contribution governance, changelog/release discipline, showcase gallery, honest comparison benchmark fixtures, plugin SDK docs, and example permissioned plugin manifests. |
 | Codex Epic AC pass | T196-T200 | Added the model ecosystem layer: LoRA adapter manifests/runtime hints, fine-tuning launch delegation, quantization command wrapper, safetensors-to-GGUF conversion helper, per-task model evaluation suite, API routes, docs, eval checks, and unit/integration coverage. |
 | Codex Epic AD pass | T201-T205 | Added the advanced agent layer: multi-agent orchestration manifests, scheduled-run records with local background journal checkpoints, long-running task journals with resume-to-pending support, budget-isolated sub-agent manifests, deterministic replay diffs, API routes, docs, eval checks, and unit/integration coverage. |
+| Claude pass + Codex hardening | T212, T225, T240; T206-T211 API foundation | Imported Claude's conversation export/theme work, hardened the conversation store API, added `/api/redact`, redacted Markdown/JSON/HTML conversation export, persisted light/dark/system theme toggle, route/API/docs/eval visibility, and CI-backed integration tests. |
 
 ### Verified After These Passes
 
-- Local suites covered: `npm run test:unit`, `npm run test:desktop`, `npm run test:cli`, `npm run test:supply-chain`, `npm run test:security-privacy`, `npm run test:hardware`, `npm run test:loading`, `npm run test:registry`, `npm run test:redact`, `npm run test:documents`, `npm run test:audio`, `npm run test:search`, `npm run test:rerank`, `npm run test:integration`, `npm run test:backend`, `npm run test:v1`, `npm run test:bundled`, `npm run test:models`, `npm run test:ecosystem`, `npm run test:advanced`, `npm run test:embed-cache`, `npm run test:resume`, `npm run test:reindex`, `npm run test:health`, `npm run test:concurrency`, `npm run test:options`, `npm run test:resources`, `npm run eval:search`, `npm run bench:search`, `npm run test:tools`, `npm run test:structured`, `npm run test:planner`, `npm run test:guardrails`, `npm run test:reflection`, memory integration suites, `npm run test:ui`, `npm run test:quality`, `npm run test:docs`, `npm run test:community`, `npm run coverage`, `npm run bench:quality`, `npm test`, `npm run eval`, `npm run release:sbom`, `npm run release:homebrew`, `npm run release:reproducible`, `npm run release:checksums`, `npm run release:verify-checksums`, GitHub issue cleanup smoke coverage, and `git diff --check`.
+- Local suites covered: `npm run test:unit`, `npm run test:desktop`, `npm run test:cli`, `npm run test:supply-chain`, `npm run test:security-privacy`, `npm run test:hardware`, `npm run test:loading`, `npm run test:registry`, `npm run test:redact`, `npm run test:redact-api`, `npm run test:conv-export`, `npm run test:documents`, `npm run test:audio`, `npm run test:search`, `npm run test:rerank`, `npm run test:integration`, `npm run test:backend`, `npm run test:v1`, `npm run test:bundled`, `npm run test:models`, `npm run test:ecosystem`, `npm run test:advanced`, `npm run test:embed-cache`, `npm run test:resume`, `npm run test:reindex`, `npm run test:health`, `npm run test:concurrency`, `npm run test:options`, `npm run test:resources`, `npm run eval:search`, `npm run bench:search`, `npm run test:tools`, `npm run test:structured`, `npm run test:planner`, `npm run test:guardrails`, `npm run test:reflection`, memory integration suites, `npm run test:ui`, `npm run test:quality`, `npm run test:docs`, `npm run test:community`, `npm run coverage`, `npm run bench:quality`, `npm test`, `npm run eval`, `npm run release:sbom`, `npm run release:homebrew`, `npm run release:reproducible`, `npm run release:checksums`, `npm run release:verify-checksums`, GitHub issue cleanup smoke coverage, and `git diff --check`.
 - GitHub CI and GitHub Pages passed for the latest roadmap commits.
 - GitHub Actions workflows now use Node-24-ready action majors and keep `FORCE_JAVASCRIPT_ACTIONS_TO_NODE24=true`, addressing the prior Node 20 action-runtime deprecation warning.
 
 ### Best Continuation Points
 
 - T098/T104: add time-to-first-token/tokens-per-second metrics and idle-unload policy UI.
-- T206-T215: conversation management depth, starting with persistent conversation history.
+- T206-T211: wire the conversation store APIs into the UI for full persistent chat history, rename, pin, delete, search, and auto-title.
 
 ---
 
@@ -418,7 +419,7 @@ Next code target: T206 persistent conversation history, then T207 rename a conve
 
 # Roadmap Expansion (Phases 11–16) — added to grow toward 1000
 
-All `[ ]` open. Continues the sequential numbering from T205.
+Open items are still marked `[ ]`; a few Phase 11/12 starter tasks are now `[x]`. Continues the sequential numbering from T205.
 
 ## Phase 11 — Conversation & UX depth
 
@@ -429,7 +430,7 @@ All `[ ]` open. Continues the sequential numbering from T205.
 - [ ] T209 Delete a conversation (with confirm + undo)
 - [ ] T210 Full-text search across past conversations
 - [ ] T211 Auto-title a chat from its first message
-- [ ] T212 Export a single conversation (Markdown / JSON / HTML)
+- [x] T212 Export a single conversation as Markdown / JSON / HTML (`POST /api/conversations/export`, secrets redacted; test: `npm run test:conv-export`)
 - [ ] T213 Import a conversation
 - [ ] T214 Folders / tags for conversations
 - [ ] T215 Branch a conversation from any message
@@ -446,7 +447,7 @@ All `[ ]` open. Continues the sequential numbering from T205.
 - [ ] T224 Paste image / file into the composer
 
 ### Epic AG — Look, feel & access
-- [ ] T225 Light/dark/system theme toggle (persisted)
+- [x] T225 Light/dark/system theme toggle in the top bar, persisted in localStorage; dark palette via `[data-theme="dark"]` CSS-variable overrides
 - [ ] T226 Additional warm + high-contrast themes
 - [ ] T227 Adjustable font size / density
 - [ ] T228 Full keyboard navigation + visible focus states
@@ -467,7 +468,7 @@ All `[ ]` open. Continues the sequential numbering from T205.
 
 ### Epic AI — Privacy controls
 - [ ] T239 One-click "wipe all local data"
-- [ ] T240 Secret detection + redaction in receipts/exports (extend T156)
+- [x] T240 Secret redaction auto-applied in conversation exports (`/api/conversations/export`); receipts redaction optional next
 - [ ] T241 Configurable data-retention windows per artifact type
 - [ ] T242 Privacy dashboard: what is stored and where
 - [ ] T243 Opt-in, local-only usage analytics (no network)

@@ -75,6 +75,8 @@ jobs:
       - run: node --check tests/integration/model-registry.test.js
       - run: node --check tests/integration/model-ecosystem.test.js
       - run: node --check tests/integration/advanced-agent.test.js
+      - run: node --check tests/integration/conversation-export.test.js
+      - run: node --check tests/integration/redact.test.js
       - run: node --check tests/integration/threat-model.test.js
       - run: node --check tests/integration/observability.test.js
       - run: node --check tests/integration/team-enterprise.test.js
@@ -103,6 +105,8 @@ jobs:
       - run: node tests/unit/community-growth.test.js
       - run: node tests/unit/security-privacy.test.js
       - run: node tests/unit/redact.test.js
+      - run: node tests/integration/redact.test.js
+      - run: node tests/integration/conversation-export.test.js
       - run: node tests/unit/pdf-extraction.test.js
       - run: node tests/unit/audio-transcription.test.js
       - run: node tests/integration/audio-transcription.test.js

@@ -45,6 +45,7 @@ Writes are off by default. The agent proposes a unified diff; you click **Apply*
 - **Budgeted project memory**: structured memory is ranked by the current prompt/files/tools before it enters the model context.
 - **Receipt timeline, replay, and reports**: reopen a saved run, restore prompt/files/model/diffs, and export Markdown/HTML reports.
 - **Advanced agent layer**: local multi-agent plans, scheduled run manifests, resumable task journals, budget-isolated sub-agents, and deterministic replay diffs.
+- **Conversation portability**: save/list/search/open/delete conversation records and export chats as Markdown, JSON, or HTML with secrets redacted.
 - **Recipe-driven**: reusable local workflows live in plain JSON files anyone can add.
 - **Demo-first**: the GIF and static demo let visitors understand the project before installing Ollama.
 - **Permission-aware**: file reads are explicit and file writes are off by default.
@@ -105,6 +106,8 @@ Open `http://127.0.0.1:4173`, build the semantic index, ask for a change, review
 - Local speech-to-text adapter for WAV/MP3/M4A/FLAC/WebM/MP4/MOV files through `/api/audio/transcribe`, voice prompt recording in the composer, and local text-to-speech playback for assistant responses
 - Permission toggles for file reads, file writes, write preview mode, and security hardening mode
 - Secret redaction for model context, logs, receipts, sessions, and reports; optional encrypted-at-rest managed artifacts; network egress allowlists for URL/image/model pulls
+- Conversation APIs for persistent chat records plus redacted Markdown/JSON/HTML export: `/api/conversations`, `/api/conversations/get`, `/api/conversations/delete`, `/api/conversations/export`, and `/api/redact`
+- Light/dark/system theme toggle persisted locally in the browser
 - Ollama integration for local models
 - Model capability scoring for coding, tool use, planning, long context, and vision readiness
 - Advanced agent APIs: multi-agent orchestration plans, scheduled run manifests, task journals with resume, sub-agent budget isolation, and deterministic replay diffs at `/api/advanced-agent/*`
@@ -269,6 +272,7 @@ When write preview mode is enabled, `write_file` returns a diff preview instead 
 - Visual demo proof: [docs/agenttrail-demo.gif](docs/agenttrail-demo.gif), [docs/preview-app.png](docs/preview-app.png), [docs/preview-diff.png](docs/preview-diff.png)
 - True semantic search: `/api/search-index`, `/api/search?mode=semantic`, named search collections, versioned on-disk vector store with IVF-lite ANN buckets, Ollama embeddings with local-vector fallback, BM25 + vector score fusion, late-interaction chunk vectors for long docs, reranking, and embedding cache
 - Receipt timeline and replay: saved Markdown receipts in `workspace/receipts/`, JSON sessions in `workspace/sessions/`, and receipt-derived resume
+- Conversation export: persistent conversation API, redacted Markdown/JSON/HTML export, and theme toggle polish
 - Diff Review center: pending preview apply/reject UI
 - Local attachments: `/api/attachments` plus browser file picker, drag/drop, and pasted-image intake that saves files into the workspace
 - Document text extraction: `/api/documents/extract`, `/api/documents/ocr`, `/api/documents/ingest-url`, automatic PDF/DOCX/PPTX/XLSX/HTML/Markdown/code/image attachment notes, progress steps, and ingestion receipts for searchable context
@@ -446,6 +450,8 @@ npm run test:memory-history
 npm run test:memory-scopes
 npm run test:ecosystem
 npm run test:advanced
+npm run test:conv-export
+npm run test:redact-api
 npm run test:ui
 npm run test:quality
 npm run test:docs
