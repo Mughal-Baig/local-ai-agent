@@ -98,4 +98,11 @@ Still open and recommended next: finish T038 receipt-derived resume, T050 multi-
 - `/api/search/chunks` strips raw `embedding` and `text` fields from responses, so vectors stay internal while citations remain visible.
 - Tests/evals updated: `test:search`, `test:integration`, `test:reindex`, and `eval:search` assert chunk vectors, best-chunk metadata, and sanitized chunk responses.
 
-Next open: T053 on-disk vector store, T057 store versioning/migration, T058 recall/latency benchmark, and the remaining receipt-derived part of T038.
+## Latest Codex Pass - On-disk vector store
+
+- T053 on-disk vector store is done: full and incremental search-index builds now also write `.agenttrail/vector-store.json` using schema `agenttrail.vector-store.v1`.
+- Semantic search reads vectors from the flat-file store first, then falls back to legacy vectors embedded in `.agenttrail/search-index.json` for compatibility.
+- `/api/search-index` now reports `features.onDiskVectorStore` and a `vectorStore` summary with file/chunk/vector counts.
+- Tests/evals updated: `test:unit`, `test:integration`, `test:reindex`, `eval`, and `eval:search` cover vector-store creation and semantic use.
+
+Next open: T057 store versioning/migration, T058 recall/latency benchmark, T054 large-corpus ANN indexing, and the remaining receipt-derived part of T038.

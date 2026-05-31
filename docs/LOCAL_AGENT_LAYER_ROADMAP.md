@@ -32,6 +32,7 @@ This section tracks the concrete work shipped after the roadmap was publicly ref
 | Claude handoff + Codex review | T038 partial, T047, T048, T052 | Imported and hardened the Claude pass: local pending-run snapshot API/UI, lexical top-k reranker with `scoreParts.rerank`/`.final`, real embedding cache keyed by model + content hash, search hit@3 eval harness, CI scripts, focused tests, route catalog/eval visibility, and resume-banner UI polish. |
 | Claude RAG pass + Codex continuation | T049, T051, T056 | Imported Claude's incremental re-index and metadata filters, then added exact line/character citation spans across `/api/search`, `/api/search/chunks`, saved search chunks, UI search metadata, tests, eval checks, and README visibility. |
 | Codex continuation | T050 | Added multi-vector late-interaction search: saved chunk embeddings in the local index, best-chunk semantic scoring for long docs, sanitized chunk APIs, `bestChunk` result metadata, tests, eval checks, and docs. |
+| Codex continuation | T053 | Added a flat-file on-disk vector store at `.agenttrail/vector-store.json`, search-index status visibility, vector-store read path for semantic search, unit/integration coverage, eval checks, and docs. |
 
 ### Verified After These Passes
 
@@ -42,9 +43,9 @@ This section tracks the concrete work shipped after the roadmap was publicly ref
 ### Best Continuation Points
 
 - T038: finish true receipt-based resume beyond the current pending-run snapshot.
-- T053: on-disk vector store.
 - T057: store versioning + migration for richer search index formats.
 - T058: benchmark recall/latency vs brute force.
+- T054: HNSW/IVF index for large corpora after the flat-file store is stable.
 
 ---
 
@@ -122,7 +123,7 @@ This section tracks the concrete work shipped after the roadmap was publicly ref
 - [x] T052 Search quality eval set + scoring harness (`scripts/eval-search.js`, `npm run eval:search`; scores hit@3 for keyword + hybrid, gated in CI)
 
 ### Epic F — Persistent vector store
-- [ ] T053 On-disk vector store (SQLite-vec or flat-file ANN)
+- [x] T053 On-disk vector store (flat-file vector store at `.agenttrail/vector-store.json`; `/api/search-index` reports status; semantic search reads from it first)
 - [ ] T054 HNSW/IVF index for large corpora
 - [ ] T055 Namespace/collection support per workspace
 - [x] T056 Metadata filters — `path` (substring) and `ext` (comma-separated) query params on `/api/search` filter before ranking (test: `npm run test:reindex`)
@@ -368,16 +369,16 @@ This section tracks the concrete work shipped after the roadmap was publicly ref
 4. We expand an epic's tasks into finer sub-tasks (toward 1000) only when we start that epic — so the plan stays honest and current.
 5. We re-mark `[x]` here as we go; this file is the single source of truth for the campaign.
 
-**Next up:** Phase 2, Epic F — T053 on-disk vector store, T057 store migration/versioning, and T058 recall/latency benchmarks.
+**Next up:** Phase 2, Epic F — T057 store migration/versioning, T058 recall/latency benchmarks, then T054 large-corpus ANN indexing.
 
 ## Status & bug sweep (latest)
 
-- Progress: **54 tasks done**, 143 open (across Phases 1–10). Phase 1 (agent reliability) essentially complete; Phase 2 (RAG) in progress (T044–T052, T056 done).
+- Progress: **55 tasks done**, 142 open (across Phases 1–10). Phase 1 (agent reliability) essentially complete; Phase 2 (RAG) in progress (T044–T053, T056 done).
 - Full test suite green: **25/25** (unit, integration, smoke, search eval) — run twice, no flakes. All source files pass `node --check`.
 - **Bug fixed:** `listWorkspaceFiles` only skipped `.DS_Store`, so internal `.agenttrail/*` state (logs, store, search index, pending-run) was being walked, indexed, and returned in search — adding noise and per-request churn to the index. Now excludes `.agenttrail/`. Verified against smoke, api, search-incremental, search-chunking, and eval:search.
 - Known minor item: a couple of integration tests assert relative/invariant counts (not exact) because the workspace can still gain legit files (e.g. `memory/*`) between calls — intentional, not a bug.
 
-Next code targets: T053 on-disk vector store, T057 store versioning/migration, T058 recall/latency benchmark.
+Next code targets: T057 store versioning/migration, T058 recall/latency benchmark, T054 large-corpus ANN indexing.
 
 ---
 

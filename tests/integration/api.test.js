@@ -56,6 +56,10 @@ async function main() {
     assert.equal(indexStatus.chunking.strategy, "markdown-overlap-v1");
     assert.equal(indexStatus.features.multiVector, true);
     assert.equal(indexStatus.features.lateInteraction, true);
+    assert.equal(indexStatus.features.onDiskVectorStore, true);
+    assert.equal(indexStatus.vectorStore.exists, true);
+    assert.equal(indexStatus.vectorStore.path, ".agenttrail/vector-store.json");
+    assert.equal(indexStatus.vectorStore.vectorCount >= indexStatus.itemCount + indexStatus.chunkCount, true);
     assert.equal(indexStatus.features.chunkVectorCount >= indexStatus.chunkCount, true);
 
     const hybridSearch = await get("/api/search?query=semantic&mode=semantic");

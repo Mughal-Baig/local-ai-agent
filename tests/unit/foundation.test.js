@@ -17,6 +17,7 @@ const { hashContent, chunkText, chunkTextDetailed, rankChunks } = require("../..
 const { scanSecurityText } = require("../../src/features/security");
 const { friendlyError } = require("../../src/features/errors");
 const { SqliteStore } = require("../../src/sqlite-store");
+const { FlatVectorStore, vectorMapsFromStore, vectorStoreFromIndex } = require("../../src/vector-store");
 const { runPluginTool } = require("../../src/plugin-sandbox");
 const { routeCatalog } = require("../../src/route-catalog");
 
@@ -102,6 +103,33 @@ async function main() {
     assert.equal(sqlite.status().available, true);
     sqlite.insert("test", { ok: true });
     assert.equal(sqlite.list("test", 1).length, 1);
+
+    const vectorIndex = {
+      schema: "agenttrail.search-index.v1",
+      provider: "local-vector",
+      model: "hash-2",
+      dimensions: 2,
+      builtAt: new Date().toISOString(),
+      items: [{ path: "a.md", hash: "file-hash", embedding: [1, 0], chunkCount: 1 }],
+      chunks: [{
+        id: "a.md#1",
+        path: "a.md",
+        index: 0,
+        hash: "chunk-hash",
+        preview: "hello vector",
+        citation: "a.md:1",
+        span: { startLine: 1, endLine: 1, charStart: 0, charEnd: 12 },
+        embedding: [0.9, 0.1]
+      }]
+    };
+    const vectorStore = new FlatVectorStore(tempRoot);
+    const vectorStatus = await vectorStore.writeFromIndex(vectorIndex);
+    assert.equal(vectorStatus.exists, true);
+    assert.equal(vectorStatus.vectorCount, 2);
+    const vectorMaps = vectorMapsFromStore(await vectorStore.read());
+    assert.deepEqual(vectorMaps.fileVectors.get("a.md"), [1, 0]);
+    assert.equal(vectorMaps.chunkVectors.get("a.md")[0].citation, "a.md:1");
+    assert.equal(vectorStoreFromIndex(vectorIndex).chunkVectorCount, 1);
   } finally {
     await fsp.rm(tempRoot, { recursive: true, force: true });
   }
