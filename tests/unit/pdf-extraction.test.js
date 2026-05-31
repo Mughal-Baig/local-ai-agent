@@ -5,7 +5,8 @@ const {
   extractDocumentText,
   extractPdfText,
   extractPdfContentText,
-  buildExtractedDocumentMarkdown
+  buildExtractedDocumentMarkdown,
+  htmlToMarkdown
 } = require("../../src/document-ingestion");
 const { makePdf, makeDocx, makePptx, makeXlsx } = require("../helpers/document-fixtures");
 
@@ -58,5 +59,33 @@ assert.equal(xlsx.type, "xlsx");
 assert.match(xlsx.text, /Sheet 1/);
 assert.match(xlsx.text, /AgentTrail XLSX extraction works/);
 assert.match(xlsx.text, /42/);
+
+const html = extractDocumentText("<html><body><h1>AgentTrail HTML</h1><p>Clean paragraph.</p><script>ignore()</script><pre><code>const ok = true;</code></pre></body></html>", {
+  sourcePath: "attachments/page.html",
+  mediaType: "text/html"
+});
+assert.equal(html.ok, true);
+assert.equal(html.type, "html");
+assert.match(html.text, /# AgentTrail HTML/);
+assert.match(html.text, /Clean paragraph/);
+assert.match(html.text, /```/);
+assert.doesNotMatch(html.text, /ignore/);
+assert.match(htmlToMarkdown("<h2>A &amp; B</h2>"), /## A & B/);
+
+const markdownDoc = extractDocumentText("# AgentTrail Markdown\n\n- keeps structure\n", {
+  sourcePath: "attachments/notes.md",
+  mediaType: "text/markdown"
+});
+assert.equal(markdownDoc.type, "markdown");
+assert.match(markdownDoc.text, /# AgentTrail Markdown/);
+assert.match(markdownDoc.text, /- keeps structure/);
+
+const codeDoc = extractDocumentText("export const answer = 42;\n", {
+  sourcePath: "attachments/example.ts",
+  mediaType: "text/plain"
+});
+assert.equal(codeDoc.type, "code");
+assert.match(codeDoc.text, /```typescript/);
+assert.match(codeDoc.text, /export const answer = 42/);
 
 console.log("Document extraction unit tests passed");

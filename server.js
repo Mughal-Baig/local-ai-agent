@@ -3084,7 +3084,19 @@ async function handleAttachments(req, res) {
           throw new Error(`Attachment is too large (${Buffer.byteLength(content, "utf8")} bytes)`);
         }
         const result = await writeWorkspaceFile(relativePath, content);
-        saved.push({ ...result, originalName, type, encoding, contextPath: result.path });
+        const documentNote = isSupportedDocument(safeName, type)
+          ? await writeExtractedDocumentNote(result.path, Buffer.from(content, "utf8"), { originalName, mediaType: type })
+          : null;
+        saved.push({
+          ...result,
+          originalName,
+          type,
+          encoding,
+          contextPath: documentNote ? documentNote.path : result.path,
+          notePath: documentNote ? documentNote.path : null,
+          extracted: Boolean(documentNote),
+          extraction: documentNote ? documentNote.extraction : null
+        });
       }
     } catch (error) {
       skipped.push({ name: originalName, error: error.message });
@@ -3164,7 +3176,11 @@ function defaultDocumentMediaType(type) {
     pdf: "application/pdf",
     docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
     pptx: "application/vnd.openxmlformats-officedocument.presentationml.presentation",
-    xlsx: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    xlsx: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    html: "text/html",
+    markdown: "text/markdown",
+    code: "text/plain",
+    text: "text/plain"
   }[type] || "application/octet-stream";
 }
 

@@ -3,6 +3,33 @@
 const path = require("node:path");
 const zlib = require("node:zlib");
 
+const CODE_EXTENSIONS = new Map([
+  [".js", "javascript"],
+  [".jsx", "jsx"],
+  [".ts", "typescript"],
+  [".tsx", "tsx"],
+  [".css", "css"],
+  [".html", "html"],
+  [".xml", "xml"],
+  [".json", "json"],
+  [".yml", "yaml"],
+  [".yaml", "yaml"],
+  [".toml", "toml"],
+  [".py", "python"],
+  [".rb", "ruby"],
+  [".go", "go"],
+  [".rs", "rust"],
+  [".java", "java"],
+  [".c", "c"],
+  [".cpp", "cpp"],
+  [".h", "c"],
+  [".hpp", "cpp"],
+  [".swift", "swift"],
+  [".sh", "bash"],
+  [".zsh", "zsh"],
+  [".sql", "sql"]
+]);
+
 function isPdfDocument(filePath, mediaType = "") {
   return /\.pdf$/i.test(String(filePath || "")) || String(mediaType || "").toLowerCase().includes("application/pdf");
 }
@@ -15,8 +42,12 @@ function isOfficeDocument(filePath, mediaType = "") {
     value.includes("spreadsheetml.sheet");
 }
 
+function isTextDocument(filePath, mediaType = "") {
+  return Boolean(detectTextDocumentType(filePath, mediaType));
+}
+
 function isSupportedDocument(filePath, mediaType = "") {
-  return isPdfDocument(filePath, mediaType) || isOfficeDocument(filePath, mediaType);
+  return isPdfDocument(filePath, mediaType) || isOfficeDocument(filePath, mediaType) || isTextDocument(filePath, mediaType);
 }
 
 function detectDocumentType(filePath, mediaType = "") {
@@ -26,6 +57,17 @@ function detectDocumentType(filePath, mediaType = "") {
   if (name.endsWith(".docx") || type.includes("wordprocessingml.document")) return "docx";
   if (name.endsWith(".pptx") || type.includes("presentationml.presentation")) return "pptx";
   if (name.endsWith(".xlsx") || type.includes("spreadsheetml.sheet")) return "xlsx";
+  return detectTextDocumentType(filePath, mediaType);
+}
+
+function detectTextDocumentType(filePath, mediaType = "") {
+  const name = String(filePath || "").toLowerCase();
+  const type = String(mediaType || "").toLowerCase();
+  const ext = path.extname(name);
+  if (name.endsWith(".html") || name.endsWith(".htm") || type.includes("text/html")) return "html";
+  if (name.endsWith(".md") || name.endsWith(".markdown") || type.includes("markdown")) return "markdown";
+  if (CODE_EXTENSIONS.has(ext) || type.includes("application/json") || type.includes("application/xml")) return "code";
+  if (name.endsWith(".txt") || name.endsWith(".log") || name.endsWith(".csv") || type.startsWith("text/")) return "text";
   return "";
 }
 
@@ -36,6 +78,9 @@ function extractDocumentText(input, options = {}) {
   }
   if (["docx", "pptx", "xlsx"].includes(type)) {
     return extractOfficeText(input, { ...options, type });
+  }
+  if (["html", "markdown", "code", "text"].includes(type)) {
+    return extractTextDocument(input, { ...options, type });
   }
   throw new Error("Unsupported document type.");
 }
@@ -114,6 +159,123 @@ function buildExtractedDocumentMarkdown({ sourcePath, originalName, mediaType, e
     "",
     text || "No selectable text was found in this document."
   ].filter((line) => line !== null).join("\n");
+}
+
+function extractTextDocument(input, options = {}) {
+  const raw = Buffer.isBuffer(input) ? input.toString("utf8") : String(input || "");
+  const warnings = [];
+  let text = "";
+  let language = "";
+
+  if (options.type === "html") {
+    text = htmlToMarkdown(raw);
+  } else if (options.type === "markdown") {
+    text = normalizeMarkdown(raw);
+  } else if (options.type === "code") {
+    language = inferCodeLanguage(options.sourcePath || options.filePath || "", options.mediaType || "");
+    text = [
+      `\`\`\`${language}`,
+      normalizeCodeText(raw),
+      "```"
+    ].join("\n");
+  } else {
+    text = normalizePlainText(raw);
+  }
+
+  if (!text) {
+    warnings.push("No text content found.");
+  }
+  return {
+    ok: Boolean(text),
+    type: options.type,
+    language,
+    sourcePath: options.sourcePath || "",
+    text,
+    charCount: text.length,
+    partCount: 1,
+    warnings
+  };
+}
+
+function htmlToMarkdown(value) {
+  let html = String(value || "");
+  html = html
+    .replace(/<!--[\s\S]*?-->/g, "")
+    .replace(/<script\b[\s\S]*?<\/script>/gi, "")
+    .replace(/<style\b[\s\S]*?<\/style>/gi, "")
+    .replace(/<noscript\b[\s\S]*?<\/noscript>/gi, "");
+
+  html = html.replace(/<pre\b[^>]*>\s*<code\b[^>]*>([\s\S]*?)<\/code>\s*<\/pre>/gi, (_, code) => `\n\n\`\`\`\n${decodeHtmlEntities(stripHtmlTags(code)).trim()}\n\`\`\`\n\n`);
+  html = html.replace(/<pre\b[^>]*>([\s\S]*?)<\/pre>/gi, (_, code) => `\n\n\`\`\`\n${decodeHtmlEntities(stripHtmlTags(code)).trim()}\n\`\`\`\n\n`);
+  for (let level = 1; level <= 6; level += 1) {
+    html = html.replace(new RegExp(`<h${level}\\b[^>]*>([\\s\\S]*?)<\\/h${level}>`, "gi"), (_, body) => `\n\n${"#".repeat(level)} ${decodeHtmlEntities(stripHtmlTags(body)).trim()}\n\n`);
+  }
+  html = html
+    .replace(/<li\b[^>]*>([\s\S]*?)<\/li>/gi, (_, body) => `\n- ${decodeHtmlEntities(stripHtmlTags(body)).trim()}`)
+    .replace(/<br\s*\/?>/gi, "\n")
+    .replace(/<\/(p|div|section|article|tr|table|ul|ol)>/gi, "\n\n")
+    .replace(/<[^>]+>/g, " ");
+
+  return normalizeMarkdown(decodeHtmlEntities(html));
+}
+
+function normalizeMarkdown(value) {
+  return String(value || "")
+    .replace(/\r/g, "\n")
+    .replace(/\t/g, "  ")
+    .split("\n")
+    .map((line) => line.replace(/[ \t]+$/g, ""))
+    .join("\n")
+    .replace(/\n{4,}/g, "\n\n\n")
+    .trim();
+}
+
+function normalizeCodeText(value) {
+  return String(value || "")
+    .replace(/\r/g, "\n")
+    .replace(/\u0000/g, "")
+    .replace(/\n{4,}/g, "\n\n\n")
+    .trim();
+}
+
+function normalizePlainText(value) {
+  return String(value || "")
+    .replace(/\u0000/g, "")
+    .replace(/\r/g, "\n")
+    .split("\n")
+    .map((line) => line.replace(/[ \t\f\v]+/g, " ").trim())
+    .filter(Boolean)
+    .join("\n");
+}
+
+function inferCodeLanguage(filePath, mediaType = "") {
+  const ext = path.extname(String(filePath || "").toLowerCase());
+  if (CODE_EXTENSIONS.has(ext)) {
+    return CODE_EXTENSIONS.get(ext);
+  }
+  const type = String(mediaType || "").toLowerCase();
+  if (type.includes("json")) return "json";
+  if (type.includes("xml")) return "xml";
+  if (type.includes("javascript")) return "javascript";
+  if (type.includes("typescript")) return "typescript";
+  return "";
+}
+
+function stripHtmlTags(value) {
+  return String(value || "").replace(/<[^>]+>/g, " ");
+}
+
+function decodeHtmlEntities(value) {
+  return String(value || "")
+    .replace(/&nbsp;/g, " ")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, "\"")
+    .replace(/&#39;/g, "'")
+    .replace(/&apos;/g, "'")
+    .replace(/&amp;/g, "&")
+    .replace(/&#(\d+);/g, (_, code) => String.fromCodePoint(Number(code)))
+    .replace(/&#x([0-9a-f]+);/gi, (_, code) => String.fromCodePoint(parseInt(code, 16)));
 }
 
 function extractOfficeText(input, options = {}) {
@@ -564,7 +726,9 @@ module.exports = {
   extractDocumentText,
   extractPdfText,
   extractOfficeText,
+  extractTextDocument,
   buildExtractedDocumentMarkdown,
   extractPdfContentText,
+  htmlToMarkdown,
   readZipEntries
 };

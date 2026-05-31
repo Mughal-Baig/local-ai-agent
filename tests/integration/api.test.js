@@ -120,6 +120,34 @@ async function main() {
       assert.match(officeNote.content, new RegExp(`AgentTrail ${name.slice(7, 11).toUpperCase()} ingestion text`));
     }
 
+    const htmlAttachment = await post("/api/attachments", {
+      files: [{
+        name: "research.html",
+        type: "text/html",
+        encoding: "text",
+        content: "<h1>AgentTrail HTML ingestion</h1><p>Clean local page text.</p><script>hidden()</script>"
+      }]
+    });
+    assert.equal(htmlAttachment.ok, true);
+    assert.equal(htmlAttachment.saved[0].extracted, true);
+    const htmlNote = await get(`/api/files/content?path=${encodeURIComponent(htmlAttachment.saved[0].contextPath)}`);
+    assert.match(htmlNote.content, /# AgentTrail HTML ingestion/);
+    assert.match(htmlNote.content, /Clean local page text/);
+    assert.doesNotMatch(htmlNote.content, /hidden/);
+
+    const codeAttachment = await post("/api/attachments", {
+      files: [{
+        name: "example.ts",
+        type: "text/plain",
+        encoding: "text",
+        content: "export const agentTrail = true;\n"
+      }]
+    });
+    assert.equal(codeAttachment.saved[0].extracted, true);
+    const codeNote = await get(`/api/files/content?path=${encodeURIComponent(codeAttachment.saved[0].contextPath)}`);
+    assert.match(codeNote.content, /```typescript/);
+    assert.match(codeNote.content, /export const agentTrail = true/);
+
     await post("/api/files/content", { path: "docs/guide.md", content: "# Guide\n\nnamespace collection isolated search\n" });
     const collectionIndex = await post("/api/search-index", {
       provider: "local-vector",

@@ -49,7 +49,7 @@ Best next Claude tasks:
 
 - Work on docs and UI copy around native tool calling, structured outputs, planner approval, run guardrails, reflection, loop safety, structured memory, memory suggestions, ranked memory retrieval, memory history, scoped memory, markdown-aware chunk citations, hybrid search score parts, reranking, embedding cache, and search evals.
 - Do not rework `server.js` tool-calling, structured-output, planner, run-cancellation, loop/reflection, memory internals, search chunking, hybrid ranking, reranking, embedding cache, search benchmarks, or resumable-run internals unless you also run the matching scripts: `npm run test:tools`, `npm run test:structured`, `npm run test:planner`, `npm run test:guardrails`, `npm run test:reflection`, `npm run test:memory`, `npm run test:memory-suggestions`, `npm run test:memory-retrieval`, `npm run test:memory-history`, `npm run test:memory-scopes`, `npm run test:search`, `npm run test:rerank`, `npm run test:embed-cache`, `npm run test:resume`, `npm run eval:search`, and `npm run bench:search`.
-- Next code target should be T061 HTML/Markdown/code-aware ingestion, T062 image OCR, or T063 URL ingestion, not the runtime moonshot.
+- Next code target should be T062 image OCR, T063 URL ingestion, or T064 ingestion progress + receipts, not the runtime moonshot.
 
 ## Latest Claude Pass
 
@@ -63,7 +63,7 @@ Reviewed Codex's work and continued the roadmap:
 
 - T038 original partial: pending-run snapshot. Added `/api/runs/pending`, `/api/runs/pending/clear`, a resume banner in the UI, route catalog coverage, and `npm run test:resume`. Receipt-derived resume is completed in the latest Codex pass below.
 
-Still open and recommended next: T061 HTML/Markdown/code-aware ingestion, T062 image OCR, or T063 URL ingestion.
+Still open and recommended next: T062 image OCR, T063 URL ingestion, or T064 ingestion progress + receipts.
 
 ## Latest Claude Pass - UI redesign + handoff completion
 
@@ -155,4 +155,11 @@ Still open and recommended next: T061 HTML/Markdown/code-aware ingestion, T062 i
 - DOCX extracts paragraphs from `word/document.xml`; PPTX extracts slide text from `ppt/slides/*.xml`; XLSX resolves shared strings and sheet rows into readable Markdown.
 - Tests/evals/docs updated: `npm run test:documents` covers PDF + DOCX/PPTX/XLSX fixtures, API integration covers office attachments, and repo eval checks office extraction.
 
-Next open: T061 HTML/Markdown/code-aware ingestion, T062 image OCR for scanned docs, or T063 URL ingestion.
+## Latest Codex Pass - HTML/Markdown/code ingestion
+
+- T061 is done: `src/document-ingestion.js` now ingests HTML, Markdown, code, and plain text in addition to PDF and Office files.
+- HTML is cleaned into Markdown-like text with scripts/styles removed; Markdown is normalized; code files are wrapped in language-aware fenced blocks.
+- `/api/documents/extract` and `/api/attachments` both create searchable `.agenttrail.md` sidecars for supported text documents.
+- Tests/evals/docs updated: `npm run test:documents` covers HTML/Markdown/code, API integration covers HTML and TypeScript attachments, and repo eval checks text ingestion.
+
+Next open: T062 image OCR for scanned docs, T063 URL ingestion, or T064 ingestion progress + receipts.
