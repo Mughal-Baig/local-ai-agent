@@ -5,6 +5,7 @@ const { spawn } = require("node:child_process");
 const fsp = require("node:fs/promises");
 const os = require("node:os");
 const path = require("node:path");
+const { makePdf, makeDocx, makePptx, makeXlsx } = require("../helpers/document-fixtures");
 
 const projectRoot = path.resolve(__dirname, "../..");
 const port = 5700 + Math.floor(Math.random() * 300);
@@ -103,6 +104,22 @@ async function main() {
     const extractedNote = await get("/api/files/content?path=extracted%2Fsample-pdf.md");
     assert.match(extractedNote.content, /AgentTrail PDF ingestion text/);
 
+    const officeFiles = [
+      ["sample.docx", "application/vnd.openxmlformats-officedocument.wordprocessingml.document", makeDocx("AgentTrail DOCX ingestion text")],
+      ["sample.pptx", "application/vnd.openxmlformats-officedocument.presentationml.presentation", makePptx("AgentTrail PPTX ingestion text")],
+      ["sample.xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", makeXlsx("AgentTrail XLSX ingestion text")]
+    ];
+    for (const [name, type, content] of officeFiles) {
+      const officeAttachment = await post("/api/attachments", {
+        files: [{ name, type, encoding: "base64", content: content.toString("base64") }]
+      });
+      assert.equal(officeAttachment.ok, true);
+      assert.equal(officeAttachment.saved[0].extracted, true);
+      assert.equal(officeAttachment.saved[0].extraction.ok, true);
+      const officeNote = await get(`/api/files/content?path=${encodeURIComponent(officeAttachment.saved[0].contextPath)}`);
+      assert.match(officeNote.content, new RegExp(`AgentTrail ${name.slice(7, 11).toUpperCase()} ingestion text`));
+    }
+
     await post("/api/files/content", { path: "docs/guide.md", content: "# Guide\n\nnamespace collection isolated search\n" });
     const collectionIndex = await post("/api/search-index", {
       provider: "local-vector",
@@ -171,19 +188,4 @@ async function get(endpoint) {
   const response = await fetch(`http://127.0.0.1:${port}${endpoint}`);
   assert.equal(response.ok, true, endpoint);
   return response.json();
-}
-
-function makePdf(textOperator) {
-  const content = `BT /F1 12 Tf 72 720 Td ${textOperator} ET`;
-  const stream = Buffer.from(content, "latin1");
-  return Buffer.concat([
-    Buffer.from("%PDF-1.4\n", "latin1"),
-    Buffer.from("1 0 obj << /Type /Catalog /Pages 2 0 R >> endobj\n", "latin1"),
-    Buffer.from("2 0 obj << /Type /Pages /Kids [3 0 R] /Count 1 >> endobj\n", "latin1"),
-    Buffer.from("3 0 obj << /Type /Page /Parent 2 0 R /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >> endobj\n", "latin1"),
-    Buffer.from("4 0 obj << /Type /Font /Subtype /Type1 /BaseFont /Helvetica >> endobj\n", "latin1"),
-    Buffer.from(`5 0 obj << /Length ${stream.length} >> stream\n`, "latin1"),
-    stream,
-    Buffer.from("\nendstream endobj\n%%EOF\n", "latin1")
-  ]);
 }

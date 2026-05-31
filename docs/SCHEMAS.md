@@ -18,7 +18,7 @@ Current schema families:
 - `agenttrail.job.v1`
 - `agenttrail.backup.v1`
 
-The running app exposes schema summaries at `/api/schemas`. Markdown receipts now include a resume prompt section so `/api/receipts/resume` can recreate a pending run without depending on a proprietary container. Extracted PDFs are stored as plain Markdown sidecars (`*.pdf.agenttrail.md`) so search, receipts, and Git diffs can inspect the text without parsing the binary again.
+The running app exposes schema summaries at `/api/schemas`. Markdown receipts now include a resume prompt section so `/api/receipts/resume` can recreate a pending run without depending on a proprietary container. Extracted PDF/DOCX/PPTX/XLSX files are stored as plain Markdown sidecars (`*.agenttrail.md`) so search, receipts, and Git diffs can inspect the text without parsing the binary again.
 
 ## Migration Rule
 

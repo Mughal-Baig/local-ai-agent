@@ -1,8 +1,13 @@
 #!/usr/bin/env node
 
 const assert = require("node:assert/strict");
-const zlib = require("node:zlib");
-const { extractPdfText, extractPdfContentText, buildExtractedDocumentMarkdown } = require("../../src/document-ingestion");
+const {
+  extractDocumentText,
+  extractPdfText,
+  extractPdfContentText,
+  buildExtractedDocumentMarkdown
+} = require("../../src/document-ingestion");
+const { makePdf, makeDocx, makePptx, makeXlsx } = require("../helpers/document-fixtures");
 
 const plainPdf = makePdf("(AgentTrail PDF extraction works) Tj");
 const plain = extractPdfText(plainPdf, { sourcePath: "attachments/plain.pdf" });
@@ -30,20 +35,28 @@ assert.match(markdown, /# Extracted PDF: plain\.pdf/);
 assert.match(markdown, /## Text/);
 assert.match(markdown, /AgentTrail PDF extraction works/);
 
-console.log("PDF extraction unit tests passed");
+const docx = extractDocumentText(makeDocx("AgentTrail DOCX extraction works"), {
+  sourcePath: "attachments/sample.docx"
+});
+assert.equal(docx.ok, true);
+assert.equal(docx.type, "docx");
+assert.match(docx.text, /AgentTrail DOCX extraction works/);
 
-function makePdf(textOperator, options = {}) {
-  const content = `BT /F1 12 Tf 72 720 Td ${textOperator} ET`;
-  const stream = options.compress ? zlib.deflateSync(Buffer.from(content, "latin1")) : Buffer.from(content, "latin1");
-  const filter = options.compress ? "/Filter /FlateDecode " : "";
-  return Buffer.concat([
-    Buffer.from("%PDF-1.4\n", "latin1"),
-    Buffer.from("1 0 obj << /Type /Catalog /Pages 2 0 R >> endobj\n", "latin1"),
-    Buffer.from("2 0 obj << /Type /Pages /Kids [3 0 R] /Count 1 >> endobj\n", "latin1"),
-    Buffer.from("3 0 obj << /Type /Page /Parent 2 0 R /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >> endobj\n", "latin1"),
-    Buffer.from("4 0 obj << /Type /Font /Subtype /Type1 /BaseFont /Helvetica >> endobj\n", "latin1"),
-    Buffer.from(`5 0 obj << ${filter}/Length ${stream.length} >> stream\n`, "latin1"),
-    stream,
-    Buffer.from("\nendstream endobj\n%%EOF\n", "latin1")
-  ]);
-}
+const pptx = extractDocumentText(makePptx("AgentTrail PPTX extraction works"), {
+  sourcePath: "attachments/sample.pptx"
+});
+assert.equal(pptx.ok, true);
+assert.equal(pptx.type, "pptx");
+assert.match(pptx.text, /Slide 1/);
+assert.match(pptx.text, /AgentTrail PPTX extraction works/);
+
+const xlsx = extractDocumentText(makeXlsx("AgentTrail XLSX extraction works"), {
+  sourcePath: "attachments/sample.xlsx"
+});
+assert.equal(xlsx.ok, true);
+assert.equal(xlsx.type, "xlsx");
+assert.match(xlsx.text, /Sheet 1/);
+assert.match(xlsx.text, /AgentTrail XLSX extraction works/);
+assert.match(xlsx.text, /42/);
+
+console.log("Document extraction unit tests passed");

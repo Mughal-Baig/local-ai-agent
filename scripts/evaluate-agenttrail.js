@@ -77,7 +77,8 @@ async function main() {
   checks.push(await check("Release artifact workflow exists", async () => includes(".github/workflows/release-artifacts.yml", ["release:checksums", "package:desktop"])));
   checks.push(await check("Attachment workflow exists", async () => includes("server.js", ["/api/attachments", "handleAttachments", "attachments"])));
   checks.push(await check("Attachment UI exists", async () => includes("public/index.html", ["attachmentInput", "attachFiles", "Attach"])));
-  checks.push(await check("PDF extraction exists", async () => includes("src/document-ingestion.js", ["extractPdfText", "FlateDecode", "buildExtractedDocumentMarkdown"]) && includes("server.js", ["/api/documents/extract", "writeExtractedPdfNote"])));
+  checks.push(await check("PDF extraction exists", async () => includes("src/document-ingestion.js", ["extractPdfText", "FlateDecode", "buildExtractedDocumentMarkdown"]) && includes("server.js", ["/api/documents/extract", "writeExtractedDocumentNote"])));
+  checks.push(await check("Office extraction exists", async () => includes("src/document-ingestion.js", ["extractOfficeText", "extractDocxText", "extractPptxText", "extractXlsxText"])));
   checks.push(await check("macOS app bundle generator exists", async () => includes("scripts/package-mac-app.js", ["AgentTrail.app", "Info.plist", "MacOS"])));
   checks.push(await check("Native tool-calling tests exist", async () => includes("tests/integration/native-tool-calling.test.js", ["tool_calls", "read_file"])));
   checks.push(await check("Tool repair tests exist", async () => includes("tests/integration/tool-repair.test.js", ["repaired", "read_file"])));

@@ -37,6 +37,7 @@ This section tracks the concrete work shipped after the roadmap was publicly ref
 | Codex continuation | T055 | Added named search collections with independent search-index/vector-store files under `.agenttrail/search-collections/{id}/`, collection filters, collection-aware search/chunk search, incremental rebuilds, tests, eval checks, and docs. |
 | Codex continuation | T038 | Finished receipt-derived resume: Markdown receipts/reports now carry a resume prompt, `/api/receipts/resume` parses prompt/model/files/permissions/trail, `/api/runs/pending/from-receipt` restores a pending run, `/api/replay/plan` supports receipt paths, and the UI can resume a selected receipt. |
 | Codex continuation | T059 | Added dependency-free PDF text extraction with FlateDecode stream support, `/api/documents/extract`, automatic PDF attachment sidecar notes, route/eval/CI coverage, and docs. |
+| Codex continuation | T060 | Extended document ingestion to DOCX, PPTX, and XLSX using a dependency-free ZIP/OpenXML reader, automatic office attachment sidecar notes, API/integration tests, eval checks, and docs. |
 | Codex continuation | T057 | Added vector-store version metadata, legacy normalization, search-index-to-vector-store migration, `.agenttrail/vector-store-migrations.json`, migration `005-vector-store-versioning`, tests, eval checks, and docs. |
 | Codex continuation | T058 | Added `npm run bench:search`: deterministic local corpus, local-vector index build timing, AgentTrail semantic recall/latency, brute-force scanner baseline, top-1 agreement threshold, CI coverage, and docs. |
 
@@ -48,9 +49,9 @@ This section tracks the concrete work shipped after the roadmap was publicly ref
 
 ### Best Continuation Points
 
-- T060: DOCX / PPTX / XLSX extraction.
 - T061: HTML / Markdown / code-aware ingestion.
 - T062: Image OCR for scanned docs.
+- T063: URL ingestion (fetch + clean + index) with allowlist.
 
 ---
 
@@ -137,7 +138,7 @@ This section tracks the concrete work shipped after the roadmap was publicly ref
 
 ### Epic G — Document ingestion
 - [x] T059 PDF text extraction (`/api/documents/extract` plus automatic PDF attachment Markdown sidecars)
-- [ ] T060 DOCX / PPTX / XLSX extraction
+- [x] T060 DOCX / PPTX / XLSX extraction (dependency-free OpenXML text extraction and attachment sidecars)
 - [ ] T061 HTML / Markdown / code-aware ingestion
 - [ ] T062 Image OCR for scanned docs
 - [ ] T063 URL ingestion (fetch + clean + index) with allowlist
@@ -378,12 +379,12 @@ This section tracks the concrete work shipped after the roadmap was publicly ref
 
 ## Status & bug sweep (latest)
 
-- Progress: **61 tasks done**, 136 open (across Phases 1-10). Phase 1 (agent reliability) is complete; Phase 2 Epic E/F search foundation complete (T044-T058 done except T044 remains hardening umbrella), and Epic G has started with PDF extraction.
-- Focused test suite green: unit, PDF extraction, API integration, smoke, repo eval, and release checksums. All touched source files pass `node --check`.
+- Progress: **62 tasks done**, 135 open (across Phases 1-10). Phase 1 (agent reliability) is complete; Phase 2 Epic E/F search foundation complete (T044-T058 done except T044 remains hardening umbrella), and Epic G now has PDF plus Office extraction.
+- Focused test suite green: unit, document extraction, API integration, smoke, repo eval, and release checksums. All touched source files pass `node --check`.
 - **Bug fixed:** `listWorkspaceFiles` only skipped `.DS_Store`, so internal `.agenttrail/*` state (logs, store, search index, pending-run) was being walked, indexed, and returned in search — adding noise and per-request churn to the index. Now excludes `.agenttrail/`. Verified against smoke, api, search-incremental, search-chunking, and eval:search.
 - Known minor item: a couple of integration tests assert relative/invariant counts (not exact) because the workspace can still gain legit files (e.g. `memory/*`) between calls — intentional, not a bug.
 
-Next code targets: T060 DOCX/PPTX/XLSX extraction, T061 HTML/Markdown/code-aware ingestion, T062 Image OCR for scanned docs.
+Next code targets: T061 HTML/Markdown/code-aware ingestion, T062 Image OCR for scanned docs, T063 URL ingestion.
 
 ---
 

@@ -27,7 +27,7 @@ const { SqliteStore } = require("./src/sqlite-store");
 const { FileWatcher } = require("./src/file-watcher");
 const { runPluginTool } = require("./src/plugin-sandbox");
 const { routeCatalog } = require("./src/route-catalog");
-const { isPdfDocument, extractPdfText, buildExtractedDocumentMarkdown } = require("./src/document-ingestion");
+const { isSupportedDocument, detectDocumentType, extractDocumentText, buildExtractedDocumentMarkdown } = require("./src/document-ingestion");
 
 loadDotEnv();
 
@@ -3053,8 +3053,8 @@ async function handleAttachments(req, res) {
           throw new Error(`Attachment is too large (${data.length} bytes)`);
         }
         const binary = await writeWorkspaceBinaryFile(relativePath, data);
-        const documentNote = isPdfDocument(safeName, type)
-          ? await writeExtractedPdfNote(binary.path, data, { originalName, mediaType: type })
+        const documentNote = isSupportedDocument(safeName, type)
+          ? await writeExtractedDocumentNote(binary.path, data, { originalName, mediaType: type })
           : null;
         const note = documentNote || await writeWorkspaceFile(`${relativePath}.agenttrail.md`, [
           `# Attachment: ${originalName}`,
@@ -3103,20 +3103,20 @@ async function handleDocumentExtract(req, res) {
   if (!sourcePath) {
     return sendJson(res, 400, { error: "Document path is required." });
   }
-  if (!isPdfDocument(sourcePath, body.mediaType || "")) {
-    return sendJson(res, 400, { error: "Only PDF extraction is supported in this pass." });
+  if (!isSupportedDocument(sourcePath, body.mediaType || "")) {
+    return sendJson(res, 400, { error: "Supported document types: PDF, DOCX, PPTX, XLSX." });
   }
   try {
     const file = await readWorkspaceBinaryFile(sourcePath, MAX_BODY_BYTES);
-    const note = await writeExtractedPdfNote(file.path, file.content, {
+    const note = await writeExtractedDocumentNote(file.path, file.content, {
       originalName: body.originalName || path.basename(file.path),
-      mediaType: body.mediaType || "application/pdf",
+      mediaType: body.mediaType || "",
       outputPath: body.outputPath
     });
     await STORE.append("document-extract", {
       path: file.path,
       outputPath: note.path,
-      type: "pdf",
+      type: note.extraction.type,
       chars: note.extraction.charCount
     });
     sendJson(res, 200, {
@@ -3130,15 +3130,19 @@ async function handleDocumentExtract(req, res) {
   }
 }
 
-async function writeExtractedPdfNote(sourcePath, data, options = {}) {
-  const extraction = extractPdfText(data, { sourcePath });
+async function writeExtractedDocumentNote(sourcePath, data, options = {}) {
+  const extraction = extractDocumentText(data, {
+    sourcePath,
+    mediaType: options.mediaType || "",
+    type: detectDocumentType(sourcePath, options.mediaType || "")
+  });
   const outputPath = options.outputPath
     ? normalizeRelativePath(options.outputPath)
     : `${sourcePath}.agenttrail.md`;
   const result = await writeWorkspaceFile(outputPath, buildExtractedDocumentMarkdown({
     sourcePath,
     originalName: options.originalName || path.basename(sourcePath),
-    mediaType: options.mediaType || "application/pdf",
+    mediaType: options.mediaType || defaultDocumentMediaType(extraction.type),
     extraction
   }));
   return {
@@ -3147,11 +3151,21 @@ async function writeExtractedPdfNote(sourcePath, data, options = {}) {
       ok: extraction.ok,
       type: extraction.type,
       pageCount: extraction.pageCount,
+      partCount: extraction.partCount,
       charCount: extraction.charCount,
       streamsScanned: extraction.streamsScanned,
       warnings: extraction.warnings
     }
   };
+}
+
+function defaultDocumentMediaType(type) {
+  return {
+    pdf: "application/pdf",
+    docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    pptx: "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+    xlsx: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+  }[type] || "application/octet-stream";
 }
 
 async function handlePreviewFile(req, res) {
