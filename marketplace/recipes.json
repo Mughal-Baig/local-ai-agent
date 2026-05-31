@@ -16,8 +16,8 @@
       "id": "founder-pack",
       "title": "Founder Pack",
       "role": "founder",
-      "description": "Launch README, positioning, meeting notes, user docs, and growth teardown workflows.",
-      "recipes": ["launch-readme", "readme-polish", "meeting-notes", "user-docs", "github-star-teardown"],
+      "description": "Launch README, positioning, meeting notes, follow-up email, user docs, and growth teardown workflows.",
+      "recipes": ["launch-readme", "readme-polish", "meeting-notes", "meeting-follow-up-email", "user-docs", "github-star-teardown"],
       "stars": 0,
       "source": "built-in"
     },
@@ -43,8 +43,8 @@
       "id": "writer-pack",
       "title": "Writer Pack",
       "role": "writer",
-      "description": "User docs, audio transcription, release notes, README polish, changelogs, and launch copy.",
-      "recipes": ["user-docs", "audio-transcription", "release-notes", "readme-polish", "changelog", "launch-readme"],
+      "description": "User docs, follow-up email, audio transcription, release notes, README polish, changelogs, and launch copy.",
+      "recipes": ["user-docs", "meeting-follow-up-email", "audio-transcription", "release-notes", "readme-polish", "changelog", "launch-readme"],
       "stars": 0,
       "source": "built-in"
     }

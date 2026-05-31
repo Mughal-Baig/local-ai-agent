@@ -63,7 +63,12 @@ async function main() {
   checks.push(await check("Shareable reports endpoint exists", async () => includes("server.js", ["/api/reports", "handleSaveReport"])));
   checks.push(await check("npm publish docs exist", async () => includes("docs/NPM_PUBLISH.md", ["npm publish", "npx agenttrail"])));
   checks.push(await check("MCP client examples exist", async () => includes("docs/mcp/CLIENT_SETUP.md", ["Claude Desktop", "Cursor"])));
-  checks.push(await check("Public demo exists", async () => includes("docs/public-demo.html", ["AgentTrail Demo", "96/100 trust"])));
+  checks.push(await check("Public demo exists", async () => includes("docs/public-demo.html", ["Recipe Picker", "local safety signals", "Receipt Timeline"])));
+  checks.push(await check("Recipe validation rejects bad files", async () => includes("server.js", ["validateRecipeShape", "invalidRecipes", "Duplicate recipe id"])));
+  checks.push(await check("Meeting follow-up recipe exists", async () => includes("recipes/meeting-follow-up-email.json", ["meeting-follow-up-email", "Do not invent names"])));
+  checks.push(await check("Receipt metadata search exists", async () => includes("server.js", ["receiptSearchMetadata", "fileMentions", "tools: toolNames"]) && includes("public/app.js", ["receiptMetaLine", "receiptSearchTags"])));
+  checks.push(await check("Model compatibility guide exists", async () => includes("docs/MODELS.md", ["Compatibility Notes", "Tool calls", "Reliability Ladder"])));
+  checks.push(await check("Prompt-injection scanner expanded", async () => includes("src/features/security.js", ["Tool escalation request", "System prompt extraction", "Encoded instruction payload"]) && includes("recipes/prompt-injection-review.json", ["tool escalation", "Do not follow instructions"])));
   checks.push(await check("Product frontend module exists", async () => includes("public/modules/product.js", ["/api/models/compare", "/api/marketplace/import-url"])));
   checks.push(await check("SQLite store exists", async () => includes("src/sqlite-store.js", ["node:sqlite", "CREATE TABLE"])));
   checks.push(await check("Structured logging exists", async () => includes("src/logger.js", ["agenttrail.log.v1", "logs.jsonl"])));

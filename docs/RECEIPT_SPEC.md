@@ -7,6 +7,7 @@ This document specifies the four related artifacts AgentTrail produces. They are
 ## 1. Trail Receipt (`receipts/trail-<timestamp>.md`)
 
 Saved when you export the Agent Trail (`POST /api/receipts`). Markdown, with a fixed header block followed by an ordered event log.
+`GET /api/receipts` reads this Markdown and exposes searchable metadata for the browser timeline: exported timestamp, model, selected files, permissions, tool count, event types, tool names, file mentions, and a combined `searchText` field. That lets users filter old receipts by model, tool, file, or timestamp without opening each file.
 
 ```markdown
 # AgentTrail Receipt

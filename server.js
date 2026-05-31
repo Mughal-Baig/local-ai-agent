@@ -115,8 +115,8 @@ const RAW_MEMORY_PROMPT_CHARS = clampInt(process.env.AGENTTRAIL_RAW_MEMORY_PROMP
 const PROJECT_ROOT = __dirname;
 const PUBLIC_DIR = path.join(PROJECT_ROOT, "public");
 const DOCS_DIR = path.join(PROJECT_ROOT, "docs");
-const RECIPES_DIR = path.join(PROJECT_ROOT, "recipes");
-const RECIPE_PACKS_DIR = path.join(PROJECT_ROOT, "recipe-packs");
+const RECIPES_DIR = path.resolve(process.env.AGENTTRAIL_RECIPES_DIR || path.join(PROJECT_ROOT, "recipes"));
+const RECIPE_PACKS_DIR = path.resolve(process.env.AGENTTRAIL_RECIPE_PACKS_DIR || path.join(PROJECT_ROOT, "recipe-packs"));
 const PROFILES_DIR = path.join(PROJECT_ROOT, "profiles");
 const MARKETPLACE_DIR = path.join(PROJECT_ROOT, "marketplace");
 const PLUGINS_DIR = path.join(PROJECT_ROOT, "plugins");
@@ -2384,8 +2384,8 @@ async function handleListFiles(res) {
 }
 
 async function handleListRecipes(res) {
-  const recipes = await listRecipes();
-  sendJson(res, 200, { recipes });
+  const catalog = await collectRecipes();
+  sendJson(res, 200, catalog);
 }
 
 async function handleListReceipts(res) {
@@ -2393,16 +2393,19 @@ async function handleListReceipts(res) {
   const receipts = [];
   for (const file of files.filter((item) => item.path.startsWith(`${RECEIPTS_DIR}/`))) {
     let snippet = "";
+    let metadata = receiptSearchMetadata("", file);
     try {
       const receipt = await readWorkspaceFile(file.path, MAX_FILE_BYTES);
       snippet = createSnippet(receipt.content, ["tool", "preview", "search", "receipt"]);
+      metadata = receiptSearchMetadata(receipt.content, file);
     } catch {
       snippet = "";
     }
-    receipts.push({ ...file, snippet });
+    receipts.push({ ...file, snippet, ...metadata });
   }
   receipts.sort((a, b) => b.modifiedAt.localeCompare(a.modifiedAt));
   sendJson(res, 200, {
+    schema: "agenttrail.receipts.v1",
     receipts
   });
 }
@@ -7739,31 +7742,167 @@ async function writeSearchIndexArtifacts(index, collection = DEFAULT_SEARCH_COLL
   return vectorStoreForCollection(collection).writeFromIndex(index);
 }
 
-async function listRecipes() {
+async function collectRecipes() {
   const entries = await fsp.readdir(RECIPES_DIR, { withFileTypes: true }).catch(() => []);
   const recipes = [];
+  const invalidRecipes = [];
   const seenIds = new Set();
 
   for (const entry of entries) {
-    if (!entry.isFile() || !entry.name.endsWith(".json")) {
+    if (!entry.isFile() || !entry.name.endsWith(".json") || entry.name === "schema.json") {
       continue;
     }
 
     const absolutePath = path.join(RECIPES_DIR, entry.name);
     try {
       const raw = await fsp.readFile(absolutePath, "utf8");
-      const recipe = normalizeRecipe(JSON.parse(raw), entry.name);
-      if (recipe && !seenIds.has(recipe.id)) {
-        seenIds.add(recipe.id);
-        recipes.push(recipe);
+      const parsed = JSON.parse(raw);
+      const validation = validateRecipeShape(parsed, entry.name);
+      if (!validation.ok) {
+        invalidRecipes.push({ file: entry.name, reason: validation.errors.join("; ") });
+        continue;
       }
-    } catch {
-      // Invalid community recipe files are ignored instead of breaking startup.
+      const recipe = normalizeRecipe(parsed, entry.name);
+      if (!recipe) {
+        invalidRecipes.push({ file: entry.name, reason: "Recipe could not be normalized." });
+        continue;
+      }
+      if (seenIds.has(recipe.id)) {
+        invalidRecipes.push({ file: entry.name, id: recipe.id, reason: `Duplicate recipe id: ${recipe.id}` });
+        continue;
+      }
+      seenIds.add(recipe.id);
+      recipes.push(recipe);
+    } catch (error) {
+      invalidRecipes.push({ file: entry.name, reason: error.message || "Invalid JSON recipe file." });
     }
   }
 
   recipes.sort((a, b) => a.title.localeCompare(b.title));
-  return recipes;
+  invalidRecipes.sort((a, b) => a.file.localeCompare(b.file));
+  return {
+    schema: "agenttrail.recipes.v1",
+    recipes,
+    invalidRecipes,
+    validation: {
+      ok: invalidRecipes.length === 0,
+      invalidCount: invalidRecipes.length,
+      duplicateIds: invalidRecipes.filter((item) => /duplicate recipe id/i.test(item.reason || "")).map((item) => item.id).filter(Boolean)
+    }
+  };
+}
+
+async function listRecipes() {
+  const catalog = await collectRecipes();
+  return catalog.recipes;
+}
+
+function validateRecipeShape(recipe, fileName = "recipe.json") {
+  const errors = [];
+  if (!recipe || typeof recipe !== "object" || Array.isArray(recipe)) {
+    return { ok: false, errors: ["Recipe must be a JSON object."] };
+  }
+
+  const id = String(recipe.id || "").trim();
+  const title = String(recipe.title || "").trim();
+  const description = String(recipe.description || "").trim();
+  const prompt = String(recipe.prompt || "").trim();
+
+  if (!id) errors.push("Missing required field: id");
+  else if (!/^[a-z0-9-]+$/.test(id)) errors.push("id must use lowercase letters, numbers, and hyphens");
+  if (!title) errors.push("Missing required field: title");
+  else if (title.length > 80) errors.push("title must be 80 characters or fewer");
+  if (!description) errors.push("Missing required field: description");
+  else if (description.length > 180) errors.push("description must be 180 characters or fewer");
+  if (!prompt) errors.push("Missing required field: prompt");
+  else if (prompt.length > 2400) errors.push("prompt must be 2400 characters or fewer");
+
+  if (recipe.tags !== undefined) {
+    if (!Array.isArray(recipe.tags)) {
+      errors.push("tags must be an array");
+    } else if (recipe.tags.length > 8) {
+      errors.push("tags must contain 8 items or fewer");
+    } else {
+      for (const tag of recipe.tags) {
+        const text = String(tag || "").trim();
+        if (!text || text.length > 32) {
+          errors.push("each tag must be 1-32 characters");
+          break;
+        }
+      }
+    }
+  }
+
+  if (recipe.action !== undefined) {
+    if (!recipe.action || typeof recipe.action !== "object" || Array.isArray(recipe.action)) {
+      errors.push("action must be an object");
+    } else if (recipe.action.type !== "audio-transcribe") {
+      errors.push("action.type must be audio-transcribe when present");
+    }
+  }
+
+  if (recipe.outputSchemaId !== undefined && !/^[a-z0-9_-]+$/.test(String(recipe.outputSchemaId))) {
+    errors.push("outputSchemaId must use lowercase letters, numbers, underscores, or hyphens");
+  }
+
+  return { ok: errors.length === 0, file: fileName, errors };
+}
+
+function receiptSearchMetadata(content, file) {
+  const text = String(content || "");
+  const model = matchReceiptLine(text, "Model");
+  const exportedAt = matchReceiptLine(text, "Exported") || file.modifiedAt || "";
+  const selectedFiles = splitReceiptList(matchReceiptLine(text, "Selected files"));
+  const permissions = matchReceiptLine(text, "Permissions");
+  const toolCount = Number(matchReceiptLine(text, "Tool calls") || 0);
+  const eventMatches = [...text.matchAll(/^- .*?\[([^\]]+)\]\s+(.+)$/gm)];
+  const eventTypes = [...new Set(eventMatches.map((match) => match[1]).filter(Boolean))].slice(0, 16);
+  const eventLabels = eventMatches.map((match) => match[2]).filter(Boolean);
+  const toolNames = [...new Set([
+    ...text.matchAll(/\b(list_files|search_workspace|read_file|preview_write_file|write_file)\b/g)
+  ].map((match) => match[1]))].slice(0, 12);
+  const fileMentions = [...new Set([
+    ...selectedFiles,
+    ...text.matchAll(/\b(?:[A-Za-z0-9._-]+\/)*[A-Za-z0-9._-]+\.(?:md|txt|json|js|ts|tsx|jsx|css|html|py|sh|yml|yaml|toml|go|rs|swift)\b/g)
+  ].map((match) => Array.isArray(match) ? match[0] : match))].slice(0, 16);
+  const searchText = [
+    file.path,
+    model,
+    exportedAt,
+    permissions,
+    selectedFiles.join(" "),
+    fileMentions.join(" "),
+    toolNames.join(" "),
+    eventTypes.join(" "),
+    eventLabels.join(" ")
+  ].join(" ").trim();
+
+  return {
+    exportedAt,
+    model,
+    selectedFiles,
+    permissions,
+    toolCount: Number.isFinite(toolCount) ? toolCount : 0,
+    eventTypes,
+    tools: toolNames,
+    fileMentions,
+    searchText
+  };
+}
+
+function matchReceiptLine(content, label) {
+  const match = String(content || "").match(new RegExp(`^${escapeRegExp(label)}:\\s*(.+)$`, "mi"));
+  return match ? match[1].trim() : "";
+}
+
+function splitReceiptList(value) {
+  const text = String(value || "").trim();
+  if (!text || /^none$/i.test(text)) return [];
+  return text.split(",").map((item) => item.trim()).filter(Boolean).slice(0, 20);
+}
+
+function escapeRegExp(value) {
+  return String(value).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
 async function listRecipePacks() {

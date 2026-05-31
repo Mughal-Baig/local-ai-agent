@@ -553,12 +553,15 @@ select:hover, .search-input:hover { border-color: var(--line-strong); }
 .pending-change.rejected { background: var(--rose-soft); border-color: #ecd2c8; }
 
 .pending-change strong, .pending-change span,
-.receipt-row strong, .receipt-row span {
+.receipt-row strong, .receipt-row span,
+.receipt-row small, .receipt-row em {
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
 
 .pending-change strong, .receipt-row strong { color: var(--clay-deep); font-size: 0.8rem; }
 .pending-change span, .receipt-row span { color: var(--muted); font-size: 0.74rem; font-weight: 600; }
+.receipt-row small { color: #4f675c; font-size: 0.69rem; font-weight: 750; }
+.receipt-row em { color: var(--clay); font-size: 0.68rem; font-style: normal; font-weight: 750; }
 
 .pending-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; }
 

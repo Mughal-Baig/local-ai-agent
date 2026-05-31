@@ -5,6 +5,7 @@
   "recipes": [
     "user-docs",
     "audio-transcription",
+    "meeting-follow-up-email",
     "release-notes",
     "extract-tasks-json",
     "readme-polish",

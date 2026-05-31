@@ -32,6 +32,21 @@ function scanSecurityText(pathName, content, truncate = defaultTruncate) {
       label: "Hidden instruction marker",
       severity: "medium",
       pattern: /(<!--|<script|display:\s*none|base64,|BEGIN SYSTEM PROMPT)/i
+    },
+    {
+      label: "Tool escalation request",
+      severity: "high",
+      pattern: /(call|use|invoke|run).{0,40}(write_file|preview_write_file|read_file|search_workspace|shell|terminal).{0,80}(without|bypass|ignore|secretly|silently|permission|approval)/i
+    },
+    {
+      label: "System prompt extraction",
+      severity: "high",
+      pattern: /(reveal|print|show|dump|expose).{0,50}(system|developer|hidden).{0,30}(prompt|message|instruction)/i
+    },
+    {
+      label: "Encoded instruction payload",
+      severity: "medium",
+      pattern: /\b[A-Za-z0-9+/]{80,}={0,2}\b/
     }
   ];
 

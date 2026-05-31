@@ -16,12 +16,23 @@ main().catch((error) => {
 
 async function main() {
   const workspaceRoot = await fsp.mkdtemp(path.join(os.tmpdir(), "local-agent-workspace-"));
+  const recipesRoot = await fsp.mkdtemp(path.join(os.tmpdir(), "local-agent-recipes-"));
+  await fsp.cp(path.join(projectRoot, "recipes"), recipesRoot, { recursive: true });
+  await fsp.writeFile(path.join(recipesRoot, "bad-shape.json"), JSON.stringify({ id: "Bad ID", title: "", prompt: "" }, null, 2));
+  await fsp.writeFile(path.join(recipesRoot, "duplicate-code-review.json"), JSON.stringify({
+    id: "code-review",
+    title: "Duplicate Code Review",
+    description: "Duplicate ID should be rejected by validation.",
+    tags: ["test"],
+    prompt: "This duplicate should not load."
+  }, null, 2));
   const child = spawn(process.execPath, ["server.js"], {
     cwd: projectRoot,
     env: {
       ...process.env,
       PORT: String(port),
       WORKSPACE_ROOT: workspaceRoot,
+      AGENTTRAIL_RECIPES_DIR: recipesRoot,
       OLLAMA_HOST: "http://127.0.0.1:1"
     },
     stdio: ["ignore", "pipe", "pipe"]
@@ -43,6 +54,10 @@ async function main() {
 
     const demo = await fetchText(`http://127.0.0.1:${port}/docs/demo.html`);
     assert.match(demo, /shows its work/i);
+    const publicDemoHtml = await fetchText(`http://127.0.0.1:${port}/docs/public-demo.html`);
+    assert.match(publicDemoHtml, /Recipe Picker/);
+    assert.match(publicDemoHtml, /local safety signals/i);
+    assert.match(publicDemoHtml, /Receipt Timeline/);
 
     const status = await fetchJson(`http://127.0.0.1:${port}/api/status`);
     assert.equal(status.app, "ok");
@@ -110,9 +125,15 @@ async function main() {
     assert.equal(migrations.pending.length, 0);
 
     const recipes = await fetchJson(`http://127.0.0.1:${port}/api/recipes`);
+    assert.equal(recipes.schema, "agenttrail.recipes.v1");
     assert.equal(Array.isArray(recipes.recipes), true);
     assert.equal(recipes.recipes.some((recipe) => recipe.id === "code-review"), true);
+    assert.equal(recipes.recipes.some((recipe) => recipe.id === "meeting-follow-up-email"), true);
+    assert.equal(recipes.recipes.some((recipe) => recipe.id === "prompt-injection-review" && recipe.tags.includes("security")), true);
     assert.equal(recipes.recipes.some((recipe) => recipe.id === "extract-tasks-json" && recipe.structuredOutput && recipe.structuredOutput.schemaId === "task-list"), true);
+    assert.equal(recipes.validation.ok, false);
+    assert.equal(recipes.validation.duplicateIds.includes("code-review"), true);
+    assert.equal(recipes.invalidRecipes.some((recipe) => recipe.file === "bad-shape.json"), true);
 
     const write = await postJson(`http://127.0.0.1:${port}/api/files/content`, {
       path: "notes/test.md",
@@ -278,7 +299,19 @@ async function main() {
     assert.equal(files.files.some((item) => item.path === "notes/test.md"), true);
 
     const receipt = await postJson(`http://127.0.0.1:${port}/api/receipts`, {
-      content: "# Receipt\n\nSmoke test receipt.\n"
+      content: [
+        "# Receipt",
+        "",
+        "Exported: 2026-05-31T00:00:00.000Z",
+        "Model: llama3.2",
+        "Selected files: notes/test.md",
+        "Tool calls: 2",
+        "",
+        "## Events",
+        "",
+        "- 09:00:00 [tool] search_workspace: smoke",
+        "- 09:00:01 [preview] preview_write_file: notes/test.md (+1 -0)"
+      ].join("\n")
     });
     assert.equal(receipt.ok, true);
 
@@ -301,13 +334,21 @@ async function main() {
     assert.equal(replayPlan.steps.length >= 4, true);
 
     const receipts = await fetchJson(`http://127.0.0.1:${port}/api/receipts`);
+    assert.equal(receipts.schema, "agenttrail.receipts.v1");
     assert.equal(receipts.receipts.some((item) => item.path === receipt.path), true);
     assert.equal(receipts.receipts.some((item) => item.path.startsWith("receipts/ingestion/")), true);
+    const savedReceipt = receipts.receipts.find((item) => item.path === receipt.path);
+    assert.equal(savedReceipt.model, "llama3.2");
+    assert.equal(savedReceipt.tools.includes("search_workspace"), true);
+    assert.equal(savedReceipt.tools.includes("preview_write_file"), true);
+    assert.equal(savedReceipt.fileMentions.includes("notes/test.md"), true);
+    assert.match(savedReceipt.searchText, /preview_write_file/);
 
     console.log("Smoke test passed");
   } finally {
     child.kill();
     await fsp.rm(workspaceRoot, { recursive: true, force: true });
+    await fsp.rm(recipesRoot, { recursive: true, force: true });
   }
 }
 

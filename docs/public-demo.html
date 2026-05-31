@@ -5,29 +5,218 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>AgentTrail Public Demo</title>
     <style>
-      body { margin: 0; font-family: system-ui, sans-serif; background: #f4f7f5; color: #1f2430; }
-      main { max-width: 980px; margin: 0 auto; padding: 42px 22px; }
-      h1 { font-size: clamp(32px, 5vw, 60px); margin: 0 0 12px; }
-      .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 12px; margin-top: 24px; }
-      .card { background: white; border: 1px solid #d6ded9; border-radius: 8px; padding: 16px; }
-      .score { font-size: 44px; color: #246b62; font-weight: 900; }
-      pre { overflow: auto; background: #1f2430; color: #f4f7f5; padding: 16px; border-radius: 8px; }
+      :root {
+        --ink: #20252d;
+        --muted: #6c746f;
+        --panel: #fffdf8;
+        --panel-2: #f7f2ea;
+        --line: #dccdbc;
+        --sage: #246b62;
+        --clay: #b86645;
+        --rose: #7c3623;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        background: #f5f1e9;
+        color: var(--ink);
+      }
+      main {
+        display: grid;
+        gap: 18px;
+        max-width: 1160px;
+        margin: 0 auto;
+        padding: 34px 18px 42px;
+      }
+      header {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 18px;
+        align-items: end;
+        border-bottom: 1px solid var(--line);
+        padding-bottom: 18px;
+      }
+      h1 { max-width: 760px; margin: 0; font-size: clamp(34px, 6vw, 66px); line-height: 0.95; letter-spacing: 0; }
+      p { margin: 0; color: var(--muted); line-height: 1.5; }
+      button, select {
+        min-height: 38px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: var(--panel);
+        color: var(--ink);
+        font: inherit;
+        font-weight: 750;
+      }
+      button { cursor: pointer; padding: 0 12px; }
+      select { width: 100%; padding: 0 10px; }
+      .score {
+        min-width: 124px;
+        padding: 14px;
+        border: 1px solid #c8ddd4;
+        border-radius: 8px;
+        background: #eef6f1;
+        color: var(--sage);
+        text-align: center;
+        font-size: 42px;
+        font-weight: 900;
+      }
+      .score span { display: block; color: #547066; font-size: 12px; font-weight: 850; text-transform: uppercase; }
+      .workspace {
+        display: grid;
+        grid-template-columns: 270px minmax(0, 1fr) 300px;
+        gap: 14px;
+      }
+      .panel {
+        min-width: 0;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: var(--panel);
+        box-shadow: 0 14px 34px rgba(54, 45, 33, 0.08);
+        overflow: hidden;
+      }
+      .panel h2 {
+        margin: 0;
+        padding: 13px 14px;
+        border-bottom: 1px solid var(--line);
+        color: var(--clay);
+        font-size: 14px;
+      }
+      .panel-body { display: grid; gap: 11px; padding: 14px; }
+      .recipe-picker label { color: var(--muted); font-size: 12px; font-weight: 800; text-transform: uppercase; }
+      .signal { display: grid; grid-template-columns: auto 1fr; gap: 8px; align-items: center; min-height: 34px; }
+      .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--sage); }
+      .dot.warn { background: var(--clay); }
+      .dot.block { background: var(--rose); }
+      .signal strong { font-size: 13px; }
+      .search-row { display: grid; grid-template-columns: 1fr auto; gap: 8px; }
+      .search-row input {
+        min-width: 0;
+        min-height: 38px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 0 11px;
+        background: #fff;
+        font: inherit;
+      }
+      .result, .receipt {
+        display: grid;
+        gap: 4px;
+        padding: 10px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: var(--panel-2);
+      }
+      .result strong, .receipt strong { color: var(--sage); font-size: 13px; }
+      pre {
+        overflow: auto;
+        min-height: 260px;
+        margin: 0;
+        padding: 14px;
+        border-radius: 8px;
+        background: #25231f;
+        color: #f6efe2;
+        font: 13px/1.55 "SFMono-Regular", Consolas, monospace;
+        white-space: pre-wrap;
+      }
+      .actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+      .primary { background: #eaf3ee; color: var(--sage); border-color: #c8ddd4; }
+      .ghost { background: #fff4e8; color: var(--clay); border-color: #e1c4ad; }
+      .timeline { display: grid; gap: 9px; }
+      .receipt small { color: var(--muted); font-weight: 750; }
+      .status { min-height: 22px; color: var(--sage); font-size: 13px; font-weight: 800; }
+      @media (max-width: 940px) {
+        header, .workspace { grid-template-columns: 1fr; }
+        .score { text-align: left; }
+      }
     </style>
   </head>
   <body>
     <main>
-      <h1>AgentTrail Demo</h1>
-      <p>Search local files, preview diffs, click Apply, save a receipt, replay the run.</p>
-      <div class="score">96/100 trust</div>
-      <div class="grid">
-        <section class="card"><strong>1. Search</strong><p>Semantic chunk search finds evidence.</p></section>
-        <section class="card"><strong>2. Preview</strong><p>Writes become reviewable diffs.</p></section>
-        <section class="card"><strong>3. Apply</strong><p>User approves exact changes.</p></section>
-        <section class="card"><strong>4. Receipt</strong><p>Run becomes replayable.</p></section>
-      </div>
-      <pre>--- a/workspace/welcome.md
+      <header>
+        <div>
+          <h1>A local AI agent that shows its work.</h1>
+          <p>Try the trust loop without installing Ollama: pick a recipe, search local evidence, preview a diff, apply it, and inspect the receipt.</p>
+        </div>
+        <div class="score">96<span>Trust score</span></div>
+      </header>
+
+      <section class="workspace" aria-label="AgentTrail demo workspace">
+        <aside class="panel">
+          <h2>Recipe Picker</h2>
+          <div class="panel-body recipe-picker">
+            <label for="recipe">Local workflow</label>
+            <select id="recipe">
+              <option>Prompt Injection Review</option>
+              <option>Meeting Follow-up Email</option>
+              <option>Diff-safe Coder</option>
+            </select>
+            <p id="recipeHint">Reviews selected notes for hidden instructions, tool misuse, exfiltration, and unsafe workspace behavior.</p>
+            <div class="signal"><span class="dot"></span><strong>Reads scoped to workspace</strong></div>
+            <div class="signal"><span class="dot warn"></span><strong>Writes are preview-only</strong></div>
+            <div class="signal"><span class="dot block"></span><strong>Path escapes blocked</strong></div>
+          </div>
+        </aside>
+
+        <section class="panel">
+          <h2>Search to Diff Preview</h2>
+          <div class="panel-body">
+            <div class="search-row">
+              <input value="receipt-first workflow note" aria-label="Demo search query" />
+              <button id="searchButton" type="button">Search</button>
+            </div>
+            <div class="result">
+              <strong>workspace/welcome.md</strong>
+              <span>Matched local evidence about receipts, explicit Apply, and diff-safe writes.</span>
+            </div>
+            <pre id="diff">--- a/workspace/welcome.md
 +++ b/workspace/welcome.md
-+Add receipt-first workflow note</pre>
+@@
+ AgentTrail runs locally with Ollama.
++Every search, preview, and apply action is saved as an auditable receipt.
++Writes stay off by default until you approve the exact diff.</pre>
+            <div class="actions">
+              <button class="primary" id="applyButton" type="button">Apply Diff</button>
+              <button class="ghost" id="receiptButton" type="button">Save Receipt</button>
+            </div>
+            <div class="status" id="status">Diff preview ready. Nothing has been written.</div>
+          </div>
+        </section>
+
+        <aside class="panel">
+          <h2>Receipt Timeline</h2>
+          <div class="panel-body timeline" id="timeline">
+            <div class="receipt"><strong>search_workspace</strong><small>workspace/welcome.md - semantic evidence</small></div>
+            <div class="receipt"><strong>preview_write_file</strong><small>+2 -0 - waiting for Apply</small></div>
+            <div class="receipt"><strong>local safety signals</strong><small>no boundary escape - preview enforced</small></div>
+          </div>
+        </aside>
+      </section>
     </main>
+    <script>
+      var recipe = document.getElementById("recipe");
+      var hint = document.getElementById("recipeHint");
+      var status = document.getElementById("status");
+      var timeline = document.getElementById("timeline");
+      recipe.addEventListener("change", function () {
+        var text = recipe.value === "Meeting Follow-up Email"
+          ? "Drafts decisions, action items, open questions, and a concise email without inventing owners."
+          : recipe.value === "Diff-safe Coder"
+            ? "Turns requested edits into reviewable diffs before anything touches disk."
+            : "Reviews selected notes for hidden instructions, tool misuse, exfiltration, and unsafe workspace behavior.";
+        hint.textContent = text;
+      });
+      document.getElementById("searchButton").addEventListener("click", function () {
+        status.textContent = "Search complete. Evidence is attached to the run.";
+      });
+      document.getElementById("applyButton").addEventListener("click", function () {
+        status.textContent = "Applied after explicit review. Receipt updated.";
+        timeline.insertAdjacentHTML("beforeend", '<div class="receipt"><strong>write_file</strong><small>workspace/welcome.md - approved by user</small></div>');
+      });
+      document.getElementById("receiptButton").addEventListener("click", function () {
+        status.textContent = "Receipt saved locally and ready to replay.";
+        timeline.insertAdjacentHTML("beforeend", '<div class="receipt"><strong>receipt saved</strong><small>model, files, tools, diffs, and timestamp recorded</small></div>');
+      });
+    </script>
   </body>
 </html>

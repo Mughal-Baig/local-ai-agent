@@ -2527,7 +2527,17 @@ function renderPendingChanges() {
 function renderReceiptTimeline() {
   const filter = (els.receiptFilter?.value || "").trim().toLowerCase();
   const receipts = state.receipts.filter((receipt) => {
-    const text = `${receipt.path} ${receipt.snippet || ""}`.toLowerCase();
+    const text = [
+      receipt.path,
+      receipt.snippet || "",
+      receipt.searchText || "",
+      receipt.model || "",
+      receipt.exportedAt || "",
+      (receipt.selectedFiles || []).join(" "),
+      (receipt.fileMentions || []).join(" "),
+      (receipt.tools || []).join(" "),
+      (receipt.eventTypes || []).join(" ")
+    ].join(" ").toLowerCase();
     return !filter || text.includes(filter);
   });
 
@@ -2549,12 +2559,18 @@ function renderReceiptTimeline() {
   els.receiptTimeline.innerHTML = receipts
     .slice(0, 8)
     .map(
-      (receipt) => `
+      (receipt) => {
+        const meta = receiptMetaLine(receipt);
+        const tags = receiptSearchTags(receipt);
+        return `
         <button type="button" class="receipt-row" data-path="${escapeHtml(receipt.path)}">
           <strong>${escapeHtml(receipt.path.replace(/^receipts\//, ""))}</strong>
           <span>${escapeHtml(receipt.snippet || formatBytes(receipt.size))}</span>
+          ${meta ? `<small>${escapeHtml(meta)}</small>` : ""}
+          ${tags ? `<em>${escapeHtml(tags)}</em>` : ""}
         </button>
-      `
+      `;
+      }
     )
     .join("");
 
@@ -2573,6 +2589,28 @@ function renderReceiptTimeline() {
       }
     });
   });
+}
+
+function receiptMetaLine(receipt) {
+  const parts = [];
+  if (receipt.model) parts.push(`model ${receipt.model}`);
+  if (receipt.tools && receipt.tools.length) parts.push(`tools ${receipt.tools.slice(0, 3).join(", ")}`);
+  if (receipt.selectedFiles && receipt.selectedFiles.length) parts.push(`files ${receipt.selectedFiles.slice(0, 2).join(", ")}`);
+  if (receipt.exportedAt) parts.push(shortDate(receipt.exportedAt));
+  return parts.join(" | ");
+}
+
+function receiptSearchTags(receipt) {
+  const values = [
+    ...(receipt.eventTypes || []),
+    ...(receipt.fileMentions || []).slice(0, 2)
+  ].filter(Boolean);
+  return values.slice(0, 5).join(" # ");
+}
+
+function shortDate(value) {
+  const date = new Date(value);
+  return Number.isNaN(date.valueOf()) ? String(value).slice(0, 16) : date.toLocaleString([], { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
 }
 
 function renderTrustScore() {

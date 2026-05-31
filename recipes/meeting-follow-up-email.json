@@ -1,0 +1,7 @@
+{
+  "id": "meeting-follow-up-email",
+  "title": "Meeting Follow-up Email",
+  "description": "Turn selected meeting notes into a concise follow-up email without inventing owners.",
+  "tags": ["email", "meetings", "productivity"],
+  "prompt": "Use the selected meeting notes to draft a concise follow-up email. Include a short subject line, a friendly opening, decisions made, action items, owners only when explicitly present, dates only when explicitly present, open questions, and a clear closing. Do not invent names, owners, deadlines, attendees, or commitments. If information is missing, write \"Unassigned\" or \"Not specified\"."
+}

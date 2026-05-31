@@ -13,7 +13,7 @@
 
 *The loop: **ask → search before answer → diff preview → you click Apply → replayable receipt.** Every step is shown. Writes are off by default.*
 
-**▶ Live demo, zero install:** [mughal-baig.github.io/local-ai-agent/demo.html](https://mughal-baig.github.io/local-ai-agent/demo.html)
+**Live demo, zero install:** [mughal-baig.github.io/local-ai-agent/demo.html](https://mughal-baig.github.io/local-ai-agent/demo.html) or the richer [public recipe/safety/receipt demo](https://mughal-baig.github.io/local-ai-agent/public-demo.html)
 
 ChatGPT and Claude are great — until you need them to touch private files. AgentTrail gives you that same chat-and-workspace workflow, but it runs entirely on your machine with Ollama, and it turns every action into an auditable, replayable receipt. It is the only local agent built so you can verify exactly what it did and why.
 
@@ -229,6 +229,7 @@ Each recipe has:
 Good recipe ideas are easy to review and useful without any cloud service: code review, launch notes, security hardening, receipt summaries, research briefs, and workspace planning.
 
 Recipe shape is documented in [recipes/schema.json](recipes/schema.json).
+The `/api/recipes` endpoint validates every recipe file, skips invalid community JSON, rejects duplicate IDs, and returns `invalidRecipes` so contributors can fix mistakes without breaking startup.
 
 ## How It Works
 
@@ -280,7 +281,7 @@ When write preview mode is enabled, `write_file` returns a diff preview instead 
 - Model comparison: `/api/models/compare`
 - Real benchmark run endpoint: `/api/benchmarks/run`
 - Pack import from GitHub URL: `/api/marketplace/import-url`
-- Public demo data: `/api/demo/public` and [docs/public-demo.html](docs/public-demo.html)
+- Public demo data: `/api/demo/public` and [docs/public-demo.html](docs/public-demo.html), with recipe picker, safety signals, diff preview, and receipt timeline proof
 - MCP client setup examples: [docs/mcp/CLIENT_SETUP.md](docs/mcp/CLIENT_SETUP.md)
 
 ## Foundation Surfaces

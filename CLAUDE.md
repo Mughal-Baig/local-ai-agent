@@ -291,3 +291,13 @@ Next open: real `node-llama-cpp` validation with a tiny GGUF on actual hardware,
 - Tests/docs updated: `npm run test:registry`, unit + integration registry coverage, README/env/model backend/runtime docs, route catalog, roadmap, repo eval, and CI.
 
 Next open: real `node-llama-cpp` validation with a tiny GGUF on actual hardware, then Phase 7 desktop/CLI distribution.
+
+## Latest Codex Pass - GitHub issue cleanup
+
+- Cleared the seven open starter issues: recipe validation, prompt-injection review recipe, static Pages demo, diff-preview proof, meeting follow-up email recipe, searchable receipt history, and model compatibility notes.
+- `/api/recipes` now returns `agenttrail.recipes.v1`, `invalidRecipes`, and duplicate-ID validation while still skipping bad community JSON safely. Smoke creates invalid/duplicate recipes to prove startup keeps working.
+- `/api/receipts` now returns searchable metadata for exported timestamp, model, selected files, permissions, tool count, event types, tool names, file mentions, and `searchText`; the receipt timeline filter uses those fields.
+- `docs/public-demo.html` now shows recipe picker, local safety signals, diff preview, Apply, and receipt timeline; `docs/MODELS.md` has practical tool/write/review/summarization compatibility notes.
+- T155 moved to done after expanding the security scanner for tool escalation, system prompt extraction, and encoded payloads, with foundation test coverage.
+
+Next open: real `node-llama-cpp` validation with a tiny GGUF on actual hardware, then Phase 7 desktop/CLI distribution.
