@@ -49,7 +49,7 @@ Best next Claude tasks:
 
 - Work on docs and UI copy around native tool calling, structured outputs, planner approval, run guardrails, reflection, loop safety, structured memory, memory suggestions, ranked memory retrieval, memory history, scoped memory, markdown-aware chunk citations, hybrid search score parts, reranking, embedding cache, and search evals.
 - Do not rework `server.js` tool-calling, structured-output, planner, run-cancellation, loop/reflection, memory internals, search chunking, hybrid ranking, reranking, embedding cache, search benchmarks, or resumable-run internals unless you also run the matching scripts: `npm run test:tools`, `npm run test:structured`, `npm run test:planner`, `npm run test:guardrails`, `npm run test:reflection`, `npm run test:memory`, `npm run test:memory-suggestions`, `npm run test:memory-retrieval`, `npm run test:memory-history`, `npm run test:memory-scopes`, `npm run test:search`, `npm run test:rerank`, `npm run test:embed-cache`, `npm run test:resume`, `npm run eval:search`, and `npm run bench:search`.
-- Next code target should be T059 PDF ingestion, T060 office-document ingestion, or T061 HTML/Markdown/code-aware ingestion, not the runtime moonshot.
+- Next code target should be T060 office-document ingestion, T061 HTML/Markdown/code-aware ingestion, or T062 image OCR, not the runtime moonshot.
 
 ## Latest Claude Pass
 
@@ -63,7 +63,7 @@ Reviewed Codex's work and continued the roadmap:
 
 - T038 original partial: pending-run snapshot. Added `/api/runs/pending`, `/api/runs/pending/clear`, a resume banner in the UI, route catalog coverage, and `npm run test:resume`. Receipt-derived resume is completed in the latest Codex pass below.
 
-Still open and recommended next: T059 PDF ingestion, T060 office-document ingestion, or T061 HTML/Markdown/code-aware ingestion.
+Still open and recommended next: T060 office-document ingestion, T061 HTML/Markdown/code-aware ingestion, or T062 image OCR.
 
 ## Latest Claude Pass - UI redesign + handoff completion
 
@@ -141,4 +141,11 @@ Still open and recommended next: T059 PDF ingestion, T060 office-document ingest
 - UI: the receipt timeline has a "Resume selected receipt" action that restores prompt, model, selected files, permissions, and trail without auto-running.
 - Tests/evals/docs updated: `npm run test:resume` covers receipt-derived restore; repo eval checks the new endpoints.
 
-Next open: T059 PDF text extraction, T060 DOCX/PPTX/XLSX extraction, or T061 HTML/Markdown/code-aware ingestion.
+## Latest Codex Pass - PDF ingestion
+
+- T059 is done: `src/document-ingestion.js` extracts selectable PDF text locally, including uncompressed streams and FlateDecode streams, without adding dependencies.
+- New API: `POST /api/documents/extract` accepts a workspace PDF path and writes a searchable Markdown sidecar (`*.pdf.agenttrail.md` by default).
+- PDF attachments through `/api/attachments` now automatically produce extracted Markdown context notes when text is available, so the agent can use the PDF content without reading binary bytes.
+- Tests/evals/docs updated: `npm run test:documents`, API integration coverage for PDF attachments/extract endpoint, CI checks for the new module, and repo eval checks PDF extraction.
+
+Next open: T060 DOCX/PPTX/XLSX extraction, T061 HTML/Markdown/code-aware ingestion, or T062 image OCR for scanned docs.

@@ -79,6 +79,30 @@ async function main() {
     assert.equal(chunkResults.chunks.some((chunk) => /^notes\/api\.md:\d+(-\d+)?$/.test(chunk.citation || "") && chunk.span && Number.isInteger(chunk.span.charStart)), true);
     assert.equal(chunkResults.chunks.every((chunk) => !Array.isArray(chunk.embedding) && chunk.text == null), true);
 
+    const pdfAttachment = await post("/api/attachments", {
+      files: [{
+        name: "sample.pdf",
+        type: "application/pdf",
+        encoding: "base64",
+        content: makePdf("(AgentTrail PDF ingestion text) Tj").toString("base64")
+      }]
+    });
+    assert.equal(pdfAttachment.ok, true);
+    assert.equal(pdfAttachment.saved[0].extracted, true);
+    assert.equal(pdfAttachment.saved[0].extraction.ok, true);
+    const pdfNote = await get(`/api/files/content?path=${encodeURIComponent(pdfAttachment.saved[0].contextPath)}`);
+    assert.match(pdfNote.content, /AgentTrail PDF ingestion text/);
+
+    const extracted = await post("/api/documents/extract", {
+      path: pdfAttachment.saved[0].path,
+      outputPath: "extracted/sample-pdf.md"
+    });
+    assert.equal(extracted.ok, true);
+    assert.equal(extracted.extraction.type, "pdf");
+    assert.match(extracted.output.path, /extracted\/sample-pdf\.md/);
+    const extractedNote = await get("/api/files/content?path=extracted%2Fsample-pdf.md");
+    assert.match(extractedNote.content, /AgentTrail PDF ingestion text/);
+
     await post("/api/files/content", { path: "docs/guide.md", content: "# Guide\n\nnamespace collection isolated search\n" });
     const collectionIndex = await post("/api/search-index", {
       provider: "local-vector",
@@ -147,4 +171,19 @@ async function get(endpoint) {
   const response = await fetch(`http://127.0.0.1:${port}${endpoint}`);
   assert.equal(response.ok, true, endpoint);
   return response.json();
+}
+
+function makePdf(textOperator) {
+  const content = `BT /F1 12 Tf 72 720 Td ${textOperator} ET`;
+  const stream = Buffer.from(content, "latin1");
+  return Buffer.concat([
+    Buffer.from("%PDF-1.4\n", "latin1"),
+    Buffer.from("1 0 obj << /Type /Catalog /Pages 2 0 R >> endobj\n", "latin1"),
+    Buffer.from("2 0 obj << /Type /Pages /Kids [3 0 R] /Count 1 >> endobj\n", "latin1"),
+    Buffer.from("3 0 obj << /Type /Page /Parent 2 0 R /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >> endobj\n", "latin1"),
+    Buffer.from("4 0 obj << /Type /Font /Subtype /Type1 /BaseFont /Helvetica >> endobj\n", "latin1"),
+    Buffer.from(`5 0 obj << /Length ${stream.length} >> stream\n`, "latin1"),
+    stream,
+    Buffer.from("\nendstream endobj\n%%EOF\n", "latin1")
+  ]);
 }

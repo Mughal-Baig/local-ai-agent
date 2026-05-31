@@ -36,20 +36,21 @@ This section tracks the concrete work shipped after the roadmap was publicly ref
 | Codex continuation | T054 | Added dependency-free IVF-lite ANN buckets to the vector store, ANN candidate path lookup for semantic search, `/api/search-index` feature/status visibility, benchmark assertions, tests, eval checks, and docs. |
 | Codex continuation | T055 | Added named search collections with independent search-index/vector-store files under `.agenttrail/search-collections/{id}/`, collection filters, collection-aware search/chunk search, incremental rebuilds, tests, eval checks, and docs. |
 | Codex continuation | T038 | Finished receipt-derived resume: Markdown receipts/reports now carry a resume prompt, `/api/receipts/resume` parses prompt/model/files/permissions/trail, `/api/runs/pending/from-receipt` restores a pending run, `/api/replay/plan` supports receipt paths, and the UI can resume a selected receipt. |
+| Codex continuation | T059 | Added dependency-free PDF text extraction with FlateDecode stream support, `/api/documents/extract`, automatic PDF attachment sidecar notes, route/eval/CI coverage, and docs. |
 | Codex continuation | T057 | Added vector-store version metadata, legacy normalization, search-index-to-vector-store migration, `.agenttrail/vector-store-migrations.json`, migration `005-vector-store-versioning`, tests, eval checks, and docs. |
 | Codex continuation | T058 | Added `npm run bench:search`: deterministic local corpus, local-vector index build timing, AgentTrail semantic recall/latency, brute-force scanner baseline, top-1 agreement threshold, CI coverage, and docs. |
 
 ### Verified After These Passes
 
-- Local suites covered: `npm run test:unit`, `npm run test:search`, `npm run test:rerank`, `npm run test:integration`, `npm run test:backend`, `npm run test:models`, `npm run test:embed-cache`, `npm run test:resume`, `npm run test:reindex`, `npm run eval:search`, `npm run bench:search`, `npm run test:tools`, `npm run test:structured`, `npm run test:planner`, `npm run test:guardrails`, `npm run test:reflection`, memory integration suites, `npm run test:ui`, `npm test`, `npm run eval`, `npm run release:checksums`, and `git diff --check`.
+- Local suites covered: `npm run test:unit`, `npm run test:documents`, `npm run test:search`, `npm run test:rerank`, `npm run test:integration`, `npm run test:backend`, `npm run test:models`, `npm run test:embed-cache`, `npm run test:resume`, `npm run test:reindex`, `npm run eval:search`, `npm run bench:search`, `npm run test:tools`, `npm run test:structured`, `npm run test:planner`, `npm run test:guardrails`, `npm run test:reflection`, memory integration suites, `npm run test:ui`, `npm test`, `npm run eval`, `npm run release:checksums`, and `git diff --check`.
 - GitHub CI and GitHub Pages passed for the latest search commits.
 - Known follow-up: GitHub Actions reports a future Node 20 action-runtime deprecation warning. It is not a test failure, but the workflows should be updated before GitHub forces Node 24 defaults.
 
 ### Best Continuation Points
 
-- T059: PDF text extraction.
 - T060: DOCX / PPTX / XLSX extraction.
 - T061: HTML / Markdown / code-aware ingestion.
+- T062: Image OCR for scanned docs.
 
 ---
 
@@ -135,7 +136,7 @@ This section tracks the concrete work shipped after the roadmap was publicly ref
 - [x] T058 Benchmark recall/latency vs brute force (`npm run bench:search`; deterministic corpus, brute-force baseline, recall@3, top-1 agreement, avg/p95 latency)
 
 ### Epic G — Document ingestion
-- [ ] T059 PDF text extraction
+- [x] T059 PDF text extraction (`/api/documents/extract` plus automatic PDF attachment Markdown sidecars)
 - [ ] T060 DOCX / PPTX / XLSX extraction
 - [ ] T061 HTML / Markdown / code-aware ingestion
 - [ ] T062 Image OCR for scanned docs
@@ -373,16 +374,16 @@ This section tracks the concrete work shipped after the roadmap was publicly ref
 4. We expand an epic's tasks into finer sub-tasks (toward 1000) only when we start that epic — so the plan stays honest and current.
 5. We re-mark `[x]` here as we go; this file is the single source of truth for the campaign.
 
-**Next up:** start Phase 2, Epic G document ingestion.
+**Next up:** continue Phase 2, Epic G document ingestion.
 
 ## Status & bug sweep (latest)
 
-- Progress: **60 tasks done**, 137 open (across Phases 1–10). Phase 1 (agent reliability) is complete; Phase 2 Epic E/F search foundation complete (T044-T058 done except T044 remains hardening umbrella).
-- Full test suite green: **25/25** (unit, integration, smoke, search eval) — run twice, no flakes. All source files pass `node --check`.
+- Progress: **61 tasks done**, 136 open (across Phases 1-10). Phase 1 (agent reliability) is complete; Phase 2 Epic E/F search foundation complete (T044-T058 done except T044 remains hardening umbrella), and Epic G has started with PDF extraction.
+- Focused test suite green: unit, PDF extraction, API integration, smoke, repo eval, and release checksums. All touched source files pass `node --check`.
 - **Bug fixed:** `listWorkspaceFiles` only skipped `.DS_Store`, so internal `.agenttrail/*` state (logs, store, search index, pending-run) was being walked, indexed, and returned in search — adding noise and per-request churn to the index. Now excludes `.agenttrail/`. Verified against smoke, api, search-incremental, search-chunking, and eval:search.
 - Known minor item: a couple of integration tests assert relative/invariant counts (not exact) because the workspace can still gain legit files (e.g. `memory/*`) between calls — intentional, not a bug.
 
-Next code targets: T059 PDF text extraction, T060 DOCX/PPTX/XLSX extraction, T061 HTML/Markdown/code-aware ingestion.
+Next code targets: T060 DOCX/PPTX/XLSX extraction, T061 HTML/Markdown/code-aware ingestion, T062 Image OCR for scanned docs.
 
 ---
 

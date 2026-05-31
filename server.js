@@ -27,6 +27,7 @@ const { SqliteStore } = require("./src/sqlite-store");
 const { FileWatcher } = require("./src/file-watcher");
 const { runPluginTool } = require("./src/plugin-sandbox");
 const { routeCatalog } = require("./src/route-catalog");
+const { isPdfDocument, extractPdfText, buildExtractedDocumentMarkdown } = require("./src/document-ingestion");
 
 loadDotEnv();
 
@@ -444,6 +445,10 @@ const server = http.createServer(async (req, res) => {
 
     if (url.pathname === "/api/attachments" && req.method === "POST") {
       return handleAttachments(req, res);
+    }
+
+    if (url.pathname === "/api/documents/extract" && req.method === "POST") {
+      return handleDocumentExtract(req, res);
     }
 
     if (url.pathname === "/api/files/content" && req.method === "GET") {
@@ -3048,7 +3053,10 @@ async function handleAttachments(req, res) {
           throw new Error(`Attachment is too large (${data.length} bytes)`);
         }
         const binary = await writeWorkspaceBinaryFile(relativePath, data);
-        const note = await writeWorkspaceFile(`${relativePath}.agenttrail.md`, [
+        const documentNote = isPdfDocument(safeName, type)
+          ? await writeExtractedPdfNote(binary.path, data, { originalName, mediaType: type })
+          : null;
+        const note = documentNote || await writeWorkspaceFile(`${relativePath}.agenttrail.md`, [
           `# Attachment: ${originalName}`,
           "",
           `- Stored file: ${binary.path}`,
@@ -3057,7 +3065,16 @@ async function handleAttachments(req, res) {
           "",
           "This attachment was saved as a binary file. AgentTrail selected this note as context so the agent can see that the file exists without reading raw binary bytes."
         ].join("\n"));
-        saved.push({ ...binary, originalName, type, encoding, contextPath: note.path, notePath: note.path });
+        saved.push({
+          ...binary,
+          originalName,
+          type,
+          encoding,
+          contextPath: note.path,
+          notePath: note.path,
+          extracted: Boolean(documentNote),
+          extraction: documentNote ? documentNote.extraction : null
+        });
       } else {
         const content = String(file.content || "");
         if (!content.trim()) {
@@ -3078,6 +3095,63 @@ async function handleAttachments(req, res) {
   SQLITE.insert("attachment", { saved: saved.length, skipped: skipped.length });
   await LOGGER.log("info", "attachment.save", { saved: saved.length, skipped: skipped.length });
   sendJson(res, 200, { ok: saved.length > 0, saved, skipped });
+}
+
+async function handleDocumentExtract(req, res) {
+  const body = await readJsonBody(req);
+  const sourcePath = normalizeRelativePath(body.path || body.sourcePath || "");
+  if (!sourcePath) {
+    return sendJson(res, 400, { error: "Document path is required." });
+  }
+  if (!isPdfDocument(sourcePath, body.mediaType || "")) {
+    return sendJson(res, 400, { error: "Only PDF extraction is supported in this pass." });
+  }
+  try {
+    const file = await readWorkspaceBinaryFile(sourcePath, MAX_BODY_BYTES);
+    const note = await writeExtractedPdfNote(file.path, file.content, {
+      originalName: body.originalName || path.basename(file.path),
+      mediaType: body.mediaType || "application/pdf",
+      outputPath: body.outputPath
+    });
+    await STORE.append("document-extract", {
+      path: file.path,
+      outputPath: note.path,
+      type: "pdf",
+      chars: note.extraction.charCount
+    });
+    sendJson(res, 200, {
+      ok: true,
+      source: { path: file.path, size: file.size, modifiedAt: file.modifiedAt },
+      output: { path: note.path, size: note.size, modifiedAt: note.modifiedAt },
+      extraction: note.extraction
+    });
+  } catch (error) {
+    sendJson(res, 400, { error: error.message || "Could not extract document." });
+  }
+}
+
+async function writeExtractedPdfNote(sourcePath, data, options = {}) {
+  const extraction = extractPdfText(data, { sourcePath });
+  const outputPath = options.outputPath
+    ? normalizeRelativePath(options.outputPath)
+    : `${sourcePath}.agenttrail.md`;
+  const result = await writeWorkspaceFile(outputPath, buildExtractedDocumentMarkdown({
+    sourcePath,
+    originalName: options.originalName || path.basename(sourcePath),
+    mediaType: options.mediaType || "application/pdf",
+    extraction
+  }));
+  return {
+    ...result,
+    extraction: {
+      ok: extraction.ok,
+      type: extraction.type,
+      pageCount: extraction.pageCount,
+      charCount: extraction.charCount,
+      streamsScanned: extraction.streamsScanned,
+      warnings: extraction.warnings
+    }
+  };
 }
 
 async function handlePreviewFile(req, res) {
@@ -5456,6 +5530,23 @@ async function readWorkspaceFile(relativePath, maxBytes) {
     size: stat.size,
     modifiedAt: stat.mtime.toISOString(),
     content: await fsp.readFile(absolutePath, "utf8")
+  };
+}
+
+async function readWorkspaceBinaryFile(relativePath, maxBytes) {
+  const absolutePath = resolveWorkspacePath(relativePath);
+  const stat = await fsp.stat(absolutePath);
+  if (!stat.isFile()) {
+    throw new Error("Path is not a file");
+  }
+  if (stat.size > maxBytes) {
+    throw new Error(`File is too large to read here (${stat.size} bytes)`);
+  }
+  return {
+    path: normalizeRelativePath(relativePath),
+    size: stat.size,
+    modifiedAt: stat.mtime.toISOString(),
+    content: await fsp.readFile(absolutePath)
   };
 }
 

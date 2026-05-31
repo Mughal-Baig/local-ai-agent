@@ -94,7 +94,7 @@ Open `http://127.0.0.1:4173`, build the semantic index, ask for a change, review
 - BM25 keyword search and hybrid semantic local search across workspace files, sessions, and saved receipts, with markdown-aware chunks, late-interaction chunk vectors, reranking, score parts, and exact line/character citation spans
 - Ollama embedding index using `OLLAMA_EMBED_MODEL=nomic-embed-text`, with local-vector fallback and cached real embeddings keyed by model + content hash
 - First-run setup checklist for Ollama, models, workspace files, recipes, and receipts
-- Attachment picker that copies local files into `workspace/attachments/` and selects them for agent context
+- Attachment picker that copies local files into `workspace/attachments/`, extracts selectable PDF text into context notes, and selects them for agent context
 - Permission toggles for file reads, file writes, write preview mode, and security hardening mode
 - Ollama integration for local models
 - Model capability scoring for coding, tool use, planning, and long context
@@ -245,6 +245,7 @@ When write preview mode is enabled, `write_file` returns a diff preview instead 
 - Receipt timeline and replay: saved Markdown receipts in `workspace/receipts/`, JSON sessions in `workspace/sessions/`, and receipt-derived resume
 - Diff Review center: pending preview apply/reject UI
 - Local attachments: `/api/attachments` plus browser file picker that saves files into the workspace
+- PDF text extraction: `/api/documents/extract` and automatic PDF attachment notes for searchable context
 - MCP bridge: [mcp/server.js](mcp/server.js) and [mcp/agenttrail.mcp.json](mcp/agenttrail.mcp.json)
 - Recipe marketplace: [marketplace/recipes.json](marketplace/recipes.json), [recipe-packs](recipe-packs), `/api/packs/import`
 - One-command install surfaces: `bin/agenttrail.js`, [Dockerfile](Dockerfile), [docker-compose.yml](docker-compose.yml), [install.sh](install.sh), [Formula/agenttrail.rb](Formula/agenttrail.rb), [desktop](desktop)
@@ -331,6 +332,7 @@ Supported variables:
 ```bash
 node scripts/smoke-test.js
 npm run test:unit
+npm run test:documents
 npm run test:search
 npm run test:rerank
 npm run test:integration

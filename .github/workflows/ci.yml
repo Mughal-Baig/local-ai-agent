@@ -17,9 +17,11 @@ jobs:
       - run: node --check public/app.js
       - run: node --check src/model-adapters.js
       - run: node --check src/tool-schemas.js
+      - run: node --check src/document-ingestion.js
       - run: node --check scripts/smoke-test.js
       - run: node --check scripts/evaluate-agenttrail.js
       - run: node tests/unit/foundation.test.js
+      - run: node tests/unit/pdf-extraction.test.js
       - run: node tests/unit/search-chunking.test.js
       - run: node tests/unit/rerank.test.js
       - run: node tests/integration/api.test.js
