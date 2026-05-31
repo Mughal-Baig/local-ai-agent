@@ -59,6 +59,8 @@ async function main() {
     assert.equal(indexStatus.features.onDiskVectorStore, true);
     assert.equal(indexStatus.vectorStore.exists, true);
     assert.equal(indexStatus.vectorStore.path, ".agenttrail/vector-store.json");
+    assert.equal(indexStatus.vectorStore.version, 1);
+    assert.equal(indexStatus.vectorStore.compatible, true);
     assert.equal(indexStatus.vectorStore.vectorCount >= indexStatus.itemCount + indexStatus.chunkCount, true);
     assert.equal(indexStatus.features.chunkVectorCount >= indexStatus.chunkCount, true);
 

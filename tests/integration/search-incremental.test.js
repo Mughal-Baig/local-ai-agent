@@ -40,6 +40,7 @@ async function main() {
     assert.equal(built.features.multiVector, true, "index should store chunk vectors for late interaction");
     assert.equal(built.features.onDiskVectorStore, true, "index should persist vectors outside the search index");
     assert.equal(built.vectorStore.exists, true, "vector store should exist after a full build");
+    assert.equal(built.vectorStore.version, 1, "vector store should be versioned");
     assert.equal(built.features.chunkVectorCount >= built.chunkCount, true, "each chunk should have a vector");
 
     // Incremental: unchanged seeded files are reused, and within a pass the counts

@@ -1,0 +1,5 @@
+{
+  "id": "005-vector-store-versioning",
+  "title": "Normalize vector store version metadata",
+  "creates": [".agenttrail/vector-store-migrations.json"]
+}

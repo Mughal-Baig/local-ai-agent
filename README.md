@@ -37,7 +37,7 @@ Writes are off by default. The agent proposes a unified diff; you click **Apply*
 ## Why Star This
 
 - **Transparent by default**: every tool call is shown as an Agent Trail receipt.
-- **Search before answer**: keyword search plus real local vector search with Ollama embeddings when available.
+- **Search before answer**: keyword search plus versioned local vector search with Ollama embeddings when available.
 - **Diff-safe writes**: preview mode shows a unified diff in chat and lets the user apply it deliberately.
 - **Trust Score dashboard**: each run shows evidence, preview, receipt, memory, hardening, and eval signals.
 - **Budgeted project memory**: structured memory is ranked by the current prompt/files/tools before it enters the model context.
@@ -59,7 +59,7 @@ Popular local AI tools are often full platforms. This project is intentionally s
 | --- | --- |
 | Setup | One Node command, `npx`-ready package metadata, Docker Compose, Homebrew formula draft, desktop launchers |
 | Model backend | Ollama, or any OpenAI-compatible local server (LM Studio, llama.cpp, vLLM, Jan) — see [Model Backends](docs/MODEL_BACKENDS.md) |
-| File access | Sandboxed workspace tools plus keyword search, local vector index, and Ollama embedding index |
+| File access | Sandboxed workspace tools plus keyword search, versioned local vector store, and Ollama embedding index |
 | Trust UX | Trust Score, local signals, security scan, reviewable diff previews, explicit apply buttons, exportable reports, replay sessions, receipts, and tool history |
 | Workflow system | Plain JSON recipes, role-based recipe packs, import/export UI, and marketplace manifest |
 | Foundation | Stable schemas, migrations, append-only store, permission engine, plugin manifests, backups, jobs, checksums |
@@ -241,7 +241,7 @@ When write preview mode is enabled, `write_file` returns a diff preview instead 
 ## Top 1% Surfaces
 
 - Visual demo proof: [docs/agenttrail-demo.gif](docs/agenttrail-demo.gif), [docs/preview-app.png](docs/preview-app.png), [docs/preview-diff.png](docs/preview-diff.png)
-- True semantic search: `/api/search-index`, `/api/search?mode=semantic`, on-disk vector store, Ollama embeddings with local-vector fallback, BM25 + vector score fusion, late-interaction chunk vectors for long docs, reranking, and embedding cache
+- True semantic search: `/api/search-index`, `/api/search?mode=semantic`, versioned on-disk vector store, Ollama embeddings with local-vector fallback, BM25 + vector score fusion, late-interaction chunk vectors for long docs, reranking, and embedding cache
 - Receipt timeline and replay: saved Markdown receipts in `workspace/receipts/`, JSON sessions in `workspace/sessions/`
 - Diff Review center: pending preview apply/reject UI
 - Local attachments: `/api/attachments` plus browser file picker that saves files into the workspace
@@ -275,6 +275,7 @@ When write preview mode is enabled, `write_file` returns a diff preview instead 
 - Permission engine: [src/permissions.js](src/permissions.js)
 - Model adapters: [src/model-adapters.js](src/model-adapters.js)
 - Migration system: [src/migrations.js](src/migrations.js)
+- Vector-store migrations: [src/vector-store.js](src/vector-store.js)
 - Append-only store: [src/json-store.js](src/json-store.js)
 - Background jobs: [src/jobs.js](src/jobs.js)
 - Plugin architecture: [plugins](plugins)

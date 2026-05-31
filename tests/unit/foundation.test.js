@@ -17,7 +17,7 @@ const { hashContent, chunkText, chunkTextDetailed, rankChunks } = require("../..
 const { scanSecurityText } = require("../../src/features/security");
 const { friendlyError } = require("../../src/features/errors");
 const { SqliteStore } = require("../../src/sqlite-store");
-const { FlatVectorStore, vectorMapsFromStore, vectorStoreFromIndex } = require("../../src/vector-store");
+const { FlatVectorStore, VECTOR_STORE_VERSION, migrateVectorStore, vectorMapsFromStore, vectorStoreFromIndex } = require("../../src/vector-store");
 const { runPluginTool } = require("../../src/plugin-sandbox");
 const { routeCatalog } = require("../../src/route-catalog");
 
@@ -125,11 +125,32 @@ async function main() {
     const vectorStore = new FlatVectorStore(tempRoot);
     const vectorStatus = await vectorStore.writeFromIndex(vectorIndex);
     assert.equal(vectorStatus.exists, true);
+    assert.equal(vectorStatus.version, VECTOR_STORE_VERSION);
     assert.equal(vectorStatus.vectorCount, 2);
     const vectorMaps = vectorMapsFromStore(await vectorStore.read());
     assert.deepEqual(vectorMaps.fileVectors.get("a.md"), [1, 0]);
     assert.equal(vectorMaps.chunkVectors.get("a.md")[0].citation, "a.md:1");
     assert.equal(vectorStoreFromIndex(vectorIndex).chunkVectorCount, 1);
+
+    const searchIndexMigration = migrateVectorStore(vectorIndex);
+    assert.equal(searchIndexMigration.migrated, true);
+    assert.equal(searchIndexMigration.store.version, VECTOR_STORE_VERSION);
+    assert.equal(searchIndexMigration.store.vectorCount, 2);
+
+    const legacyStore = vectorStoreFromIndex(vectorIndex);
+    delete legacyStore.version;
+    delete legacyStore.minReaderVersion;
+    delete legacyStore.recordSchema;
+    for (const record of legacyStore.vectors) {
+      delete record.schema;
+      delete record.version;
+    }
+    await fsp.writeFile(path.join(tempRoot, ".agenttrail", "vector-store.json"), JSON.stringify(legacyStore, null, 2), "utf8");
+    const migratedVectorStatus = await vectorStore.migrate();
+    assert.equal(migratedVectorStatus.migrated, true);
+    assert.equal(migratedVectorStatus.version, VECTOR_STORE_VERSION);
+    assert.equal(migratedVectorStatus.migrationCount >= 1, true);
+    assert.equal((await vectorStore.read()).version, VECTOR_STORE_VERSION);
   } finally {
     await fsp.rm(tempRoot, { recursive: true, force: true });
   }

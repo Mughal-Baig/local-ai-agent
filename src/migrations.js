@@ -2,6 +2,7 @@
 
 const fsp = require("node:fs/promises");
 const path = require("node:path");
+const { migrateVectorStoreFiles } = require("./vector-store");
 
 const MIGRATIONS = [
   {
@@ -23,6 +24,12 @@ const MIGRATIONS = [
     id: "004-sqlite-store",
     title: "Enable SQLite local store",
     creates: [".agenttrail/agenttrail.db"]
+  },
+  {
+    id: "005-vector-store-versioning",
+    title: "Normalize vector store version metadata",
+    creates: [".agenttrail/vector-store-migrations.json"],
+    run: async (workspaceRoot) => migrateVectorStoreFiles(workspaceRoot)
   }
 ];
 
@@ -31,6 +38,7 @@ async function runMigrations(workspaceRoot, version) {
   const state = await readJson(statePath, { applied: [] });
   const applied = new Set(state.applied || []);
   const newlyApplied = [];
+  const details = {};
 
   for (const migration of MIGRATIONS) {
     if (applied.has(migration.id)) {
@@ -46,6 +54,9 @@ async function runMigrations(workspaceRoot, version) {
       } else {
         await fsp.mkdir(absolute, { recursive: true });
       }
+    }
+    if (typeof migration.run === "function") {
+      details[migration.id] = await migration.run(workspaceRoot, { version });
     }
     applied.add(migration.id);
     newlyApplied.push(migration.id);
@@ -63,7 +74,8 @@ async function runMigrations(workspaceRoot, version) {
     total: MIGRATIONS.length,
     applied: Array.from(applied),
     newlyApplied,
-    pending: MIGRATIONS.filter((migration) => !applied.has(migration.id)).map((migration) => migration.id)
+    pending: MIGRATIONS.filter((migration) => !applied.has(migration.id)).map((migration) => migration.id),
+    details
   };
 }
 

@@ -43,6 +43,16 @@ const SCHEMAS = {
     required: ["schema", "provider", "model", "dimensions", "builtAt", "items"],
     optional: ["workspaceRoot", "chunks", "fileHashes"]
   },
+  vectorStore: {
+    schema: "agenttrail.vector-store.v1",
+    required: ["schema", "version", "provider", "model", "dimensions", "builtAt", "vectors"],
+    optional: ["minReaderVersion", "recordSchema", "path", "sourceIndexBuiltAt", "migrations", "lastMigratedAt"]
+  },
+  vectorStoreMigrations: {
+    schema: "agenttrail.vector-store-migrations.v1",
+    required: ["schema", "version", "updatedAt", "vectorStore", "actions"],
+    optional: ["notes"]
+  },
   toolPermission: {
     schema: "agenttrail.tool-permission.v1",
     required: ["tool", "scope", "risk", "receipt"],

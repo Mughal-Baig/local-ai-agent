@@ -49,7 +49,7 @@ Best next Claude tasks:
 
 - Work on docs and UI copy around native tool calling, structured outputs, planner approval, run guardrails, reflection, loop safety, structured memory, memory suggestions, ranked memory retrieval, memory history, scoped memory, markdown-aware chunk citations, hybrid search score parts, reranking, embedding cache, and search evals.
 - Do not rework `server.js` tool-calling, structured-output, planner, run-cancellation, loop/reflection, memory internals, search chunking, hybrid ranking, reranking, embedding cache, or resumable-run internals unless you also run the matching scripts: `npm run test:tools`, `npm run test:structured`, `npm run test:planner`, `npm run test:guardrails`, `npm run test:reflection`, `npm run test:memory`, `npm run test:memory-suggestions`, `npm run test:memory-retrieval`, `npm run test:memory-history`, `npm run test:memory-scopes`, `npm run test:search`, `npm run test:rerank`, `npm run test:embed-cache`, `npm run test:resume`, and `npm run eval:search`.
-- Next code target should be finishing T038 receipt-derived resume, T050 multi-vector search, T053 on-disk vector store, or T058 recall/latency benchmarks, not the runtime moonshot.
+- Next code target should be finishing T038 receipt-derived resume, T058 recall/latency benchmarks, T054 large-corpus ANN indexing, or T055 namespaces, not the runtime moonshot.
 
 ## Latest Claude Pass
 
@@ -63,7 +63,7 @@ Reviewed Codex's work and continued the roadmap:
 
 - T038 partial: pending-run snapshot. Added `/api/runs/pending`, `/api/runs/pending/clear`, a resume banner in the UI, route catalog coverage, and `npm run test:resume`. This handles interrupted browser runs, but full receipt-derived resume remains open.
 
-Still open and recommended next: finish T038 receipt-derived resume, T050 multi-vector search, T053 on-disk vector store, or T058 recall/latency benchmarks.
+Still open and recommended next: finish T038 receipt-derived resume, T058 recall/latency benchmarks, T054 large-corpus ANN indexing, or T055 namespaces.
 
 ## Latest Claude Pass - UI redesign + handoff completion
 
@@ -105,4 +105,11 @@ Still open and recommended next: finish T038 receipt-derived resume, T050 multi-
 - `/api/search-index` now reports `features.onDiskVectorStore` and a `vectorStore` summary with file/chunk/vector counts.
 - Tests/evals updated: `test:unit`, `test:integration`, `test:reindex`, `eval`, and `eval:search` cover vector-store creation and semantic use.
 
-Next open: T057 store versioning/migration, T058 recall/latency benchmark, T054 large-corpus ANN indexing, and the remaining receipt-derived part of T038.
+## Latest Codex Pass - Vector-store migrations
+
+- T057 store versioning/migration is done: vector stores now carry `version`, `minReaderVersion`, `recordSchema`, per-record schema/version fields, and migration history metadata.
+- `src/vector-store.js` can normalize legacy `.agenttrail/vector-store.json` files, convert embedded `agenttrail.search-index.v1` vectors into the flat vector store, and write `.agenttrail/vector-store-migrations.json`.
+- `src/migrations.js` now includes `005-vector-store-versioning`, so old workspaces upgrade during the normal migration pass.
+- Tests/evals/docs updated: foundation tests cover legacy normalization and search-index conversion; API/reindex tests assert versioned store status.
+
+Next open: T058 recall/latency benchmark, T054 large-corpus ANN indexing, T055 namespace/collection support, and the remaining receipt-derived part of T038.

@@ -4,6 +4,10 @@ const fsp = require("node:fs/promises");
 const path = require("node:path");
 
 const VECTOR_STORE_SCHEMA = "agenttrail.vector-store.v1";
+const VECTOR_STORE_VERSION = 1;
+const VECTOR_RECORD_SCHEMA = "agenttrail.vector-record.v1";
+const VECTOR_STORE_MIGRATION_SCHEMA = "agenttrail.vector-store-migrations.v1";
+const VECTOR_STORE_MIGRATION_PATH = ".agenttrail/vector-store-migrations.json";
 
 class FlatVectorStore {
   constructor(root, relativePath = ".agenttrail/vector-store.json") {
@@ -14,26 +18,60 @@ class FlatVectorStore {
 
   async writeFromIndex(index) {
     const store = vectorStoreFromIndex(index, this.relativePath);
-    await fsp.mkdir(path.dirname(this.absolutePath), { recursive: true });
-    await fsp.writeFile(this.absolutePath, JSON.stringify(store, null, 2), "utf8");
+    await this.writeStore(store);
     return summarizeVectorStore(store, this.relativePath);
   }
 
-  async read() {
+  async writeStore(store) {
+    await fsp.mkdir(path.dirname(this.absolutePath), { recursive: true });
+    await fsp.writeFile(this.absolutePath, JSON.stringify(store, null, 2), "utf8");
+  }
+
+  async read(options = {}) {
     const raw = await fsp.readFile(this.absolutePath, "utf8").catch(() => "");
     if (!raw) {
       return null;
     }
-    const store = JSON.parse(raw);
-    if (!store || store.schema !== VECTOR_STORE_SCHEMA || !Array.isArray(store.vectors)) {
+    const migrated = migrateVectorStore(JSON.parse(raw), { storePath: this.relativePath });
+    if (!migrated.store) {
       return null;
     }
-    return store;
+    if (options.persistMigrations && migrated.migrated) {
+      await this.writeStore(migrated.store);
+    }
+    return migrated.store;
   }
 
   async status() {
     const store = await this.read().catch(() => null);
     return summarizeVectorStore(store, this.relativePath);
+  }
+
+  async migrate() {
+    const raw = await fsp.readFile(this.absolutePath, "utf8").catch(() => "");
+    if (!raw) {
+      return {
+        ...summarizeVectorStore(null, this.relativePath),
+        migrated: false,
+        migrations: []
+      };
+    }
+    const migrated = migrateVectorStore(JSON.parse(raw), { storePath: this.relativePath });
+    if (!migrated.store) {
+      return {
+        ...summarizeVectorStore(null, this.relativePath),
+        migrated: false,
+        migrations: ["invalid-vector-store"]
+      };
+    }
+    if (migrated.migrated) {
+      await this.writeStore(migrated.store);
+    }
+    return {
+      ...summarizeVectorStore(migrated.store, this.relativePath),
+      migrated: migrated.migrated,
+      migrations: migrated.migrations
+    };
   }
 }
 
@@ -44,6 +82,8 @@ function vectorStoreFromIndex(index, storePath = ".agenttrail/vector-store.json"
       continue;
     }
     vectors.push({
+      schema: VECTOR_RECORD_SCHEMA,
+      version: VECTOR_STORE_VERSION,
       id: `file:${item.path}`,
       scope: "file",
       path: item.path,
@@ -60,6 +100,8 @@ function vectorStoreFromIndex(index, storePath = ".agenttrail/vector-store.json"
       continue;
     }
     vectors.push({
+      schema: VECTOR_RECORD_SCHEMA,
+      version: VECTOR_STORE_VERSION,
       id: `chunk:${chunk.id || `${chunk.path}#${Number(chunk.index || 0) + 1}`}`,
       scope: "chunk",
       path: chunk.path || "",
@@ -81,6 +123,9 @@ function vectorStoreFromIndex(index, storePath = ".agenttrail/vector-store.json"
 
   return {
     schema: VECTOR_STORE_SCHEMA,
+    version: VECTOR_STORE_VERSION,
+    minReaderVersion: 1,
+    recordSchema: VECTOR_RECORD_SCHEMA,
     path: storePath,
     provider: index && index.provider ? index.provider : "none",
     model: index && index.model ? index.model : null,
@@ -90,8 +135,150 @@ function vectorStoreFromIndex(index, storePath = ".agenttrail/vector-store.json"
     vectorCount: vectors.length,
     fileVectorCount: vectors.filter((item) => item.scope === "file").length,
     chunkVectorCount: vectors.filter((item) => item.scope === "chunk").length,
+    migrations: [],
     vectors
   };
+}
+
+function migrateVectorStore(rawStore, options = {}) {
+  const storePath = options.storePath || ".agenttrail/vector-store.json";
+  if (!rawStore || typeof rawStore !== "object") {
+    return { store: null, migrated: false, migrations: [] };
+  }
+  if (rawStore.schema === "agenttrail.search-index.v1" || (Array.isArray(rawStore.items) && !Array.isArray(rawStore.vectors))) {
+    const store = vectorStoreFromIndex(rawStore, storePath);
+    return {
+      store: addMigration(store, "search-index-to-vector-store-v1"),
+      migrated: true,
+      migrations: ["search-index-to-vector-store-v1"]
+    };
+  }
+  if (rawStore.schema && rawStore.schema !== VECTOR_STORE_SCHEMA) {
+    return { store: null, migrated: false, migrations: [] };
+  }
+
+  const migrations = [];
+  const existingMigrationIds = new Set((Array.isArray(rawStore.migrations) ? rawStore.migrations : [])
+    .map((entry) => typeof entry === "string" ? entry : entry && entry.id)
+    .filter(Boolean));
+  const normalizedVectors = [];
+  let recordsChanged = false;
+  for (const record of Array.isArray(rawStore.vectors) ? rawStore.vectors : []) {
+    const normalized = normalizeVectorRecord(record);
+    if (!normalized) {
+      recordsChanged = true;
+      continue;
+    }
+    normalizedVectors.push(normalized);
+    if (JSON.stringify(normalized) !== JSON.stringify(record)) {
+      recordsChanged = true;
+    }
+  }
+
+  const store = {
+    ...rawStore,
+    schema: VECTOR_STORE_SCHEMA,
+    version: VECTOR_STORE_VERSION,
+    minReaderVersion: 1,
+    recordSchema: VECTOR_RECORD_SCHEMA,
+    path: rawStore.path || storePath,
+    provider: rawStore.provider || "none",
+    model: rawStore.model || null,
+    dimensions: Number(rawStore.dimensions || inferDimensions(normalizedVectors) || 0),
+    builtAt: rawStore.builtAt || new Date().toISOString(),
+    sourceIndexBuiltAt: rawStore.sourceIndexBuiltAt || null,
+    vectors: normalizedVectors
+  };
+  store.vectorCount = normalizedVectors.length;
+  store.fileVectorCount = normalizedVectors.filter((item) => item.scope === "file").length;
+  store.chunkVectorCount = normalizedVectors.filter((item) => item.scope === "chunk").length;
+
+  const needsVersionMigration = rawStore.schema !== VECTOR_STORE_SCHEMA
+    || rawStore.version !== VECTOR_STORE_VERSION
+    || rawStore.minReaderVersion !== 1
+    || rawStore.recordSchema !== VECTOR_RECORD_SCHEMA
+    || rawStore.path !== store.path
+    || rawStore.vectorCount !== store.vectorCount
+    || rawStore.fileVectorCount !== store.fileVectorCount
+    || rawStore.chunkVectorCount !== store.chunkVectorCount
+    || recordsChanged;
+
+  if (needsVersionMigration && !existingMigrationIds.has("vector-store-v1-normalize")) {
+    const updated = addMigration(store, "vector-store-v1-normalize");
+    migrations.push("vector-store-v1-normalize");
+    return { store: updated, migrated: true, migrations };
+  }
+
+  return { store, migrated: needsVersionMigration, migrations };
+}
+
+function normalizeVectorRecord(record) {
+  if (!record || typeof record !== "object" || !Array.isArray(record.embedding)) {
+    return null;
+  }
+  const embedding = record.embedding.map(Number).filter(Number.isFinite);
+  if (!embedding.length) {
+    return null;
+  }
+  const scope = record.scope === "chunk" || String(record.id || "").startsWith("chunk:") ? "chunk" : "file";
+  const recordPath = String(record.path || "");
+  if (!recordPath) {
+    return null;
+  }
+  if (scope === "chunk") {
+    const index = Number(record.index || 0);
+    const span = record.span || {
+      startLine: record.startLine || 1,
+      endLine: record.endLine || record.startLine || 1,
+      charStart: Number.isInteger(record.charStart) ? record.charStart : null,
+      charEnd: Number.isInteger(record.charEnd) ? record.charEnd : null
+    };
+    return {
+      schema: VECTOR_RECORD_SCHEMA,
+      version: VECTOR_STORE_VERSION,
+      id: record.id || `chunk:${recordPath}#${index + 1}`,
+      scope,
+      path: recordPath,
+      index,
+      hash: record.hash || "",
+      heading: record.heading || "",
+      kind: record.kind || "paragraph",
+      preview: record.preview || "",
+      citation: record.citation || "",
+      span,
+      embedding
+    };
+  }
+  return {
+    schema: VECTOR_RECORD_SCHEMA,
+    version: VECTOR_STORE_VERSION,
+    id: record.id || `file:${recordPath}`,
+    scope,
+    path: recordPath,
+    hash: record.hash || "",
+    size: record.size || 0,
+    modifiedAt: record.modifiedAt || null,
+    chunkCount: record.chunkCount || 0,
+    embedding
+  };
+}
+
+function addMigration(store, id) {
+  const migrations = Array.isArray(store.migrations) ? store.migrations.slice() : [];
+  const existing = new Set(migrations.map((entry) => typeof entry === "string" ? entry : entry && entry.id).filter(Boolean));
+  if (!existing.has(id)) {
+    migrations.push({ id, appliedAt: new Date().toISOString() });
+  }
+  return {
+    ...store,
+    lastMigratedAt: new Date().toISOString(),
+    migrations
+  };
+}
+
+function inferDimensions(vectors) {
+  const record = vectors.find((item) => Array.isArray(item.embedding) && item.embedding.length);
+  return record ? record.embedding.length : 0;
 }
 
 function summarizeVectorStore(store, storePath = ".agenttrail/vector-store.json") {
@@ -100,6 +287,7 @@ function summarizeVectorStore(store, storePath = ".agenttrail/vector-store.json"
       exists: false,
       path: storePath,
       schema: VECTOR_STORE_SCHEMA,
+      version: VECTOR_STORE_VERSION,
       vectorCount: 0,
       fileVectorCount: 0,
       chunkVectorCount: 0
@@ -110,11 +298,15 @@ function summarizeVectorStore(store, storePath = ".agenttrail/vector-store.json"
     exists: true,
     path: store.path || storePath,
     schema: store.schema || VECTOR_STORE_SCHEMA,
+    version: store.version || VECTOR_STORE_VERSION,
+    minReaderVersion: store.minReaderVersion || 1,
     provider: store.provider || "none",
     model: store.model || null,
     dimensions: store.dimensions || 0,
     builtAt: store.builtAt || null,
     sourceIndexBuiltAt: store.sourceIndexBuiltAt || null,
+    lastMigratedAt: store.lastMigratedAt || null,
+    migrationCount: Array.isArray(store.migrations) ? store.migrations.length : 0,
     vectorCount: store.vectorCount || vectors.length,
     fileVectorCount: store.fileVectorCount || vectors.filter((item) => item.scope === "file").length,
     chunkVectorCount: store.chunkVectorCount || vectors.filter((item) => item.scope === "chunk").length
@@ -157,10 +349,59 @@ function vectorMapsFromStore(store) {
   return { fileVectors, chunkVectors };
 }
 
+async function migrateVectorStoreFiles(workspaceRoot, options = {}) {
+  const vectorStorePath = options.vectorStorePath || ".agenttrail/vector-store.json";
+  const searchIndexPath = options.searchIndexPath || ".agenttrail/search-index.json";
+  const migrationPath = options.migrationPath || VECTOR_STORE_MIGRATION_PATH;
+  const vectorStore = new FlatVectorStore(workspaceRoot, vectorStorePath);
+  const actions = [];
+  let status = await vectorStore.migrate();
+
+  if (!status.exists) {
+    const index = await readJsonFile(path.join(workspaceRoot, searchIndexPath));
+    if (index && index.schema === "agenttrail.search-index.v1") {
+      status = await vectorStore.writeFromIndex(index);
+      status = {
+        ...status,
+        migrated: true,
+        migrations: ["search-index-to-vector-store-v1"]
+      };
+      actions.push("search-index-to-vector-store-v1");
+    }
+  } else {
+    actions.push(...(status.migrations || []));
+  }
+
+  const manifest = {
+    schema: VECTOR_STORE_MIGRATION_SCHEMA,
+    version: 1,
+    updatedAt: new Date().toISOString(),
+    vectorStore: status,
+    actions
+  };
+  const absoluteMigrationPath = path.join(workspaceRoot, migrationPath);
+  await fsp.mkdir(path.dirname(absoluteMigrationPath), { recursive: true });
+  await fsp.writeFile(absoluteMigrationPath, JSON.stringify(manifest, null, 2), "utf8");
+  return manifest;
+}
+
+async function readJsonFile(filePath) {
+  try {
+    return JSON.parse(await fsp.readFile(filePath, "utf8"));
+  } catch {
+    return null;
+  }
+}
+
 module.exports = {
   VECTOR_STORE_SCHEMA,
+  VECTOR_STORE_VERSION,
+  VECTOR_RECORD_SCHEMA,
+  VECTOR_STORE_MIGRATION_SCHEMA,
   FlatVectorStore,
   vectorStoreFromIndex,
+  migrateVectorStore,
+  migrateVectorStoreFiles,
   summarizeVectorStore,
   vectorMapsFromStore
 };
