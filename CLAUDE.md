@@ -49,7 +49,7 @@ Best next Claude tasks:
 
 - Work on docs and UI copy around native tool calling, structured outputs, planner approval, run guardrails, reflection, loop safety, structured memory, memory suggestions, ranked memory retrieval, memory history, scoped memory, markdown-aware chunk citations, hybrid search score parts, reranking, embedding cache, and search evals.
 - Do not rework `server.js` tool-calling, structured-output, planner, run-cancellation, loop/reflection, memory internals, search chunking, hybrid ranking, reranking, embedding cache, search benchmarks, or resumable-run internals unless you also run the matching scripts: `npm run test:tools`, `npm run test:structured`, `npm run test:planner`, `npm run test:guardrails`, `npm run test:reflection`, `npm run test:memory`, `npm run test:memory-suggestions`, `npm run test:memory-retrieval`, `npm run test:memory-history`, `npm run test:memory-scopes`, `npm run test:search`, `npm run test:rerank`, `npm run test:embed-cache`, `npm run test:resume`, `npm run eval:search`, and `npm run bench:search`.
-- Next code target should be finishing T038 receipt-derived resume, T054 large-corpus ANN indexing, or T055 namespaces, not the runtime moonshot.
+- Next code target should be finishing T038 receipt-derived resume, T055 namespaces, or T059 PDF ingestion, not the runtime moonshot.
 
 ## Latest Claude Pass
 
@@ -63,7 +63,7 @@ Reviewed Codex's work and continued the roadmap:
 
 - T038 partial: pending-run snapshot. Added `/api/runs/pending`, `/api/runs/pending/clear`, a resume banner in the UI, route catalog coverage, and `npm run test:resume`. This handles interrupted browser runs, but full receipt-derived resume remains open.
 
-Still open and recommended next: finish T038 receipt-derived resume, T054 large-corpus ANN indexing, or T055 namespaces.
+Still open and recommended next: finish T038 receipt-derived resume, T055 namespaces, or T059 PDF ingestion.
 
 ## Latest Claude Pass - UI redesign + handoff completion
 
@@ -119,4 +119,11 @@ Still open and recommended next: finish T038 receipt-derived resume, T054 large-
 - CI now runs `node scripts/benchmark-search.js`; `scripts/evaluate-agenttrail.js` also checks that the benchmark harness exists.
 - `scripts/eval-search.js` now waits on `/api/config` instead of `/api/status` so search eval readiness does not race backend model probes.
 
-Next open: T054 large-corpus ANN indexing, T055 namespace/collection support, and the remaining receipt-derived part of T038.
+## Latest Codex Pass - IVF-lite ANN index
+
+- T054 large-corpus ANN indexing is done as a dependency-free IVF-lite layer: `src/vector-store.js` now builds `agenttrail.vector-ann.ivf-lite.v1` buckets from top vector dimensions for file and chunk records.
+- Semantic search now uses ANN candidate paths from the vector store before doing file/chunk vector scoring, while keyword matches still keep their safety fallback.
+- `/api/search-index` reports `features.annIndex`, `features.annAlgorithm`, and `vectorStore.ann`; `scoreParts.annCandidate` is visible on semantic results.
+- Tests/evals/benchmark updated: foundation tests cover ANN bucket/candidate behavior, API/reindex assert ANN status, `bench:search` asserts ANN exists, and repo eval checks for the ANN harness.
+
+Next open: T055 namespace/collection support, the remaining receipt-derived part of T038, or T059 PDF text extraction.

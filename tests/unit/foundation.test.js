@@ -17,7 +17,7 @@ const { hashContent, chunkText, chunkTextDetailed, rankChunks } = require("../..
 const { scanSecurityText } = require("../../src/features/security");
 const { friendlyError } = require("../../src/features/errors");
 const { SqliteStore } = require("../../src/sqlite-store");
-const { FlatVectorStore, VECTOR_STORE_VERSION, migrateVectorStore, vectorMapsFromStore, vectorStoreFromIndex } = require("../../src/vector-store");
+const { FlatVectorStore, VECTOR_STORE_VERSION, annCandidatePaths, buildVectorAnnIndex, migrateVectorStore, vectorMapsFromStore, vectorStoreFromIndex } = require("../../src/vector-store");
 const { runPluginTool } = require("../../src/plugin-sandbox");
 const { routeCatalog } = require("../../src/route-catalog");
 
@@ -126,11 +126,18 @@ async function main() {
     const vectorStatus = await vectorStore.writeFromIndex(vectorIndex);
     assert.equal(vectorStatus.exists, true);
     assert.equal(vectorStatus.version, VECTOR_STORE_VERSION);
+    assert.equal(vectorStatus.ann.exists, true);
+    assert.equal(vectorStatus.ann.algorithm, "ivf-lite-top-dimensions");
     assert.equal(vectorStatus.vectorCount, 2);
-    const vectorMaps = vectorMapsFromStore(await vectorStore.read());
+    const storedVectors = await vectorStore.read();
+    const vectorMaps = vectorMapsFromStore(storedVectors);
     assert.deepEqual(vectorMaps.fileVectors.get("a.md"), [1, 0]);
     assert.equal(vectorMaps.chunkVectors.get("a.md")[0].citation, "a.md:1");
-    assert.equal(vectorStoreFromIndex(vectorIndex).chunkVectorCount, 1);
+    assert.equal(buildVectorAnnIndex(storedVectors.vectors, 2).bucketCount >= 2, true);
+    assert.equal(annCandidatePaths(storedVectors, [1, 0]).candidatePaths.has("a.md"), true);
+    const builtStore = vectorStoreFromIndex(vectorIndex);
+    assert.equal(builtStore.chunkVectorCount, 1);
+    assert.equal(builtStore.ann.schema, "agenttrail.vector-ann.ivf-lite.v1");
 
     const searchIndexMigration = migrateVectorStore(vectorIndex);
     assert.equal(searchIndexMigration.migrated, true);

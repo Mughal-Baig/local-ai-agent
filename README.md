@@ -241,7 +241,7 @@ When write preview mode is enabled, `write_file` returns a diff preview instead 
 ## Top 1% Surfaces
 
 - Visual demo proof: [docs/agenttrail-demo.gif](docs/agenttrail-demo.gif), [docs/preview-app.png](docs/preview-app.png), [docs/preview-diff.png](docs/preview-diff.png)
-- True semantic search: `/api/search-index`, `/api/search?mode=semantic`, versioned on-disk vector store, Ollama embeddings with local-vector fallback, BM25 + vector score fusion, late-interaction chunk vectors for long docs, reranking, and embedding cache
+- True semantic search: `/api/search-index`, `/api/search?mode=semantic`, versioned on-disk vector store with IVF-lite ANN buckets, Ollama embeddings with local-vector fallback, BM25 + vector score fusion, late-interaction chunk vectors for long docs, reranking, and embedding cache
 - Receipt timeline and replay: saved Markdown receipts in `workspace/receipts/`, JSON sessions in `workspace/sessions/`
 - Diff Review center: pending preview apply/reject UI
 - Local attachments: `/api/attachments` plus browser file picker that saves files into the workspace

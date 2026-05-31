@@ -43,6 +43,7 @@ async function main() {
   checks.push(await check("Exact citation spans exist", async () => includes("server.js", ["formatLineCitation", "createSnippetWithSpan", "charEnd"])));
   checks.push(await check("Late-interaction chunk vectors exist", async () => includes("server.js", ["attachChunkEmbeddings", "bestLateInteractionChunk", "lateInteraction"])));
   checks.push(await check("Flat vector store exists", async () => includes("src/vector-store.js", ["agenttrail.vector-store.v1", "FlatVectorStore", "vectorMapsFromStore"])));
+  checks.push(await check("ANN vector index exists", async () => includes("src/vector-store.js", ["agenttrail.vector-ann.ivf-lite.v1", "buildVectorAnnIndex", "annCandidatePaths"])));
   checks.push(await check("Vector store migrations exist", async () => includes("src/vector-store.js", ["VECTOR_STORE_VERSION", "migrateVectorStore", "migrateVectorStoreFiles"])));
   checks.push(await check("Search chunking tests exist", async () => includes("tests/unit/search-chunking.test.js", ["chunkTextDetailed", "Install", "startLine", "charStart"])));
   checks.push(await check("Hybrid search fusion exists", async () => includes("src/features/search.js", ["scoreBm25Documents", "fuseHybridScores", "keywordNormalized", "semanticNormalized"])));

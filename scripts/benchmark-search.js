@@ -152,6 +152,8 @@ async function main() {
     const indexStart = performance.now();
     const index = await postJson(`http://127.0.0.1:${port}/api/search-index`, { provider: "local-vector" });
     const indexLatencyMs = elapsed(indexStart);
+    assert.equal(index.features && index.features.annIndex, true, "search index should build an ANN candidate index");
+    assert.equal(index.vectorStore && index.vectorStore.ann && index.vectorStore.ann.exists, true, "vector store should report ANN status");
 
     const bruteForceRows = [];
     const agentRows = [];
@@ -202,7 +204,7 @@ async function main() {
     };
 
     console.log(`Search benchmark - corpus: ${corpus.length} docs, ${CASES.length} labeled queries`);
-    console.log(`Search benchmark - index build: ${indexLatencyMs}ms, vectors: ${index.vectorStore ? index.vectorStore.vectorCount : 0}`);
+    console.log(`Search benchmark - index build: ${indexLatencyMs}ms, vectors: ${index.vectorStore ? index.vectorStore.vectorCount : 0}, ANN buckets: ${index.vectorStore && index.vectorStore.ann ? index.vectorStore.ann.bucketCount : 0}`);
     console.log(`Search benchmark - brute force recall@${TOP_K}: ${brute.recallAtK}% avg ${brute.avgLatencyMs}ms p95 ${brute.p95LatencyMs}ms`);
     console.log(`Search benchmark - AgentTrail semantic recall@${TOP_K}: ${agent.recallAtK}% avg ${agent.avgLatencyMs}ms p95 ${agent.p95LatencyMs}ms`);
     console.log(`Search benchmark - AgentTrail vs brute top-1 agreement@${TOP_K}: ${agreement}%`);

@@ -20,7 +20,7 @@ const { buildFoundationStatus } = require("./src/foundation");
 const { StructuredLogger } = require("./src/logger");
 const { validateConfig } = require("./src/config");
 const { hashContent, chunkTextDetailed, rankChunks, scoreBm25Documents, fuseHybridScores, rerankDocuments, bestLateInteractionChunk } = require("./src/features/search");
-const { FlatVectorStore, summarizeVectorStore, vectorMapsFromStore } = require("./src/vector-store");
+const { FlatVectorStore, summarizeVectorStore, vectorMapsFromStore, annCandidatePaths } = require("./src/vector-store");
 const { scanSecurityText } = require("./src/features/security");
 const { friendlyError } = require("./src/features/errors");
 const { SqliteStore } = require("./src/sqlite-store");
@@ -1301,6 +1301,8 @@ function searchIndexFeatures(index, vectorStore = null) {
     multiVector: chunkVectorCount > 0,
     lateInteraction: chunkVectorCount > 0,
     onDiskVectorStore: Boolean(vectorStore && vectorStore.schema),
+    annIndex: Boolean(vectorStore && vectorStore.ann && vectorStore.ann.schema),
+    annAlgorithm: vectorStore && vectorStore.ann ? vectorStore.ann.algorithm || null : null,
     chunkVectorCount
   };
 }
@@ -4431,14 +4433,18 @@ async function searchWorkspace(query, limit, options = {}) {
     let fileSemanticScore = 0;
     let lateInteractionScore = 0;
     let bestChunk = null;
+    let annCandidate = false;
     if (semanticContext && semanticContext.queryVector) {
-      const indexedVector = semanticContext.fileVectors.get(document.path);
-      const fileVector = indexedVector || (semanticContext.provider === "local-vector" ? embedTextDense(document.text) : null);
-      fileSemanticScore = fileVector ? cosineSimilarity(semanticContext.queryVector, fileVector) : 0;
-      const late = bestLateInteractionChunk(semanticContext.queryVector, semanticContext.chunkVectors.get(document.path) || []);
-      lateInteractionScore = late.score || 0;
-      bestChunk = late.chunk || null;
-      semanticScore = Math.max(fileSemanticScore, lateInteractionScore);
+      annCandidate = !semanticContext.ann || !semanticContext.ann.enabled || semanticContext.ann.candidatePaths.has(document.path);
+      if (annCandidate || keyword.keywordScore > 0) {
+        const indexedVector = semanticContext.fileVectors.get(document.path);
+        const fileVector = indexedVector || (semanticContext.provider === "local-vector" ? embedTextDense(document.text) : null);
+        fileSemanticScore = fileVector ? cosineSimilarity(semanticContext.queryVector, fileVector) : 0;
+        const late = bestLateInteractionChunk(semanticContext.queryVector, semanticContext.chunkVectors.get(document.path) || []);
+        lateInteractionScore = late.score || 0;
+        bestChunk = late.chunk || null;
+        semanticScore = Math.max(fileSemanticScore, lateInteractionScore);
+      }
     }
     const useChunkSnippet = bestChunk && (keyword.keywordScore <= 0 || lateInteractionScore >= fileSemanticScore);
     const snippet = useChunkSnippet ? snippetFromChunk(bestChunk) : lineSnippet;
@@ -4453,6 +4459,7 @@ async function searchWorkspace(query, limit, options = {}) {
       embeddingModel: semanticContext ? semanticContext.model : null,
       semanticMode: semanticContext ? (useChunkSnippet ? "late-interaction" : "file-vector") : null,
       lateInteractionScore,
+      annCandidate,
       bestChunk: bestChunk ? publicChunkReference(bestChunk) : null,
       text: `${String(document.content || "").slice(0, 6000)}\n${bestChunk ? String(bestChunk.text || bestChunk.preview || "") : ""}`,
       snippet: snippet.text,
@@ -4495,6 +4502,7 @@ async function searchWorkspace(query, limit, options = {}) {
         scoreParts: {
           ...item.scoreParts,
           lateInteraction: roundSearchScore(item.lateInteractionScore || 0),
+          annCandidate: Boolean(item.annCandidate),
           matches: item.keywordMatches
         },
         snippet: item.snippet,
@@ -4517,28 +4525,33 @@ async function getSemanticContext(query) {
   const index = await readSearchIndex();
 
   if (index && Array.isArray(index.items) && index.items.length) {
-    const vectorMaps = await semanticVectorMaps(index);
     if (index.provider === "ollama") {
       const embedding = await fetchEmbeddingCached(query, index.model || OLLAMA_EMBED_MODEL).catch(() => null);
       if (embedding && embedding.length) {
+        const queryVector = normalizeVector(embedding);
+        const vectorMaps = await semanticVectorMaps(index, queryVector);
         return {
           provider: "ollama",
           model: index.model || OLLAMA_EMBED_MODEL,
-          queryVector: normalizeVector(embedding),
+          queryVector,
           fileVectors: vectorMaps.fileVectors,
           chunkVectors: vectorMaps.chunkVectors,
+          ann: vectorMaps.ann,
           vectorStore: vectorMaps.storeSummary
         };
       }
     }
 
     if (index.provider === "local-vector") {
+      const queryVector = embedTextDense(query, index.dimensions || LOCAL_EMBED_DIMS);
+      const vectorMaps = await semanticVectorMaps(index, queryVector);
       return {
         provider: "local-vector",
         model: index.model || `hash-${LOCAL_EMBED_DIMS}`,
-        queryVector: embedTextDense(query, index.dimensions || LOCAL_EMBED_DIMS),
+        queryVector,
         fileVectors: vectorMaps.fileVectors,
         chunkVectors: vectorMaps.chunkVectors,
+        ann: vectorMaps.ann,
         vectorStore: vectorMaps.storeSummary
       };
     }
@@ -4550,17 +4563,19 @@ async function getSemanticContext(query) {
     queryVector: embedTextDense(query),
     fileVectors: new Map(),
     chunkVectors: new Map(),
+    ann: null,
     vectorStore: summarizeVectorStore(null, VECTOR_STORE_PATH)
   };
 }
 
-async function semanticVectorMaps(index) {
+async function semanticVectorMaps(index, queryVector = null) {
   const store = await readCompatibleVectorStore(index);
   if (store) {
     const maps = vectorMapsFromStore(store);
     if (maps.fileVectors.size || maps.chunkVectors.size) {
       return {
         ...maps,
+        ann: queryVector ? annCandidatePaths(store, queryVector) : null,
         storeSummary: summarizeVectorStore(store, VECTOR_STORE_PATH)
       };
     }
@@ -4568,6 +4583,7 @@ async function semanticVectorMaps(index) {
   return {
     fileVectors: new Map(index.items.map((item) => [item.path, item.embedding])),
     chunkVectors: chunkVectorMap(index),
+    ann: null,
     storeSummary: summarizeVectorStore(null, VECTOR_STORE_PATH)
   };
 }

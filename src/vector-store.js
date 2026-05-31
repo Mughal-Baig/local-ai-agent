@@ -8,6 +8,8 @@ const VECTOR_STORE_VERSION = 1;
 const VECTOR_RECORD_SCHEMA = "agenttrail.vector-record.v1";
 const VECTOR_STORE_MIGRATION_SCHEMA = "agenttrail.vector-store-migrations.v1";
 const VECTOR_STORE_MIGRATION_PATH = ".agenttrail/vector-store-migrations.json";
+const ANN_INDEX_SCHEMA = "agenttrail.vector-ann.ivf-lite.v1";
+const ANN_TOP_DIMENSIONS = 8;
 
 class FlatVectorStore {
   constructor(root, relativePath = ".agenttrail/vector-store.json") {
@@ -135,6 +137,7 @@ function vectorStoreFromIndex(index, storePath = ".agenttrail/vector-store.json"
     vectorCount: vectors.length,
     fileVectorCount: vectors.filter((item) => item.scope === "file").length,
     chunkVectorCount: vectors.filter((item) => item.scope === "chunk").length,
+    ann: buildVectorAnnIndex(vectors, index && index.dimensions ? index.dimensions : 0),
     migrations: [],
     vectors
   };
@@ -189,6 +192,9 @@ function migrateVectorStore(rawStore, options = {}) {
     sourceIndexBuiltAt: rawStore.sourceIndexBuiltAt || null,
     vectors: normalizedVectors
   };
+  store.ann = rawStore.ann && rawStore.ann.schema === ANN_INDEX_SCHEMA
+    ? rawStore.ann
+    : buildVectorAnnIndex(normalizedVectors, store.dimensions);
   store.vectorCount = normalizedVectors.length;
   store.fileVectorCount = normalizedVectors.filter((item) => item.scope === "file").length;
   store.chunkVectorCount = normalizedVectors.filter((item) => item.scope === "chunk").length;
@@ -198,6 +204,7 @@ function migrateVectorStore(rawStore, options = {}) {
     || rawStore.minReaderVersion !== 1
     || rawStore.recordSchema !== VECTOR_RECORD_SCHEMA
     || rawStore.path !== store.path
+    || !rawStore.ann
     || rawStore.vectorCount !== store.vectorCount
     || rawStore.fileVectorCount !== store.fileVectorCount
     || rawStore.chunkVectorCount !== store.chunkVectorCount
@@ -281,6 +288,44 @@ function inferDimensions(vectors) {
   return record ? record.embedding.length : 0;
 }
 
+function buildVectorAnnIndex(vectors, dimensions = 0, options = {}) {
+  const topDimensions = Number(options.topDimensions || ANN_TOP_DIMENSIONS);
+  const buckets = {};
+  const cleanVectors = Array.isArray(vectors) ? vectors : [];
+  for (const record of cleanVectors) {
+    if (!record || !record.id || !record.path || !Array.isArray(record.embedding) || !record.embedding.length) {
+      continue;
+    }
+    const scope = record.scope === "chunk" ? "chunk" : "file";
+    for (const dimension of topVectorDimensions(record.embedding, topDimensions)) {
+      const key = `${scope}:${dimension}`;
+      if (!buckets[key]) {
+        buckets[key] = [];
+      }
+      buckets[key].push(record.id);
+    }
+  }
+  return {
+    schema: ANN_INDEX_SCHEMA,
+    algorithm: "ivf-lite-top-dimensions",
+    builtAt: new Date().toISOString(),
+    dimensions: Number(dimensions || inferDimensions(cleanVectors) || 0),
+    topDimensions,
+    bucketCount: Object.keys(buckets).length,
+    vectorCount: cleanVectors.length,
+    buckets
+  };
+}
+
+function topVectorDimensions(vector, limit = ANN_TOP_DIMENSIONS) {
+  return (Array.isArray(vector) ? vector : [])
+    .map((value, index) => ({ index, value: Math.abs(Number(value) || 0) }))
+    .filter((item) => item.value > 0)
+    .sort((a, b) => b.value - a.value || a.index - b.index)
+    .slice(0, Math.max(Number(limit) || ANN_TOP_DIMENSIONS, 1))
+    .map((item) => item.index);
+}
+
 function summarizeVectorStore(store, storePath = ".agenttrail/vector-store.json") {
   if (!store) {
     return {
@@ -288,6 +333,7 @@ function summarizeVectorStore(store, storePath = ".agenttrail/vector-store.json"
       path: storePath,
       schema: VECTOR_STORE_SCHEMA,
       version: VECTOR_STORE_VERSION,
+      ann: summarizeAnnIndex(null),
       vectorCount: 0,
       fileVectorCount: 0,
       chunkVectorCount: 0
@@ -307,9 +353,32 @@ function summarizeVectorStore(store, storePath = ".agenttrail/vector-store.json"
     sourceIndexBuiltAt: store.sourceIndexBuiltAt || null,
     lastMigratedAt: store.lastMigratedAt || null,
     migrationCount: Array.isArray(store.migrations) ? store.migrations.length : 0,
+    ann: summarizeAnnIndex(store.ann),
     vectorCount: store.vectorCount || vectors.length,
     fileVectorCount: store.fileVectorCount || vectors.filter((item) => item.scope === "file").length,
     chunkVectorCount: store.chunkVectorCount || vectors.filter((item) => item.scope === "chunk").length
+  };
+}
+
+function summarizeAnnIndex(ann) {
+  if (!ann || ann.schema !== ANN_INDEX_SCHEMA) {
+    return {
+      exists: false,
+      schema: ANN_INDEX_SCHEMA,
+      algorithm: "ivf-lite-top-dimensions",
+      bucketCount: 0,
+      vectorCount: 0
+    };
+  }
+  return {
+    exists: true,
+    schema: ann.schema,
+    algorithm: ann.algorithm || "ivf-lite-top-dimensions",
+    dimensions: ann.dimensions || 0,
+    topDimensions: ann.topDimensions || ANN_TOP_DIMENSIONS,
+    bucketCount: ann.bucketCount || Object.keys(ann.buckets || {}).length,
+    vectorCount: ann.vectorCount || 0,
+    builtAt: ann.builtAt || null
   };
 }
 
@@ -346,7 +415,44 @@ function vectorMapsFromStore(store) {
       });
     }
   }
-  return { fileVectors, chunkVectors };
+  return { fileVectors, chunkVectors, ann: store && store.ann ? store.ann : null };
+}
+
+function annCandidatePaths(store, queryVector, options = {}) {
+  const ann = store && store.ann && store.ann.schema === ANN_INDEX_SCHEMA ? store.ann : null;
+  if (!ann || !ann.buckets || !Array.isArray(store.vectors)) {
+    return {
+      enabled: false,
+      algorithm: "none",
+      candidatePaths: new Set(),
+      candidateRecordCount: 0,
+      probedBucketCount: 0
+    };
+  }
+  const probes = topVectorDimensions(queryVector, Number(options.topDimensions || ann.topDimensions || ANN_TOP_DIMENSIONS));
+  const recordById = new Map(store.vectors.map((record) => [record.id, record]));
+  const candidateRecordIds = new Set();
+  for (const scope of ["file", "chunk"]) {
+    for (const dimension of probes) {
+      for (const id of ann.buckets[`${scope}:${dimension}`] || []) {
+        candidateRecordIds.add(id);
+      }
+    }
+  }
+  const candidatePaths = new Set();
+  for (const id of candidateRecordIds) {
+    const record = recordById.get(id);
+    if (record && record.path) {
+      candidatePaths.add(record.path);
+    }
+  }
+  return {
+    enabled: true,
+    algorithm: ann.algorithm || "ivf-lite-top-dimensions",
+    candidatePaths,
+    candidateRecordCount: candidateRecordIds.size,
+    probedBucketCount: probes.length * 2
+  };
 }
 
 async function migrateVectorStoreFiles(workspaceRoot, options = {}) {
@@ -398,10 +504,13 @@ module.exports = {
   VECTOR_STORE_VERSION,
   VECTOR_RECORD_SCHEMA,
   VECTOR_STORE_MIGRATION_SCHEMA,
+  ANN_INDEX_SCHEMA,
   FlatVectorStore,
   vectorStoreFromIndex,
   migrateVectorStore,
   migrateVectorStoreFiles,
+  buildVectorAnnIndex,
+  annCandidatePaths,
   summarizeVectorStore,
   vectorMapsFromStore
 };

@@ -57,9 +57,12 @@ async function main() {
     assert.equal(indexStatus.features.multiVector, true);
     assert.equal(indexStatus.features.lateInteraction, true);
     assert.equal(indexStatus.features.onDiskVectorStore, true);
+    assert.equal(indexStatus.features.annIndex, true);
+    assert.equal(indexStatus.features.annAlgorithm, "ivf-lite-top-dimensions");
     assert.equal(indexStatus.vectorStore.exists, true);
     assert.equal(indexStatus.vectorStore.path, ".agenttrail/vector-store.json");
     assert.equal(indexStatus.vectorStore.version, 1);
+    assert.equal(indexStatus.vectorStore.ann.exists, true);
     assert.equal(indexStatus.vectorStore.compatible, true);
     assert.equal(indexStatus.vectorStore.vectorCount >= indexStatus.itemCount + indexStatus.chunkCount, true);
     assert.equal(indexStatus.features.chunkVectorCount >= indexStatus.chunkCount, true);
@@ -69,6 +72,7 @@ async function main() {
     assert.equal(hybridSearch.results.some((result) => result.mode === "hybrid" && result.scoreParts && typeof result.scoreParts.bm25 === "number"), true);
     assert.equal(hybridSearch.results.some((result) => /^notes\/api\.md:\d+$/.test(result.citation || "") && result.span && Number.isInteger(result.span.charStart)), true);
     assert.equal(hybridSearch.results.some((result) => result.bestChunk && result.bestChunk.citation && typeof result.scoreParts.lateInteraction === "number"), true);
+    assert.equal(hybridSearch.results.some((result) => result.scoreParts.annCandidate === true), true);
 
     const chunkResults = await get("/api/search/chunks?query=receipt");
     assert.equal(chunkResults.chunks.some((chunk) => chunk.heading === "API" && chunk.startLine >= 1 && chunk.endLine >= chunk.startLine), true);
