@@ -3,8 +3,11 @@
 const fsp = require("node:fs/promises");
 const path = require("node:path");
 
-const width = 640;
-const height = 360;
+const scale = 1;
+const baseWidth = 640;
+const baseHeight = 360;
+const width = baseWidth * scale;
+const height = baseHeight * scale;
 const outPath = path.resolve(__dirname, "../docs/agenttrail-demo.gif");
 const palette = [
   [244, 247, 245],
@@ -49,8 +52,8 @@ function drawFrame(activeStep, title, subtitle) {
   fill(pixels, 230, 315, 390, 25, 1);
   rect(pixels, 230, 315, 390, 25, 7);
 
-  drawText(pixels, 44, 44, "AGENTTRAIL", 3, 3);
-  drawText(pixels, 44, 72, "LOCAL AI AGENT", 8, 2);
+  drawText(pixels, 44, 44, "AGENTTRAIL", 3, 2);
+  drawText(pixels, 44, 66, "LOCAL LAYER", 8, 2);
   drawText(pixels, 248, 38, title, activeStep === 3 ? 5 : 3, 3);
   drawText(pixels, 248, 68, subtitle.toUpperCase(), 2, 1);
 
@@ -126,12 +129,16 @@ function drawReceipt(pixels) {
 function drawTrust(pixels, activeStep) {
   const score = 72 + activeStep * 8;
   fill(pixels, 250, 324, Math.round(3.1 * score), 8, 3);
-  drawText(pixels, 250, 296, `TRUST ${score}`, 3, 2);
+  drawText(pixels, 250, 300, `TRUST ${score}`, 3, 2);
 }
 
 function fill(pixels, x, y, w, h, color) {
-  for (let yy = Math.max(0, y); yy < Math.min(height, y + h); yy += 1) {
-    for (let xx = Math.max(0, x); xx < Math.min(width, x + w); xx += 1) {
+  const left = Math.round(x * scale);
+  const top = Math.round(y * scale);
+  const right = Math.round((x + w) * scale);
+  const bottom = Math.round((y + h) * scale);
+  for (let yy = Math.max(0, top); yy < Math.min(height, bottom); yy += 1) {
+    for (let xx = Math.max(0, left); xx < Math.min(width, right); xx += 1) {
       pixels[yy * width + xx] = color;
     }
   }

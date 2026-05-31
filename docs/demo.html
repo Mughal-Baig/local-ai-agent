@@ -124,7 +124,7 @@
           </svg>
           <div>
             <h1>AgentTrail</h1>
-            <p>Live demo — runs in your browser, no backend</p>
+            <p>Static demo - no backend required</p>
           </div>
         </div>
 
@@ -170,10 +170,10 @@
       <main>
         <header class="topbar">
           <div>
-            <p class="eyebrow">A local agent that shows its work</p>
+            <p class="eyebrow">A local agent layer that shows its work</p>
             <h2>Ask &rarr; search &rarr; diff preview &rarr; you Apply &rarr; receipt</h2>
           </div>
-          <div class="pill">Zero npm dependencies</div>
+          <div class="pill">Ollama + local backends</div>
         </header>
 
         <section class="prompt-strip" aria-label="Starter prompts">
@@ -192,7 +192,7 @@
           <article class="message">
             <div class="avatar">A</div>
             <div class="bubble">
-              <p>I searched the workspace, read <strong>README.md</strong>, and drafted a tighter intro. Nothing has changed on disk — here is the proposed diff. Click <strong>Apply</strong> to write it and generate a receipt.</p>
+              <p>I searched the workspace, read <strong>README.md</strong>, and drafted a tighter intro. No file is written yet - here is the proposed diff. Click <strong>Apply</strong> to write it and generate a receipt.</p>
               <div class="chips">
                 <span>search_workspace</span>
                 <span>read_file</span>
@@ -204,17 +204,17 @@
                   <button class="apply-btn" id="applyBtn" type="button">Apply</button>
                 </div>
                 <pre><span class="del">− AgentTrail is a tiny, auditable local AI agent kit.</span>
-<span class="add">+ A local AI agent that shows its work — every search,</span>
-<span class="add">+ edit, and reason. On your machine. Nothing leaves.</span>
+<span class="add">+ AgentTrail is an auditable local AI agent layer.</span>
+<span class="add">+ Search before answer. Diff before write.</span>
 <span class="add">+</span>
-<span class="add">+ Search before answer · diff before write · a receipt for every run.</span></pre>
+<span class="add">+ Receipts, replay, and reports stay local by default.</span></pre>
               </div>
             </div>
           </article>
         </section>
 
         <section class="composer" aria-label="Try locally">
-          <div>Like what you see? Clone the repo, run <strong>node server.js</strong>, and point it at your local Ollama model.</div>
+          <div>Like what you see? Clone the repo, run <strong>node server.js</strong>, and point it at Ollama or an OpenAI-compatible local backend.</div>
           <a href="https://github.com/Mughal-Baig/local-ai-agent">View on GitHub</a>
         </section>
       </main>
