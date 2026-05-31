@@ -70,6 +70,7 @@
     "test:concurrency": "node tests/integration/concurrency.test.js",
     "test:options": "node tests/integration/model-options.test.js",
     "test:resources": "node tests/integration/resources.test.js",
+    "test:bundled": "node tests/integration/bundled-runtime.test.js",
     "load:test": "node scripts/load-test.js",
     "test:tools": "node tests/integration/native-tool-calling.test.js && node tests/integration/ollama-native-tools.test.js && node tests/integration/tool-repair.test.js && node tests/integration/multi-tool-calls.test.js",
     "test:structured": "node tests/integration/structured-output.test.js",

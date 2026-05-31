@@ -25,8 +25,10 @@ jobs:
       - run: node --check src/audio-transcription.js
       - run: node --check src/image-generation.js
       - run: node --check src/features/redact.js
+      - run: node --check src/bundled-runtime.js
       - run: node --check scripts/load-test.js
       - run: node --check tests/fixtures/mock-tts.js
+      - run: node --check tests/fixtures/mock-bundled-runtime.js
       - run: node --check scripts/smoke-test.js
       - run: node --check scripts/evaluate-agenttrail.js
       - run: node --check tests/unit/redact.test.js
@@ -35,6 +37,7 @@ jobs:
       - run: node --check tests/integration/concurrency.test.js
       - run: node --check tests/integration/model-options.test.js
       - run: node --check tests/integration/resources.test.js
+      - run: node --check tests/integration/bundled-runtime.test.js
       - run: node tests/unit/foundation.test.js
       - run: node tests/unit/redact.test.js
       - run: node tests/unit/pdf-extraction.test.js
@@ -58,6 +61,7 @@ jobs:
       - run: node tests/integration/concurrency.test.js
       - run: node tests/integration/model-options.test.js
       - run: node tests/integration/resources.test.js
+      - run: node tests/integration/bundled-runtime.test.js
       - run: node tests/integration/native-tool-calling.test.js
       - run: node tests/integration/ollama-native-tools.test.js
       - run: node tests/integration/tool-repair.test.js

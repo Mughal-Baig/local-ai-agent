@@ -41,6 +41,7 @@ async function main() {
   assert.equal(evaluateToolPermission("write_file", { writeFiles: false }).ok, false);
   assert.equal(evaluateToolPermission("write_file", { writeFiles: true, previewWrites: true }).action, "preview");
   assert.equal(listModelAdapters({}).some((adapter) => adapter.id === "ollama"), true);
+  assert.equal(listModelAdapters({}).some((adapter) => adapter.id === "bundled" && adapter.api === "bundled"), true);
   assert.equal(validateConfig({ PORT: "4173" }).ok, true);
   assert.equal(hashContent("abc").length, 64);
   assert.equal(chunkText("hello ".repeat(500)).length >= 1, true);

@@ -255,3 +255,12 @@ Next open: T082 request queue with configurable concurrency.
 - Imported Claude's broader Phase 4/5/6 batch from Downloads: bounded model concurrency/backpressure, `/api/concurrency`, `/api/resources`, `/api/runtime`, System panel, `OLLAMA_NUM_CTX`/`OLLAMA_NUM_GPU`/`OLLAMA_NUM_THREAD` passthrough, `scripts/load-test.js`, `docs/INTEGRATIONS.md`, `docs/RUNTIME_PHASE6.md`, `bin/agenttrail-chat.js`, and the VS Code MVP.
 - Hardened the handoff by exposing `agenttrail-chat` as an npm bin, adding redaction and new route coverage to CI, adding `/api/health`/resources/runtime/concurrency to route catalog and foundation docs, expanding repo eval checks, and updating the roadmap progress/completion log.
 - Next open: finish T090/T091 dedicated automation/webhook + MCP parity, then T098/T104 runtime metrics and idle-unload policy UI.
+
+## Latest Codex Pass - Phase 6 bundled runtime adapter
+
+- T106 is done: AgentTrail now has an opt-in bundled runtime provider contract behind `AGENTTRAIL_MODEL_ADAPTER=bundled`, `AGENTTRAIL_GGUF_MODEL`, and `AGENTTRAIL_BUNDLED_RUNTIME_MODULE`.
+- T108 is done: `bundled` is a first-class model adapter, `/api/runtime` reports module/model readiness, and the server dispatch path can use bundled generation/embeddings.
+- T107/T109/T110 are partial: the adapter path supports local GGUF completion, streaming, and embeddings when a provider is present, and CI proves the contract with `tests/fixtures/mock-bundled-runtime.js`; real `node-llama-cpp` hardware validation is still next.
+- Tests/docs updated: `npm run test:bundled`, `docs/RUNTIME_PHASE6.md`, `docs/MODEL_BACKENDS.md`, README/env docs, repo eval, and CI.
+
+Next open: validate the bundled adapter against real `node-llama-cpp` + a tiny GGUF, then work through T112/T116/T118 hardware/thread/offload detection.

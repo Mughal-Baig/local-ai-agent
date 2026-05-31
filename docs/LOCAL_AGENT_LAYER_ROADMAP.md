@@ -53,10 +53,11 @@ This section tracks the concrete work shipped after the roadmap was publicly ref
 | Codex continuation | T074-T075 | Added optional local image generation through `/api/images/generate` for Automatic1111/Forge and OpenAI-compatible SD/Flux servers, workspace image artifact saving, Markdown provenance, route/eval/CI coverage, and mock image-backend tests. |
 | Codex continuation | T076-T081 | Added OpenAI-compatible AgentTrail server mode with `/v1/chat/completions`, `/v1/models`, `/v1/embeddings`, SSE streaming chunks, optional API-key auth, local rate limiting, request queue headers, OpenAPI spec, client docs, and mock-client tests. |
 | Claude continuation + Codex hardening | T082-T089, T093, T095, T097, T099-T103, T105, T111, T245 | Added bounded model concurrency/backpressure, local load testing, integration docs, CLI pipe mode, VS Code MVP, Ollama option passthrough, health/resources/runtime APIs, System panel, optional bundled-runtime seam docs, redaction helper/tests, route/eval/CI coverage, and updated completion status. |
+| Codex Phase 6 pass | T106, T108; T107/T109/T110 partial | Added a first-class experimental `bundled` backend adapter, optional runtime provider contract in `src/bundled-runtime.js`, `/api/runtime` readiness details, GGUF model config, mock bundled-runtime integration coverage for streaming/embeddings/structured output, docs, env examples, and CI/eval wiring while keeping the default install zero-dependency. |
 
 ### Verified After These Passes
 
-- Local suites covered: `npm run test:unit`, `npm run test:redact`, `npm run test:documents`, `npm run test:audio`, `npm run test:search`, `npm run test:rerank`, `npm run test:integration`, `npm run test:backend`, `npm run test:v1`, `npm run test:models`, `npm run test:embed-cache`, `npm run test:resume`, `npm run test:reindex`, `npm run test:health`, `npm run test:concurrency`, `npm run test:options`, `npm run test:resources`, `npm run eval:search`, `npm run bench:search`, `npm run test:tools`, `npm run test:structured`, `npm run test:planner`, `npm run test:guardrails`, `npm run test:reflection`, memory integration suites, `npm run test:ui`, `npm test`, `npm run eval`, `npm run release:checksums`, and `git diff --check`.
+- Local suites covered: `npm run test:unit`, `npm run test:redact`, `npm run test:documents`, `npm run test:audio`, `npm run test:search`, `npm run test:rerank`, `npm run test:integration`, `npm run test:backend`, `npm run test:v1`, `npm run test:bundled`, `npm run test:models`, `npm run test:embed-cache`, `npm run test:resume`, `npm run test:reindex`, `npm run test:health`, `npm run test:concurrency`, `npm run test:options`, `npm run test:resources`, `npm run eval:search`, `npm run bench:search`, `npm run test:tools`, `npm run test:structured`, `npm run test:planner`, `npm run test:guardrails`, `npm run test:reflection`, memory integration suites, `npm run test:ui`, `npm test`, `npm run eval`, `npm run release:checksums`, and `git diff --check`.
 - GitHub CI and GitHub Pages passed for the latest roadmap commits.
 - GitHub Actions workflows now use Node-24-ready action majors and keep `FORCE_JAVASCRIPT_ACTIONS_TO_NODE24=true`, addressing the prior Node 20 action-runtime deprecation warning.
 
@@ -232,11 +233,11 @@ This section tracks the concrete work shipped after the roadmap was publicly ref
 
 ### Epic P — Embed an inference engine
 - [x] T105 Evaluated — prefer optional `node-llama-cpp` (documented in `docs/RUNTIME_PHASE6.md`)
-- [~] T106 Runtime seam + detection at `/api/runtime`; actual binding pending (opt-in)
-- [ ] T107 Load a local GGUF and run a completion with no external server
-- [~] T108 Seam reports bundled-runtime availability; full adapter binding pending
-- [ ] T109 Streaming from the bundled engine
-- [ ] T110 Embeddings from the bundled engine
+- [x] T106 Optional bundled runtime provider contract behind `AGENTTRAIL_MODEL_ADAPTER=bundled` / `AGENTTRAIL_BUNDLED_RUNTIME_MODULE`
+- [~] T107 Load a local GGUF and run a completion with no external server (adapter path implemented; real `node-llama-cpp` hardware validation pending)
+- [x] T108 Wire bundled engine as a first-class backend adapter (`src/model-adapters.js`, `src/bundled-runtime.js`, `/api/runtime`, `npm run test:bundled`)
+- [~] T109 Streaming from the bundled engine (provider contract + mock coverage; native runtime validation pending)
+- [~] T110 Embeddings from the bundled engine (provider contract + mock coverage; native runtime validation pending)
 - [x] T111 Zero-dependency default preserved; bundled runtime is opt-in (documented)
 
 ### Epic Q — Hardware acceleration
@@ -391,12 +392,12 @@ This section tracks the concrete work shipped after the roadmap was publicly ref
 
 ## Status & bug sweep (latest)
 
-- Progress: **102 tasks done**, with 95 open or partial items in the tracked Phases 1-10 set. Phase 1 is complete; Phase 2 Epic E/F search foundation is complete except T044 as a hardening umbrella; Epic G document ingestion is complete; Phase 3 vision/audio/image generation is complete; Epic K is complete; Epic L is complete; Epic M is partially complete; and Epic N/O now have cache, option passthrough, resources, and runtime visibility.
+- Progress: **104 tasks done**, with 93 open or partial items in the tracked Phases 1-10 set. Phase 1 is complete; Phase 2 Epic E/F search foundation is complete except T044 as a hardening umbrella; Epic G document ingestion is complete; Phase 3 vision/audio/image generation is complete; Epic K is complete; Epic L is complete; Epic M is partially complete; Epic N/O now have cache, option passthrough, resources, and runtime visibility; and Phase 6 now has a first-class bundled-runtime adapter seam.
 - Focused test suite green: unit, redaction, document extraction, API integration, v1 API, health, concurrency, model options, resources, smoke, repo eval, and release checksums. All touched source files pass `node --check`.
 - **Bug fixed:** `listWorkspaceFiles` only skipped `.DS_Store`, so internal `.agenttrail/*` state (logs, store, search index, pending-run) was being walked, indexed, and returned in search — adding noise and per-request churn to the index. Now excludes `.agenttrail/`. Verified against smoke, api, search-incremental, search-chunking, and eval:search.
 - Known minor item: a couple of integration tests assert relative/invariant counts (not exact) because the workspace can still gain legit files (e.g. `memory/*`) between calls — intentional, not a bug.
 
-Next code target: T090 webhook/automation trigger endpoint or T098 time-to-first-token metrics.
+Next code target: T107 real `node-llama-cpp` hardware validation with a tiny GGUF, then T112/T116/T118 hardware/thread/offload detection.
 
 ---
 

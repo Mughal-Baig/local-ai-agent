@@ -53,6 +53,7 @@ const {
   parseGeneratedImages,
   buildImageProvenanceMarkdown
 } = require("./src/image-generation");
+const { bundledRuntimeStatus, listBundledModels, generateBundledText, embedBundledText } = require("./src/bundled-runtime");
 
 loadDotEnv();
 const execFileAsync = promisify(execFile);
@@ -72,6 +73,7 @@ const TOOL_CAPABILITY_TTL_MS = Number(process.env.AGENTTRAIL_TOOL_CAPABILITY_TTL
 // (llama.cpp server, LM Studio, vLLM, Jan, ...). Select with AGENTTRAIL_MODEL_ADAPTER.
 const ACTIVE_BACKEND = activeModelAdapter(process.env);
 const BACKEND_IS_OPENAI = ACTIVE_BACKEND.api === "openai-compatible";
+const BACKEND_IS_BUNDLED = ACTIVE_BACKEND.api === "bundled";
 const BACKEND_HOST = trimTrailingSlash(ACTIVE_BACKEND.host || OLLAMA_HOST);
 const BACKEND_API_KEY = process.env.OPENAI_API_KEY || process.env.AGENTTRAIL_API_KEY || "";
 // Keep the model warm between turns to cut cold-start latency (Ollama keep_alive).
@@ -683,17 +685,23 @@ async function handleResources(res) {
 // Phase 6 seam — report the active backend and whether an optional bundled
 // inference runtime is installed (kept opt-in to preserve the zero-dep default).
 async function handleRuntime(res) {
-  let installed = false;
-  try { require.resolve("node-llama-cpp"); installed = true; } catch { installed = false; }
+  const runtime = await bundledRuntimeStatus(process.env, PROJECT_ROOT);
   sendJson(res, 200, {
     activeBackend: { id: ACTIVE_BACKEND.id, title: ACTIVE_BACKEND.title, api: ACTIVE_BACKEND.api, host: BACKEND_HOST },
     bundledRuntime: {
-      id: "node-llama-cpp",
-      installed,
+      id: runtime.module,
+      provider: runtime.provider,
+      installed: runtime.moduleInstalled,
+      available: runtime.available,
       optIn: true,
-      note: installed
-        ? "Bundled llama.cpp runtime available — GGUF models can run with no external server."
-        : "Not installed. `npm i node-llama-cpp` to run GGUF models without an external server (opt-in; preserves the zero-dependency default)."
+      model: runtime.model,
+      modelName: runtime.modelName,
+      contextSize: runtime.contextSize,
+      gpuLayers: runtime.gpuLayers,
+      threads: runtime.threads,
+      note: runtime.available
+        ? "Bundled llama.cpp runtime available with a readable GGUF model."
+        : runtime.reason
     },
     moonshot: "GPU acceleration, quantization, KV-cache, and model registry are tracked in Phase 6 (Epics P–S)."
   });
@@ -709,6 +717,16 @@ async function handleHealth(res) {
     pid: process.pid,
     time: new Date().toISOString()
   });
+}
+
+function backendUnavailableMessage(status = {}) {
+  if (BACKEND_IS_BUNDLED) {
+    return status.error || "Bundled runtime is not ready. Install node-llama-cpp or set AGENTTRAIL_BUNDLED_RUNTIME_MODULE, then set AGENTTRAIL_GGUF_MODEL to a readable local .gguf file.";
+  }
+  if (BACKEND_IS_OPENAI) {
+    return `${ACTIVE_BACKEND.title} is not reachable at ${BACKEND_HOST}. Start your local OpenAI-compatible server (e.g. LM Studio or llama.cpp) and load a model.`;
+  }
+  return `Ollama is not reachable at ${OLLAMA_HOST}. Install Ollama, start it, and pull a model such as ${DEFAULT_MODEL}.`;
 }
 
 async function handleStatus(res) {
@@ -754,7 +772,7 @@ async function handleListModels(res) {
   sendJson(res, 200, {
     backend: { id: ACTIVE_BACKEND.id, title: ACTIVE_BACKEND.title, api: ACTIVE_BACKEND.api },
     available: status.available,
-    canManage: !BACKEND_IS_OPENAI,
+    canManage: !BACKEND_IS_OPENAI && !BACKEND_IS_BUNDLED,
     models: status.models.map(scoreModel),
     error: status.error || null
   });
@@ -766,9 +784,11 @@ async function handlePullModel(req, res) {
   if (!isValidModelName(name)) {
     return sendJson(res, 400, { error: "A valid model name is required (e.g. llama3.2)." });
   }
-  if (BACKEND_IS_OPENAI) {
+  if (BACKEND_IS_OPENAI || BACKEND_IS_BUNDLED) {
     return sendJson(res, 501, {
-      error: `Model pulling is handled by ${ACTIVE_BACKEND.title}, not AgentTrail. Load the model in that app.`
+      error: BACKEND_IS_BUNDLED
+        ? "Bundled GGUF model downloads are tracked in Phase 6 model registry tasks. Set AGENTTRAIL_GGUF_MODEL to an existing local file for now."
+        : `Model pulling is handled by ${ACTIVE_BACKEND.title}, not AgentTrail. Load the model in that app.`
     });
   }
 
@@ -824,9 +844,11 @@ async function handleDeleteModel(req, res) {
   if (!isValidModelName(name)) {
     return sendJson(res, 400, { error: "A valid model name is required." });
   }
-  if (BACKEND_IS_OPENAI) {
+  if (BACKEND_IS_OPENAI || BACKEND_IS_BUNDLED) {
     return sendJson(res, 501, {
-      error: `Model deletion is handled by ${ACTIVE_BACKEND.title}, not AgentTrail.`
+      error: BACKEND_IS_BUNDLED
+        ? "Bundled GGUF model deletion is not managed by AgentTrail yet. Remove the local GGUF file manually."
+        : `Model deletion is handled by ${ACTIVE_BACKEND.title}, not AgentTrail.`
     });
   }
   try {
@@ -1647,7 +1669,7 @@ async function handleToolSchemas(res) {
     nativeToolCalling: NATIVE_TOOL_CALLS,
     backend: ACTIVE_BACKEND.api,
     tools: listToolSchemas(),
-    definitions: toolDefinitionsForBackend(BACKEND_IS_OPENAI ? "openai" : "ollama")
+    definitions: BACKEND_IS_BUNDLED ? [] : toolDefinitionsForBackend(BACKEND_IS_OPENAI ? "openai" : "ollama")
   });
 }
 
@@ -5271,9 +5293,7 @@ async function runAgent(body, res, context = {}) {
   throwIfAborted(signal);
   if (!status.available) {
     sendEvent(res, "error", {
-      message: BACKEND_IS_OPENAI
-        ? `${ACTIVE_BACKEND.title} is not reachable at ${BACKEND_HOST}. Start your local OpenAI-compatible server (e.g. LM Studio or llama.cpp) and load a model.`
-        : `Ollama is not reachable at ${OLLAMA_HOST}. Install Ollama, start it, and pull a model such as ${DEFAULT_MODEL}.`
+      message: backendUnavailableMessage(status)
     });
     return;
   }
@@ -6052,7 +6072,7 @@ function openaiHeaders() {
 }
 
 function nativeToolDefinitions(capability = { supported: true }) {
-  if (!NATIVE_TOOL_CALLS || capability.supported !== true) {
+  if (!NATIVE_TOOL_CALLS || capability.supported !== true || BACKEND_IS_BUNDLED) {
     return [];
   }
   return toolDefinitionsForBackend(BACKEND_IS_OPENAI ? "openai" : "ollama");
@@ -6069,6 +6089,11 @@ async function probeNativeToolSupport(model, options = {}) {
     const disabled = capabilityResult(model, false, "Native tool calling disabled by AGENTTRAIL_NATIVE_TOOLS.", "disabled");
     TOOL_CAPABILITY_CACHE.set(key, disabled);
     return disabled;
+  }
+  if (BACKEND_IS_BUNDLED) {
+    const bundled = capabilityResult(model, false, "Bundled runtime currently uses prompt-JSON tool-call fallback.", "prompt-json-fallback");
+    TOOL_CAPABILITY_CACHE.set(key, bundled);
+    return bundled;
   }
 
   try {
@@ -6145,6 +6170,9 @@ function capabilityResult(model, supported, reason, mode) {
 
 // Dispatches generation to the active backend (Ollama native, or OpenAI-compatible).
 async function generateCompletion(model, prompt, options) {
+  if (BACKEND_IS_BUNDLED) {
+    return generateWithBundled(model, prompt, options);
+  }
   if (BACKEND_IS_OPENAI) {
     return generateWithOpenAI(model, prompt, options);
   }
@@ -6153,9 +6181,11 @@ async function generateCompletion(model, prompt, options) {
 
 async function generateStructuredOutput(model, prompt, descriptor, options = {}) {
   const structuredPrompt = buildStructuredOutputPrompt(prompt, descriptor);
-  const raw = BACKEND_IS_OPENAI
-    ? await generateStructuredWithOpenAI(model, structuredPrompt, descriptor, options)
-    : await generateStructuredWithOllama(model, structuredPrompt, descriptor, options);
+  const raw = BACKEND_IS_BUNDLED
+    ? await generateStructuredWithBundled(model, structuredPrompt, descriptor, options)
+    : BACKEND_IS_OPENAI
+      ? await generateStructuredWithOpenAI(model, structuredPrompt, descriptor, options)
+      : await generateStructuredWithOllama(model, structuredPrompt, descriptor, options);
 
   let output;
   try {
@@ -6278,6 +6308,13 @@ async function generateStructuredWithOpenAI(model, prompt, descriptor, options) 
   return String((choice && ((choice.message && choice.message.content) || choice.text)) || "");
 }
 
+async function generateStructuredWithBundled(model, prompt, descriptor, options) {
+  return generateWithBundled(model, prompt, {
+    ...options,
+    temperature: typeof options.temperature === "number" ? options.temperature : 0
+  });
+}
+
 function openAISchemaName(value) {
   return String(value || "agenttrail_schema")
     .replace(/[^A-Za-z0-9_-]+/g, "_")
@@ -6311,6 +6348,16 @@ async function generateWithOpenAI(model, prompt, options) {
   const data = await response.json();
   const text = (data && data.choices && data.choices[0] && ((data.choices[0].message && data.choices[0].message.content) || data.choices[0].text)) || "";
   return String(text || "");
+}
+
+async function generateWithBundled(model, prompt, options = {}) {
+  return generateBundledText({
+    env: process.env,
+    projectRoot: PROJECT_ROOT,
+    model,
+    prompt,
+    options
+  });
 }
 
 // ---- Response cache ----
@@ -6348,6 +6395,16 @@ function cacheSet(key, text) {
 // ---- True token streaming (tokens forwarded to the client as generated) ----
 
 async function generateStream(model, prompt, options, onToken) {
+  if (BACKEND_IS_BUNDLED) {
+    return generateBundledText({
+      env: process.env,
+      projectRoot: PROJECT_ROOT,
+      model,
+      prompt,
+      options,
+      onToken
+    });
+  }
   if (BACKEND_IS_OPENAI) {
     return generateOpenAIStream(model, prompt, options, onToken);
   }
@@ -6805,10 +6862,7 @@ async function generateWithOllama(model, prompt, options) {
       prompt,
       stream: false,
       keep_alive: OLLAMA_KEEP_ALIVE,
-      options: {
-        temperature: options.temperature,
-        num_ctx: 8192
-      }
+      options: buildModelOptions(options.temperature)
     }),
     signal: AbortSignal.timeout(120000)
   });
@@ -6823,6 +6877,9 @@ async function generateWithOllama(model, prompt, options) {
 }
 
 async function fetchOllamaModels() {
+  if (BACKEND_IS_BUNDLED) {
+    return listBundledModels(process.env, PROJECT_ROOT);
+  }
   if (BACKEND_IS_OPENAI) {
     return fetchOpenAIModels();
   }
@@ -6849,6 +6906,14 @@ async function fetchOllamaModels() {
 }
 
 async function fetchOllamaEmbedding(text, model = OLLAMA_EMBED_MODEL) {
+  if (BACKEND_IS_BUNDLED) {
+    return embedBundledText({
+      env: process.env,
+      projectRoot: PROJECT_ROOT,
+      model,
+      input: text
+    });
+  }
   if (BACKEND_IS_OPENAI) {
     return fetchOpenAIEmbedding(text, model);
   }
@@ -8269,6 +8334,16 @@ function visionModelCapability(model) {
 }
 
 async function probeVisionModelSupport(modelName, heuristic) {
+  if (BACKEND_IS_BUNDLED) {
+    return {
+      ...heuristic,
+      supported: false,
+      confidence: 0.8,
+      score: 10,
+      mode: "unsupported",
+      reason: "Bundled runtime vision input is not implemented yet."
+    };
+  }
   if (BACKEND_IS_OPENAI) {
     return probeOpenAIVisionSupport(modelName, heuristic);
   }

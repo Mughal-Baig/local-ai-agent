@@ -325,11 +325,14 @@ Supported variables:
 - `OLLAMA_HOST`: Ollama API host
 - `OLLAMA_MODEL`: default model name
 - `OLLAMA_EMBED_MODEL`: local embedding model for semantic index, default `nomic-embed-text`
-- `AGENTTRAIL_MODEL_ADAPTER`: model backend — `ollama` (default), `lmstudio`, `llamacpp`, or `openai-compatible`. See [Model Backends](docs/MODEL_BACKENDS.md)
+- `AGENTTRAIL_MODEL_ADAPTER`: model backend — `ollama` (default), `lmstudio`, `llamacpp`, `openai-compatible`, or experimental `bundled`. See [Model Backends](docs/MODEL_BACKENDS.md)
 - `LMSTUDIO_HOST` / `LLAMACPP_HOST` / `OPENAI_COMPATIBLE_HOST`: host for the chosen OpenAI-compatible backend
 - `OPENAI_API_KEY`: optional bearer token for OpenAI-compatible backends that require one
 - `OLLAMA_KEEP_ALIVE`: how long to keep the model warm between turns, default `5m` (cuts cold-start latency)
 - `OLLAMA_NUM_CTX` / `OLLAMA_NUM_GPU` / `OLLAMA_NUM_THREAD`: optional Ollama generate-option passthrough for context length, GPU layers, and threads
+- `AGENTTRAIL_BUNDLED_RUNTIME_MODULE`: optional bundled-runtime provider, default `node-llama-cpp`
+- `AGENTTRAIL_GGUF_MODEL`: local `.gguf` path used when `AGENTTRAIL_MODEL_ADAPTER=bundled`
+- `AGENTTRAIL_BUNDLED_MODEL_NAME`: display name for the bundled local model
 - `AGENTTRAIL_MAX_CONCURRENCY` / `AGENTTRAIL_MAX_QUEUE`: bounded `/api/chat` concurrency and backpressure controls, default `4` / `64`
 - `AGENTTRAIL_CACHE`: set to `off` to disable the in-memory response cache (default on); `AGENTTRAIL_CACHE_TTL_MS` tunes the TTL
 - `AGENTTRAIL_MAX_PROMPT_CHARS`: prompt budget cap for assembled context, default `24000`
