@@ -34,6 +34,12 @@ async function main() {
   checks.push(await check("Epic W security/privacy foundation exists", async () => includes("src/privacy.js", ["AGENTTRAIL_ENCRYPTED_V1", "protectTextForStorage", "privacyStatus"]) && includes("src/network-policy.js", ["validateNetworkEgress", "AGENTTRAIL_EGRESS_ALLOWLIST", "networkPolicyStatus"]) && includes("src/permissions.js", ["agenttrail.permission-audit.v1", "DEFAULT_TOOL_POLICIES", "permissionAuditEvent"]) && includes("server.js", ["/api/security/privacy", "auditToolPermission", "protectTextForStorage"]) && includes("tests/integration/threat-model.test.js", ["WORKSPACE_BOUNDARY", "Secret exfiltration request"])));
   checks.push(await check("Epic X observability foundation exists", async () => includes("src/observability.js", ["agenttrail.trace.v1", "agenttrail.local-analytics.v1", "agenttrail_errors_total"]) && includes("server.js", ["/api/metrics", "/api/observability", "finishResponseTrace"]) && includes("src/features/errors.js", ["ERROR_TAXONOMY", "NETWORK_EGRESS", "MODEL_BACKEND"]) && includes("public/index.html", ["observabilitySummary", "traceTimeline"]) && includes("tests/integration/observability.test.js", ["MODEL_BACKEND", "agenttrail_errors_total"])));
   checks.push(await check("Epic Y team enterprise foundation exists", async () => includes("src/team-enterprise.js", ["agenttrail.team-users.v1", "agenttrail.shared-receipts.v1", "agenttrail.audit-export.v1", "agenttrail.sso-hook.v1"]) && includes("server.js", ["/api/team/status", "/api/team/audit/export", "applyRbacToPermissions"]) && includes("public/index.html", ["teamUserSelect", "sharedReceipts", "Audit CSV"]) && includes("tests/integration/team-enterprise.test.js", ["team-sync", "sso/validate"])));
+  checks.push(await check("Quality coverage gate exists", async () => includes("scripts/coverage-report.js", ["NODE_V8_COVERAGE", "COVERAGE_THRESHOLD", "agenttrail.coverage-report.v1"]) && includes("package.json", ["\"coverage\": \"node scripts/coverage-report.js\""]) && includes(".github/workflows/ci.yml", ["node scripts/coverage-report.js"])));
+  checks.push(await check("Quality path and diff fuzz tests exist", async () => includes("src/workspace-safety.js", ["resolveWorkspacePath", "createUnifiedDiff", "isWorkspacePathSafe"]) && includes("tests/unit/workspace-safety-fuzz.test.js", ["fuzzWorkspacePaths", "fuzzUnifiedDiffs"])));
+  checks.push(await check("Quality UI E2E in CI exists", async () => includes("tests/ui/playwright-smoke.test.js", ["playwright", "UI E2E", "runPlaywrightE2e"]) && includes(".github/workflows/ci.yml", ["node tests/ui/playwright-smoke.test.js"])));
+  checks.push(await check("Quality performance regression gate exists", async () => includes("scripts/performance-regression.js", ["agenttrail.performance-regression.v1", "PERFORMANCE_BASELINE"]) && includes("docs/quality/performance-baseline.json", ["agenttrail.performance-baseline.v1"]) && includes(".github/workflows/ci.yml", ["node scripts/performance-regression.js"])));
+  checks.push(await check("Quality cross-platform matrix exists", async () => includes(".github/workflows/quality-matrix.yml", ["ubuntu-latest", "macos-latest", "windows-latest", "node-version: ${{ matrix.node }}"])));
+  checks.push(await check("Quality eval scoreboard exists", async () => includes("scripts/evaluate-agenttrail.js", ["scoreboard", "categoryFor", "AgentTrail eval scoreboard"]) && includes("docs/QUALITY_ENGINEERING.md", ["Eval scoreboard", "Cross-platform matrix"])));
   checks.push(await check("Desktop launchers exist", async () => includes("desktop/README.md", ["macOS", "Windows", "Linux"])));
   checks.push(await check("Epic T desktop distribution exists", async () => includes("desktop/mac/AgentTrailMenuBar.swift", ["NSStatusBar", "Restart Server"]) && includes("desktop/windows/AgentTrail-Tray.ps1", ["NotifyIcon", "Restart server"]) && includes("desktop/linux/agenttrail-tray.sh", ["notify-send", "AGENTTRAIL_DESKTOP"]) && includes("updates/latest.json", ["agenttrail.update-channel.v1", "stable"]) && includes("src/desktop-notifications.js", ["maybeNotifyLongTask", "notify-send"]) && includes("installers/windows/AgentTrail.iss", ["AgentTrail-Setup"]) && includes("installers/linux/agenttrail.spec", ["Name: agenttrail"])));
   checks.push(await check("Real demo GIF exists", async () => hasFile("docs/agenttrail-demo.gif")));
@@ -158,16 +164,76 @@ async function main() {
   if (failed.length) {
     console.log(`Failed checks: ${failed.map((item) => item.name).join(", ")}`);
   }
+  const scoreboard = buildScoreboard(checks);
+  console.log("AgentTrail eval scoreboard:");
+  for (const row of scoreboard.categories) {
+    console.log(`- ${row.category}: ${row.score}/100 (${row.passed}/${row.total})`);
+  }
+  if (process.argv.includes("--write-scoreboard")) {
+    await writeScoreboard(scoreboard);
+  }
   assert.equal(score >= 90, true);
   console.log(`AgentTrail repo eval score: ${score}/100 (${passed}/${checks.length})`);
 }
 
 async function check(name, fn) {
   try {
-    return { name, ok: (await fn()) === true };
+    return { name, category: categoryFor(name), ok: (await fn()) === true };
   } catch (error) {
-    return { name, ok: false, error: error.message };
+    return { name, category: categoryFor(name), ok: false, error: error.message };
   }
+}
+
+function buildScoreboard(checks) {
+  const categories = new Map();
+  for (const item of checks) {
+    const category = item.category || "other";
+    if (!categories.has(category)) {
+      categories.set(category, { category, passed: 0, total: 0, failed: [] });
+    }
+    const row = categories.get(category);
+    row.total += 1;
+    if (item.ok) {
+      row.passed += 1;
+    } else {
+      row.failed.push(item.name);
+    }
+  }
+  const rows = [...categories.values()]
+    .map((row) => ({
+      ...row,
+      score: row.total ? Math.round((row.passed / row.total) * 100) : 100
+    }))
+    .sort((a, b) => a.category.localeCompare(b.category));
+  return {
+    schema: "agenttrail.eval-scoreboard.v1",
+    total: {
+      passed: checks.filter((item) => item.ok).length,
+      checks: checks.length
+    },
+    categories: rows
+  };
+}
+
+function categoryFor(name) {
+  const text = String(name || "").toLowerCase();
+  if (/quality|coverage|fuzz|performance|matrix|ui e2e|scoreboard/.test(text)) return "quality";
+  if (/observability|trace|analytics|metrics|error/.test(text)) return "observability";
+  if (/team|rbac|sso|audit/.test(text)) return "team";
+  if (/security|privacy|redaction|egress|injection|threat|secret/.test(text)) return "security";
+  if (/search|semantic|vector|chunk|citation|rerank|embedding|ann|benchmark/.test(text)) return "search";
+  if (/runtime|gguf|hardware|loading|registry|model/.test(text)) return "runtime";
+  if (/desktop|supply|docker|homebrew|npm|release|checksum|signing|sbom|cli|vscode|distribution/.test(text)) return "distribution";
+  if (/tool|mcp|planner|structured|guardrail|reflection|memory|recipe|replay|run/.test(text)) return "agent";
+  if (/demo|readme|report|frontend|ui|attachment|image|audio|vision|document|pdf|office|html/.test(text)) return "ux-proof";
+  if (/foundation|schema|migration|plugin|backup|sqlite|config|watcher|logging/.test(text)) return "foundation";
+  return "foundation";
+}
+
+async function writeScoreboard(scoreboard) {
+  const outputDir = path.join(projectRoot, "docs/quality");
+  await fsp.mkdir(outputDir, { recursive: true });
+  await fsp.writeFile(path.join(outputDir, "eval-scoreboard.json"), `${JSON.stringify(scoreboard, null, 2)}\n`, "utf8");
 }
 
 async function includes(file, needles) {

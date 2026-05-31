@@ -23,6 +23,7 @@ const { StructuredLogger } = require("./src/logger");
 const { validateConfig } = require("./src/config");
 const { hashContent, chunkTextDetailed, rankChunks, scoreBm25Documents, fuseHybridScores, rerankDocuments, bestLateInteractionChunk } = require("./src/features/search");
 const { FlatVectorStore, summarizeVectorStore, vectorMapsFromStore, annCandidatePaths } = require("./src/vector-store");
+const workspaceSafety = require("./src/workspace-safety");
 const { scanSecurityText } = require("./src/features/security");
 const { ERROR_TAXONOMY, friendlyError } = require("./src/features/errors");
 const { createObservability } = require("./src/observability");
@@ -8797,19 +8798,11 @@ async function previewWorkspaceFile(relativePath, content, options = {}) {
 }
 
 function resolveWorkspacePath(relativePath) {
-  const normalized = normalizeRelativePath(relativePath);
-  const absolutePath = path.resolve(WORKSPACE_ROOT, normalized);
-  if (absolutePath !== WORKSPACE_ROOT && !absolutePath.startsWith(`${WORKSPACE_ROOT}${path.sep}`)) {
-    throw new Error("Path escapes the workspace");
-  }
-  return absolutePath;
+  return workspaceSafety.resolveWorkspacePath(WORKSPACE_ROOT, relativePath);
 }
 
 function normalizeRelativePath(relativePath) {
-  return String(relativePath || "")
-    .replace(/\\/g, "/")
-    .replace(/^\/+/, "")
-    .trim();
+  return workspaceSafety.normalizeRelativePath(relativePath);
 }
 
 function sanitizeAttachmentName(name) {
@@ -9964,59 +9957,7 @@ function roundSearchScore(value) {
 }
 
 function createUnifiedDiff(filePath, before, after) {
-  const beforeLines = splitLines(before);
-  const afterLines = splitLines(after);
-  const stats = {
-    added: afterLines.length,
-    removed: beforeLines.length
-  };
-
-  if (before === after) {
-    return {
-      text: [`--- a/${filePath}`, `+++ b/${filePath}`, " no changes"].join("\n"),
-      stats: { added: 0, removed: 0 }
-    };
-  }
-
-  let prefix = 0;
-  while (
-    prefix < beforeLines.length &&
-    prefix < afterLines.length &&
-    beforeLines[prefix] === afterLines[prefix]
-  ) {
-    prefix += 1;
-  }
-
-  let suffix = 0;
-  while (
-    suffix < beforeLines.length - prefix &&
-    suffix < afterLines.length - prefix &&
-    beforeLines[beforeLines.length - 1 - suffix] === afterLines[afterLines.length - 1 - suffix]
-  ) {
-    suffix += 1;
-  }
-
-  const contextBefore = beforeLines.slice(Math.max(0, prefix - 3), prefix);
-  const removed = beforeLines.slice(prefix, beforeLines.length - suffix);
-  const added = afterLines.slice(prefix, afterLines.length - suffix);
-  const contextAfter = beforeLines.slice(beforeLines.length - suffix, Math.min(beforeLines.length, beforeLines.length - suffix + 3));
-
-  stats.added = added.length;
-  stats.removed = removed.length;
-
-  const lines = [
-    `--- a/${filePath}`,
-    `+++ b/${filePath}`,
-    ...contextBefore.map((line) => ` ${line}`),
-    ...removed.map((line) => `-${line}`),
-    ...added.map((line) => `+${line}`),
-    ...contextAfter.map((line) => ` ${line}`)
-  ];
-
-  return {
-    text: truncate(lines.join("\n"), 6000),
-    stats
-  };
+  return workspaceSafety.createUnifiedDiff(filePath, before, after);
 }
 
 function splitLines(text) {

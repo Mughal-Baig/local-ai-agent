@@ -42,6 +42,7 @@
 - Packaging and supply-chain foundation: multi-arch Docker workflow, publishable Homebrew formula, npm provenance workflow, SPDX SBOM, checksum signing script, and reproducible npm package check.
 - Local observability: structured logs, Prometheus-style metrics, per-run traces, token/time accounting, error taxonomy, and privacy-preserving analytics.
 - Local team/enterprise layer: shared read-only receipts, local users, RBAC, audit export, opt-in sync packages, and SSO identity hook.
+- Quality engineering layer: coverage gate, UI E2E smoke, path/diff fuzzing, performance regression budgets, cross-platform matrix, and eval scoreboard.
 
 ## Not Planned
 

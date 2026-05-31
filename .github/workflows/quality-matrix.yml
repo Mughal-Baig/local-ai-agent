@@ -1,0 +1,30 @@
+name: Quality Matrix
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  quality:
+    name: ${{ matrix.os }} / Node ${{ matrix.node }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        node: ["20", "22"]
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: ${{ matrix.node }}
+      - run: node --check server.js
+      - run: node --check src/workspace-safety.js
+      - run: node --check scripts/coverage-report.js
+      - run: node --check scripts/performance-regression.js
+      - run: npm run test:quality
+      - run: npm run bench:quality

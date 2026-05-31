@@ -285,6 +285,7 @@ When write preview mode is enabled, `write_file` returns a diff preview instead 
 - Throughput and resource visibility: `/api/concurrency`, `/api/health`, `/api/resources`, `/api/runtime`, and `npm run load:test`
 - Agent-as-API: `/v1/chat/completions`, `/v1/models`, `/v1/embeddings`, `/v1/openapi.json`, plus [docs/OPENAI_COMPATIBLE_API.md](docs/OPENAI_COMPATIBLE_API.md)
 - Agent eval harness and history: `npm run eval`, `npm run eval:search`, `npm run bench:search`, `/api/evals`, `/api/evals/history`
+- Quality proof: `npm run test:quality`, `npm run coverage`, `npm run bench:quality`, UI E2E in CI, cross-platform quality matrix, and eval category scoreboard
 - Project memory: `workspace/memory/project-memory.md`, `workspace/memory/project-memory.json`, citations, revision history, plus global memory under local `.local-agent/`
 - Workspace profiles: [profiles](profiles), `/api/profiles/apply`
 - Trust Score dashboard: browser UI
@@ -315,6 +316,8 @@ When write preview mode is enabled, `write_file` returns a diff preview instead 
 - Background jobs: [src/jobs.js](src/jobs.js)
 - Plugin architecture: [plugins](plugins)
 - Team users/RBAC: [team/users.json](team/users.json), [src/team-enterprise.js](src/team-enterprise.js)
+- Workspace safety and diff helpers: [src/workspace-safety.js](src/workspace-safety.js)
+- Quality engineering: [docs/QUALITY_ENGINEERING.md](docs/QUALITY_ENGINEERING.md), [docs/quality](docs/quality)
 - Release checksums: [docs/RELEASE_SIGNING.md](docs/RELEASE_SIGNING.md)
 - Backup export: `workspace/backups/`
 - SQLite store: `workspace/.agenttrail/agenttrail.db`
@@ -401,6 +404,7 @@ Supported variables:
 - [Troubleshooting](docs/TROUBLESHOOTING.md)
 - [Model guide](docs/MODELS.md)
 - [Team mode](docs/TEAM_ENTERPRISE.md)
+- [Quality engineering](docs/QUALITY_ENGINEERING.md)
 - [Security checklist](docs/SECURITY_CHECKLIST.md)
 
 ## Test
@@ -426,6 +430,9 @@ npm run test:memory-retrieval
 npm run test:memory-history
 npm run test:memory-scopes
 npm run test:ui
+npm run test:quality
+npm run coverage
+npm run bench:quality
 npm run eval
 npm run release:checksums
 npm run package:desktop

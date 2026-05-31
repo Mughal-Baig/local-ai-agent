@@ -31,6 +31,7 @@ jobs:
       - run: node --check src/network-policy.js
       - run: node --check src/observability.js
       - run: node --check src/team-enterprise.js
+      - run: node --check src/workspace-safety.js
       - run: node --check src/runtime-hardware.js
       - run: node --check src/runtime-loading.js
       - run: node --check src/model-registry.js
@@ -42,6 +43,8 @@ jobs:
       - run: node --check scripts/sign-checksums.js
       - run: node --check scripts/verify-checksums.js
       - run: node --check scripts/reproducible-build.js
+      - run: node --check scripts/coverage-report.js
+      - run: node --check scripts/performance-regression.js
       - run: node --check scripts/update-homebrew-formula.js
       - run: node --check scripts/package-linux.js
       - run: node --check scripts/sign-mac-app.js
@@ -59,6 +62,8 @@ jobs:
       - run: node --check tests/unit/supply-chain.test.js
       - run: node --check tests/unit/observability.test.js
       - run: node --check tests/unit/team-enterprise.test.js
+      - run: node --check tests/unit/quality-engineering.test.js
+      - run: node --check tests/unit/workspace-safety-fuzz.test.js
       - run: node --check tests/integration/model-registry.test.js
       - run: node --check tests/integration/threat-model.test.js
       - run: node --check tests/integration/observability.test.js
@@ -78,6 +83,8 @@ jobs:
       - run: node tests/unit/supply-chain.test.js
       - run: node tests/unit/observability.test.js
       - run: node tests/unit/team-enterprise.test.js
+      - run: node tests/unit/quality-engineering.test.js
+      - run: node tests/unit/workspace-safety-fuzz.test.js
       - run: node tests/unit/security-privacy.test.js
       - run: node tests/unit/redact.test.js
       - run: node tests/unit/pdf-extraction.test.js
@@ -100,6 +107,8 @@ jobs:
       - run: node tests/integration/embedding-cache.test.js
       - run: node scripts/eval-search.js
       - run: node scripts/benchmark-search.js
+      - run: node scripts/coverage-report.js
+      - run: node scripts/performance-regression.js
       - run: node tests/integration/resumable-run.test.js
       - run: node tests/integration/search-incremental.test.js
       - run: node tests/integration/health.test.js

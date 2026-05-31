@@ -1,0 +1,79 @@
+{
+  "schema": "agenttrail.eval-scoreboard.v1",
+  "total": {
+    "passed": 144,
+    "checks": 144
+  },
+  "categories": [
+    {
+      "category": "agent",
+      "passed": 41,
+      "total": 41,
+      "failed": [],
+      "score": 100
+    },
+    {
+      "category": "distribution",
+      "passed": 13,
+      "total": 13,
+      "failed": [],
+      "score": 100
+    },
+    {
+      "category": "foundation",
+      "passed": 26,
+      "total": 26,
+      "failed": [],
+      "score": 100
+    },
+    {
+      "category": "observability",
+      "passed": 1,
+      "total": 1,
+      "failed": [],
+      "score": 100
+    },
+    {
+      "category": "quality",
+      "passed": 6,
+      "total": 6,
+      "failed": [],
+      "score": 100
+    },
+    {
+      "category": "runtime",
+      "passed": 11,
+      "total": 11,
+      "failed": [],
+      "score": 100
+    },
+    {
+      "category": "search",
+      "passed": 23,
+      "total": 23,
+      "failed": [],
+      "score": 100
+    },
+    {
+      "category": "security",
+      "passed": 6,
+      "total": 6,
+      "failed": [],
+      "score": 100
+    },
+    {
+      "category": "team",
+      "passed": 1,
+      "total": 1,
+      "failed": [],
+      "score": 100
+    },
+    {
+      "category": "ux-proof",
+      "passed": 16,
+      "total": 16,
+      "failed": [],
+      "score": 100
+    }
+  ]
+}

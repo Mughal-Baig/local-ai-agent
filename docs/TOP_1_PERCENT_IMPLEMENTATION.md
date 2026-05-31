@@ -44,7 +44,8 @@ This table maps the requested 30-item top-1% and foundation list to the v0.7 imp
 | Database-like persistence | SQLite at `workspace/.agenttrail/agenttrail.db`, append-only JSONL event store, `/api/sqlite/status`, `/api/store/stats` |
 | Real tool permission engine | `src/permissions.js`, `/api/permissions`, per-tool policies, permission-audit events, integrated into agent tool execution |
 | Better evals | repo eval now checks foundation modules, semantic hashes/chunks, plugins, jobs, backups, checksums |
-| Better tests | `npm run test:unit`, `npm run test:integration`, `npm run test:ui`, expanded `npm test`, `npm run eval` |
+| Better tests | `npm run test:unit`, `npm run test:integration`, `npm run test:ui`, `npm run test:quality`, expanded `npm test`, `npm run eval` |
+| Quality engineering | V8 coverage gate, path/diff fuzz tests, UI E2E smoke, deterministic performance regression budgets, cross-platform Node matrix, and eval scoreboard |
 | Migration system | `src/migrations.js`, `migrations/*.json`, `/api/migrations`, migration state in `workspace/.agenttrail/migrations.json` |
 | Model adapter layer | `src/model-adapters.js`, status exposes Ollama plus planned LM Studio, llama.cpp, OpenAI-compatible adapters |
 | Stronger vector index | file hashes, chunk metadata, chunk citation search, provider/model/dimensions, status counts |

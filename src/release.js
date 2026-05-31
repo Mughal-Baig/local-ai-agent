@@ -16,6 +16,7 @@ const RELEASE_ARTIFACTS = [
   "src/network-policy.js",
   "src/observability.js",
   "src/team-enterprise.js",
+  "src/workspace-safety.js",
   "src/permissions.js",
   "src/features/errors.js",
   "src/features/redact.js",
@@ -24,6 +25,8 @@ const RELEASE_ARTIFACTS = [
   "scripts/sign-checksums.js",
   "scripts/verify-checksums.js",
   "scripts/reproducible-build.js",
+  "scripts/coverage-report.js",
+  "scripts/performance-regression.js",
   "scripts/update-homebrew-formula.js",
   "mcp/server.js",
   "scripts/package-mac-app.js",
@@ -39,6 +42,9 @@ const RELEASE_ARTIFACTS = [
   "docs/SUPPLY_CHAIN.md",
   "docs/SECURITY_POSTURE.md",
   "docs/TEAM_ENTERPRISE.md",
+  "docs/QUALITY_ENGINEERING.md",
+  "docs/quality/eval-scoreboard.json",
+  "docs/quality/performance-baseline.json",
   "docs/RELEASE_SIGNING.md",
   "docs/NPM_PUBLISH.md",
   "docs/sbom/agenttrail-v0.7.0.spdx.json",
@@ -54,6 +60,8 @@ const RELEASE_ARTIFACTS = [
   "tests/integration/observability.test.js",
   "tests/unit/team-enterprise.test.js",
   "tests/integration/team-enterprise.test.js",
+  "tests/unit/quality-engineering.test.js",
+  "tests/unit/workspace-safety-fuzz.test.js",
   "install.sh"
 ];
 

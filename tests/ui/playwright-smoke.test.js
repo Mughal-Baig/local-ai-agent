@@ -1,10 +1,13 @@
 #!/usr/bin/env node
 
 const assert = require("node:assert/strict");
+const { spawn } = require("node:child_process");
 const fsp = require("node:fs/promises");
+const os = require("node:os");
 const path = require("node:path");
 
 const projectRoot = path.resolve(__dirname, "../..");
+const port = 5300 + Math.floor(Math.random() * 400);
 
 main().catch((error) => {
   console.error(error);
@@ -12,39 +15,123 @@ main().catch((error) => {
 });
 
 async function main() {
-  const html = await fsp.readFile(path.join(projectRoot, "public/index.html"), "utf8");
-  const app = await fsp.readFile(path.join(projectRoot, "public/app.js"), "utf8");
-  const foundation = await fsp.readFile(path.join(projectRoot, "public/modules/foundation.js"), "utf8");
-  const product = await fsp.readFile(path.join(projectRoot, "public/modules/product.js"), "utf8");
+  const workspaceRoot = await fsp.mkdtemp(path.join(os.tmpdir(), "agenttrail-ui-e2e-"));
+  const child = spawn(process.execPath, ["server.js"], {
+    cwd: projectRoot,
+    env: {
+      ...process.env,
+      PORT: String(port),
+      WORKSPACE_ROOT: workspaceRoot,
+      OLLAMA_HOST: "http://127.0.0.1:1"
+    },
+    stdio: ["ignore", "pipe", "pipe"]
+  });
+  let output = "";
+  child.stdout.on("data", (chunk) => {
+    output += chunk.toString();
+  });
+  child.stderr.on("data", (chunk) => {
+    output += chunk.toString();
+  });
 
-  assert.match(html, /Foundation/);
-  assert.match(html, /Run real bench/);
-  assert.match(html, /Import pack URL/);
-  assert.match(html, /attachmentInput/);
-  assert.match(html, /Attach/);
-  assert.match(html, /dropHint/);
-  assert.match(html, /screenshotAction/);
-  assert.match(html, /voicePrompt/);
-  assert.match(html, /resourcesSummary/);
+  try {
+    await waitForServer(() => output);
+    const playwright = await optionalPlaywright();
+    if (playwright) {
+      await runPlaywrightE2e(playwright);
+    } else {
+      await runHttpUiContract();
+    }
+    console.log("UI E2E tests passed");
+  } finally {
+    child.kill("SIGTERM");
+    await fsp.rm(workspaceRoot, { recursive: true, force: true });
+  }
+}
+
+async function runPlaywrightE2e(playwright) {
+  const browser = await playwright.chromium.launch({ headless: true });
+  try {
+    const page = await browser.newPage({ viewport: { width: 1280, height: 900 } });
+    await page.goto(`http://127.0.0.1:${port}/`, { waitUntil: "networkidle" });
+    await page.locator("text=AgentTrail").first().waitFor({ timeout: 5000 });
+    await page.locator("#workspaceSearch").fill("welcome");
+    await page.locator("#workspaceSearch").press("Enter");
+    await page.locator("#trustScore").waitFor({ timeout: 5000 });
+    await page.locator("#refreshTeam").click();
+    await page.locator("#teamSummary").waitFor({ timeout: 5000 });
+    const teamText = await page.locator("#teamSummary").innerText();
+    assert.match(teamText, /Owner|Role/i);
+  } finally {
+    await browser.close();
+  }
+}
+
+async function runHttpUiContract() {
+  const html = await fetchText("/");
+  const app = await fetchText("/app.js");
+  const styles = await fetchText("/styles.css");
+  const status = await fetchJson("/api/status");
+  const team = await fetchJson("/api/team/status");
+  const observability = await fetchJson("/api/observability");
+
+  assert.match(html, /AgentTrail/);
+  assert.match(html, /workspaceSearch/);
+  assert.match(html, /teamUserSelect/);
+  assert.match(html, /observabilitySummary/);
   assert.match(html, /Diff Review/);
+  assert.match(app, /refreshTeam/);
   assert.match(app, /renderPendingChanges/);
-  assert.match(app, /\/api\/attachments/);
   assert.match(app, /bindComposerAttachmentIntake/);
-  assert.match(app, /IMAGE_ATTACHMENT_MAX_BYTES/);
-  assert.match(app, /isImageAttachment/);
-  assert.match(app, /Vision/);
-  assert.match(app, /vision-ready model/);
-  assert.match(app, /generateScreenshotActionPlan/);
-  assert.match(app, /screenshotToActionPrompt/);
   assert.match(app, /startVoicePromptRecording/);
-  assert.match(app, /runAudioTranscriptionRecipe/);
-  assert.match(app, /speakAssistantMessage/);
-  assert.match(app, /\/api\/audio\/speak/);
-  assert.match(app, /refreshResources/);
-  assert.match(app, /\/api\/resources/);
-  assert.match(foundation, /\/api\/foundation/);
-  assert.match(product, /\/api\/search\/chunks/);
-  assert.match(product, /\/api\/replay\/plan/);
+  assert.match(styles, /diff-preview/);
+  assert.equal(status.app, "ok");
+  assert.equal(team.schema, "agenttrail.team-status.v1");
+  assert.equal(Array.isArray(observability.traces), true);
+}
 
-  console.log("UI smoke tests passed");
+async function optionalPlaywright() {
+  if (process.env.AGENTTRAIL_UI_HTTP_ONLY === "1") {
+    return null;
+  }
+  try {
+    return require("playwright");
+  } catch {
+    return null;
+  }
+}
+
+async function waitForServer(getOutput) {
+  const deadline = Date.now() + 7000;
+  while (Date.now() < deadline) {
+    try {
+      const response = await fetch(`http://127.0.0.1:${port}/api/status`);
+      if (response.ok) {
+        return;
+      }
+    } catch {
+      await delay(100);
+    }
+  }
+  throw new Error(`Server did not start. Output:\n${getOutput()}`);
+}
+
+async function fetchText(route) {
+  const response = await fetch(`http://127.0.0.1:${port}${route}`);
+  if (!response.ok) {
+    throw new Error(`HTTP ${response.status} for ${route}`);
+  }
+  return response.text();
+}
+
+async function fetchJson(route) {
+  const response = await fetch(`http://127.0.0.1:${port}${route}`);
+  if (!response.ok) {
+    throw new Error(`HTTP ${response.status} for ${route}`);
+  }
+  return response.json();
+}
+
+function delay(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }

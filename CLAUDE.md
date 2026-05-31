@@ -18,7 +18,7 @@ Codex completed Epic W (T156-T160):
 - T159: optional AES-256-GCM encrypted-at-rest managed artifacts via `AGENTTRAIL_ENCRYPT_AT_REST` + `AGENTTRAIL_ENCRYPTION_KEY`; receipts decrypt through normal read APIs when the key is present.
 - T160: added `npm run test:security-privacy`, covering path escape, exfiltration, prompt injection, egress denial, redaction, policies, and encrypted receipt readback.
 
-Recommended verification before changing this layer: `npm run test:security-privacy`, `npm run test:redact`, `npm run test:unit`, `npm run test:integration`, `npm test`, and `npm run eval`.
+Recommended verification before changing this layer: `npm run test:security-privacy`, `npm run test:redact`, `npm run test:quality`, `npm run coverage`, `npm run bench:quality`, `npm run test:unit`, `npm run test:integration`, `npm test`, and `npm run eval`.
 
 ## Latest Codex Roadmap Pass
 
@@ -360,4 +360,13 @@ Next section records the Epic Y team/enterprise pass.
 - The app sidebar now has a Team panel for switching local users, viewing shared receipts, exporting audit logs, and writing sync packs.
 - Tests/docs updated: `npm run test:team`, route catalog, schema docs, README, repo eval, CI, roadmap progress, and release checksum/SBOM paths.
 
-Next open: Epic Z quality engineering, starting with coverage reporting, UI E2E in CI, path/diff fuzz tests, and performance regression checks.
+Next section records the Epic Z quality engineering pass.
+
+## Latest Codex Pass - Epic Z quality engineering
+
+- T173-T179 are implemented through `src/workspace-safety.js`, `scripts/coverage-report.js`, `scripts/performance-regression.js`, `tests/unit/workspace-safety-fuzz.test.js`, `tests/unit/quality-engineering.test.js`, `tests/ui/playwright-smoke.test.js`, and `.github/workflows/quality-matrix.yml`.
+- Added a V8 coverage gate (`npm run coverage`), shared workspace path/diff safety helpers, property-style fuzz tests for traversal and diff invariants, a dependency-free UI E2E smoke with optional Playwright browser driving, deterministic performance regression budgets, and a cross-platform macOS/Windows/Linux Node matrix.
+- `npm run eval` now prints a category scoreboard and can write `docs/quality/eval-scoreboard.json` for public proof.
+- Tests/docs updated: `npm run test:quality`, `npm run coverage`, `npm run bench:quality`, `npm run test:ui`, `docs/QUALITY_ENGINEERING.md`, README, repo eval, CI, roadmap progress, and release checksum/SBOM paths.
+
+Next open: Epic AA documentation, starting with the searchable docs site and 60-second visual guide.

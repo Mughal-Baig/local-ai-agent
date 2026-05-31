@@ -64,16 +64,17 @@ This section tracks the concrete work shipped after the roadmap was publicly ref
 | Codex Epic W pass | T156-T160 | Added the security/privacy layer: redaction before model context and audit artifacts, optional AES-256-GCM encrypted receipts/reports/sessions, per-tool policies with permission-audit events, centralized network egress allowlists for URL/image/model/marketplace flows, `/api/security/privacy`, and a threat-model suite for path escape, exfiltration, injection, egress denial, and encrypted receipt readback. |
 | Codex Epic X pass | T161-T166 | Added the local observability layer: expanded structured logs, Prometheus-style `/api/metrics`, `/api/observability`, `/api/traces`, `/api/traces/content`, structured error taxonomy, per-run and recipe token/time accounting, persisted trace records, and an in-app privacy-preserving Observability dashboard. |
 | Codex Epic Y pass | T167-T172 | Added the local team/enterprise layer: read-only shared receipts, local multi-user profiles, RBAC tool caps, opt-in shared sync packages, audit-log export in JSON/CSV, and an SSO identity hook for trusted local proxies. |
+| Codex Epic Z pass | T173-T179 | Added the quality engineering layer: expanded quality tests, V8 coverage gate, UI E2E smoke with optional Playwright, shared path/diff fuzz tests, deterministic performance regression budgets, cross-platform Node matrix workflow, and eval category scoreboard. |
 
 ### Verified After These Passes
 
-- Local suites covered: `npm run test:unit`, `npm run test:desktop`, `npm run test:cli`, `npm run test:supply-chain`, `npm run test:security-privacy`, `npm run test:hardware`, `npm run test:loading`, `npm run test:registry`, `npm run test:redact`, `npm run test:documents`, `npm run test:audio`, `npm run test:search`, `npm run test:rerank`, `npm run test:integration`, `npm run test:backend`, `npm run test:v1`, `npm run test:bundled`, `npm run test:models`, `npm run test:embed-cache`, `npm run test:resume`, `npm run test:reindex`, `npm run test:health`, `npm run test:concurrency`, `npm run test:options`, `npm run test:resources`, `npm run eval:search`, `npm run bench:search`, `npm run test:tools`, `npm run test:structured`, `npm run test:planner`, `npm run test:guardrails`, `npm run test:reflection`, memory integration suites, `npm run test:ui`, `npm test`, `npm run eval`, `npm run release:sbom`, `npm run release:homebrew`, `npm run release:reproducible`, `npm run release:checksums`, `npm run release:verify-checksums`, GitHub issue cleanup smoke coverage, and `git diff --check`.
+- Local suites covered: `npm run test:unit`, `npm run test:desktop`, `npm run test:cli`, `npm run test:supply-chain`, `npm run test:security-privacy`, `npm run test:hardware`, `npm run test:loading`, `npm run test:registry`, `npm run test:redact`, `npm run test:documents`, `npm run test:audio`, `npm run test:search`, `npm run test:rerank`, `npm run test:integration`, `npm run test:backend`, `npm run test:v1`, `npm run test:bundled`, `npm run test:models`, `npm run test:embed-cache`, `npm run test:resume`, `npm run test:reindex`, `npm run test:health`, `npm run test:concurrency`, `npm run test:options`, `npm run test:resources`, `npm run eval:search`, `npm run bench:search`, `npm run test:tools`, `npm run test:structured`, `npm run test:planner`, `npm run test:guardrails`, `npm run test:reflection`, memory integration suites, `npm run test:ui`, `npm run test:quality`, `npm run coverage`, `npm run bench:quality`, `npm test`, `npm run eval`, `npm run release:sbom`, `npm run release:homebrew`, `npm run release:reproducible`, `npm run release:checksums`, `npm run release:verify-checksums`, GitHub issue cleanup smoke coverage, and `git diff --check`.
 - GitHub CI and GitHub Pages passed for the latest roadmap commits.
 - GitHub Actions workflows now use Node-24-ready action majors and keep `FORCE_JAVASCRIPT_ACTIONS_TO_NODE24=true`, addressing the prior Node 20 action-runtime deprecation warning.
 
 ### Best Continuation Points
 
-- T173-T179: quality engineering next, especially coverage gate, UI E2E in CI, fuzz tests, and performance regression checks.
+- T180-T187: documentation next, especially the searchable docs site, 60-second visual guide, recipe authoring guide, backend setup guides, API reference, and troubleshooting expansion.
 - T098/T104: add time-to-first-token/tokens-per-second metrics and idle-unload policy UI.
 
 ---
@@ -342,13 +343,13 @@ This section tracks the concrete work shipped after the roadmap was publicly ref
 ## Phase 9 — Quality, docs, community, growth
 
 ### Epic Z — Quality engineering
-- [~] T173 Unit/integration/smoke/backend/model tests (exist; grow)
-- [ ] T174 Coverage reporting + threshold gate
-- [ ] T175 UI end-to-end tests (Playwright) in CI
-- [ ] T176 Property/fuzz tests for path + diff logic
-- [ ] T177 Performance regression benchmarks in CI
-- [ ] T178 Cross-platform CI matrix (mac/win/linux, node LTS)
-- [ ] T179 Eval harness expansion + scoreboard
+- [x] T173 Unit/integration/smoke/backend/model tests (exist; grow)
+- [x] T174 Coverage reporting + threshold gate
+- [x] T175 UI end-to-end tests (Playwright) in CI
+- [x] T176 Property/fuzz tests for path + diff logic
+- [x] T177 Performance regression benchmarks in CI
+- [x] T178 Cross-platform CI matrix (mac/win/linux, node LTS)
+- [x] T179 Eval harness expansion + scoreboard
 
 ### Epic AA — Documentation
 - [ ] T180 Docs site (static, searchable)
@@ -398,16 +399,16 @@ This section tracks the concrete work shipped after the roadmap was publicly ref
 4. We expand an epic's tasks into finer sub-tasks (toward 1000) only when we start that epic — so the plan stays honest and current.
 5. We re-mark `[x]` here as we go; this file is the single source of truth for the campaign.
 
-**Next up:** validate real `node-llama-cpp` with a tiny GGUF on hardware, then move into launch/growth polish after package publication.
+**Next up:** Epic AA documentation: searchable docs site, 60-second visual guide, recipe authoring guide, backend setup guides, architecture deep dive, generated API reference, troubleshooting, and video walkthroughs.
 
 ## Status & bug sweep (latest)
 
-- Progress: **163 tasks done**, with 34 open or partial items in the tracked Phases 1-10 set. Phase 1 is complete; Phase 2 Epic E/F search foundation is complete except T044 as a hardening umbrella; Epic G document ingestion is complete; Phase 3 vision/audio/image generation is complete; Epic K is complete; Epic L is complete; Epic M is partially complete; Epic N/O now have cache, option passthrough, resources, and runtime visibility; Phase 6 now has a first-class bundled-runtime adapter seam plus Epic Q/R/S hardware, loading, and registry policy; Epic T native desktop distribution is complete at the repo/scaffolding level; Epic U CLI parity is complete; Epic V packaging/supply-chain foundation is complete; Epic W security/privacy is complete; Epic X observability is complete; Epic Y team/enterprise is complete; and the public starter issues are cleared with tests/docs.
-- Focused test suite green: unit, observability, team enterprise, desktop distribution, CLI integration, supply-chain, security/privacy threat-model, runtime hardware, runtime loading, model registry, bundled runtime, redaction, document extraction, API integration, v1 API, health, concurrency, model options, resources, smoke, recipe validation, receipt metadata, repo eval, release SBOM, reproducibility, and release checksums. All touched source files pass `node --check`.
+- Progress: **170 tasks done**, with 27 open or partial items in the tracked Phases 1-10 set. Phase 1 is complete; Phase 2 Epic E/F search foundation is complete except T044 as a hardening umbrella; Epic G document ingestion is complete; Phase 3 vision/audio/image generation is complete; Epic K is complete; Epic L is complete; Epic M is partially complete; Epic N/O now have cache, option passthrough, resources, and runtime visibility; Phase 6 now has a first-class bundled-runtime adapter seam plus Epic Q/R/S hardware, loading, and registry policy; Epic T native desktop distribution is complete at the repo/scaffolding level; Epic U CLI parity is complete; Epic V packaging/supply-chain foundation is complete; Epic W security/privacy is complete; Epic X observability is complete; Epic Y team/enterprise is complete; Epic Z quality engineering is complete; and the public starter issues are cleared with tests/docs.
+- Focused test suite green: unit, observability, team enterprise, quality engineering, coverage gate, performance regression, UI E2E, desktop distribution, CLI integration, supply-chain, security/privacy threat-model, runtime hardware, runtime loading, model registry, bundled runtime, redaction, document extraction, API integration, v1 API, health, concurrency, model options, resources, smoke, recipe validation, receipt metadata, repo eval, release SBOM, reproducibility, and release checksums. All touched source files pass `node --check`.
 - **Bug fixed:** `listWorkspaceFiles` only skipped `.DS_Store`, so internal `.agenttrail/*` state (logs, store, search index, pending-run) was being walked, indexed, and returned in search — adding noise and per-request churn to the index. Now excludes `.agenttrail/`. Verified against smoke, api, search-incremental, search-chunking, and eval:search.
 - Known minor item: a couple of integration tests assert relative/invariant counts (not exact) because the workspace can still gain legit files (e.g. `memory/*`) between calls — intentional, not a bug.
 
-Next code target: T107 real `node-llama-cpp` hardware validation with a tiny GGUF, then launch/growth polish after package publication.
+Next code target: T180 docs site, then the rest of Epic AA docs/guides.
 
 ---
 

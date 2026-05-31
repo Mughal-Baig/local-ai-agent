@@ -1,0 +1,10 @@
+{
+  "schema": "agenttrail.performance-baseline.v1",
+  "note": "Generous CI budgets for dependency-free regression checks. Tighten after collecting public runner history.",
+  "budgetsMs": {
+    "chunking": 1200,
+    "ranking": 1200,
+    "annIndex": 1200,
+    "pathDiffFuzz": 1200
+  }
+}
