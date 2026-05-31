@@ -40,6 +40,14 @@ async function main() {
   checks.push(await check("Quality performance regression gate exists", async () => includes("scripts/performance-regression.js", ["agenttrail.performance-regression.v1", "PERFORMANCE_BASELINE"]) && includes("docs/quality/performance-baseline.json", ["agenttrail.performance-baseline.v1"]) && includes(".github/workflows/ci.yml", ["node scripts/performance-regression.js"])));
   checks.push(await check("Quality cross-platform matrix exists", async () => includes(".github/workflows/quality-matrix.yml", ["ubuntu-latest", "macos-latest", "windows-latest", "node-version: ${{ matrix.node }}"])));
   checks.push(await check("Quality eval scoreboard exists", async () => includes("scripts/evaluate-agenttrail.js", ["scoreboard", "categoryFor", "AgentTrail eval scoreboard"]) && includes("docs/QUALITY_ENGINEERING.md", ["Eval scoreboard", "Cross-platform matrix"])));
+  checks.push(await check("Docs static searchable site exists", async () => includes("scripts/generate-docs-site.js", ["agenttrail.docs-site.v1", "search-index.json"]) && includes("docs/site/index.html", ["AgentTrail Docs", "search-index.json"]) && includes("docs/site/search-index.json", ["GETTING_STARTED.md", "API_REFERENCE.md"])));
+  checks.push(await check("Docs 60-second guide exists", async () => includes("docs/GETTING_STARTED.md", ["60-Second Flow", "Diff Review", "agenttrail-demo.gif"])));
+  checks.push(await check("Docs recipe authoring guide exists", async () => includes("docs/RECIPE_AUTHORING.md", ["Minimal Recipe", "Safety Checklist", "Pack Authoring"])));
+  checks.push(await check("Docs backend setup guide exists", async () => includes("docs/BACKEND_SETUP.md", ["LM Studio", "llama.cpp", "vLLM", "OpenAI-Compatible"])));
+  checks.push(await check("Docs architecture deep dive exists", async () => includes("docs/ARCHITECTURE.md", ["System Map", "Request Lifecycle", "src/workspace-safety.js"])));
+  checks.push(await check("Docs generated API reference exists", async () => includes("scripts/generate-api-reference.js", ["routeCatalog", "Generated docs/API_REFERENCE.md"]) && includes("docs/API_REFERENCE.md", ["Generated from `src/route-catalog.js`", "/api/team/status", "/v1/chat/completions"])));
+  checks.push(await check("Docs troubleshooting FAQ exists", async () => includes("docs/TROUBLESHOOTING.md", ["FAQ", "CI Fails On Docs", "OpenAI-Compatible API Returns 401 Or 429"])));
+  checks.push(await check("Docs video walkthroughs exist", async () => includes("docs/VIDEO_WALKTHROUGHS.md", ["Walkthrough 1", "Security Hardening", "Quality Proof"]) && includes("docs/video-walkthroughs/storyboards.json", ["agenttrail.video-walkthroughs.v1", "quick-start-60"])));
   checks.push(await check("Desktop launchers exist", async () => includes("desktop/README.md", ["macOS", "Windows", "Linux"])));
   checks.push(await check("Epic T desktop distribution exists", async () => includes("desktop/mac/AgentTrailMenuBar.swift", ["NSStatusBar", "Restart Server"]) && includes("desktop/windows/AgentTrail-Tray.ps1", ["NotifyIcon", "Restart server"]) && includes("desktop/linux/agenttrail-tray.sh", ["notify-send", "AGENTTRAIL_DESKTOP"]) && includes("updates/latest.json", ["agenttrail.update-channel.v1", "stable"]) && includes("src/desktop-notifications.js", ["maybeNotifyLongTask", "notify-send"]) && includes("installers/windows/AgentTrail.iss", ["AgentTrail-Setup"]) && includes("installers/linux/agenttrail.spec", ["Name: agenttrail"])));
   checks.push(await check("Real demo GIF exists", async () => hasFile("docs/agenttrail-demo.gif")));
@@ -218,6 +226,7 @@ function buildScoreboard(checks) {
 function categoryFor(name) {
   const text = String(name || "").toLowerCase();
   if (/quality|coverage|fuzz|performance|matrix|ui e2e|scoreboard/.test(text)) return "quality";
+  if (/docs|guide|api reference|troubleshooting|walkthrough|architecture|backend setup|recipe authoring/.test(text)) return "docs";
   if (/observability|trace|analytics|metrics|error/.test(text)) return "observability";
   if (/team|rbac|sso|audit/.test(text)) return "team";
   if (/security|privacy|redaction|egress|injection|threat|secret/.test(text)) return "security";

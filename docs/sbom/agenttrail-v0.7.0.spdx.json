@@ -3,7 +3,7 @@
   "dataLicense": "CC0-1.0",
   "SPDXID": "SPDXRef-DOCUMENT",
   "name": "AgentTrail 0.7.0",
-  "documentNamespace": "https://github.com/Mughal-Baig/local-ai-agent/sbom/v0.7.0/31a7ec0c695b55eb",
+  "documentNamespace": "https://github.com/Mughal-Baig/local-ai-agent/sbom/v0.7.0/0d57f748da5dd26e",
   "creationInfo": {
     "created": "2026-05-31T00:00:00Z",
     "creators": [
@@ -23,11 +23,11 @@
       "checksums": [
         {
           "algorithm": "SHA256",
-          "checksumValue": "31a7ec0c695b55ebb77f6a02c609e305d10aa2f72be4c2dfdaeb7403a885d347"
+          "checksumValue": "0d57f748da5dd26ed7b07cb2c8c78e4a0ae25947c3d2a49207b821ac7a590ff0"
         }
       ],
       "packageVerificationCode": {
-        "packageVerificationCodeValue": "d31ed8ed6b33cb81f9d51019e689ea005bf68f107ff1611e73d24250035380c9"
+        "packageVerificationCodeValue": "5ab79f4562e3bdb220bfac46d2ed3a9f820f3a0fd64f227b62e0bac912f3c3f5"
       }
     }
   ],
@@ -62,7 +62,7 @@
       "checksums": [
         {
           "algorithm": "SHA256",
-          "checksumValue": "6b4a46d6279e289616ced72f60a580dc9914decb99934d66a90f3a757fb6c738"
+          "checksumValue": "c24d4c283d3cd60740052bc1545fe38e15b6c944210f4d8bb8aa4e5d1425208d"
         }
       ],
       "licenseConcluded": "NOASSERTION",
@@ -177,6 +177,42 @@
       "copyrightText": "NOASSERTION"
     },
     {
+      "fileName": "./docs/API_REFERENCE.md",
+      "SPDXID": "SPDXRef-File-docs-API-REFERENCE.md",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "bfc288b15a4571981fb7774ab9de706d1616386143440986a54f59a5c0e441ea"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./docs/ARCHITECTURE.md",
+      "SPDXID": "SPDXRef-File-docs-ARCHITECTURE.md",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "183b2a3fe098e61a15fd61a85439fb07a0a9af49d6fc10de84d5416ea789b205"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./docs/BACKEND_SETUP.md",
+      "SPDXID": "SPDXRef-File-docs-BACKEND-SETUP.md",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "a50846a9dcf979a72ef56f026ff3e8e07661eee6e7327797ff475901e36e3749"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
       "fileName": "./docs/CLI.md",
       "SPDXID": "SPDXRef-File-docs-CLI.md",
       "checksums": [
@@ -231,6 +267,18 @@
         {
           "algorithm": "SHA256",
           "checksumValue": "742fbc5b6f42b003fed18b1900218d3f5d7734242cdb3b43c9c2c164e39d458e"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./docs/GETTING_STARTED.md",
+      "SPDXID": "SPDXRef-File-docs-GETTING-STARTED.md",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "bfd796e9b0a72880d3ff5fc045a51d2a1b08d089c913f879e61b4f1527593eba"
         }
       ],
       "licenseConcluded": "NOASSERTION",
@@ -302,7 +350,7 @@
       "checksums": [
         {
           "algorithm": "SHA256",
-          "checksumValue": "355709e5aa4b0ed47ddfab8da6efddd0cf05e0c1b2e9b27331fbff77068abff5"
+          "checksumValue": "d039fb994450bf7b6895bea27cce90e1d368f7fe119b9b767e5cbec714bb512f"
         }
       ],
       "licenseConcluded": "NOASSERTION",
@@ -429,6 +477,18 @@
       "copyrightText": "NOASSERTION"
     },
     {
+      "fileName": "./docs/RECIPE_AUTHORING.md",
+      "SPDXID": "SPDXRef-File-docs-RECIPE-AUTHORING.md",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "402794d7d13e864782ec233557ec6b45ab0602f5d7a0982755b43ee1e2ae35e1"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
       "fileName": "./docs/RELEASE_NOTES_v0.2.0.md",
       "SPDXID": "SPDXRef-File-docs-RELEASE-NOTES-v0.2.0.md",
       "checksums": [
@@ -530,7 +590,7 @@
       "checksums": [
         {
           "algorithm": "SHA256",
-          "checksumValue": "11268438f6f37490a3bb7a97ca27d606dc44656011a9d5bee9d921521c28fc4c"
+          "checksumValue": "5a18f335119d8cbd3a7bc2d44e07b76373af3956dbed214e89b558f6b3792c88"
         }
       ],
       "licenseConcluded": "NOASSERTION",
@@ -614,7 +674,7 @@
       "checksums": [
         {
           "algorithm": "SHA256",
-          "checksumValue": "082f1e4e1f28ce8f480e934badee123115c5e4b1595aad7d1315feb1d316ded4"
+          "checksumValue": "6d4ec991571d9094ddee553eaf34a242c284a17403f2fca86f20d478ec2ca095"
         }
       ],
       "licenseConcluded": "NOASSERTION",
@@ -638,7 +698,19 @@
       "checksums": [
         {
           "algorithm": "SHA256",
-          "checksumValue": "88b6ecb93c88d5a0caa8c31797fa7d70683b56fc87f8974ae6fb9c10f69c5f8a"
+          "checksumValue": "6aa1bf5fea487801d3ba50322e1b6ec2540647b4dc96ff1ccc64639bf18caf6e"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./docs/VIDEO_WALKTHROUGHS.md",
+      "SPDXID": "SPDXRef-File-docs-VIDEO-WALKTHROUGHS.md",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "82263e68ca2793b40b1ce8d23f9c96444fcd0fdb84fa4b65099152bcd778e7e7"
         }
       ],
       "licenseConcluded": "NOASSERTION",
@@ -758,7 +830,7 @@
       "checksums": [
         {
           "algorithm": "SHA256",
-          "checksumValue": "898ecf58b3fdde2c58db90d2e9b46c0bdc5e377ae5270e26350e51dae2d5de16"
+          "checksumValue": "00faa45c5c97d30785469751c3818007caf9852e8a411a59e4c6ed1c8fee80a9"
         }
       ],
       "licenseConcluded": "NOASSERTION",
@@ -825,6 +897,30 @@
       "copyrightText": "NOASSERTION"
     },
     {
+      "fileName": "./docs/site/index.html",
+      "SPDXID": "SPDXRef-File-docs-site-index.html",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "205e9647fffb182c0a95a6eff2f51e0116ef02ef1ed3ad2e3ceebd48a8d7132a"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./docs/site/search-index.json",
+      "SPDXID": "SPDXRef-File-docs-site-search-index.json",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "40ffec4ad612a1d3cc5a879913bb51b9b46a680e64033ae037994012fb802db9"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
       "fileName": "./docs/social-preview.html",
       "SPDXID": "SPDXRef-File-docs-social-preview.html",
       "checksums": [
@@ -855,6 +951,18 @@
         {
           "algorithm": "SHA256",
           "checksumValue": "19fc0e6fdd054d8438e53ae9530e21a62854ec8c548d757f369ef47fda0d7392"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./docs/video-walkthroughs/storyboards.json",
+      "SPDXID": "SPDXRef-File-docs-video-walkthroughs-storyboards.json",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "95f236c7df41950eded7bbd743616287918326dfe9763c594788291e3216798d"
         }
       ],
       "licenseConcluded": "NOASSERTION",
@@ -1094,7 +1202,7 @@
       "checksums": [
         {
           "algorithm": "SHA256",
-          "checksumValue": "60ff66521192397dae42b9cba16b2261fca493aa5bd5ff8c37dd549b0f5e7d97"
+          "checksumValue": "3af0fd7c07f628fdb70bbfef3b0ccce4392b4c759e8f8b7439d0ba759a1bf57d"
         }
       ],
       "licenseConcluded": "NOASSERTION",
@@ -1682,7 +1790,19 @@
       "checksums": [
         {
           "algorithm": "SHA256",
-          "checksumValue": "12190075d4b9d8bb7b5a4e560f445cb7c261b7a79b9bbe07662807de4640cb47"
+          "checksumValue": "14a4a639a3dbe82c99654fae9d4f579278450621542cbc7962f67e51d8acd52b"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./scripts/generate-api-reference.js",
+      "SPDXID": "SPDXRef-File-scripts-generate-api-reference.js",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "cce4d4a5e507797a8519d5f1409768261f4ef1d90a5a33c7b1575a5123b9347c"
         }
       ],
       "licenseConcluded": "NOASSERTION",
@@ -1707,6 +1827,18 @@
         {
           "algorithm": "SHA256",
           "checksumValue": "2f0a72aeaac33d86370a140b3b81f713ca21c4714e140d8e46f12161303b37ee"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./scripts/generate-docs-site.js",
+      "SPDXID": "SPDXRef-File-scripts-generate-docs-site.js",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "73a799bd8d6415bbf918d5bdff21e568bb5783872a047e43f96a20e564cd1446"
         }
       ],
       "licenseConcluded": "NOASSERTION",
@@ -2210,7 +2342,7 @@
       "checksums": [
         {
           "algorithm": "SHA256",
-          "checksumValue": "c63ccc827bbc8f500e0e692ad77c8a5f39c74d39cbe6107f188090633d53b414"
+          "checksumValue": "24f61da464d63dcd01b74f184b1e8fb8ca772fafd4bc574551e14561b1f4fe14"
         }
       ],
       "licenseConcluded": "NOASSERTION",
@@ -2841,6 +2973,18 @@
       "copyrightText": "NOASSERTION"
     },
     {
+      "fileName": "./tests/unit/docs.test.js",
+      "SPDXID": "SPDXRef-File-tests-unit-docs.test.js",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "91baa60b834aec04c6a48dda778720dda60422fa64c383684e2f2c767de5c1d2"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
       "fileName": "./tests/unit/foundation.test.js",
       "SPDXID": "SPDXRef-File-tests-unit-foundation.test.js",
       "checksums": [
@@ -3102,6 +3246,21 @@
     {
       "spdxElementId": "SPDXRef-Package-AgentTrail",
       "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-docs-API-REFERENCE.md"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-docs-ARCHITECTURE.md"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-docs-BACKEND-SETUP.md"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
       "relatedSpdxElement": "SPDXRef-File-docs-CLI.md"
     },
     {
@@ -3123,6 +3282,11 @@
       "spdxElementId": "SPDXRef-Package-AgentTrail",
       "relationshipType": "CONTAINS",
       "relatedSpdxElement": "SPDXRef-File-docs-FOUNDATION-ROUTES.md"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-docs-GETTING-STARTED.md"
     },
     {
       "spdxElementId": "SPDXRef-Package-AgentTrail",
@@ -3203,6 +3367,11 @@
       "spdxElementId": "SPDXRef-Package-AgentTrail",
       "relationshipType": "CONTAINS",
       "relatedSpdxElement": "SPDXRef-File-docs-RECEIPT-SPEC.md"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-docs-RECIPE-AUTHORING.md"
     },
     {
       "spdxElementId": "SPDXRef-Package-AgentTrail",
@@ -3297,6 +3466,11 @@
     {
       "spdxElementId": "SPDXRef-Package-AgentTrail",
       "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-docs-VIDEO-WALKTHROUGHS.md"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
       "relatedSpdxElement": "SPDXRef-File-docs-agenttrail-demo.gif"
     },
     {
@@ -3372,6 +3546,16 @@
     {
       "spdxElementId": "SPDXRef-Package-AgentTrail",
       "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-docs-site-index.html"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-docs-site-search-index.json"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
       "relatedSpdxElement": "SPDXRef-File-docs-social-preview.html"
     },
     {
@@ -3383,6 +3567,11 @@
       "spdxElementId": "SPDXRef-Package-AgentTrail",
       "relationshipType": "CONTAINS",
       "relatedSpdxElement": "SPDXRef-File-docs-top1-demo.svg"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-docs-video-walkthroughs-storyboards.json"
     },
     {
       "spdxElementId": "SPDXRef-Package-AgentTrail",
@@ -3732,12 +3921,22 @@
     {
       "spdxElementId": "SPDXRef-Package-AgentTrail",
       "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-scripts-generate-api-reference.js"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
       "relatedSpdxElement": "SPDXRef-File-scripts-generate-demo-gif.js"
     },
     {
       "spdxElementId": "SPDXRef-Package-AgentTrail",
       "relationshipType": "CONTAINS",
       "relatedSpdxElement": "SPDXRef-File-scripts-generate-demo-screenshots.js"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-scripts-generate-docs-site.js"
     },
     {
       "spdxElementId": "SPDXRef-Package-AgentTrail",
@@ -4208,6 +4407,11 @@
       "spdxElementId": "SPDXRef-Package-AgentTrail",
       "relationshipType": "CONTAINS",
       "relatedSpdxElement": "SPDXRef-File-tests-unit-desktop-distribution.test.js"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-tests-unit-docs.test.js"
     },
     {
       "spdxElementId": "SPDXRef-Package-AgentTrail",

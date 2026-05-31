@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AgentTrail Docs</title>
+  <style>
+    :root{color-scheme:light;--ink:#25221d;--muted:#6d665b;--paper:#faf7ef;--panel:#fffdf8;--line:#ded6c8;--accent:#9b4f33;--accent2:#2f6f73}
+    *{box-sizing:border-box}body{margin:0;background:var(--paper);color:var(--ink);font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;line-height:1.5}
+    header{padding:40px 24px 22px;border-bottom:1px solid var(--line);background:linear-gradient(180deg,#fffdf8,#f5efe4)}
+    main{max-width:1120px;margin:0 auto;padding:24px}.hero{max-width:1120px;margin:0 auto}.eyebrow{font-size:.78rem;text-transform:uppercase;letter-spacing:.08em;color:var(--accent2);font-weight:700}
+    h1{margin:.25rem 0 .5rem;font-size:clamp(2rem,5vw,4.3rem);line-height:1}p{color:var(--muted)}.search{display:grid;gap:10px;margin-top:22px;max-width:760px}
+    input{width:100%;border:1px solid var(--line);border-radius:8px;padding:14px 15px;font:inherit;background:var(--panel);color:var(--ink);box-shadow:0 1px 0 rgba(30,25,15,.04)}
+    .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:14px;margin-top:22px}.card{border:1px solid var(--line);border-radius:8px;background:var(--panel);padding:18px;min-height:180px}
+    .card h2{font-size:1.05rem;margin:12px 0 8px}.card a{color:var(--ink);text-decoration:none}.card a:hover{color:var(--accent)}.tags{display:flex;gap:6px;flex-wrap:wrap}.tags span{font-size:.72rem;color:var(--accent2);border:1px solid #c6dedb;border-radius:999px;padding:2px 7px;background:#f4fbf9}
+    .results{display:grid;gap:8px;margin-top:14px}.result{border:1px solid var(--line);border-radius:8px;background:var(--panel);padding:12px}.result strong{display:block}.result a{color:var(--accent);text-decoration:none}.muted{color:var(--muted);font-size:.92rem}
+    footer{max-width:1120px;margin:0 auto;padding:30px 24px 50px;color:var(--muted)}
+  </style>
+</head>
+<body>
+  <header>
+    <div class="hero">
+      <div class="eyebrow">Local-first docs</div>
+      <h1>AgentTrail Docs</h1>
+      <p>Search the guides for the auditable local-agent layer: install, recipes, backends, architecture, API, troubleshooting, videos, quality, security, and team mode.</p>
+      <label class="search">
+        <span class="muted">Search docs</span>
+        <input id="search" type="search" placeholder="Try: receipts, LM Studio, recipe, coverage, RBAC">
+      </label>
+      <div id="results" class="results" aria-live="polite"></div>
+    </div>
+  </header>
+  <main>
+    <section class="grid" id="cards">
+        <article class="card" data-title="Start Here" data-tags="quickstart install demo">
+          <div class="tags"><span>quickstart</span><span>install</span><span>demo</span></div>
+          <h2><a href="../GETTING_STARTED.md">Start Here</a></h2>
+          <p>Install, open, run a safe first task, and export proof.</p>
+        </article>
+
+        <article class="card" data-title="Recipe Authoring" data-tags="recipes marketplace workflow">
+          <div class="tags"><span>recipes</span><span>marketplace</span><span>workflow</span></div>
+          <h2><a href="../RECIPE_AUTHORING.md">Recipe Authoring</a></h2>
+          <p>Create safe reusable recipes with validation and examples.</p>
+        </article>
+
+        <article class="card" data-title="Backend Setup" data-tags="models backend runtime">
+          <div class="tags"><span>models</span><span>backend</span><span>runtime</span></div>
+          <h2><a href="../BACKEND_SETUP.md">Backend Setup</a></h2>
+          <p>Configure Ollama, LM Studio, llama.cpp, vLLM, and OpenAI-compatible local servers.</p>
+        </article>
+
+        <article class="card" data-title="Architecture" data-tags="architecture security local-first">
+          <div class="tags"><span>architecture</span><span>security</span><span>local-first</span></div>
+          <h2><a href="../ARCHITECTURE.md">Architecture</a></h2>
+          <p>How the local agent layer, tools, memory, receipts, and security fit together.</p>
+        </article>
+
+        <article class="card" data-title="API Reference" data-tags="api routes openapi">
+          <div class="tags"><span>api</span><span>routes</span><span>openapi</span></div>
+          <h2><a href="../API_REFERENCE.md">API Reference</a></h2>
+          <p>Generated route and OpenAI-compatible API reference.</p>
+        </article>
+
+        <article class="card" data-title="Troubleshooting And FAQ" data-tags="faq help debugging">
+          <div class="tags"><span>faq</span><span>help</span><span>debugging</span></div>
+          <h2><a href="../TROUBLESHOOTING.md">Troubleshooting And FAQ</a></h2>
+          <p>Fix Ollama, model, file, receipt, performance, and CI issues.</p>
+        </article>
+
+        <article class="card" data-title="Video Walkthroughs" data-tags="video demo launch">
+          <div class="tags"><span>video</span><span>demo</span><span>launch</span></div>
+          <h2><a href="../VIDEO_WALKTHROUGHS.md">Video Walkthroughs</a></h2>
+          <p>Shot lists and recording commands for the public demo videos.</p>
+        </article>
+
+        <article class="card" data-title="Quality Engineering" data-tags="quality ci tests">
+          <div class="tags"><span>quality</span><span>ci</span><span>tests</span></div>
+          <h2><a href="../QUALITY_ENGINEERING.md">Quality Engineering</a></h2>
+          <p>Coverage, fuzzing, UI E2E, performance gates, and matrix CI.</p>
+        </article>
+
+        <article class="card" data-title="Security Posture" data-tags="security privacy threat-model">
+          <div class="tags"><span>security</span><span>privacy</span><span>threat-model</span></div>
+          <h2><a href="../SECURITY_POSTURE.md">Security Posture</a></h2>
+          <p>Threat model and local safety boundaries.</p>
+        </article>
+
+        <article class="card" data-title="Team Mode" data-tags="team rbac audit">
+          <div class="tags"><span>team</span><span>rbac</span><span>audit</span></div>
+          <h2><a href="../TEAM_ENTERPRISE.md">Team Mode</a></h2>
+          <p>Local users, RBAC, audit export, sync, and SSO hooks.</p>
+        </article>
+
+        <article class="card" data-title="OpenAI-Compatible API" data-tags="api openai-compatible integration">
+          <div class="tags"><span>api</span><span>openai-compatible</span><span>integration</span></div>
+          <h2><a href="../OPENAI_COMPATIBLE_API.md">OpenAI-Compatible API</a></h2>
+          <p>Use AgentTrail through /v1 chat, models, and embeddings.</p>
+        </article>
+
+        <article class="card" data-title="CLI" data-tags="cli automation terminal">
+          <div class="tags"><span>cli</span><span>automation</span><span>terminal</span></div>
+          <h2><a href="../CLI.md">CLI</a></h2>
+          <p>Run AgentTrail from terminal scripts and shell completions.</p>
+        </article>
+    </section>
+  </main>
+  <footer>Generated by <code>npm run docs:site</code>. Search runs fully in the browser.</footer>
+  <script>
+    const input = document.querySelector("#search");
+    const results = document.querySelector("#results");
+    let records = [];
+    fetch("./search-index.json").then((r) => r.json()).then((data) => { records = data.records || []; render(""); });
+    input.addEventListener("input", () => render(input.value));
+    function render(query) {
+      const terms = String(query || "").toLowerCase().split(/\s+/).filter(Boolean);
+      if (!terms.length) { results.innerHTML = ""; return; }
+      const matches = records.map((record) => ({ record, score: score(record, terms) })).filter((row) => row.score > 0).sort((a,b) => b.score - a.score).slice(0, 8);
+      results.innerHTML = matches.length ? matches.map(({ record }) => '<div class="result"><strong><a href="' + esc(record.href) + '">' + esc(record.title) + '</a></strong><span class="muted">' + esc(record.description || "") + '</span></div>').join("") : '<div class="result muted">No docs matched that search.</div>';
+    }
+    function score(record, terms) {
+      const haystack = [record.title, record.description, (record.tags || []).join(" "), record.text].join(" ").toLowerCase();
+      return terms.reduce((sum, term) => sum + (haystack.includes(term) ? (record.title.toLowerCase().includes(term) ? 4 : 1) : 0), 0);
+    }
+    function esc(value) { return String(value || "").replace(/[&<>"']/g, (c) => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" }[c])); }
+  </script>
+</body>
+</html>

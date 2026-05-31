@@ -1,0 +1,35 @@
+{
+  "schema": "agenttrail.video-walkthroughs.v1",
+  "walkthroughs": [
+    {
+      "id": "quick-start-60",
+      "title": "60-second quick start",
+      "targetSeconds": 60,
+      "shots": ["open local app", "search workspace", "ask safe edit", "diff preview", "apply", "receipt"]
+    },
+    {
+      "id": "diff-safe-coding",
+      "title": "Diff-safe coding",
+      "targetSeconds": 75,
+      "shots": ["select file", "request edit", "review grouped diff", "apply one change", "export report"]
+    },
+    {
+      "id": "security-hardening",
+      "title": "Security hardening",
+      "targetSeconds": 75,
+      "shots": ["load risky file", "run scanner", "show flags", "block unsafe path", "save receipt"]
+    },
+    {
+      "id": "team-audit",
+      "title": "Team and audit",
+      "targetSeconds": 75,
+      "shots": ["switch user", "show RBAC", "view shared receipts", "export CSV", "export sync package"]
+    },
+    {
+      "id": "quality-proof",
+      "title": "Quality proof",
+      "targetSeconds": 60,
+      "shots": ["run quality tests", "run coverage gate", "run performance gate", "show eval scoreboard"]
+    }
+  ]
+}

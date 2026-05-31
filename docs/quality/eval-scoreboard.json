@@ -1,19 +1,26 @@
 {
   "schema": "agenttrail.eval-scoreboard.v1",
   "total": {
-    "passed": 144,
-    "checks": 144
+    "passed": 152,
+    "checks": 152
   },
   "categories": [
     {
       "category": "agent",
-      "passed": 41,
-      "total": 41,
+      "passed": 40,
+      "total": 40,
       "failed": [],
       "score": 100
     },
     {
       "category": "distribution",
+      "passed": 11,
+      "total": 11,
+      "failed": [],
+      "score": 100
+    },
+    {
+      "category": "docs",
       "passed": 13,
       "total": 13,
       "failed": [],
@@ -21,8 +28,8 @@
     },
     {
       "category": "foundation",
-      "passed": 26,
-      "total": 26,
+      "passed": 25,
+      "total": 25,
       "failed": [],
       "score": 100
     },
@@ -42,8 +49,8 @@
     },
     {
       "category": "runtime",
-      "passed": 11,
-      "total": 11,
+      "passed": 10,
+      "total": 10,
       "failed": [],
       "score": 100
     },

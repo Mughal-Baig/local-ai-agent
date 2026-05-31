@@ -43,6 +43,7 @@
 - Local observability: structured logs, Prometheus-style metrics, per-run traces, token/time accounting, error taxonomy, and privacy-preserving analytics.
 - Local team/enterprise layer: shared read-only receipts, local users, RBAC, audit export, opt-in sync packages, and SSO identity hook.
 - Quality engineering layer: coverage gate, UI E2E smoke, path/diff fuzzing, performance regression budgets, cross-platform matrix, and eval scoreboard.
+- Documentation layer: searchable docs site, visual quick start, recipe guide, backend guides, architecture deep dive, generated API reference, expanded FAQ, and video walkthrough shot lists.
 
 ## Not Planned
 

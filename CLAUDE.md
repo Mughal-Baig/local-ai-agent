@@ -18,7 +18,7 @@ Codex completed Epic W (T156-T160):
 - T159: optional AES-256-GCM encrypted-at-rest managed artifacts via `AGENTTRAIL_ENCRYPT_AT_REST` + `AGENTTRAIL_ENCRYPTION_KEY`; receipts decrypt through normal read APIs when the key is present.
 - T160: added `npm run test:security-privacy`, covering path escape, exfiltration, prompt injection, egress denial, redaction, policies, and encrypted receipt readback.
 
-Recommended verification before changing this layer: `npm run test:security-privacy`, `npm run test:redact`, `npm run test:quality`, `npm run coverage`, `npm run bench:quality`, `npm run test:unit`, `npm run test:integration`, `npm test`, and `npm run eval`.
+Recommended verification before changing this layer: `npm run test:security-privacy`, `npm run test:redact`, `npm run test:quality`, `npm run test:docs`, `npm run coverage`, `npm run bench:quality`, `npm run test:unit`, `npm run test:integration`, `npm test`, and `npm run eval`.
 
 ## Latest Codex Roadmap Pass
 
@@ -369,4 +369,13 @@ Next section records the Epic Z quality engineering pass.
 - `npm run eval` now prints a category scoreboard and can write `docs/quality/eval-scoreboard.json` for public proof.
 - Tests/docs updated: `npm run test:quality`, `npm run coverage`, `npm run bench:quality`, `npm run test:ui`, `docs/QUALITY_ENGINEERING.md`, README, repo eval, CI, roadmap progress, and release checksum/SBOM paths.
 
-Next open: Epic AA documentation, starting with the searchable docs site and 60-second visual guide.
+Next section records the Epic AA documentation pass.
+
+## Latest Codex Pass - Epic AA documentation
+
+- T180-T187 are implemented through `scripts/generate-docs-site.js`, `scripts/generate-api-reference.js`, `docs/site/*`, `docs/API_REFERENCE.md`, `docs/GETTING_STARTED.md`, `docs/RECIPE_AUTHORING.md`, `docs/BACKEND_SETUP.md`, `docs/ARCHITECTURE.md`, expanded `docs/TROUBLESHOOTING.md`, `docs/VIDEO_WALKTHROUGHS.md`, and `docs/video-walkthroughs/storyboards.json`.
+- Added a searchable static docs site for GitHub Pages, a visual 60-second quick start, recipe/pack authoring rules, LM Studio/llama.cpp/vLLM/OpenAI-compatible setup, architecture map, generated route/API reference, FAQ expansion, and launch-ready video shot lists.
+- Docs are now generated and checked with `npm run docs:build` / `npm run test:docs`; CI verifies generated docs are current.
+- Tests/docs updated: README, top-1% implementation notes, roadmap progress, repo eval, release artifact list, SBOM/checksum paths, and docs unit coverage.
+
+Next open: Epic AB community and growth, starting with T188 launch response workflow and T189 recipe marketplace submissions/curation.

@@ -46,6 +46,7 @@ This table maps the requested 30-item top-1% and foundation list to the v0.7 imp
 | Better evals | repo eval now checks foundation modules, semantic hashes/chunks, plugins, jobs, backups, checksums |
 | Better tests | `npm run test:unit`, `npm run test:integration`, `npm run test:ui`, `npm run test:quality`, expanded `npm test`, `npm run eval` |
 | Quality engineering | V8 coverage gate, path/diff fuzz tests, UI E2E smoke, deterministic performance regression budgets, cross-platform Node matrix, and eval scoreboard |
+| Documentation foundation | searchable static docs site, 60-second guide, recipe authoring guide, backend setup guides, architecture deep dive, generated API reference, FAQ, and video walkthrough plans |
 | Migration system | `src/migrations.js`, `migrations/*.json`, `/api/migrations`, migration state in `workspace/.agenttrail/migrations.json` |
 | Model adapter layer | `src/model-adapters.js`, status exposes Ollama plus planned LM Studio, llama.cpp, OpenAI-compatible adapters |
 | Stronger vector index | file hashes, chunk metadata, chunk citation search, provider/model/dimensions, status counts |

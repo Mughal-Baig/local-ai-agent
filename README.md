@@ -286,6 +286,7 @@ When write preview mode is enabled, `write_file` returns a diff preview instead 
 - Agent-as-API: `/v1/chat/completions`, `/v1/models`, `/v1/embeddings`, `/v1/openapi.json`, plus [docs/OPENAI_COMPATIBLE_API.md](docs/OPENAI_COMPATIBLE_API.md)
 - Agent eval harness and history: `npm run eval`, `npm run eval:search`, `npm run bench:search`, `/api/evals`, `/api/evals/history`
 - Quality proof: `npm run test:quality`, `npm run coverage`, `npm run bench:quality`, UI E2E in CI, cross-platform quality matrix, and eval category scoreboard
+- Searchable docs: [docs/site/index.html](docs/site/index.html), [GETTING_STARTED.md](docs/GETTING_STARTED.md), [API_REFERENCE.md](docs/API_REFERENCE.md), and video walkthrough shot lists
 - Project memory: `workspace/memory/project-memory.md`, `workspace/memory/project-memory.json`, citations, revision history, plus global memory under local `.local-agent/`
 - Workspace profiles: [profiles](profiles), `/api/profiles/apply`
 - Trust Score dashboard: browser UI
@@ -402,6 +403,12 @@ Supported variables:
 ## Troubleshooting And Models
 
 - [Troubleshooting](docs/TROUBLESHOOTING.md)
+- [Getting started](docs/GETTING_STARTED.md)
+- [Recipe authoring](docs/RECIPE_AUTHORING.md)
+- [Backend setup](docs/BACKEND_SETUP.md)
+- [Architecture](docs/ARCHITECTURE.md)
+- [API reference](docs/API_REFERENCE.md)
+- [Video walkthroughs](docs/VIDEO_WALKTHROUGHS.md)
 - [Model guide](docs/MODELS.md)
 - [Team mode](docs/TEAM_ENTERPRISE.md)
 - [Quality engineering](docs/QUALITY_ENGINEERING.md)
@@ -431,6 +438,7 @@ npm run test:memory-history
 npm run test:memory-scopes
 npm run test:ui
 npm run test:quality
+npm run test:docs
 npm run coverage
 npm run bench:quality
 npm run eval
