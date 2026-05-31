@@ -227,7 +227,7 @@ Still open and recommended next: T076 OpenAI-compatible server mode.
 
 ## Latest Codex Pass - Image generation + GitHub warning
 
-- GitHub Actions Node 20 warning is addressed: CI, Pages, and release-artifact workflows now set `FORCE_JAVASCRIPT_ACTIONS_TO_NODE24=true`.
+- GitHub Actions Node 20 warning is addressed: CI, Pages, and release-artifact workflows now use Node-24-ready action majors and keep `FORCE_JAVASCRIPT_ACTIONS_TO_NODE24=true`.
 - T074 is done: `/api/images/generate` can call local Automatic1111/Forge-style `/sdapi/v1/txt2img` servers or OpenAI-compatible SD/Flux image endpoints through `src/image-generation.js`.
 - T075 is done: generated images are saved under the workspace, exposed through `/api/files/raw`, and paired with Markdown provenance containing prompt, backend, endpoint, parameters, seeds, output paths, bytes, and hashes.
 - Tests/evals/docs updated: `npm run test:images`, mock local image backend integration test, route catalog/foundation coverage, README/env/docs/roadmap/eval updates, and CI coverage.
