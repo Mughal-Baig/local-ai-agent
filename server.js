@@ -87,6 +87,8 @@ const GLOBAL_MEMORY_HISTORY_DIR = "global/memory/history";
 const GLOBAL_MEMORY_STORAGE_PATH = "memory/global-memory.md";
 const GLOBAL_MEMORY_STRUCTURED_STORAGE_PATH = "memory/global-memory.json";
 const GLOBAL_MEMORY_HISTORY_STORAGE_DIR = "memory/history";
+const DEFAULT_SEARCH_COLLECTION = "workspace";
+const SEARCH_COLLECTIONS_DIR = ".agenttrail/search-collections";
 const SEARCH_INDEX_PATH = ".agenttrail/search-index.json";
 const VECTOR_STORE_PATH = ".agenttrail/vector-store.json";
 const PENDING_RUN_PATH = ".agenttrail/pending-run.json";
@@ -265,7 +267,7 @@ const server = http.createServer(async (req, res) => {
     }
 
     if (url.pathname === "/api/search-index" && req.method === "GET") {
-      return handleGetSearchIndex(res);
+      return handleGetSearchIndex(url, res);
     }
 
     if (url.pathname === "/api/search-index" && req.method === "POST") {
@@ -934,7 +936,10 @@ async function handleStartJob(req, res) {
   const job = JOBS.start(type || "foundation-audit", async ({ update }) => {
     if (type === "search-index") {
       update(30, "Building search index");
-      return buildSearchIndex(String(body.provider || "local-vector"));
+      return buildSearchIndex(String(body.provider || "local-vector"), {
+        collection: body.collection,
+        filters: normalizeCollectionFilters(body.filters || body)
+      });
     }
     if (type === "backup") {
       update(40, "Exporting backup");
@@ -1262,15 +1267,17 @@ async function handleSearch(url, res) {
   const query = url.searchParams.get("query") || "";
   const limit = Math.min(Math.max(Number(url.searchParams.get("limit") || 8), 1), 20);
   const mode = url.searchParams.get("mode") || "keyword";
+  const collection = normalizeSearchCollection(url.searchParams.get("collection"));
   const pathPrefix = (url.searchParams.get("path") || "").trim().toLowerCase();
   const extParam = (url.searchParams.get("ext") || "").trim().toLowerCase();
   const exts = extParam ? extParam.split(",").map((e) => e.trim().replace(/^\./, "")).filter(Boolean) : [];
   const filters = { pathPrefix, exts };
-  const results = await searchWorkspace(query, limit, { semantic: mode === "semantic", filters });
+  const results = await searchWorkspace(query, limit, { semantic: mode === "semantic", filters, collection });
   const semanticProvider = results.find((item) => item.semanticProvider)?.semanticProvider || null;
   sendJson(res, 200, {
     query,
     mode,
+    collection,
     ranker: mode === "semantic" ? "hybrid-bm25-vector" : "bm25",
     filters: { path: pathPrefix || null, ext: exts.length ? exts : null },
     semanticProvider,
@@ -1281,10 +1288,12 @@ async function handleSearch(url, res) {
 async function handleSearchChunks(url, res) {
   const query = url.searchParams.get("query") || "";
   const limit = Math.min(Math.max(Number(url.searchParams.get("limit") || 8), 1), 30);
-  const index = await readSearchIndex();
+  const collection = normalizeSearchCollection(url.searchParams.get("collection"));
+  const index = await readSearchIndex(collection);
   const chunks = rankChunks(query, index && Array.isArray(index.chunks) ? index.chunks : [], limit);
   sendJson(res, 200, {
     query,
+    collection,
     provider: index ? index.provider : "none",
     model: index ? index.model : null,
     chunking: index ? index.chunking || null : null,
@@ -1307,13 +1316,16 @@ function searchIndexFeatures(index, vectorStore = null) {
   };
 }
 
-async function handleGetSearchIndex(res) {
-  const index = await readSearchIndex();
+async function handleGetSearchIndex(url, res) {
+  const collection = normalizeSearchCollection(url.searchParams.get("collection"));
+  const paths = searchCollectionPaths(collection);
+  const index = await readSearchIndex(collection);
   if (!index) {
-    const vectorStore = await VECTOR_STORE.status();
+    const vectorStore = await vectorStoreForCollection(collection).status();
     return sendJson(res, 200, {
       exists: false,
-      path: SEARCH_INDEX_PATH,
+      path: paths.searchIndexPath,
+      collection,
       provider: "none",
       itemCount: 0,
       embedModel: OLLAMA_EMBED_MODEL,
@@ -1322,11 +1334,13 @@ async function handleGetSearchIndex(res) {
     });
   }
 
-  const vectorStore = await readVectorStore();
+  const vectorStore = await readVectorStore(collection);
   const compatibleVectorStore = vectorStoreMatchesIndex(index, vectorStore) ? vectorStore : null;
   sendJson(res, 200, {
     exists: true,
-    path: SEARCH_INDEX_PATH,
+    path: paths.searchIndexPath,
+    collection,
+    collectionConfig: index.collection || searchCollectionConfig(collection),
     provider: index.provider,
     model: index.model || null,
     dimensions: index.dimensions || 0,
@@ -1334,7 +1348,7 @@ async function handleGetSearchIndex(res) {
     itemCount: Array.isArray(index.items) ? index.items.length : 0,
     chunkCount: Array.isArray(index.chunks) ? index.chunks.length : 0,
     features: searchIndexFeatures(index, compatibleVectorStore),
-    vectorStore: { ...summarizeVectorStore(vectorStore, VECTOR_STORE_PATH), compatible: Boolean(compatibleVectorStore) },
+    vectorStore: { ...summarizeVectorStore(vectorStore, paths.vectorStorePath), compatible: Boolean(compatibleVectorStore) },
     fileHashCount: index.fileHashes ? Object.keys(index.fileHashes).length : 0,
     builtAt: index.builtAt || null
   });
@@ -1342,13 +1356,83 @@ async function handleGetSearchIndex(res) {
 
 async function handleBuildSearchIndex(req, res) {
   const body = await readJsonBody(req);
+  const collection = normalizeSearchCollection(body.collection);
+  const filters = normalizeCollectionFilters(body.filters || body);
   if (body.incremental) {
-    const result = await incrementalSearchIndex();
+    const result = await incrementalSearchIndex(collection, filters);
     return sendJson(res, 200, result);
   }
   const requestedProvider = String(body.provider || "auto").trim().toLowerCase();
-  const result = await buildSearchIndex(requestedProvider);
+  const result = await buildSearchIndex(requestedProvider, { collection, filters });
   sendJson(res, 200, result);
+}
+
+function normalizeSearchCollection(value) {
+  const raw = String(value || DEFAULT_SEARCH_COLLECTION).trim().toLowerCase();
+  const normalized = raw
+    .replace(/[^a-z0-9_.-]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 64);
+  return normalized || DEFAULT_SEARCH_COLLECTION;
+}
+
+function normalizeCollectionFilters(value = {}) {
+  const source = value && typeof value === "object" ? value : {};
+  const pathPrefix = String(source.pathPrefix || source.path || "").trim().toLowerCase();
+  const extSource = Array.isArray(source.exts) ? source.exts : Array.isArray(source.ext) ? source.ext : String(source.ext || "").split(",");
+  const exts = extSource
+    .map((item) => String(item || "").trim().toLowerCase().replace(/^\./, ""))
+    .filter(Boolean)
+    .slice(0, 16);
+  return { pathPrefix, exts };
+}
+
+function searchCollectionPaths(collection = DEFAULT_SEARCH_COLLECTION) {
+  const id = normalizeSearchCollection(collection);
+  if (id === DEFAULT_SEARCH_COLLECTION) {
+    return { searchIndexPath: SEARCH_INDEX_PATH, vectorStorePath: VECTOR_STORE_PATH };
+  }
+  const base = `${SEARCH_COLLECTIONS_DIR}/${id}`;
+  return {
+    searchIndexPath: `${base}/search-index.json`,
+    vectorStorePath: `${base}/vector-store.json`
+  };
+}
+
+function searchCollectionConfig(collection = DEFAULT_SEARCH_COLLECTION, filters = {}) {
+  return {
+    id: normalizeSearchCollection(collection),
+    filters: normalizeCollectionFilters(filters)
+  };
+}
+
+function vectorStoreForCollection(collection = DEFAULT_SEARCH_COLLECTION) {
+  const id = normalizeSearchCollection(collection);
+  if (id === DEFAULT_SEARCH_COLLECTION) {
+    return VECTOR_STORE;
+  }
+  return new FlatVectorStore(WORKSPACE_ROOT, searchCollectionPaths(id).vectorStorePath);
+}
+
+function mergeSearchFilters(collectionFilters = {}, requestFilters = {}) {
+  return {
+    pathPrefix: requestFilters.pathPrefix || collectionFilters.pathPrefix || "",
+    exts: Array.isArray(requestFilters.exts) && requestFilters.exts.length ? requestFilters.exts : (collectionFilters.exts || [])
+  };
+}
+
+function fileMatchesSearchFilters(file, filters = {}) {
+  const lowerPath = String(file && file.path || "").toLowerCase();
+  if (filters.pathPrefix && !lowerPath.includes(filters.pathPrefix)) {
+    return false;
+  }
+  if (Array.isArray(filters.exts) && filters.exts.length) {
+    const ext = lowerPath.includes(".") ? lowerPath.split(".").pop() : "";
+    if (!filters.exts.includes(ext)) {
+      return false;
+    }
+  }
+  return true;
 }
 
 function normalizeMemoryScope(value, options = {}) {
@@ -4377,27 +4461,21 @@ async function listWorkspaceFiles() {
 
 async function searchWorkspace(query, limit, options = {}) {
   const normalizedQuery = String(query || "").trim().toLowerCase();
+  const collection = normalizeSearchCollection(options.collection);
+  const collectionIndex = await readSearchIndex(collection);
+  if (collection !== DEFAULT_SEARCH_COLLECTION && !collectionIndex) {
+    return [];
+  }
+  const collectionFilters = collectionIndex && collectionIndex.collection ? collectionIndex.collection.filters : {};
   const terms = normalizedQuery
     .split(/[^a-z0-9_.-]+/i)
     .map((term) => term.trim().toLowerCase())
     .filter((term) => term.length >= 2)
     .slice(0, 8);
   const allFiles = await listWorkspaceFiles();
-  const filters = options.filters || {};
-  const files = allFiles.filter((file) => {
-    const lowerPath = String(file.path).toLowerCase();
-    if (filters.pathPrefix && !lowerPath.includes(filters.pathPrefix)) {
-      return false;
-    }
-    if (Array.isArray(filters.exts) && filters.exts.length) {
-      const ext = lowerPath.includes(".") ? lowerPath.split(".").pop() : "";
-      if (!filters.exts.includes(ext)) {
-        return false;
-      }
-    }
-    return true;
-  });
-  const semanticContext = options.semantic ? await getSemanticContext(normalizedQuery) : null;
+  const filters = mergeSearchFilters(collectionFilters, options.filters || {});
+  const files = allFiles.filter((file) => fileMatchesSearchFilters(file, filters));
+  const semanticContext = options.semantic ? await getSemanticContext(normalizedQuery, collection) : null;
   const documents = [];
 
   for (const file of files) {
@@ -4521,15 +4599,15 @@ async function searchWorkspace(query, limit, options = {}) {
   return candidates.slice(0, Math.min(Math.max(Number(limit) || 8, 1), 20));
 }
 
-async function getSemanticContext(query) {
-  const index = await readSearchIndex();
+async function getSemanticContext(query, collection = DEFAULT_SEARCH_COLLECTION) {
+  const index = await readSearchIndex(collection);
 
   if (index && Array.isArray(index.items) && index.items.length) {
     if (index.provider === "ollama") {
       const embedding = await fetchEmbeddingCached(query, index.model || OLLAMA_EMBED_MODEL).catch(() => null);
       if (embedding && embedding.length) {
         const queryVector = normalizeVector(embedding);
-        const vectorMaps = await semanticVectorMaps(index, queryVector);
+        const vectorMaps = await semanticVectorMaps(index, queryVector, collection);
         return {
           provider: "ollama",
           model: index.model || OLLAMA_EMBED_MODEL,
@@ -4544,7 +4622,7 @@ async function getSemanticContext(query) {
 
     if (index.provider === "local-vector") {
       const queryVector = embedTextDense(query, index.dimensions || LOCAL_EMBED_DIMS);
-      const vectorMaps = await semanticVectorMaps(index, queryVector);
+      const vectorMaps = await semanticVectorMaps(index, queryVector, collection);
       return {
         provider: "local-vector",
         model: index.model || `hash-${LOCAL_EMBED_DIMS}`,
@@ -4564,19 +4642,19 @@ async function getSemanticContext(query) {
     fileVectors: new Map(),
     chunkVectors: new Map(),
     ann: null,
-    vectorStore: summarizeVectorStore(null, VECTOR_STORE_PATH)
+    vectorStore: summarizeVectorStore(null, searchCollectionPaths(collection).vectorStorePath)
   };
 }
 
-async function semanticVectorMaps(index, queryVector = null) {
-  const store = await readCompatibleVectorStore(index);
+async function semanticVectorMaps(index, queryVector = null, collection = DEFAULT_SEARCH_COLLECTION) {
+  const store = await readCompatibleVectorStore(index, collection);
   if (store) {
     const maps = vectorMapsFromStore(store);
     if (maps.fileVectors.size || maps.chunkVectors.size) {
       return {
         ...maps,
         ann: queryVector ? annCandidatePaths(store, queryVector) : null,
-        storeSummary: summarizeVectorStore(store, VECTOR_STORE_PATH)
+        storeSummary: summarizeVectorStore(store, searchCollectionPaths(collection).vectorStorePath)
       };
     }
   }
@@ -4584,7 +4662,7 @@ async function semanticVectorMaps(index, queryVector = null) {
     fileVectors: new Map(index.items.map((item) => [item.path, item.embedding])),
     chunkVectors: chunkVectorMap(index),
     ann: null,
-    storeSummary: summarizeVectorStore(null, VECTOR_STORE_PATH)
+    storeSummary: summarizeVectorStore(null, searchCollectionPaths(collection).vectorStorePath)
   };
 }
 
@@ -4604,6 +4682,9 @@ function vectorStoreMatchesIndex(index, store) {
   if ((store.model || null) !== (index.model || null)) {
     return false;
   }
+  if (JSON.stringify(store.collection || null) !== JSON.stringify(index.collection || null)) {
+    return false;
+  }
   return Number(store.dimensions || 0) === Number(index.dimensions || 0);
 }
 
@@ -4621,9 +4702,12 @@ function chunkVectorMap(index) {
   return byPath;
 }
 
-async function buildSearchIndex(requestedProvider) {
+async function buildSearchIndex(requestedProvider, options = {}) {
+  const collection = normalizeSearchCollection(options.collection);
+  const collectionConfig = searchCollectionConfig(collection, options.filters || {});
+  const paths = searchCollectionPaths(collection);
   const files = await listWorkspaceFiles();
-  const searchableFiles = files.filter((file) => file.size <= MAX_SEARCH_FILE_BYTES);
+  const searchableFiles = files.filter((file) => file.size <= MAX_SEARCH_FILE_BYTES && fileMatchesSearchFilters(file, collectionConfig.filters));
   let provider = requestedProvider === "local" || requestedProvider === "local-vector" ? "local-vector" : "ollama";
   let model = provider === "ollama" ? OLLAMA_EMBED_MODEL : `hash-${LOCAL_EMBED_DIMS}`;
   let dimensions = 0;
@@ -4728,15 +4812,18 @@ async function buildSearchIndex(requestedProvider) {
     dimensions,
     builtAt: new Date().toISOString(),
     workspaceRoot: WORKSPACE_ROOT,
+    collection: collectionConfig,
     chunking,
     fileHashes,
     chunks,
     items
   };
-  const vectorStore = await writeSearchIndexArtifacts(index);
+  const vectorStore = await writeSearchIndexArtifacts(index, collection);
   return {
     ok: true,
-    path: SEARCH_INDEX_PATH,
+    path: paths.searchIndexPath,
+    collection,
+    collectionConfig,
     provider,
     model,
     dimensions,
@@ -4753,14 +4840,17 @@ async function buildSearchIndex(requestedProvider) {
 // hash), refresh chunk metadata from current content, re-embed only new/changed
 // files, and drop deleted ones. Falls back to a full rebuild when there is no
 // existing index or the embedding backend is down.
-async function incrementalSearchIndex() {
-  const existing = await readSearchIndex();
+async function incrementalSearchIndex(collection = DEFAULT_SEARCH_COLLECTION, fallbackFilters = {}) {
+  const collectionId = normalizeSearchCollection(collection);
+  const paths = searchCollectionPaths(collectionId);
+  const existing = await readSearchIndex(collectionId);
   if (!existing || !Array.isArray(existing.items)) {
-    return { ...(await buildSearchIndex("auto")), incremental: false, reason: "no-existing-index" };
+    return { ...(await buildSearchIndex("auto", { collection: collectionId, filters: fallbackFilters })), incremental: false, reason: "no-existing-index" };
   }
 
   const provider = existing.provider;
   const model = existing.model;
+  const collectionConfig = existing.collection || searchCollectionConfig(collectionId);
   const chunking = existing.chunking || { strategy: "markdown-overlap-v1", size: 1800, overlap: 220 };
   const oldItems = new Map(existing.items.map((item) => [item.path, item]));
   const oldChunksByPath = new Map();
@@ -4771,7 +4861,7 @@ async function incrementalSearchIndex() {
     oldChunksByPath.get(chunk.path).push(chunk);
   }
 
-  const files = (await listWorkspaceFiles()).filter((file) => file.size <= MAX_SEARCH_FILE_BYTES);
+  const files = (await listWorkspaceFiles()).filter((file) => file.size <= MAX_SEARCH_FILE_BYTES && fileMatchesSearchFilters(file, collectionConfig.filters || {}));
   const items = [];
   const chunks = [];
   const fileHashes = {};
@@ -4808,7 +4898,7 @@ async function incrementalSearchIndex() {
     if (provider === "ollama") {
       embedding = await fetchEmbeddingCached(text, model || OLLAMA_EMBED_MODEL).catch(() => null);
       if (!embedding || !embedding.length) {
-        return { ...(await buildSearchIndex("auto")), incremental: false, reason: "embed-unavailable" };
+        return { ...(await buildSearchIndex("auto", { collection: collectionId, filters: collectionConfig.filters || {} })), incremental: false, reason: "embed-unavailable" };
       }
       embedding = normalizeVector(embedding);
     } else {
@@ -4836,15 +4926,18 @@ async function incrementalSearchIndex() {
     dimensions,
     builtAt: new Date().toISOString(),
     workspaceRoot: WORKSPACE_ROOT,
+    collection: collectionConfig,
     chunking,
     fileHashes,
     chunks,
     items
   };
-  const vectorStore = await writeSearchIndexArtifacts(index);
+  const vectorStore = await writeSearchIndexArtifacts(index, collectionId);
   return {
     ok: true,
-    path: SEARCH_INDEX_PATH,
+    path: paths.searchIndexPath,
+    collection: collectionId,
+    collectionConfig,
     provider,
     model,
     dimensions,
@@ -4923,9 +5016,9 @@ function chunkEmbeddingText(chunk) {
   ].filter(Boolean).join("\n");
 }
 
-async function readSearchIndex() {
+async function readSearchIndex(collection = DEFAULT_SEARCH_COLLECTION) {
   try {
-    const file = await readWorkspaceFile(SEARCH_INDEX_PATH, MAX_BODY_BYTES);
+    const file = await readWorkspaceFile(searchCollectionPaths(collection).searchIndexPath, MAX_BODY_BYTES);
     const index = JSON.parse(file.content);
     if (!index || index.schema !== "agenttrail.search-index.v1") {
       return null;
@@ -4936,18 +5029,19 @@ async function readSearchIndex() {
   }
 }
 
-async function readVectorStore() {
-  return VECTOR_STORE.read().catch(() => null);
+async function readVectorStore(collection = DEFAULT_SEARCH_COLLECTION) {
+  return vectorStoreForCollection(collection).read().catch(() => null);
 }
 
-async function readCompatibleVectorStore(index) {
-  const store = await readVectorStore();
+async function readCompatibleVectorStore(index, collection = DEFAULT_SEARCH_COLLECTION) {
+  const store = await readVectorStore(collection);
   return vectorStoreMatchesIndex(index, store) ? store : null;
 }
 
-async function writeSearchIndexArtifacts(index) {
-  await writeWorkspaceFile(SEARCH_INDEX_PATH, JSON.stringify(index, null, 2));
-  return VECTOR_STORE.writeFromIndex(index);
+async function writeSearchIndexArtifacts(index, collection = DEFAULT_SEARCH_COLLECTION) {
+  const paths = searchCollectionPaths(collection);
+  await writeWorkspaceFile(paths.searchIndexPath, JSON.stringify(index, null, 2));
+  return vectorStoreForCollection(collection).writeFromIndex(index);
 }
 
 async function listRecipes() {

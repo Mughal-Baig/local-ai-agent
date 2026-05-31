@@ -79,6 +79,28 @@ async function main() {
     assert.equal(chunkResults.chunks.some((chunk) => /^notes\/api\.md:\d+(-\d+)?$/.test(chunk.citation || "") && chunk.span && Number.isInteger(chunk.span.charStart)), true);
     assert.equal(chunkResults.chunks.every((chunk) => !Array.isArray(chunk.embedding) && chunk.text == null), true);
 
+    await post("/api/files/content", { path: "docs/guide.md", content: "# Guide\n\nnamespace collection isolated search\n" });
+    const collectionIndex = await post("/api/search-index", {
+      provider: "local-vector",
+      collection: "Docs Only!",
+      filters: { path: "docs" }
+    });
+    assert.equal(collectionIndex.collection, "docs-only");
+    assert.equal(collectionIndex.collectionConfig.filters.pathPrefix, "docs");
+    assert.equal(collectionIndex.path, ".agenttrail/search-collections/docs-only/search-index.json");
+    assert.equal(collectionIndex.vectorStore.path, ".agenttrail/search-collections/docs-only/vector-store.json");
+    const collectionStatus = await get("/api/search-index?collection=docs-only");
+    assert.equal(collectionStatus.exists, true);
+    assert.equal(collectionStatus.collection, "docs-only");
+    assert.equal(collectionStatus.vectorStore.compatible, true);
+    const collectionSearch = await get("/api/search?query=namespace&mode=semantic&collection=docs-only");
+    assert.equal(collectionSearch.collection, "docs-only");
+    assert.equal(collectionSearch.results.some((result) => result.path === "docs/guide.md"), true);
+    assert.equal(collectionSearch.results.every((result) => result.path.startsWith("docs/")), true);
+    const collectionChunks = await get("/api/search/chunks?query=namespace&collection=docs-only");
+    assert.equal(collectionChunks.collection, "docs-only");
+    assert.equal(collectionChunks.chunks.some((chunk) => chunk.path === "docs/guide.md"), true);
+
     const badge = await post("/api/trust/badge", { score: 96, label: "run" });
     assert.match(badge.svg, /AgentTrail/);
 

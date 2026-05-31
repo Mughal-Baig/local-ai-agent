@@ -77,6 +77,23 @@ async function main() {
     assert.equal(notePaths.every((p) => p.includes("notes")), true, "path=notes should only return notes/ files");
     assert.equal(notePaths.includes("notes/alpha.md"), true, "path=notes should include notes/alpha.md");
 
+    const notesCollection = await post("/api/search-index", {
+      provider: "local-vector",
+      collection: "Notes MD",
+      filters: { path: "notes", ext: "md" }
+    });
+    assert.equal(notesCollection.collection, "notes-md");
+    assert.equal(notesCollection.collectionConfig.filters.pathPrefix, "notes");
+    assert.deepEqual(notesCollection.collectionConfig.filters.exts, ["md"]);
+    assert.equal(notesCollection.path, ".agenttrail/search-collections/notes-md/search-index.json");
+    assert.equal(notesCollection.vectorStore.path, ".agenttrail/search-collections/notes-md/vector-store.json");
+    const collectionSearch = await get(`/api/search?query=reranking&limit=10&mode=semantic&collection=notes-md`);
+    assert.equal(collectionSearch.results.length >= 1, true, "collection search should return notes results");
+    assert.equal(collectionSearch.results.every((result) => result.path.startsWith("notes/") && result.path.endsWith(".md")), true, "collection search should stay inside its filters");
+    const collectionIncr = await post("/api/search-index", { incremental: true, collection: "notes-md" });
+    assert.equal(collectionIncr.incremental, true, "collection incremental index should run");
+    assert.equal(collectionIncr.collection, "notes-md");
+
     console.log("Search incremental + filters test passed");
   } finally {
     child.kill("SIGTERM");

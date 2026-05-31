@@ -22,4 +22,4 @@ The running app exposes schema summaries at `/api/schemas`.
 
 ## Migration Rule
 
-New versions should add fields instead of removing old ones. When old files need repair, add a migration under `src/migrations.js` and keep loading old artifacts. Vector stores also carry `version`, `minReaderVersion`, and a migration manifest so older `.agenttrail/vector-store.json` files can be normalized without rebuilding the whole workspace.
+New versions should add fields instead of removing old ones. When old files need repair, add a migration under `src/migrations.js` and keep loading old artifacts. Vector stores also carry `version`, `minReaderVersion`, optional `collection`, and a migration manifest so older `.agenttrail/vector-store.json` files can be normalized without rebuilding the whole workspace.

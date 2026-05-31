@@ -132,6 +132,7 @@ function vectorStoreFromIndex(index, storePath = ".agenttrail/vector-store.json"
     provider: index && index.provider ? index.provider : "none",
     model: index && index.model ? index.model : null,
     dimensions: index && index.dimensions ? index.dimensions : 0,
+    collection: index && index.collection ? index.collection : null,
     builtAt: new Date().toISOString(),
     sourceIndexBuiltAt: index && index.builtAt ? index.builtAt : null,
     vectorCount: vectors.length,
@@ -188,6 +189,7 @@ function migrateVectorStore(rawStore, options = {}) {
     provider: rawStore.provider || "none",
     model: rawStore.model || null,
     dimensions: Number(rawStore.dimensions || inferDimensions(normalizedVectors) || 0),
+    collection: rawStore.collection || null,
     builtAt: rawStore.builtAt || new Date().toISOString(),
     sourceIndexBuiltAt: rawStore.sourceIndexBuiltAt || null,
     vectors: normalizedVectors
@@ -349,6 +351,7 @@ function summarizeVectorStore(store, storePath = ".agenttrail/vector-store.json"
     provider: store.provider || "none",
     model: store.model || null,
     dimensions: store.dimensions || 0,
+    collection: store.collection || null,
     builtAt: store.builtAt || null,
     sourceIndexBuiltAt: store.sourceIndexBuiltAt || null,
     lastMigratedAt: store.lastMigratedAt || null,

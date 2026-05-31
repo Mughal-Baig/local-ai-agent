@@ -41,12 +41,12 @@ const SCHEMAS = {
   searchIndex: {
     schema: "agenttrail.search-index.v1",
     required: ["schema", "provider", "model", "dimensions", "builtAt", "items"],
-    optional: ["workspaceRoot", "chunks", "fileHashes"]
+    optional: ["workspaceRoot", "collection", "chunks", "fileHashes"]
   },
   vectorStore: {
     schema: "agenttrail.vector-store.v1",
     required: ["schema", "version", "provider", "model", "dimensions", "builtAt", "vectors"],
-    optional: ["minReaderVersion", "recordSchema", "path", "sourceIndexBuiltAt", "migrations", "lastMigratedAt"]
+    optional: ["minReaderVersion", "recordSchema", "path", "collection", "sourceIndexBuiltAt", "migrations", "lastMigratedAt"]
   },
   vectorStoreMigrations: {
     schema: "agenttrail.vector-store-migrations.v1",
