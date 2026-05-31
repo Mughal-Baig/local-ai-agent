@@ -93,6 +93,16 @@ const {
   convertModelToGguf,
   runModelEvaluationSuite
 } = require("./src/model-ecosystem");
+const {
+  advancedAgentStatus,
+  createOrchestrationPlan,
+  scheduleAgentRun,
+  createTaskJournal,
+  appendJournalStep,
+  resumeTaskJournal,
+  spawnSubAgent,
+  diffReplayRuns
+} = require("./src/advanced-agent");
 
 loadDotEnv();
 const execFileAsync = promisify(execFile);
@@ -700,6 +710,38 @@ const server = http.createServer(async (req, res) => {
       return handleModelEcosystemEvaluate(req, res);
     }
 
+    if (url.pathname === "/api/advanced-agent" && req.method === "GET") {
+      return handleAdvancedAgentStatus(res);
+    }
+
+    if (url.pathname === "/api/advanced-agent/orchestrate" && req.method === "POST") {
+      return handleAdvancedAgentOrchestrate(req, res);
+    }
+
+    if (url.pathname === "/api/advanced-agent/schedule" && req.method === "POST") {
+      return handleAdvancedAgentSchedule(req, res);
+    }
+
+    if (url.pathname === "/api/advanced-agent/journal" && req.method === "POST") {
+      return handleAdvancedAgentJournal(req, res);
+    }
+
+    if (url.pathname === "/api/advanced-agent/journal/append" && req.method === "POST") {
+      return handleAdvancedAgentJournalAppend(req, res);
+    }
+
+    if (url.pathname === "/api/advanced-agent/journal/resume" && req.method === "POST") {
+      return handleAdvancedAgentJournalResume(req, res);
+    }
+
+    if (url.pathname === "/api/advanced-agent/sub-agent" && req.method === "POST") {
+      return handleAdvancedAgentSubAgent(req, res);
+    }
+
+    if (url.pathname === "/api/advanced-agent/replay-diff" && req.method === "POST") {
+      return handleAdvancedAgentReplayDiff(req, res);
+    }
+
     if (url.pathname === "/api/runs/pending" && req.method === "GET") {
       return handleGetPendingRun(res);
     }
@@ -1305,6 +1347,131 @@ async function handleModelEcosystemEvaluate(req, res) {
     sendJson(res, 200, { ok: true, evaluation });
   } catch (error) {
     sendJson(res, 400, { error: error.message || "Model evaluation failed." });
+  }
+}
+
+async function handleAdvancedAgentStatus(res) {
+  try {
+    const agent = await advancedAgentStatus(WORKSPACE_ROOT, process.env);
+    sendJson(res, 200, { ok: true, agent });
+  } catch (error) {
+    sendJson(res, 500, { error: error.message || "Could not read advanced agent status." });
+  }
+}
+
+async function handleAdvancedAgentOrchestrate(req, res) {
+  try {
+    const body = await readJsonBody(req);
+    const plan = await createOrchestrationPlan(WORKSPACE_ROOT, body, process.env);
+    await STORE.append("advanced-agent-plan", { id: plan.id, name: plan.name, roles: plan.roles.length });
+    SQLITE.insert("advanced-agent-plan", { id: plan.id, name: plan.name, roles: plan.roles.length });
+    sendJson(res, 200, { ok: true, plan });
+  } catch (error) {
+    sendJson(res, 400, { error: error.message || "Advanced agent orchestration failed." });
+  }
+}
+
+async function handleAdvancedAgentSchedule(req, res) {
+  try {
+    const body = await readJsonBody(req);
+    const schedule = await scheduleAgentRun(WORKSPACE_ROOT, body, process.env);
+    let job = null;
+    if (body.runNow === true || schedule.status === "due") {
+      job = JOBS.start("advanced-agent-run", async ({ update }) => {
+        update(30, "Creating scheduled run journal");
+        const journal = await createTaskJournal(WORKSPACE_ROOT, {
+          name: `Scheduled: ${schedule.name}`,
+          prompt: schedule.prompt,
+          model: schedule.model,
+          selectedFiles: schedule.selectedFiles,
+          permissions: schedule.permissions,
+          budget: schedule.budget
+        }, process.env);
+        update(70, "Recording scheduled run checkpoint");
+        await appendJournalStep(WORKSPACE_ROOT, {
+          journalId: journal.id,
+          type: "scheduled-run",
+          status: "completed",
+          summary: "Background scheduled run was recorded locally and is ready for explicit user review.",
+          data: {
+            scheduleId: schedule.id,
+            note: "AgentTrail does not run hidden cloud workers; execution remains local and receipt-backed."
+          }
+        }, process.env);
+        update(95, "Scheduled run journal saved");
+        return { scheduleId: schedule.id, journalId: journal.id };
+      });
+      await STORE.append("job", { id: job.id, type: job.type, status: job.status, source: "advanced-agent" });
+      SQLITE.insert("job", { id: job.id, type: job.type, status: job.status, source: "advanced-agent" });
+    }
+    await STORE.append("advanced-agent-schedule", { id: schedule.id, name: schedule.name, status: schedule.status, jobId: job && job.id });
+    SQLITE.insert("advanced-agent-schedule", { id: schedule.id, name: schedule.name, status: schedule.status, jobId: job && job.id });
+    sendJson(res, 200, { ok: true, schedule, job });
+  } catch (error) {
+    sendJson(res, 400, { error: error.message || "Advanced agent schedule failed." });
+  }
+}
+
+async function handleAdvancedAgentJournal(req, res) {
+  try {
+    const body = await readJsonBody(req);
+    const journal = await createTaskJournal(WORKSPACE_ROOT, body, process.env);
+    await STORE.append("advanced-agent-journal", { id: journal.id, name: journal.name, status: journal.status });
+    SQLITE.insert("advanced-agent-journal", { id: journal.id, name: journal.name, status: journal.status });
+    sendJson(res, 200, { ok: true, journal });
+  } catch (error) {
+    sendJson(res, 400, { error: error.message || "Advanced agent journal failed." });
+  }
+}
+
+async function handleAdvancedAgentJournalAppend(req, res) {
+  try {
+    const body = await readJsonBody(req);
+    const result = await appendJournalStep(WORKSPACE_ROOT, body, process.env);
+    await STORE.append("advanced-agent-journal-step", { id: result.journal.id, step: result.step.id, type: result.step.type });
+    SQLITE.insert("advanced-agent-journal-step", { id: result.journal.id, step: result.step.id, type: result.step.type });
+    sendJson(res, 200, { ok: true, ...result });
+  } catch (error) {
+    sendJson(res, 400, { error: error.message || "Advanced agent journal append failed." });
+  }
+}
+
+async function handleAdvancedAgentJournalResume(req, res) {
+  try {
+    const body = await readJsonBody(req);
+    const result = await resumeTaskJournal(WORKSPACE_ROOT, body, process.env);
+    if (body.savePending !== false) {
+      await persistPendingRun(result.pending);
+    }
+    await STORE.append("advanced-agent-journal-resume", { id: result.journal.id, savedPending: body.savePending !== false });
+    SQLITE.insert("advanced-agent-journal-resume", { id: result.journal.id, savedPending: body.savePending !== false });
+    sendJson(res, 200, { ok: true, ...result });
+  } catch (error) {
+    sendJson(res, 400, { error: error.message || "Advanced agent journal resume failed." });
+  }
+}
+
+async function handleAdvancedAgentSubAgent(req, res) {
+  try {
+    const body = await readJsonBody(req);
+    const subAgent = await spawnSubAgent(WORKSPACE_ROOT, body, process.env);
+    await STORE.append("advanced-agent-sub-agent", { id: subAgent.id, role: subAgent.role.id, parentRunId: subAgent.parentRunId });
+    SQLITE.insert("advanced-agent-sub-agent", { id: subAgent.id, role: subAgent.role.id, parentRunId: subAgent.parentRunId });
+    sendJson(res, 200, { ok: true, subAgent });
+  } catch (error) {
+    sendJson(res, 400, { error: error.message || "Advanced agent sub-agent failed." });
+  }
+}
+
+async function handleAdvancedAgentReplayDiff(req, res) {
+  try {
+    const body = await readJsonBody(req);
+    const replayDiff = await diffReplayRuns(WORKSPACE_ROOT, body, process.env, (relativePath) => readWorkspaceFile(relativePath, MAX_FILE_BYTES));
+    await STORE.append("advanced-agent-replay-diff", { id: replayDiff.id, changed: replayDiff.changed, summary: replayDiff.summary });
+    SQLITE.insert("advanced-agent-replay-diff", { id: replayDiff.id, changed: replayDiff.changed, additions: replayDiff.summary.additions, deletions: replayDiff.summary.deletions });
+    sendJson(res, 200, { ok: true, replayDiff });
+  } catch (error) {
+    sendJson(res, 400, { error: error.message || "Advanced agent replay diff failed." });
   }
 }
 

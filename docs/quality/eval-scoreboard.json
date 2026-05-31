@@ -1,10 +1,17 @@
 {
   "schema": "agenttrail.eval-scoreboard.v1",
   "total": {
-    "passed": 165,
-    "checks": 165
+    "passed": 170,
+    "checks": 170
   },
   "categories": [
+    {
+      "category": "advanced-agent",
+      "passed": 5,
+      "total": 5,
+      "failed": [],
+      "score": 100
+    },
     {
       "category": "agent",
       "passed": 39,

@@ -17,6 +17,7 @@ flowchart TB
   Tools --> Memory["Project/global memory"]
   Tools --> Diff["Preview-safe file writes"]
   Tools --> Receipts["Receipts and reports"]
+  Server --> Advanced["Advanced agent manifests"]
   Server --> Security["Permissions, RBAC, redaction, egress policy"]
 ```
 
@@ -33,6 +34,7 @@ flowchart TB
 | Observability | `src/observability.js`, `src/logger.js` |
 | Team/RBAC | `src/team-enterprise.js`, `team/users.json` |
 | Runtime adapters | `src/model-adapters.js`, `src/bundled-runtime.js`, `src/model-ecosystem.js` |
+| Advanced agent | `src/advanced-agent.js`, `workspace/.agenttrail/advanced-agent/` |
 | Release proof | `src/release.js`, `scripts/generate-sbom.js`, `scripts/verify-checksums.js` |
 
 ## Request Lifecycle
@@ -54,6 +56,7 @@ flowchart TB
 | Reports | `workspace/reports/` |
 | Memory | `workspace/memory/` and optional `.local-agent/` |
 | Search indexes | `workspace/.agenttrail/` |
+| Advanced agent plans/schedules/journals | `workspace/.agenttrail/advanced-agent/` |
 | Logs/traces | `workspace/.agenttrail/store.jsonl`, `workspace/.agenttrail/logs.jsonl` |
 | Team users | `team/users.json` |
 
@@ -69,5 +72,6 @@ AgentTrail intentionally avoids a heavy dependency stack. Most features are plai
 - New recipes: add JSON in `recipes/`, then update packs.
 - New model backend: implement adapter behavior in `src/model-adapters.js`.
 - New model ecosystem helper: add manifest/delegate logic in `src/model-ecosystem.js`.
+- New advanced-agent artifact: add manifest logic in `src/advanced-agent.js`, route catalog entries, docs, and tests.
 - New docs route: update `scripts/generate-docs-site.js`.
 - New API route: update `src/route-catalog.js`, regenerate [API_REFERENCE.md](API_REFERENCE.md), add tests.

@@ -36,6 +36,7 @@ jobs:
       - run: node --check src/runtime-loading.js
       - run: node --check src/model-registry.js
       - run: node --check src/model-ecosystem.js
+      - run: node --check src/advanced-agent.js
       - run: node --check src/desktop-notifications.js
       - run: node --check src/bundled-runtime.js
       - run: node --check scripts/load-test.js
@@ -62,6 +63,7 @@ jobs:
       - run: node --check tests/unit/runtime-loading.test.js
       - run: node --check tests/unit/model-registry.test.js
       - run: node --check tests/unit/model-ecosystem.test.js
+      - run: node --check tests/unit/advanced-agent.test.js
       - run: node --check tests/unit/desktop-distribution.test.js
       - run: node --check tests/unit/supply-chain.test.js
       - run: node --check tests/unit/observability.test.js
@@ -72,6 +74,7 @@ jobs:
       - run: node --check tests/unit/community-growth.test.js
       - run: node --check tests/integration/model-registry.test.js
       - run: node --check tests/integration/model-ecosystem.test.js
+      - run: node --check tests/integration/advanced-agent.test.js
       - run: node --check tests/integration/threat-model.test.js
       - run: node --check tests/integration/observability.test.js
       - run: node --check tests/integration/team-enterprise.test.js
@@ -87,6 +90,7 @@ jobs:
       - run: node tests/unit/runtime-loading.test.js
       - run: node tests/unit/model-registry.test.js
       - run: node tests/unit/model-ecosystem.test.js
+      - run: node tests/unit/advanced-agent.test.js
       - run: node tests/unit/desktop-distribution.test.js
       - run: node tests/unit/supply-chain.test.js
       - run: node tests/unit/observability.test.js
@@ -113,6 +117,7 @@ jobs:
       - run: node tests/integration/model-management.test.js
       - run: node tests/integration/model-registry.test.js
       - run: node tests/integration/model-ecosystem.test.js
+      - run: node tests/integration/advanced-agent.test.js
       - run: node tests/integration/threat-model.test.js
       - run: node tests/integration/observability.test.js
       - run: node tests/integration/team-enterprise.test.js

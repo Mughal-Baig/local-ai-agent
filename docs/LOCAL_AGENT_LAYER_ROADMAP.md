@@ -68,17 +68,18 @@ This section tracks the concrete work shipped after the roadmap was publicly ref
 | Codex Epic AA pass | T180-T187 | Added the documentation layer: generated searchable static docs site, visual 60-second quick start, recipe authoring guide, LM Studio/llama.cpp/vLLM backend setup guide, architecture deep dive, generated API reference, expanded troubleshooting FAQ, and video walkthrough storyboards. |
 | Codex Epic AB pass | T188-T195 | Added the community and growth layer: launch response workflow and macros, recipe marketplace curation, good-first issue backlog plus labels, contribution governance, changelog/release discipline, showcase gallery, honest comparison benchmark fixtures, plugin SDK docs, and example permissioned plugin manifests. |
 | Codex Epic AC pass | T196-T200 | Added the model ecosystem layer: LoRA adapter manifests/runtime hints, fine-tuning launch delegation, quantization command wrapper, safetensors-to-GGUF conversion helper, per-task model evaluation suite, API routes, docs, eval checks, and unit/integration coverage. |
+| Codex Epic AD pass | T201-T205 | Added the advanced agent layer: multi-agent orchestration manifests, scheduled-run records with local background journal checkpoints, long-running task journals with resume-to-pending support, budget-isolated sub-agent manifests, deterministic replay diffs, API routes, docs, eval checks, and unit/integration coverage. |
 
 ### Verified After These Passes
 
-- Local suites covered: `npm run test:unit`, `npm run test:desktop`, `npm run test:cli`, `npm run test:supply-chain`, `npm run test:security-privacy`, `npm run test:hardware`, `npm run test:loading`, `npm run test:registry`, `npm run test:redact`, `npm run test:documents`, `npm run test:audio`, `npm run test:search`, `npm run test:rerank`, `npm run test:integration`, `npm run test:backend`, `npm run test:v1`, `npm run test:bundled`, `npm run test:models`, `npm run test:embed-cache`, `npm run test:resume`, `npm run test:reindex`, `npm run test:health`, `npm run test:concurrency`, `npm run test:options`, `npm run test:resources`, `npm run eval:search`, `npm run bench:search`, `npm run test:tools`, `npm run test:structured`, `npm run test:planner`, `npm run test:guardrails`, `npm run test:reflection`, memory integration suites, `npm run test:ui`, `npm run test:quality`, `npm run test:docs`, `npm run test:community`, `npm run coverage`, `npm run bench:quality`, `npm test`, `npm run eval`, `npm run release:sbom`, `npm run release:homebrew`, `npm run release:reproducible`, `npm run release:checksums`, `npm run release:verify-checksums`, GitHub issue cleanup smoke coverage, and `git diff --check`.
+- Local suites covered: `npm run test:unit`, `npm run test:desktop`, `npm run test:cli`, `npm run test:supply-chain`, `npm run test:security-privacy`, `npm run test:hardware`, `npm run test:loading`, `npm run test:registry`, `npm run test:redact`, `npm run test:documents`, `npm run test:audio`, `npm run test:search`, `npm run test:rerank`, `npm run test:integration`, `npm run test:backend`, `npm run test:v1`, `npm run test:bundled`, `npm run test:models`, `npm run test:ecosystem`, `npm run test:advanced`, `npm run test:embed-cache`, `npm run test:resume`, `npm run test:reindex`, `npm run test:health`, `npm run test:concurrency`, `npm run test:options`, `npm run test:resources`, `npm run eval:search`, `npm run bench:search`, `npm run test:tools`, `npm run test:structured`, `npm run test:planner`, `npm run test:guardrails`, `npm run test:reflection`, memory integration suites, `npm run test:ui`, `npm run test:quality`, `npm run test:docs`, `npm run test:community`, `npm run coverage`, `npm run bench:quality`, `npm test`, `npm run eval`, `npm run release:sbom`, `npm run release:homebrew`, `npm run release:reproducible`, `npm run release:checksums`, `npm run release:verify-checksums`, GitHub issue cleanup smoke coverage, and `git diff --check`.
 - GitHub CI and GitHub Pages passed for the latest roadmap commits.
 - GitHub Actions workflows now use Node-24-ready action majors and keep `FORCE_JAVASCRIPT_ACTIONS_TO_NODE24=true`, addressing the prior Node 20 action-runtime deprecation warning.
 
 ### Best Continuation Points
 
-- T201-T205: advanced agent next, especially multi-agent orchestration, background/scheduled runs, long-running journals, sub-agent budgets, and deterministic replay diffing.
 - T098/T104: add time-to-first-token/tokens-per-second metrics and idle-unload policy UI.
+- T206-T215: conversation management depth, starting with persistent conversation history.
 
 ---
 
@@ -386,11 +387,11 @@ This section tracks the concrete work shipped after the roadmap was publicly ref
 - [x] T200 Model evaluation suite (per-task scores)
 
 ### Epic AD — Advanced agent
-- [ ] T201 Multi-agent orchestration (roles, hand-offs)
-- [ ] T202 Background/scheduled agent runs
-- [ ] T203 Long-running task journal + resume
-- [ ] T204 Sub-agent spawning with budget isolation
-- [ ] T205 Deterministic replay diffing across runs
+- [x] T201 Multi-agent orchestration (roles, hand-offs)
+- [x] T202 Background/scheduled agent runs
+- [x] T203 Long-running task journal + resume
+- [x] T204 Sub-agent spawning with budget isolation
+- [x] T205 Deterministic replay diffing across runs
 
 ---
 
@@ -402,16 +403,16 @@ This section tracks the concrete work shipped after the roadmap was publicly ref
 4. We expand an epic's tasks into finer sub-tasks (toward 1000) only when we start that epic — so the plan stays honest and current.
 5. We re-mark `[x]` here as we go; this file is the single source of truth for the campaign.
 
-**Next up:** Epic AD advanced agent: multi-agent orchestration, scheduled runs, journals, sub-agent budgets, and deterministic replay diffing.
+**Next up:** Phase 11 conversation and UX depth, starting with Epic AE chat management.
 
 ## Status & bug sweep (latest)
 
-- Progress: **191 tasks done**, with 6 open or partial items in the tracked Phases 1-10 set. Phase 1 is complete; Phase 2 Epic E/F search foundation is complete except T044 as a hardening umbrella; Epic G document ingestion is complete; Phase 3 vision/audio/image generation is complete; Epic K is complete; Epic L is complete; Epic M is partially complete; Epic N/O now have cache, option passthrough, resources, and runtime visibility; Phase 6 now has a first-class bundled-runtime adapter seam plus Epic Q/R/S hardware, loading, registry policy, and Epic AC model ecosystem helpers; Epic T native desktop distribution is complete at the repo/scaffolding level; Epic U CLI parity is complete; Epic V packaging/supply-chain foundation is complete; Epic W security/privacy is complete; Epic X observability is complete; Epic Y team/enterprise is complete; Epic Z quality engineering is complete; Epic AA documentation is complete; Epic AB community/growth is complete; and the public starter issues are cleared with tests/docs.
+- Progress: **Epic AD is complete**. Fully complete tracked items now include T201-T205; remaining Phase 1-10 work is mostly earlier partial/runtime hardening items such as T044, T090/T091, T094/T096/T098/T104, and T107/T109/T110. Phase 1 is complete; Phase 2 Epic E/F search foundation is complete except T044 as a hardening umbrella; Epic G document ingestion is complete; Phase 3 vision/audio/image generation is complete; Epic K is complete; Epic L is complete; Epic M is partially complete; Epic N/O now have cache, option passthrough, resources, and runtime visibility; Phase 6 now has a first-class bundled-runtime adapter seam plus Epic Q/R/S hardware, loading, registry policy, Epic AC model ecosystem helpers, and Epic AD advanced-agent manifests; Epic T native desktop distribution is complete at the repo/scaffolding level; Epic U CLI parity is complete; Epic V packaging/supply-chain foundation is complete; Epic W security/privacy is complete; Epic X observability is complete; Epic Y team/enterprise is complete; Epic Z quality engineering is complete; Epic AA documentation is complete; Epic AB community/growth is complete; and the public starter issues are cleared with tests/docs.
 - Focused test suite green: unit, observability, team enterprise, quality engineering, docs generation, community-growth checks, model ecosystem checks, coverage gate, performance regression, UI E2E, desktop distribution, CLI integration, supply-chain, security/privacy threat-model, runtime hardware, runtime loading, model registry, bundled runtime, redaction, document extraction, API integration, v1 API, health, concurrency, model options, resources, smoke, recipe validation, receipt metadata, repo eval, release SBOM, reproducibility, and release checksums. All touched source files pass `node --check`.
 - **Bug fixed:** `listWorkspaceFiles` only skipped `.DS_Store`, so internal `.agenttrail/*` state (logs, store, search index, pending-run) was being walked, indexed, and returned in search — adding noise and per-request churn to the index. Now excludes `.agenttrail/`. Verified against smoke, api, search-incremental, search-chunking, and eval:search.
 - Known minor item: a couple of integration tests assert relative/invariant counts (not exact) because the workspace can still gain legit files (e.g. `memory/*`) between calls — intentional, not a bug.
 
-Next code target: T201 multi-agent orchestration, then T202 background/scheduled agent runs.
+Next code target: T206 persistent conversation history, then T207 rename a conversation.
 
 ---
 

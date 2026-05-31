@@ -8,6 +8,20 @@ This folder is the working source copy that may be synced to GitHub by Codex.
 - If you reference the roadmap, link to `docs/LOCAL_AGENT_LAYER_ROADMAP.md`.
 - Keep stale generated files out of commits: `*.bak`, `docs/.Rhistory`, `docs/preview.svg`, and `docs/demo-flow.svg`.
 
+## Latest Codex Pass - Epic AD Advanced Agent
+
+Codex completed Epic AD (T201-T205):
+
+- T201: added `src/advanced-agent.js` multi-agent orchestration manifests with planner/researcher/implementer/reviewer roles, scoped permissions, hand-offs, acceptance criteria, and local artifacts.
+- T202: added scheduled-run manifests plus `/api/advanced-agent/schedule`; due or `runNow` schedules start a local background job that records a journal checkpoint instead of running hidden cloud automation.
+- T203: added resumable task journals with create/append/resume APIs. Resume returns a pending-run payload and can save it to `.agenttrail/pending-run.json`.
+- T204: added sub-agent manifests with budget isolation. Child max steps/tool calls/tokens/runtime are capped by the parent budget and tracked separately.
+- T205: added deterministic replay diffing that canonicalizes runs by removing volatile IDs/timestamps/latency, then writes stable hashes and a text diff.
+
+Primary files: `src/advanced-agent.js`, `server.js`, `src/route-catalog.js`, `docs/ADVANCED_AGENT.md`, `tests/unit/advanced-agent.test.js`, and `tests/integration/advanced-agent.test.js`.
+
+Recommended verification before changing this layer: `npm run test:advanced`, `npm run test:docs`, `npm run eval`, `npm test`, and `git diff --check`.
+
 ## Latest Codex Pass - Epic W Security & Privacy
 
 Codex completed Epic W (T156-T160):
@@ -396,4 +410,4 @@ Next section records the Epic AC model ecosystem pass.
 - Delegates use `execFile` with no shell. Heavy tools are never installed automatically; users configure `AGENTTRAIL_TRAINER_COMMAND`, `AGENTTRAIL_QUANTIZE_COMMAND`, and `AGENTTRAIL_CONVERT_COMMAND`, then opt into execution with `dryRun=false`.
 - Tests/docs updated: README, runtime/model backend docs, docs site, generated API reference, repo eval, release artifact list, SBOM/checksum paths, and roadmap progress.
 
-Next open: Epic AD advanced agent, starting with T201 multi-agent orchestration and T202 background/scheduled agent runs.
+Next open: T206 persistent conversation history, then T207 conversation rename. Earlier partial hardening remains in T090/T091 and T098/T104.

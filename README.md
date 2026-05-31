@@ -44,6 +44,7 @@ Writes are off by default. The agent proposes a unified diff; you click **Apply*
 - **Local team mode**: read-only shared receipts, local users, RBAC caps, sync exports, audit exports, and an SSO identity hook.
 - **Budgeted project memory**: structured memory is ranked by the current prompt/files/tools before it enters the model context.
 - **Receipt timeline, replay, and reports**: reopen a saved run, restore prompt/files/model/diffs, and export Markdown/HTML reports.
+- **Advanced agent layer**: local multi-agent plans, scheduled run manifests, resumable task journals, budget-isolated sub-agents, and deterministic replay diffs.
 - **Recipe-driven**: reusable local workflows live in plain JSON files anyone can add.
 - **Demo-first**: the GIF and static demo let visitors understand the project before installing Ollama.
 - **Permission-aware**: file reads are explicit and file writes are off by default.
@@ -66,7 +67,7 @@ Popular local AI tools are often full platforms. This project is intentionally s
 | Observability | Structured logs, `/api/metrics`, per-run traces, token/time accounting, error taxonomy, and privacy-preserving local analytics |
 | Team/audit | Read-only shared receipts, local multi-user profiles, RBAC tool caps, audit export, opt-in local sync packs, and SSO header/domain hook |
 | Workflow system | Plain JSON recipes, role-based recipe packs, import/export UI, and marketplace manifest |
-| Foundation | Stable schemas, migrations, append-only store, permission engine, plugin manifests, backups, jobs, checksums |
+| Foundation | Stable schemas, migrations, append-only store, permission engine, plugin manifests, backups, jobs, checksums, advanced-agent manifests |
 | Best use | Personal workspace agent starter kit and auditable local workflow lab |
 
 ## 60-second Quick Start
@@ -106,6 +107,7 @@ Open `http://127.0.0.1:4173`, build the semantic index, ask for a change, review
 - Secret redaction for model context, logs, receipts, sessions, and reports; optional encrypted-at-rest managed artifacts; network egress allowlists for URL/image/model pulls
 - Ollama integration for local models
 - Model capability scoring for coding, tool use, planning, long context, and vision readiness
+- Advanced agent APIs: multi-agent orchestration plans, scheduled run manifests, task journals with resume, sub-agent budget isolation, and deterministic replay diffs at `/api/advanced-agent/*`
 - Workspace-aware tools: list files, search files, read files, preview writes, and write files
 - Native tool calling for Ollama `/api/chat` and OpenAI-compatible local backends, with per-model capability probing, multi-tool batches, schema validation, and repair for malformed arguments
 - OpenAI-compatible server mode: `/v1/chat/completions`, `/v1/models`, `/v1/embeddings`, streaming SSE, API keys, rate limits, request queue, and OpenAPI spec
@@ -283,6 +285,7 @@ When write preview mode is enabled, `write_file` returns a diff preview instead 
 - Physical desktop app: `npm run package:mac-app` builds `dist/mac/AgentTrail.app`; Windows tray and Linux desktop/package templates live in [desktop](desktop) and [installers](installers)
 - Model scoring and benchmarking: `/api/status`, `/api/models/vision-capability`, `/api/benchmarks`
 - Model ecosystem: LoRA/adapter manifests, fine-tuning launcher, quantization wrapper, safetensors-to-GGUF conversion helpers, and per-task model evals in [docs/MODEL_ECOSYSTEM.md](docs/MODEL_ECOSYSTEM.md)
+- Advanced agent layer: multi-agent plans, scheduled-run manifests, resumable journals, sub-agent budgets, and deterministic replay diffs in [docs/ADVANCED_AGENT.md](docs/ADVANCED_AGENT.md)
 - Throughput and resource visibility: `/api/concurrency`, `/api/health`, `/api/resources`, `/api/runtime`, and `npm run load:test`
 - Agent-as-API: `/v1/chat/completions`, `/v1/models`, `/v1/embeddings`, `/v1/openapi.json`, plus [docs/OPENAI_COMPATIBLE_API.md](docs/OPENAI_COMPATIBLE_API.md)
 - Agent eval harness and history: `npm run eval`, `npm run eval:search`, `npm run bench:search`, `/api/evals`, `/api/evals/history`
@@ -313,6 +316,7 @@ When write preview mode is enabled, `write_file` returns a diff preview instead 
 - Privacy and network policy: [src/privacy.js](src/privacy.js), [src/network-policy.js](src/network-policy.js)
 - Model adapters: [src/model-adapters.js](src/model-adapters.js)
 - Model ecosystem: [src/model-ecosystem.js](src/model-ecosystem.js), [docs/MODEL_ECOSYSTEM.md](docs/MODEL_ECOSYSTEM.md)
+- Advanced agent manifests: [src/advanced-agent.js](src/advanced-agent.js), [docs/ADVANCED_AGENT.md](docs/ADVANCED_AGENT.md)
 - Migration system: [src/migrations.js](src/migrations.js)
 - Vector-store migrations: [src/vector-store.js](src/vector-store.js)
 - Append-only store: [src/json-store.js](src/json-store.js)
@@ -441,6 +445,7 @@ npm run test:memory-retrieval
 npm run test:memory-history
 npm run test:memory-scopes
 npm run test:ecosystem
+npm run test:advanced
 npm run test:ui
 npm run test:quality
 npm run test:docs

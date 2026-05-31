@@ -14,6 +14,7 @@ const ROUTE_CATALOG = [
   { area: "models", module: "server.js", routes: ["/api/models", "/api/models/pull", "/api/models/delete", "/api/models/vision-capability"] },
   { area: "model-registry", module: "server.js + src/model-registry.js", routes: ["/api/model-registry", "/api/model-registry/show", "/api/model-registry/pull", "/api/model-registry/import", "/api/model-registry/create", "/api/model-registry/cp", "/api/model-registry/share"] },
   { area: "model-ecosystem", module: "server.js + src/model-ecosystem.js", routes: ["/api/model-ecosystem", "/api/model-ecosystem/adapters", "/api/model-ecosystem/fine-tune", "/api/model-ecosystem/quantize", "/api/model-ecosystem/convert", "/api/model-ecosystem/evaluate"] },
+  { area: "advanced-agent", module: "server.js + src/advanced-agent.js", routes: ["/api/advanced-agent", "/api/advanced-agent/orchestrate", "/api/advanced-agent/schedule", "/api/advanced-agent/journal", "/api/advanced-agent/journal/append", "/api/advanced-agent/journal/resume", "/api/advanced-agent/sub-agent", "/api/advanced-agent/replay-diff"] },
   { area: "system", module: "server.js", routes: ["/api/health", "/api/resources", "/api/runtime", "/api/concurrency", "/api/updates/check"] },
   { area: "openai-compatible-api", module: "server.js", routes: ["/v1/chat/completions", "/v1/models", "/v1/embeddings", "/v1/openapi.json"] },
   { area: "structured-output", module: "src/structured-output.js", routes: ["/api/structured-output/schemas", "/api/structured-output", "/api/structured-output/recipe"] },
