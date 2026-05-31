@@ -282,3 +282,12 @@ Next open: real `node-llama-cpp` validation with a tiny GGUF on actual hardware,
 - Tests/docs updated: `npm run test:loading`, expanded bundled/resources assertions, README/env/model backend/runtime docs, roadmap, repo eval, and CI.
 
 Next open: real `node-llama-cpp` validation with a tiny GGUF on actual hardware, then Epic S model registry/distribution.
+
+## Latest Codex Pass - Epic S model registry/distribution
+
+- T125-T131 are implemented in `src/model-registry.js`: resumable/checksummed downloads, Hugging Face and OCI reference parsing, Modelfile-style derived model manifests, local model library metadata/tags, create/cp/show/share operations, and checksum/signature provenance verification.
+- New routes: `/api/model-registry`, `/api/model-registry/show`, `/api/model-registry/pull`, `/api/model-registry/import`, `/api/model-registry/create`, `/api/model-registry/cp`, and `/api/model-registry/share`. `/api/models` now also reports `registryModels` and `canManageRegistry`.
+- Bundled `/api/models/pull` delegates to the registry pull path, so GGUF registry downloads have SSE progress instead of the old "not implemented" response.
+- Tests/docs updated: `npm run test:registry`, unit + integration registry coverage, README/env/model backend/runtime docs, route catalog, roadmap, repo eval, and CI.
+
+Next open: real `node-llama-cpp` validation with a tiny GGUF on actual hardware, then Phase 7 desktop/CLI distribution.

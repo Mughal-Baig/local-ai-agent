@@ -337,6 +337,7 @@ Supported variables:
 - `AGENTTRAIL_BUNDLED_GPU_LAYERS`: bundled runtime GPU offload, e.g. `auto`, `all`, `0`, or a layer count
 - `AGENTTRAIL_BUNDLED_THREADS` / `AGENTTRAIL_CPU_SIMD`: bundled runtime CPU thread and SIMD tuning overrides
 - `AGENTTRAIL_BUNDLED_QUANTIZATION`, `AGENTTRAIL_KV_CACHE_TYPE`, `AGENTTRAIL_CONTEXT_SHIFT`, `AGENTTRAIL_BUNDLED_MMAP`, `AGENTTRAIL_TENSOR_SPLIT`: bundled model-loading internals for quantization, KV-cache shifting, mmap, batching, and multi-GPU split policy
+- `AGENTTRAIL_MODEL_REGISTRY_DIR`, `AGENTTRAIL_REGISTRY_TOKEN`, `HUGGINGFACE_TOKEN`: bundled model registry location and optional registry auth for resumable/checksummed GGUF pulls
 - `AGENTTRAIL_MAX_CONCURRENCY` / `AGENTTRAIL_MAX_QUEUE`: bounded `/api/chat` concurrency and backpressure controls, default `4` / `64`
 - `AGENTTRAIL_CACHE`: set to `off` to disable the in-memory response cache (default on); `AGENTTRAIL_CACHE_TTL_MS` tunes the TTL
 - `AGENTTRAIL_MAX_PROMPT_CHARS`: prompt budget cap for assembled context, default `24000`

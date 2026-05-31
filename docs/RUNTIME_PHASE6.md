@@ -8,6 +8,7 @@
 - AgentTrail's internal adapter contract can stream completions and return embeddings through the bundled provider. CI proves this with `tests/fixtures/mock-bundled-runtime.js` and `npm run test:bundled` so the server path is real without bundling native binaries.
 - `src/runtime-hardware.js` covers Epic Q policy: Metal on Apple Silicon, CUDA/ROCm/Vulkan path detection, CPU fallback with SIMD/thread tuning, automatic backend selection, and explicit GPU-layer offload via `AGENTTRAIL_BUNDLED_GPU_LAYERS`.
 - `src/runtime-loading.js` covers Epic R policy: quantization-aware GGUF detection, KV-cache/context-shift settings, batch/micro-batch settings, mmap/mlock flags, multi-GPU split config, and the `bench:runtime` comparison harness.
+- `src/model-registry.js` covers Epic S distribution: resumable/checksummed pulls, Hugging Face/OCI reference parsing, Modelfile-style derived models, local model library metadata/tags, create/cp/show/share operations, and checksum/signature provenance verification.
 - Default behavior is unchanged: Ollama or any OpenAI-compatible server.
 
 ## Decision (T105)
@@ -28,5 +29,11 @@ Prefer an **optional `node-llama-cpp`** dependency over spawning `llama-server`:
 - `AGENTTRAIL_GPU_DEVICES=0,1`, `AGENTTRAIL_TENSOR_SPLIT=0.5,0.5`, `AGENTTRAIL_GPU_SPLIT_MODE=layer|row`, and `AGENTTRAIL_MAIN_GPU=N` describe multi-GPU sharding for compatible providers.
 - `npm run bench:runtime` compares bundled runtime tokens/sec against Ollama when both are configured with the same model.
 
+## Registry knobs (Epic S)
+- `AGENTTRAIL_MODEL_REGISTRY_DIR=.agenttrail/model-registry` stores the local model library under the workspace.
+- `AGENTTRAIL_REGISTRY_TOKEN` or `HUGGINGFACE_TOKEN` adds bearer auth for registry pulls.
+- `/api/model-registry/pull` supports `file://`, `http(s)`, and `hf://owner/repo/path.gguf?revision=main` sources with resume and SHA-256 verification.
+- `/api/model-registry/create`, `/api/model-registry/cp`, `/api/model-registry/show`, and `/api/model-registry/share` provide Modelfile-style create/copy/show/share operations.
+
 ## Still open (the moonshot — Epics P–S)
-Real-hardware validation for `node-llama-cpp`, production GGUF load testing, and the model registry/distribution (T125–T131). These require native toolchains and real hardware to test, and are tracked as open.
+Real-hardware validation for `node-llama-cpp` and production GGUF load testing still require native toolchains and real hardware.

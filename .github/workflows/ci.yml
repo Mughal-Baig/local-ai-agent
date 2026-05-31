@@ -27,6 +27,7 @@ jobs:
       - run: node --check src/features/redact.js
       - run: node --check src/runtime-hardware.js
       - run: node --check src/runtime-loading.js
+      - run: node --check src/model-registry.js
       - run: node --check src/bundled-runtime.js
       - run: node --check scripts/load-test.js
       - run: node --check scripts/benchmark-runtime.js
@@ -37,6 +38,8 @@ jobs:
       - run: node --check tests/unit/redact.test.js
       - run: node --check tests/unit/runtime-hardware.test.js
       - run: node --check tests/unit/runtime-loading.test.js
+      - run: node --check tests/unit/model-registry.test.js
+      - run: node --check tests/integration/model-registry.test.js
       - run: node --check tests/integration/openai-compatible-server.test.js
       - run: node --check tests/integration/health.test.js
       - run: node --check tests/integration/concurrency.test.js
@@ -46,6 +49,7 @@ jobs:
       - run: node tests/unit/foundation.test.js
       - run: node tests/unit/runtime-hardware.test.js
       - run: node tests/unit/runtime-loading.test.js
+      - run: node tests/unit/model-registry.test.js
       - run: node tests/unit/redact.test.js
       - run: node tests/unit/pdf-extraction.test.js
       - run: node tests/unit/audio-transcription.test.js
@@ -59,6 +63,7 @@ jobs:
       - run: node tests/integration/openai-backend.test.js
       - run: node tests/integration/openai-compatible-server.test.js
       - run: node tests/integration/model-management.test.js
+      - run: node tests/integration/model-registry.test.js
       - run: node tests/integration/embedding-cache.test.js
       - run: node scripts/eval-search.js
       - run: node scripts/benchmark-search.js

@@ -54,6 +54,15 @@ const {
   buildImageProvenanceMarkdown
 } = require("./src/image-generation");
 const { bundledRuntimeStatus, listBundledModels, generateBundledText, embedBundledText } = require("./src/bundled-runtime");
+const {
+  listLocalModels,
+  showLocalModel,
+  pullModel: pullRegistryModel,
+  importModelFile,
+  createModelFromSpec,
+  copyModel,
+  shareModel
+} = require("./src/model-registry");
 
 loadDotEnv();
 const execFileAsync = promisify(execFile);
@@ -534,6 +543,34 @@ const server = http.createServer(async (req, res) => {
       return handleDeleteModel(req, res);
     }
 
+    if (url.pathname === "/api/model-registry" && req.method === "GET") {
+      return handleModelRegistryList(res);
+    }
+
+    if (url.pathname === "/api/model-registry/show" && req.method === "GET") {
+      return handleModelRegistryShow(url, res);
+    }
+
+    if (url.pathname === "/api/model-registry/pull" && req.method === "POST") {
+      return handleModelRegistryPull(req, res);
+    }
+
+    if (url.pathname === "/api/model-registry/import" && req.method === "POST") {
+      return handleModelRegistryImport(req, res);
+    }
+
+    if (url.pathname === "/api/model-registry/create" && req.method === "POST") {
+      return handleModelRegistryCreate(req, res);
+    }
+
+    if (url.pathname === "/api/model-registry/cp" && req.method === "POST") {
+      return handleModelRegistryCopy(req, res);
+    }
+
+    if (url.pathname === "/api/model-registry/share" && req.method === "POST") {
+      return handleModelRegistryShare(req, res);
+    }
+
     if (url.pathname === "/api/runs/pending" && req.method === "GET") {
       return handleGetPendingRun(res);
     }
@@ -772,11 +809,25 @@ function isValidModelName(name) {
 
 async function handleListModels(res) {
   const status = await fetchOllamaModels();
+  const registryModels = await listLocalModels(WORKSPACE_ROOT).catch(() => []);
+  const registryScored = registryModels.map((model) => scoreModel({
+    name: model.name,
+    size: model.size || 0,
+    modifiedAt: model.updatedAt || model.createdAt || null,
+    details: {
+      family: "bundled-registry",
+      format: path.extname(model.path || "").replace(".", "") || "agenttrail",
+      quantization: model.source && model.source.quantization,
+      path: model.relativePath
+    }
+  }));
   sendJson(res, 200, {
     backend: { id: ACTIVE_BACKEND.id, title: ACTIVE_BACKEND.title, api: ACTIVE_BACKEND.api },
     available: status.available,
     canManage: !BACKEND_IS_OPENAI && !BACKEND_IS_BUNDLED,
+    canManageRegistry: true,
     models: status.models.map(scoreModel),
+    registryModels: registryScored,
     error: status.error || null
   });
 }
@@ -784,14 +835,15 @@ async function handleListModels(res) {
 async function handlePullModel(req, res) {
   const body = await readJsonBody(req);
   const name = String(body.name || "").trim();
+  if (BACKEND_IS_BUNDLED) {
+    return handleModelRegistryPull(req, res, { alreadyReadBody: body });
+  }
   if (!isValidModelName(name)) {
     return sendJson(res, 400, { error: "A valid model name is required (e.g. llama3.2)." });
   }
-  if (BACKEND_IS_OPENAI || BACKEND_IS_BUNDLED) {
+  if (BACKEND_IS_OPENAI) {
     return sendJson(res, 501, {
-      error: BACKEND_IS_BUNDLED
-        ? "Bundled GGUF model downloads are tracked in Phase 6 model registry tasks. Set AGENTTRAIL_GGUF_MODEL to an existing local file for now."
-        : `Model pulling is handled by ${ACTIVE_BACKEND.title}, not AgentTrail. Load the model in that app.`
+      error: `Model pulling is handled by ${ACTIVE_BACKEND.title}, not AgentTrail. Load the model in that app.`
     });
   }
 
@@ -869,6 +921,96 @@ async function handleDeleteModel(req, res) {
     sendJson(res, 200, { ok: true, name });
   } catch (error) {
     sendJson(res, 502, { error: error.message || "Delete failed." });
+  }
+}
+
+async function handleModelRegistryList(res) {
+  try {
+    const models = await listLocalModels(WORKSPACE_ROOT);
+    sendJson(res, 200, { ok: true, schema: "agenttrail.model-registry.v1", models });
+  } catch (error) {
+    sendJson(res, 500, { error: error.message || "Could not list local model registry." });
+  }
+}
+
+async function handleModelRegistryShow(url, res) {
+  const name = String(url.searchParams.get("name") || "").trim();
+  if (!name) return sendJson(res, 400, { error: "Model name is required." });
+  try {
+    sendJson(res, 200, { ok: true, model: await showLocalModel(WORKSPACE_ROOT, name) });
+  } catch (error) {
+    sendJson(res, 404, { error: error.message || "Model not found." });
+  }
+}
+
+async function handleModelRegistryPull(req, res, options = {}) {
+  const body = options.alreadyReadBody || await readJsonBody(req);
+  const source = String(body.source || body.url || body.reference || "").trim();
+  if (!source) {
+    return sendJson(res, 400, { error: "A source, url, or registry reference is required." });
+  }
+
+  res.writeHead(200, {
+    "Content-Type": "text/event-stream; charset=utf-8",
+    "Cache-Control": "no-cache, no-transform",
+    Connection: "keep-alive",
+    "X-Accel-Buffering": "no"
+  });
+
+  try {
+    const model = await pullRegistryModel(WORKSPACE_ROOT, body, process.env, (event) => {
+      if (event.event !== "done") sendEvent(res, event.event, event);
+    });
+    await STORE.append("model-registry-pull", { name: model.name, sha256: model.sha256, source });
+    sendEvent(res, "done", { ok: true, model });
+  } catch (error) {
+    sendEvent(res, "error", { message: error.message || "Registry pull failed." });
+  } finally {
+    res.end();
+  }
+}
+
+async function handleModelRegistryImport(req, res) {
+  try {
+    const body = await readJsonBody(req);
+    const model = await importModelFile(WORKSPACE_ROOT, body);
+    await STORE.append("model-registry-import", { name: model.name, sha256: model.sha256 });
+    sendJson(res, 200, { ok: true, model });
+  } catch (error) {
+    sendJson(res, 400, { error: error.message || "Model import failed." });
+  }
+}
+
+async function handleModelRegistryCreate(req, res) {
+  try {
+    const body = await readJsonBody(req);
+    const model = await createModelFromSpec(WORKSPACE_ROOT, body);
+    await STORE.append("model-registry-create", { name: model.name, sha256: model.sha256 });
+    sendJson(res, 200, { ok: true, model });
+  } catch (error) {
+    sendJson(res, 400, { error: error.message || "Model create failed." });
+  }
+}
+
+async function handleModelRegistryCopy(req, res) {
+  try {
+    const body = await readJsonBody(req);
+    const model = await copyModel(WORKSPACE_ROOT, String(body.from || body.source || ""), String(body.to || body.name || ""));
+    await STORE.append("model-registry-copy", { name: model.name, copiedFrom: model.copiedFrom });
+    sendJson(res, 200, { ok: true, model });
+  } catch (error) {
+    sendJson(res, 400, { error: error.message || "Model copy failed." });
+  }
+}
+
+async function handleModelRegistryShare(req, res) {
+  try {
+    const body = await readJsonBody(req);
+    const share = await shareModel(WORKSPACE_ROOT, body);
+    await STORE.append("model-registry-share", { name: body.name, manifestPath: share.manifestPath });
+    sendJson(res, 200, share);
+  } catch (error) {
+    sendJson(res, 400, { error: error.message || "Model share failed." });
   }
 }
 
