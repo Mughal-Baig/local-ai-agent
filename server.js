@@ -701,6 +701,7 @@ async function handleRuntime(res) {
       threads: runtime.threads,
       accelerationBackend: runtime.accelerationBackend,
       hardware: runtime.hardware,
+      loading: runtime.loading,
       note: runtime.available
         ? "Bundled llama.cpp runtime available with a readable GGUF model."
         : runtime.reason

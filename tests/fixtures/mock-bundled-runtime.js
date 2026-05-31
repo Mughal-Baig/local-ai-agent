@@ -4,6 +4,9 @@ async function generate({ config, prompt, onToken }) {
   if (!config || !config.hardware || !config.hardware.selectedBackend) {
     throw new Error("Mock bundled runtime expected hardware policy in config.");
   }
+  if (!config.loading || !config.loading.quantization || !config.loading.kvCache) {
+    throw new Error("Mock bundled runtime expected loading policy in config.");
+  }
   const text = JSON.stringify(prompt || "").includes("JSON Schema")
     ? JSON.stringify({ tasks: [{ title: "Ship bundled runtime", priority: "high" }] })
     : "bundled runtime ok";
@@ -18,6 +21,9 @@ async function generate({ config, prompt, onToken }) {
 async function embed({ config, input }) {
   if (!config || !config.hardware || !config.hardware.loadOptions) {
     throw new Error("Mock bundled runtime expected hardware load options in config.");
+  }
+  if (!config.loading || !config.loading.loadOptions) {
+    throw new Error("Mock bundled runtime expected loading load options in config.");
   }
   const length = String(input || "").length || 1;
   return [0.11, 0.22, 0.33, Number((length / 100).toFixed(2))];

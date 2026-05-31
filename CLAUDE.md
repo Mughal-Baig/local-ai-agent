@@ -273,3 +273,12 @@ Next open: validate the bundled adapter against real `node-llama-cpp` + a tiny G
 - Tests/docs updated: `npm run test:hardware`, expanded `npm run test:bundled`/resources assertions, README/env/model backend/runtime docs, roadmap, repo eval, and CI.
 
 Next open: real `node-llama-cpp` validation with a tiny GGUF on actual hardware, then Epic R model loading internals.
+
+## Latest Codex Pass - Epic R model loading internals
+
+- T119-T124 are implemented as a deterministic bundled-runtime loading policy layer in `src/runtime-loading.js`: GGUF quantization detection/override, KV-cache type and context-shift policy, batch/micro-batch/parallel sequence config, mmap/mlock flags, multi-GPU tensor split metadata, and tokens/sec benchmark helpers.
+- `/api/runtime` now exposes `bundledRuntime.loading`; the System panel shows quantization, mmap state, and batch size alongside the bundled acceleration summary.
+- The bundled provider config now receives `config.loading` and `config.loading.loadOptions`, and `npm run bench:runtime` can compare bundled runtime throughput against Ollama when both are configured with the same model.
+- Tests/docs updated: `npm run test:loading`, expanded bundled/resources assertions, README/env/model backend/runtime docs, roadmap, repo eval, and CI.
+
+Next open: real `node-llama-cpp` validation with a tiny GGUF on actual hardware, then Epic S model registry/distribution.

@@ -1424,6 +1424,10 @@ async function refreshResources() {
         const offload = hw.offload.mode === "fixed" ? `${hw.offload.effectiveLayers} GPU layers` : `${hw.offload.mode} offload`;
         rows.push(["Bundled accel", `${hw.selected.label} · ${offload} · ${hw.threading.effective} threads`]);
       }
+      if (rt.bundledRuntime.loading) {
+        const load = rt.bundledRuntime.loading;
+        rows.push(["Model load", `${load.quantization.value} · mmap ${load.mmap.enabled ? "on" : "off"} · batch ${load.batching.batchSize}`]);
+      }
     }
     els.resourcesSummary.innerHTML = rows
       .map(([k, v]) => `<div class="mini-row"><strong>${escapeHtml(k)}</strong><span>${escapeHtml(v)}</span></div>`)

@@ -24,6 +24,8 @@ async function main() {
     assert.equal(typeof rt.bundledRuntime.installed, "boolean");
     assert.equal(typeof rt.bundledRuntime.hardware.selectedBackend, "string");
     assert.equal(typeof rt.bundledRuntime.hardware.threading.effective, "number");
+    assert.equal(typeof rt.bundledRuntime.loading.quantization.value, "string");
+    assert.equal(typeof rt.bundledRuntime.loading.batching.batchSize, "number");
     assert.equal(typeof rt.activeBackend.id, "string");
     console.log("Resources + runtime test passed");
   } finally { child.kill("SIGTERM"); await fsp.rm(ws, { recursive: true, force: true }); }

@@ -5,6 +5,7 @@ const fsp = require("node:fs/promises");
 const path = require("node:path");
 const { pathToFileURL } = require("node:url");
 const { detectRuntimeHardware } = require("./runtime-hardware");
+const { runtimeLoadingConfig } = require("./runtime-loading");
 
 const DEFAULT_RUNTIME_MODULE = "node-llama-cpp";
 
@@ -27,19 +28,21 @@ function bundledRuntimeConfig(env = process.env, projectRoot = process.cwd(), re
     projectRoot
   );
   const modelName = String(env.AGENTTRAIL_BUNDLED_MODEL_NAME || (modelPath ? path.basename(modelPath) : requestedModel || "bundled-gguf")).trim();
+  const loading = runtimeLoadingConfig(env, projectRoot, modelPath || modelName, hardware);
   return {
     schema: "agenttrail.bundled-runtime.v1",
     provider: moduleId === DEFAULT_RUNTIME_MODULE ? "node-llama-cpp" : "custom-module",
     module: moduleId,
     modelPath,
     modelName,
-    contextSize: numberFromEnv(env.AGENTTRAIL_BUNDLED_CONTEXT_SIZE, env.OLLAMA_NUM_CTX, 8192),
+    contextSize: loading.contextSize,
     accelerationBackend: hardware.selectedBackend,
     gpuLayers: hardware.offload.loadValue,
     threads: hardware.threading.effective,
-    batchSize: optionalNumber(env.AGENTTRAIL_BUNDLED_BATCH_SIZE),
+    batchSize: loading.batching.batchSize,
     embeddingModelPath: resolveBundledModelPath(env.AGENTTRAIL_BUNDLED_EMBED_MODEL || "", projectRoot),
-    hardware
+    hardware,
+    loading
   };
 }
 
@@ -81,6 +84,8 @@ async function listBundledModels(env = process.env, projectRoot = process.cwd(),
         format: "gguf",
         family: "bundled-runtime",
         provider: status.provider,
+        quantization: status.loading.quantization.value,
+        acceleration: status.accelerationBackend,
         path: status.model.path
       }
     }]
@@ -166,7 +171,7 @@ async function embedWithNodeLlamaCpp(runtime, config, input) {
 }
 
 async function getNodeLlamaSession(getLlama, LlamaChatSession, config) {
-  const sessionKey = `${config.module}:${config.modelPath}:${config.accelerationBackend}:${config.contextSize}:${config.gpuLayers}:${config.threads}:${config.batchSize}`;
+  const sessionKey = `${config.module}:${config.modelPath}:${config.accelerationBackend}:${config.contextSize}:${config.gpuLayers}:${config.threads}:${config.batchSize}:${config.loading.kvCache.type}:${config.loading.kvCache.shiftTokens}:${config.loading.mmap.enabled}:${config.loading.sharding.tensorSplit.join(",")}`;
   if (RUNTIME_STATE.sessionKey === sessionKey && RUNTIME_STATE.session) {
     return RUNTIME_STATE;
   }
@@ -174,6 +179,10 @@ async function getNodeLlamaSession(getLlama, LlamaChatSession, config) {
   const llama = await getLlama();
   const loadOptions = { modelPath: config.modelPath };
   if (config.gpuLayers !== null) loadOptions.gpuLayers = config.gpuLayers;
+  if (config.loading.mmap.enabled === false) loadOptions.useMmap = false;
+  if (config.loading.mmap.mlock) loadOptions.useMlock = true;
+  if (config.loading.sharding.enabled && config.loading.sharding.tensorSplit.length) loadOptions.tensorSplit = config.loading.sharding.tensorSplit;
+  if (config.loading.sharding.mainGpu !== null) loadOptions.mainGpu = config.loading.sharding.mainGpu;
   const model = await llama.loadModel(loadOptions);
   const contextOptions = {};
   if (config.contextSize) contextOptions.contextSize = config.contextSize;
@@ -274,18 +283,6 @@ function normalizeEmbedding(vector) {
     throw new Error("Bundled runtime did not return an embedding vector.");
   }
   return values.map(Number);
-}
-
-function numberFromEnv(primary, fallback, defaultValue) {
-  const value = Number(primary !== undefined && primary !== "" ? primary : fallback !== undefined && fallback !== "" ? fallback : defaultValue);
-  return Number.isFinite(value) && value > 0 ? value : defaultValue;
-}
-
-function optionalNumber(primary, fallback) {
-  const raw = primary !== undefined && primary !== "" ? primary : fallback;
-  if (raw === undefined || raw === null || raw === "") return null;
-  const value = Number(raw);
-  return Number.isFinite(value) ? value : null;
 }
 
 function isPathLike(value) {

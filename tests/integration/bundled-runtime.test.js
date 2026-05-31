@@ -18,7 +18,7 @@ main().catch((error) => {
 
 async function main() {
   const workspaceRoot = await fsp.mkdtemp(path.join(os.tmpdir(), "agenttrail-bundled-"));
-  const modelPath = path.join(workspaceRoot, "models", "mock.gguf");
+  const modelPath = path.join(workspaceRoot, "models", "mock-Q4_K_M.gguf");
   await fsp.mkdir(path.dirname(modelPath), { recursive: true });
   await fsp.writeFile(modelPath, Buffer.alloc(4096, 7));
 
@@ -35,6 +35,9 @@ async function main() {
       AGENTTRAIL_ACCELERATION_BACKEND: "cpu",
       AGENTTRAIL_BUNDLED_GPU_LAYERS: "0",
       AGENTTRAIL_BUNDLED_THREADS: "6",
+      AGENTTRAIL_BUNDLED_BATCH_SIZE: "256",
+      AGENTTRAIL_CONTEXT_SHIFT_TOKENS: "512",
+      AGENTTRAIL_BUNDLED_MMAP: "on",
       AGENTTRAIL_CACHE: "off",
       AGENTTRAIL_NATIVE_TOOLS: "off"
     },
@@ -57,6 +60,10 @@ async function main() {
     assert.equal(runtime.bundledRuntime.hardware.selectedBackend, "cpu");
     assert.equal(runtime.bundledRuntime.hardware.threading.effective, 6);
     assert.equal(runtime.bundledRuntime.hardware.offload.loadValue, 0);
+    assert.equal(runtime.bundledRuntime.loading.quantization.value, "Q4_K_M");
+    assert.equal(runtime.bundledRuntime.loading.batching.batchSize, 256);
+    assert.equal(runtime.bundledRuntime.loading.kvCache.shiftTokens, 512);
+    assert.equal(runtime.bundledRuntime.loading.mmap.enabled, true);
 
     const status = await getJson("/api/status");
     assert.equal(status.backend.api, "bundled");
