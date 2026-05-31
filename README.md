@@ -97,7 +97,7 @@ Open `http://127.0.0.1:4173`, build the semantic index, ask for a change, review
 - Attachment picker plus drag/drop and paste image intake that copies local files into `workspace/attachments/`, extracts selectable PDF/DOCX/PPTX/XLSX/HTML/Markdown/code/image text into context notes, and selects image pixels for local vision models
 - Permission toggles for file reads, file writes, write preview mode, and security hardening mode
 - Ollama integration for local models
-- Model capability scoring for coding, tool use, planning, and long context
+- Model capability scoring for coding, tool use, planning, long context, and vision readiness
 - Workspace-aware tools: list files, search files, read files, preview writes, and write files
 - Native tool calling for Ollama `/api/chat` and OpenAI-compatible local backends, with per-model capability probing, multi-tool batches, schema validation, and repair for malformed arguments
 - Structured JSON output endpoint for Ollama schema `format` and OpenAI-compatible `response_format.json_schema`, plus typed extraction recipes with readable schema-error reasons
@@ -251,7 +251,7 @@ When write preview mode is enabled, `write_file` returns a diff preview instead 
 - Recipe marketplace: [marketplace/recipes.json](marketplace/recipes.json), [recipe-packs](recipe-packs), `/api/packs/import`
 - One-command install surfaces: `bin/agenttrail.js`, [Dockerfile](Dockerfile), [docker-compose.yml](docker-compose.yml), [install.sh](install.sh), [Formula/agenttrail.rb](Formula/agenttrail.rb), [desktop](desktop)
 - Physical Mac app: `npm run package:mac-app` builds `dist/mac/AgentTrail.app`
-- Model scoring and benchmarking: `/api/status`, `/api/benchmarks`
+- Model scoring and benchmarking: `/api/status`, `/api/models/vision-capability`, `/api/benchmarks`
 - Agent eval harness and history: `npm run eval`, `npm run eval:search`, `npm run bench:search`, `/api/evals`, `/api/evals/history`
 - Project memory: `workspace/memory/project-memory.md`, `workspace/memory/project-memory.json`, citations, revision history, plus global memory under local `.local-agent/`
 - Workspace profiles: [profiles](profiles), `/api/profiles/apply`

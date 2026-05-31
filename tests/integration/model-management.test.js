@@ -20,7 +20,7 @@ main().catch((error) => {
 });
 
 async function main() {
-  const installed = new Set(["llama3.2"]);
+  const installed = new Set(["llama3.2", "llama3.2-vision"]);
   const mock = startMockOllama(ollamaPort, installed);
   const workspaceRoot = await fsp.mkdtemp(path.join(os.tmpdir(), "agenttrail-models-"));
   const child = spawn(process.execPath, ["server.js"], {
@@ -44,6 +44,19 @@ async function main() {
     let list = await fetchJson(`http://127.0.0.1:${agentPort}/api/models`);
     assert.equal(list.canManage, true, "native backend should allow management");
     assert.equal(list.models.some((m) => m.name === "llama3.2"), true);
+    const visionModel = list.models.find((m) => m.name === "llama3.2-vision");
+    assert.equal(visionModel.capabilities.vision.supported, true, "vision model should be detected");
+    assert.equal(visionModel.scores.vision >= 80, true, "vision score should be high");
+    const textModel = list.models.find((m) => m.name === "llama3.2");
+    assert.equal(textModel.capabilities.vision.supported, false, "text model should not be marked vision-ready");
+
+    const heuristicVision = await fetchJson(`http://127.0.0.1:${agentPort}/api/models/vision-capability?model=llama3.2-vision`);
+    assert.equal(heuristicVision.supported, true, "vision capability endpoint should expose heuristic support");
+    const probedVision = await fetchJson(`http://127.0.0.1:${agentPort}/api/models/vision-capability?model=llama3.2-vision&refresh=1`);
+    assert.equal(probedVision.supported, true, "vision probe should pass against mock vision model");
+    assert.equal(probedVision.mode, "probe");
+    const probedText = await fetchJson(`http://127.0.0.1:${agentPort}/api/models/vision-capability?model=llama3.2&refresh=1`);
+    assert.equal(probedText.supported, false, "vision probe should fail against mock text model");
 
     // Pull (streamed progress + done)
     const pull = await streamPull(agentPort, "qwen2.5");
@@ -70,7 +83,14 @@ async function main() {
 function startMockOllama(port, installed) {
   const server = http.createServer((req, res) => {
     if (req.method === "GET" && req.url.startsWith("/api/tags")) {
-      return json(res, { models: [...installed].map((name) => ({ name, size: 1000, modified_at: null })) });
+      return json(res, {
+        models: [...installed].map((name) => ({
+          name,
+          size: 1000,
+          modified_at: null,
+          details: { family: name.includes("vision") ? "llama-vision" : "llama" }
+        }))
+      });
     }
     if (req.method === "POST" && req.url.startsWith("/api/pull")) {
       readBody(req).then((body) => {
@@ -82,6 +102,16 @@ function startMockOllama(port, installed) {
         res.write(JSON.stringify({ status: "success" }) + "\n");
         installed.add(name);
         res.end();
+      });
+      return;
+    }
+    if (req.method === "POST" && req.url.startsWith("/api/generate")) {
+      readBody(req).then((body) => {
+        const hasImage = Array.isArray(body.images) && body.images.length > 0;
+        if (hasImage && !String(body.model || "").includes("vision")) {
+          return json(res, { error: "model does not support images" }, 400);
+        }
+        json(res, { response: "OK" });
       });
       return;
     }

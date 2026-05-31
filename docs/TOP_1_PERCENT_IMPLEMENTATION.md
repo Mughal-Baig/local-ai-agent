@@ -16,7 +16,7 @@ This table maps the requested 30-item top-1% and foundation list to the v0.7 imp
 | Trust Score | browser Trust Score dashboard plus `/api/foundation` score |
 | Security hardening | `/api/security/scan`, prompt injection, exfiltration, path escape, hidden instruction, destructive command checks |
 | Project memory with citations | `/api/memory/citations`, revision history in `workspace/memory/history/` |
-| Model benchmark dashboard | `/api/benchmarks`, `/api/benchmarks/run`, `/api/models/compare`, benchmark history |
+| Model benchmark dashboard | `/api/benchmarks`, `/api/benchmarks/run`, `/api/models/compare`, `/api/models/vision-capability`, benchmark history, vision-readiness scoring |
 | MCP support | `mcp/server.js`, `mcp/agenttrail.mcp.json`, approval-required tools, MCP receipts |
 | Recipe marketplace | coder/founder/security/student/writer packs, `marketplace/recipes.json`, `/api/packs/import`, `/api/marketplace/import-url` |
 | Beautiful reports | polished Markdown/HTML exports with trail, citations, trust score, diffs |

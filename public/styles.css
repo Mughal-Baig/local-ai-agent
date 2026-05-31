@@ -326,10 +326,15 @@ select:hover, .search-input:hover { border-color: var(--line-strong); }
   font-size: 0.76rem;
   font-weight: 700;
 }
+.model-recommendation.subtle {
+  border-color: var(--line);
+  background: var(--panel-2);
+  color: var(--muted);
+}
 
 .model-score-row {
   display: grid;
-  grid-template-columns: 34px minmax(0, 1fr) 28px;
+  grid-template-columns: 42px minmax(0, 1fr) 28px;
   gap: 8px;
   align-items: center;
   color: var(--muted);

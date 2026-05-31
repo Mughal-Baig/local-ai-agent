@@ -29,6 +29,8 @@ async function main() {
   assert.match(app, /bindComposerAttachmentIntake/);
   assert.match(app, /IMAGE_ATTACHMENT_MAX_BYTES/);
   assert.match(app, /isImageAttachment/);
+  assert.match(app, /Vision/);
+  assert.match(app, /vision-ready model/);
   assert.match(foundation, /\/api\/foundation/);
   assert.match(product, /\/api\/search\/chunks/);
   assert.match(product, /\/api\/replay\/plan/);

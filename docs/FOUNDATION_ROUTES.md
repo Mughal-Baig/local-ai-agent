@@ -21,6 +21,7 @@ AgentTrail v0.7 expands the foundation API:
 - `/api/benchmarks/run`
 - `/api/benchmarks/history`
 - `/api/models/compare`
+- `/api/models/vision-capability`
 - `/api/plugins/run`
 - `/api/backup/import`
 - `/api/releases/signing-plan`

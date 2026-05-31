@@ -1154,7 +1154,7 @@ function pickRecommendedModel(modelNames) {
     const meta = state.models.find((model) => model.name === name);
     const scores = meta && meta.scores;
     const total = scores
-      ? Number(scores.toolUse || 0) + Number(scores.coding || 0) + Number(scores.planning || 0) + Number(scores.longContext || 0)
+      ? Number(scores.toolUse || 0) + Number(scores.coding || 0) + Number(scores.planning || 0) + Number(scores.longContext || 0) + Number(scores.vision || 0)
       : -1;
     if (total > bestScore) {
       bestScore = total;
@@ -1179,10 +1179,16 @@ function renderModelScores() {
     ["Tool", selected.scores.toolUse],
     ["Code", selected.scores.coding],
     ["Plan", selected.scores.planning],
-    ["Ctx", selected.scores.longContext]
+    ["Ctx", selected.scores.longContext],
+    ["Vision", selected.scores.vision]
   ];
+  const vision = selected.capabilities && selected.capabilities.vision;
+  const visionLabel = vision
+    ? `${vision.supported ? "Vision ready" : Number(vision.confidence || 0) >= 0.7 ? "Vision unlikely" : "Vision unknown"} · ${Math.round(Number(vision.confidence || 0) * 100)}%`
+    : "Vision not checked";
   els.modelScoreList.innerHTML = `
     <div class="model-recommendation">Best for ${escapeHtml(selected.recommendation || "general chat")}</div>
+    <div class="model-recommendation subtle">${escapeHtml(visionLabel)}</div>
     ${rows
       .map(
         ([label, score]) => `
@@ -1365,7 +1371,9 @@ function renderInstalledModels(data) {
   for (const model of models.slice(0, 12)) {
     const row = document.createElement("div");
     row.className = "mini-row model-row";
-    row.innerHTML = `<div class="mr-meta"><strong>${escapeHtml(model.name)}</strong><span>${escapeHtml(model.recommendation || "general chat")} · ${formatBytes(model.size || 0)}</span></div>`;
+    const vision = model.capabilities && model.capabilities.vision;
+    const visionText = vision && vision.supported ? " · vision" : "";
+    row.innerHTML = `<div class="mr-meta"><strong>${escapeHtml(model.name)}</strong><span>${escapeHtml(model.recommendation || "general chat")}${visionText} · ${formatBytes(model.size || 0)}</span></div>`;
     const remove = document.createElement("button");
     remove.type = "button";
     remove.className = "model-delete";
@@ -1924,6 +1932,18 @@ async function sendMessage(event) {
           addTrail("budget", `Step budget reached (${data.maxSteps})`);
         } else {
           addTrail("budget", `Run budget ${data.maxSteps} step(s)${data.override ? " with override" : ""}`);
+        }
+      }
+      if (eventName === "vision") {
+        const vision = data.model && data.model.vision;
+        const label = `${data.count || 0} image(s) attached · ${vision && vision.supported ? "vision-ready model" : "vision uncertain"}`;
+        assistantMessage.events.push({
+          type: vision && vision.supported ? "vision" : "error",
+          label
+        });
+        addTrail("vision", label);
+        for (const warning of data.warnings || []) {
+          addTrail("warning", warning);
         }
       }
       if (eventName === "reflection") {

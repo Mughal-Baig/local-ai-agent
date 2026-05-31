@@ -49,7 +49,7 @@ Best next Claude tasks:
 
 - Work on docs and UI copy around native tool calling, structured outputs, planner approval, run guardrails, reflection, loop safety, structured memory, memory suggestions, ranked memory retrieval, memory history, scoped memory, markdown-aware chunk citations, hybrid search score parts, reranking, embedding cache, and search evals.
 - Do not rework `server.js` tool-calling, structured-output, planner, run-cancellation, loop/reflection, memory internals, search chunking, hybrid ranking, reranking, embedding cache, search benchmarks, or resumable-run internals unless you also run the matching scripts: `npm run test:tools`, `npm run test:structured`, `npm run test:planner`, `npm run test:guardrails`, `npm run test:reflection`, `npm run test:memory`, `npm run test:memory-suggestions`, `npm run test:memory-retrieval`, `npm run test:memory-history`, `npm run test:memory-scopes`, `npm run test:search`, `npm run test:rerank`, `npm run test:embed-cache`, `npm run test:resume`, `npm run eval:search`, and `npm run bench:search`.
-- Next code target should be T067 screenshot-to-action flow or T068 vision-model capability detection, not the runtime moonshot.
+- Next code target should be T067 screenshot-to-action flow, not the runtime moonshot.
 
 ## Latest Claude Pass
 
@@ -63,7 +63,7 @@ Reviewed Codex's work and continued the roadmap:
 
 - T038 original partial: pending-run snapshot. Added `/api/runs/pending`, `/api/runs/pending/clear`, a resume banner in the UI, route catalog coverage, and `npm run test:resume`. Receipt-derived resume is completed in the latest Codex pass below.
 
-Still open and recommended next: T067 screenshot-to-action flow or T068 vision-model capability detection.
+Still open and recommended next: T067 screenshot-to-action flow.
 
 ## Latest Claude Pass - UI redesign + handoff completion
 
@@ -196,4 +196,12 @@ Still open and recommended next: T067 screenshot-to-action flow or T068 vision-m
 - Dropped/pasted images still produce local attachment notes/OCR receipts when available, and their raw image paths are selected as `visionPath` for the next chat run.
 - Tests/evals/docs updated: API integration covers image attachments above the old 80 KB cap, UI smoke checks drag/paste wiring, repo eval checks the feature, and README/roadmap/env docs were updated.
 
-Next open: T067 screenshot-to-action flow or T068 vision-model capability detection.
+## Latest Codex Pass - Vision capability detection
+
+- T068 is done: models now get a `scores.vision` value and `capabilities.vision` metadata from `/api/status` and `/api/models`.
+- `/api/models/vision-capability?model=...` returns heuristic detection, and `refresh=1` runs an explicit tiny local image probe against Ollama or OpenAI-compatible backends.
+- The UI now shows a Vision row in model capability scores and labels vision-ready models in the installed-model list.
+- Chat runs that attach image payloads to a clearly non-vision model add a visible `vision` event/warning, so users can understand bad image answers.
+- Tests/evals/docs updated: mock Ollama model-management test covers heuristic + probe success/failure, API route smoke includes the endpoint, UI smoke checks the Vision surface, repo eval checks the feature, and roadmap/docs were updated.
+
+Next open: T067 screenshot-to-action flow.

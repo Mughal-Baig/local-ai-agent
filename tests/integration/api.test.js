@@ -45,6 +45,7 @@ async function main() {
       "/api/permissions",
       "/api/tools/schemas",
       "/api/tools/capability?model=llama3.2",
+      "/api/models/vision-capability?model=llama3.2",
       "/api/structured-output/schemas",
       "/api/sqlite/status",
       "/api/watch/status",

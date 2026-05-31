@@ -118,6 +118,7 @@ const MAX_ATTACHMENT_BODY_BYTES = Number(
   Math.max(MAX_BODY_BYTES, Math.ceil(MAX_ATTACHMENT_IMAGE_BYTES * Math.max(1, MAX_VISION_IMAGES) * 1.4) + 128 * 1024)
 );
 const LOCAL_EMBED_DIMS = 192;
+const VISION_PROBE_IMAGE_BASE64 = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAFgwJ/lA8t4wAAAABJRU5ErkJggg==";
 const STOP_WORDS = new Set(["the", "and", "for", "with", "that", "this", "from", "you", "your", "are", "was", "were", "have", "has", "not", "but", "can", "will"]);
 
 fs.mkdirSync(WORKSPACE_ROOT, { recursive: true });
@@ -196,6 +197,10 @@ const server = http.createServer(async (req, res) => {
 
     if (url.pathname === "/api/tools/capability" && req.method === "GET") {
       return handleToolCapability(url, res);
+    }
+
+    if (url.pathname === "/api/models/vision-capability" && req.method === "GET") {
+      return handleVisionCapability(url, res);
     }
 
     if (url.pathname === "/api/structured-output/schemas" && req.method === "GET") {
@@ -943,6 +948,39 @@ async function handleToolCapability(url, res) {
   const refresh = url.searchParams.get("refresh") === "1";
   const capability = await probeNativeToolSupport(model, { refresh });
   sendJson(res, 200, capability);
+}
+
+async function handleVisionCapability(url, res) {
+  const modelName = String(url.searchParams.get("model") || DEFAULT_MODEL).trim() || DEFAULT_MODEL;
+  const refresh = url.searchParams.get("refresh") === "1";
+  const status = await fetchOllamaModels();
+  const model = status.models.find((item) => item.name === modelName) || { name: modelName, size: 0 };
+  const heuristic = visionModelCapability(model);
+  if (!refresh) {
+    return sendJson(res, 200, {
+      schema: "agenttrail.vision-capability.v1",
+      ...heuristic,
+      backend: ACTIVE_BACKEND.api,
+      available: status.available,
+      refreshed: false
+    });
+  }
+
+  const probed = await probeVisionModelSupport(modelName, heuristic);
+  await STORE.append("vision-capability", {
+    model: modelName,
+    backend: ACTIVE_BACKEND.api,
+    supported: probed.supported,
+    confidence: probed.confidence,
+    mode: probed.mode
+  });
+  sendJson(res, 200, {
+    schema: "agenttrail.vision-capability.v1",
+    ...probed,
+    backend: ACTIVE_BACKEND.api,
+    available: status.available,
+    refreshed: true
+  });
 }
 
 function handleStructuredOutputSchemas(res) {
@@ -3896,11 +3934,24 @@ async function runAgent(body, res, context = {}) {
   const toolHistory = [];
   const loopGuard = createLoopGuard();
   const visionContext = await collectVisionImages(selectedFiles);
+  const selectedModelMeta = status.models.find((item) => item.name === model) || { name: model, size: 0 };
+  const selectedVisionCapability = visionModelCapability(selectedModelMeta);
+  if (visionContext.images.length && selectedVisionCapability.supported === false && selectedVisionCapability.confidence >= 0.7) {
+    visionContext.warnings.push(`Selected model "${model}" does not look vision-capable: ${selectedVisionCapability.reason}`);
+  }
 
   sendEvent(res, "status", { message: `Using ${model}` });
   if (visionContext.images.length || visionContext.warnings.length) {
     sendEvent(res, "vision", {
       count: visionContext.images.length,
+      model: {
+        name: model,
+        vision: {
+          supported: selectedVisionCapability.supported,
+          confidence: selectedVisionCapability.confidence,
+          reason: selectedVisionCapability.reason
+        }
+      },
       images: visionContext.images.map((image) => ({
         path: image.path,
         mediaType: image.mediaType,
@@ -5435,6 +5486,7 @@ async function fetchOllamaModels() {
       ? data.models.map((model) => ({
           name: model.name,
           size: model.size || 0,
+          details: model.details || null,
           modifiedAt: model.modified_at || null
         }))
       : [];
@@ -6747,15 +6799,196 @@ function scoreModel(model) {
   const codingHints = ["coder", "qwen", "deepseek", "code", "codestral"];
   const toolHints = ["llama3.1", "llama3.2", "qwen", "mistral", "gemma3", "gpt-oss"];
   const longContextHints = ["32k", "64k", "128k", "long"];
+  const visionCapability = visionModelCapability(model);
   const coding = clampScore(35 + sizeGb * 4 + (codingHints.some((hint) => name.includes(hint)) ? 35 : 0));
   const toolUse = clampScore(40 + sizeGb * 3 + (toolHints.some((hint) => name.includes(hint)) ? 30 : 0));
   const planning = clampScore(45 + sizeGb * 3 + (name.includes("instruct") || name.includes("llama") ? 20 : 0));
   const longContext = clampScore(35 + sizeGb * 2 + (longContextHints.some((hint) => name.includes(hint)) ? 35 : 0));
+  const vision = visionCapability.score;
   return {
     ...model,
-    scores: { coding, toolUse, planning, longContext },
-    recommendation: recommendModelUse({ coding, toolUse, planning, longContext })
+    scores: { coding, toolUse, planning, longContext, vision },
+    capabilities: {
+      ...(model.capabilities || {}),
+      vision: visionCapability
+    },
+    recommendation: recommendModelUse({ coding, toolUse, planning, longContext, vision })
   };
+}
+
+function visionModelCapability(model) {
+  const name = String(model && model.name || "").toLowerCase();
+  const details = model && model.details && typeof model.details === "object" ? model.details : {};
+  const detailText = [
+    details.family,
+    ...(Array.isArray(details.families) ? details.families : []),
+    details.parameter_size,
+    details.format
+  ].filter(Boolean).join(" ").toLowerCase();
+  const haystack = `${name} ${detailText}`;
+  const negativeHints = ["embed", "embedding", "nomic", "bge", "minilm", "e5-", "rerank", "whisper", "tts", "speech"];
+  const strongHints = [
+    "llava",
+    "bakllava",
+    "moondream",
+    "minicpm-v",
+    "minicpm-vl",
+    "qwen-vl",
+    "qwen2-vl",
+    "qwen2.5-vl",
+    "qwen3-vl",
+    "pixtral",
+    "paligemma",
+    "internvl",
+    "deepseek-vl",
+    "cogvlm",
+    "granite-vision",
+    "phi-vision",
+    "phi3-vision",
+    "phi-3.5-vision",
+    "phi4-multimodal",
+    "llama3.2-vision",
+    "llama-3.2-vision",
+    "vision"
+  ];
+  const probableHints = ["gemma3", "gemma-3", "mistral-small3.1", "mistral-small-3.1", "mistral-small3.2", "mistral-small-3.2", "vl"];
+
+  if (negativeHints.some((hint) => haystack.includes(hint))) {
+    return {
+      supported: false,
+      confidence: 0.95,
+      score: 5,
+      mode: "heuristic",
+      input: BACKEND_IS_OPENAI ? "image_url" : "images",
+      reason: "Model name looks like an embedding/audio/rerank model, not a vision chat model."
+    };
+  }
+  const strong = strongHints.find((hint) => haystack.includes(hint));
+  if (strong) {
+    return {
+      supported: true,
+      confidence: 0.92,
+      score: 92,
+      mode: "heuristic",
+      input: BACKEND_IS_OPENAI ? "image_url" : "images",
+      reason: `Vision naming signal matched "${strong}".`
+    };
+  }
+  const probable = probableHints.find((hint) => haystack.includes(hint));
+  if (probable) {
+    return {
+      supported: true,
+      confidence: 0.72,
+      score: 78,
+      mode: "heuristic",
+      input: BACKEND_IS_OPENAI ? "image_url" : "images",
+      reason: `Model family often supports image input; matched "${probable}".`
+    };
+  }
+  return {
+    supported: false,
+    confidence: 0.35,
+    score: 25,
+    mode: "heuristic",
+    input: BACKEND_IS_OPENAI ? "image_url" : "images",
+    reason: "No vision model naming signal was detected. Use the probe endpoint to verify."
+  };
+}
+
+async function probeVisionModelSupport(modelName, heuristic) {
+  if (BACKEND_IS_OPENAI) {
+    return probeOpenAIVisionSupport(modelName, heuristic);
+  }
+  return probeOllamaVisionSupport(modelName, heuristic);
+}
+
+async function probeOllamaVisionSupport(modelName, heuristic) {
+  try {
+    const response = await fetch(`${OLLAMA_HOST}/api/generate`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: modelName,
+        prompt: "Reply with OK if you can inspect this image.",
+        images: [VISION_PROBE_IMAGE_BASE64],
+        stream: false,
+        keep_alive: OLLAMA_KEEP_ALIVE,
+        options: { temperature: 0, num_ctx: 1024 }
+      }),
+      signal: AbortSignal.timeout(15000)
+    });
+    if (!response.ok) {
+      const details = await response.text().catch(() => "");
+      return {
+        ...heuristic,
+        supported: false,
+        confidence: 0.98,
+        score: 5,
+        mode: "probe",
+        reason: `Ollama rejected an image payload with HTTP ${response.status}. ${truncate(details, 180)}`.trim()
+      };
+    }
+    await response.json().catch(() => null);
+    return {
+      ...heuristic,
+      supported: true,
+      confidence: 0.99,
+      score: 98,
+      mode: "probe",
+      reason: "Ollama accepted a tiny local image payload for this model."
+    };
+  } catch (error) {
+    return {
+      ...heuristic,
+      mode: "probe-error",
+      reason: `Vision probe could not reach Ollama: ${error.message}`
+    };
+  }
+}
+
+async function probeOpenAIVisionSupport(modelName, heuristic) {
+  try {
+    const response = await fetch(openaiUrl("/chat/completions"), {
+      method: "POST",
+      headers: openaiHeaders(),
+      body: JSON.stringify({
+        model: modelName,
+        messages: [openAIUserMessage("Reply with OK if you can inspect this image.", [{
+          mediaType: "image/png",
+          base64: VISION_PROBE_IMAGE_BASE64
+        }])],
+        temperature: 0,
+        stream: false
+      }),
+      signal: AbortSignal.timeout(15000)
+    });
+    if (!response.ok) {
+      const details = await response.text().catch(() => "");
+      return {
+        ...heuristic,
+        supported: false,
+        confidence: 0.98,
+        score: 5,
+        mode: "probe",
+        reason: `${ACTIVE_BACKEND.title} rejected an image payload with HTTP ${response.status}. ${truncate(details, 180)}`.trim()
+      };
+    }
+    await response.json().catch(() => null);
+    return {
+      ...heuristic,
+      supported: true,
+      confidence: 0.99,
+      score: 98,
+      mode: "probe",
+      reason: `${ACTIVE_BACKEND.title} accepted an image_url payload for this model.`
+    };
+  } catch (error) {
+    return {
+      ...heuristic,
+      mode: "probe-error",
+      reason: `Vision probe could not reach ${ACTIVE_BACKEND.title}: ${error.message}`
+    };
+  }
 }
 
 function benchmarkModel(model) {
@@ -6784,6 +7017,12 @@ function benchmarkModel(model) {
       title: "Long context fit",
       score: Number(scores.longContext || 0),
       pass: Number(scores.longContext || 0) >= 65
+    },
+    {
+      id: "vision",
+      title: "Image input fit",
+      score: Number(scores.vision || 0),
+      pass: Number(scores.vision || 0) >= 65
     }
   ];
   const score = Math.round(tests.reduce((sum, test) => sum + test.score, 0) / tests.length);
@@ -6880,7 +7119,8 @@ function recommendModelUse(scores) {
     coding: "coding help",
     toolUse: "tool calling",
     planning: "planning",
-    longContext: "large context"
+    longContext: "large context",
+    vision: "image understanding"
   }[best[0]] || "general chat";
 }
 

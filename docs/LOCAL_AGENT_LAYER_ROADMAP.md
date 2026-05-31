@@ -46,6 +46,7 @@ This section tracks the concrete work shipped after the roadmap was publicly ref
 | Codex continuation | T062 | Added optional local OCR for image scans through `/api/documents/ocr`, automatic image-attachment OCR, Tesseract-compatible command configuration, searchable OCR sidecars, ingestion receipts, route/eval coverage, and mock-command tests. |
 | Codex continuation | T065, T069 | Added local vision image input for selected PNG/JPEG/TIFF/BMP/WebP files across Ollama and OpenAI-compatible backends, browser auto-selection for image attachments, prompt path/hash metadata, SSE `vision` events, eval coverage, and a mock vision backend integration test. |
 | Codex continuation | T066 | Added drag/drop and pasted-image intake in the chat composer, matched browser image limits to the vision backend, allowed larger image attachment request bodies, selected dropped image pixels for vision runs, and covered the path in API/UI smoke/eval checks. |
+| Codex continuation | T068 | Added vision-model capability detection with model-name heuristics, optional tiny-image backend probe at `/api/models/vision-capability`, Vision scores in the UI/model benchmarks, run warnings when image payloads target clearly non-vision models, and mock Ollama tests. |
 
 ### Verified After These Passes
 
@@ -56,7 +57,6 @@ This section tracks the concrete work shipped after the roadmap was publicly ref
 ### Best Continuation Points
 
 - T067: Screenshot-to-action flow.
-- T068: Vision-model capability detection.
 
 ---
 
@@ -157,7 +157,7 @@ This section tracks the concrete work shipped after the roadmap was publicly ref
 - [x] T065 Image input to vision models (selected workspace images are sent to Ollama/OpenAI-compatible vision backends)
 - [x] T066 Drag-drop image into chat → base64 to backend
 - [ ] T067 Screenshot-to-action (describe + plan) flow
-- [ ] T068 Vision-model capability detection
+- [x] T068 Vision-model capability detection
 - [x] T069 Tests with a mock vision backend (`tests/integration/vision-input.test.js`)
 
 ### Epic I — Audio
@@ -380,16 +380,16 @@ This section tracks the concrete work shipped after the roadmap was publicly ref
 4. We expand an epic's tasks into finer sub-tasks (toward 1000) only when we start that epic — so the plan stays honest and current.
 5. We re-mark `[x]` here as we go; this file is the single source of truth for the campaign.
 
-**Next up:** continue Phase 3 vision with screenshot-to-action and capability detection.
+**Next up:** continue Phase 3 vision with screenshot-to-action.
 
 ## Status & bug sweep (latest)
 
-- Progress: **69 tasks done**, 128 open (across Phases 1-10). Phase 1 (agent reliability) is complete; Phase 2 Epic E/F search foundation complete (T044-T058 done except T044 remains hardening umbrella), Epic G document ingestion is complete, and Phase 3 vision now has local image payload support, drag/drop composer intake, plus mock backend coverage.
+- Progress: **70 tasks done**, 127 open (across Phases 1-10). Phase 1 (agent reliability) is complete; Phase 2 Epic E/F search foundation complete (T044-T058 done except T044 remains hardening umbrella), Epic G document ingestion is complete, and Phase 3 vision now has local image payload support, drag/drop composer intake, vision-model capability detection, plus mock backend coverage.
 - Focused test suite green: unit, document extraction, API integration, smoke, repo eval, and release checksums. All touched source files pass `node --check`.
 - **Bug fixed:** `listWorkspaceFiles` only skipped `.DS_Store`, so internal `.agenttrail/*` state (logs, store, search index, pending-run) was being walked, indexed, and returned in search — adding noise and per-request churn to the index. Now excludes `.agenttrail/`. Verified against smoke, api, search-incremental, search-chunking, and eval:search.
 - Known minor item: a couple of integration tests assert relative/invariant counts (not exact) because the workspace can still gain legit files (e.g. `memory/*`) between calls — intentional, not a bug.
 
-Next code targets: T067 screenshot-to-action flow or T068 vision-model capability detection.
+Next code target: T067 screenshot-to-action flow.
 
 ---
 

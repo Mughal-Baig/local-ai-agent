@@ -9,6 +9,7 @@ const ROUTE_CATALOG = [
   { area: "sessions", module: "server.js", routes: ["/api/sessions", "/api/replay/plan", "/api/runs/pending", "/api/runs/pending/from-receipt", "/api/receipts/resume"] },
   { area: "planner", module: "server.js + src/structured-output.js", routes: ["/api/agent/plan", "/api/chat"] },
   { area: "tools", module: "src/permissions.js + src/tool-schemas.js", routes: ["/api/permissions", "/api/tools/schemas", "/api/tools/capability", "/api/mcp"] },
+  { area: "models", module: "server.js", routes: ["/api/models", "/api/models/pull", "/api/models/delete", "/api/models/vision-capability"] },
   { area: "structured-output", module: "src/structured-output.js", routes: ["/api/structured-output/schemas", "/api/structured-output", "/api/structured-output/recipe"] },
   { area: "security", module: "src/features/security.js", routes: ["/api/security/scan"] },
   { area: "foundation", module: "src/foundation.js", routes: ["/api/foundation", "/api/schemas", "/api/migrations"] },
