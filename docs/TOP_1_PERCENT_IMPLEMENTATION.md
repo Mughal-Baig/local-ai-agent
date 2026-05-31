@@ -11,7 +11,7 @@ This table maps the requested 30-item top-1% and foundation list to the v0.7 imp
 | Real semantic local search | `/api/search-index`, `/api/search/chunks`, Ollama embeddings, local-vector fallback, file hashes, chunk metadata, UI citations |
 | Document ingestion | `/api/documents/extract`, `/api/documents/ocr`, `/api/documents/ingest-url` with explicit allowlists, automatic PDF/DOCX/PPTX/XLSX/HTML/Markdown/code/image attachment text notes, progress steps, ingestion receipts, searchable extracted Markdown context |
 | Vision input | Selected, dragged, or pasted local PNG/JPEG/TIFF/BMP/WebP files flow into Ollama vision models or OpenAI-compatible local servers as image payloads, with path/hash metadata in the prompt; screenshot-to-action turns the image into an editable describe-and-plan run |
-| Local speech-to-text | `/api/audio/transcribe` runs a configurable whisper.cpp-compatible local command over audio/video files, writes searchable transcript Markdown, and saves ingestion receipts |
+| Local audio layer | `/api/audio/transcribe` runs a configurable whisper.cpp-compatible local command over audio/video files, voice prompt input records/transcribes from the composer, `/api/audio/speak` plays assistant responses with local TTS, and the Audio Transcription recipe saves searchable transcript Markdown plus receipts |
 | Diff-safe file writing | permission engine, preview-first writes, Diff Review center, explicit Apply buttons |
 | Replayable receipts | `/api/sessions`, `/api/sessions/content`, `/api/replay/plan`, `/api/receipts/resume`, `/api/runs/pending/from-receipt`, saved model/prompt/files/diffs/trail |
 | Trust Score | browser Trust Score dashboard plus `/api/foundation` score |

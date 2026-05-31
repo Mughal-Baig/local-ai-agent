@@ -49,7 +49,7 @@ Best next Claude tasks:
 
 - Work on docs and UI copy around native tool calling, structured outputs, planner approval, run guardrails, reflection, loop safety, structured memory, memory suggestions, ranked memory retrieval, memory history, scoped memory, markdown-aware chunk citations, hybrid search score parts, reranking, embedding cache, and search evals.
 - Do not rework `server.js` tool-calling, structured-output, planner, run-cancellation, loop/reflection, memory internals, search chunking, hybrid ranking, reranking, embedding cache, search benchmarks, or resumable-run internals unless you also run the matching scripts: `npm run test:tools`, `npm run test:structured`, `npm run test:planner`, `npm run test:guardrails`, `npm run test:reflection`, `npm run test:memory`, `npm run test:memory-suggestions`, `npm run test:memory-retrieval`, `npm run test:memory-history`, `npm run test:memory-scopes`, `npm run test:search`, `npm run test:rerank`, `npm run test:embed-cache`, `npm run test:resume`, `npm run eval:search`, and `npm run bench:search`.
-- Next code target should be T071 voice prompt input in the UI, not the runtime moonshot.
+- Next code target should be T074 optional local image-generation backend adapter, not the runtime moonshot.
 
 ## Latest Claude Pass
 
@@ -63,7 +63,7 @@ Reviewed Codex's work and continued the roadmap:
 
 - T038 original partial: pending-run snapshot. Added `/api/runs/pending`, `/api/runs/pending/clear`, a resume banner in the UI, route catalog coverage, and `npm run test:resume`. Receipt-derived resume is completed in the latest Codex pass below.
 
-Still open and recommended next: T071 voice prompt input in the UI.
+Still open and recommended next: T074 optional local image-generation backend adapter.
 
 ## Latest Claude Pass - UI redesign + handoff completion
 
@@ -218,4 +218,11 @@ Still open and recommended next: T071 voice prompt input in the UI.
 - The new `src/audio-transcription.js` helper handles audio detection, media types, transcript cleanup, and Markdown transcript formatting without adding external dependencies.
 - Tests/evals/docs updated: unit + integration coverage use `tests/fixtures/mock-transcribe.js`, CI runs the audio suite, route catalog/foundation routes expose `/api/audio/transcribe`, repo eval checks the feature, and README/model-backend/top-1%/roadmap docs were updated.
 
-Next open: T071 voice prompt input in the UI.
+## Latest Codex Pass - Audio UX completion
+
+- T071 is done: the composer has a microphone button that records a voice prompt in the browser, saves it as a local audio attachment, transcribes it with `/api/audio/transcribe`, selects the transcript, and inserts the transcript text into the prompt.
+- T072 is done: assistant messages now have a Speak control backed by `/api/audio/speak`, which shells out to a configurable local TTS command (`AGENTTRAIL_TTS_COMMAND` + `AGENTTRAIL_TTS_ARGS`), saves local audio output, exposes it through `/api/files/raw`, and records a receipt.
+- T073 is done: `recipes/audio-transcription.json` is an actionable recipe. When selected with a local audio file, it runs transcription, saves a searchable transcript sidecar, selects it for context, and logs the receipt.
+- Tests/evals/docs updated: mock TTS fixture, expanded audio integration coverage, UI smoke checks voice/TTS/recipe surfaces, repo eval checks all three tasks, route catalog/foundation docs/env/README/roadmap were updated.
+
+Next open: T074 optional local image-generation backend adapter.

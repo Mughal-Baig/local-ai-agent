@@ -8,7 +8,10 @@ const {
   defaultAudioMediaType,
   normalizeTranscriptLanguage,
   normalizeTranscriptText,
-  buildTranscriptMarkdown
+  buildTranscriptMarkdown,
+  speechOutputMediaType,
+  normalizeTtsVoice,
+  normalizeSpeechText
 } = require("../../src/audio-transcription");
 
 assert.equal(isAudioDocument("voice.wav", "audio/wav"), true);
@@ -18,8 +21,13 @@ assert.equal(isAudioDocument("notes.txt", "text/plain"), false);
 
 assert.equal(defaultAudioMediaType("voice.mp3"), "audio/mpeg");
 assert.equal(defaultAudioMediaType("screen.mov"), "video/quicktime");
+assert.equal(speechOutputMediaType("answer.aiff"), "audio/aiff");
+assert.equal(speechOutputMediaType("answer.wav"), "audio/wav");
 assert.equal(normalizeTranscriptLanguage("en-US"), "en-US");
 assert.equal(normalizeTranscriptLanguage("../bad"), "auto");
+assert.equal(normalizeTtsVoice("Samantha"), "Samantha");
+assert.equal(normalizeTtsVoice("../../bad"), "");
+assert.equal(normalizeSpeechText("**Hello** [`link`](https://example.com)"), "Hello link");
 
 const normalized = normalizeTranscriptText([
   "\u001b[31m[00:00:00.000 --> 00:00:01.000] Hello local audio\u001b[0m",

@@ -75,11 +75,42 @@ function buildTranscriptMarkdown({ sourcePath, originalName, mediaType, transcri
   ].filter((line) => line !== null).join("\n");
 }
 
+function speechOutputMediaType(filePath, fallback = "") {
+  const ext = path.extname(String(filePath || "").toLowerCase());
+  return {
+    ".aiff": "audio/aiff",
+    ".aif": "audio/aiff",
+    ".wav": "audio/wav",
+    ".mp3": "audio/mpeg",
+    ".m4a": "audio/mp4",
+    ".ogg": "audio/ogg",
+    ".opus": "audio/opus"
+  }[ext] || fallback || "audio/aiff";
+}
+
+function normalizeTtsVoice(value) {
+  const cleaned = String(value || "").trim();
+  return /^[A-Za-z0-9_ .+-]{0,80}$/.test(cleaned) ? cleaned : "";
+}
+
+function normalizeSpeechText(value) {
+  return String(value || "")
+    .replace(/```[\s\S]*?```/g, " ")
+    .replace(/`([^`]+)`/g, "$1")
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1")
+    .replace(/[#*_>~]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 module.exports = {
   AUDIO_EXTENSIONS,
   isAudioDocument,
   defaultAudioMediaType,
   normalizeTranscriptLanguage,
   normalizeTranscriptText,
-  buildTranscriptMarkdown
+  buildTranscriptMarkdown,
+  speechOutputMediaType,
+  normalizeTtsVoice,
+  normalizeSpeechText
 };

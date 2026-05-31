@@ -46,6 +46,14 @@ const state = {
   cancelRequested: false,
   attachmentDragDepth: 0,
   pendingScreenshotAction: false,
+  voiceRecording: {
+    active: false,
+    recorder: null,
+    chunks: [],
+    stream: null,
+    startedAt: 0
+  },
+  speakingMessage: null,
   chatAbortController: null,
   stepBudget: {
     maxSteps: 3,
@@ -59,6 +67,7 @@ const state = {
 const MAX_ATTACHMENT_COUNT = 12;
 const TEXT_ATTACHMENT_MAX_BYTES = 76 * 1024;
 const IMAGE_ATTACHMENT_MAX_BYTES = 2 * 1024 * 1024;
+const AUDIO_ATTACHMENT_MAX_BYTES = 8 * 1024 * 1024;
 
 const els = {
   connectionStatus: document.querySelector("#connectionStatus"),
@@ -128,6 +137,7 @@ const els = {
   trustReasons: document.querySelector("#trustReasons"),
   attachmentInput: document.querySelector("#attachmentInput"),
   attachFiles: document.querySelector("#attachFiles"),
+  voicePrompt: document.querySelector("#voicePrompt"),
   attachmentQueue: document.querySelector("#attachmentQueue"),
   messages: document.querySelector("#messages"),
   planPanel: document.querySelector("#planPanel"),
@@ -227,6 +237,9 @@ function bindEvents() {
   }
   els.newNote.addEventListener("click", createNewNote);
   els.attachFiles.addEventListener("click", () => els.attachmentInput.click());
+  if (els.voicePrompt) {
+    els.voicePrompt.addEventListener("click", toggleVoicePrompt);
+  }
   els.attachmentInput.addEventListener("change", attachSelectedFiles);
   bindComposerAttachmentIntake();
   els.useRecipe.addEventListener("click", applySelectedRecipe);
@@ -1014,9 +1027,13 @@ function updateRecipeHint() {
   els.recipeHint.textContent = `${recipe.description}${typed}${tags}`;
 }
 
-function applySelectedRecipe() {
+async function applySelectedRecipe() {
   const recipe = selectedRecipe();
   if (!recipe) {
+    return;
+  }
+  if (recipe.action && recipe.action.type === "audio-transcribe") {
+    await runAudioTranscriptionRecipe(recipe);
     return;
   }
 
@@ -1024,6 +1041,45 @@ function applySelectedRecipe() {
   resizePrompt();
   els.prompt.focus();
   addTrail("recipe", recipe.structuredOutput ? `Loaded typed recipe ${recipe.title}` : `Loaded ${recipe.title}`);
+}
+
+async function runAudioTranscriptionRecipe(recipe) {
+  const audioPath = firstSelectedAudioPath();
+  if (!audioPath) {
+    els.workspaceStatus.textContent = "Select or attach an audio file first";
+    addTrail("audio", "Audio recipe needs a selected audio file");
+    els.attachmentInput.click();
+    return;
+  }
+
+  els.useRecipe.disabled = true;
+  els.workspaceStatus.textContent = "Transcribing audio";
+  addTrail("audio", `Transcribing ${audioPath}`);
+  try {
+    const outputPath = `${recipe.action.outputDir || "transcripts"}/${safeBaseName(audioPath)}.md`;
+    const result = await postJson(recipe.action.endpoint || "/api/audio/transcribe", {
+      path: audioPath,
+      outputPath,
+      language: "auto"
+    });
+    state.selectedFiles.add(result.output.path);
+    els.prompt.value = `${recipe.prompt}\n\nTranscript file: ${result.output.path}`;
+    resizePrompt();
+    await refreshFiles();
+    await refreshReceipts();
+    renderFiles();
+    renderTrustScore();
+    addTrail("audio", `Transcript saved ${result.output.path}`);
+    if (result.receipt && result.receipt.path) {
+      addTrail("receipt", `Audio receipt ${result.receipt.path}`);
+    }
+    els.prompt.focus();
+  } catch (error) {
+    addTrail("error", error.message);
+  } finally {
+    els.useRecipe.disabled = false;
+    els.workspaceStatus.textContent = `${state.selectedFiles.size} selected`;
+  }
 }
 
 function selectedRecipe() {
@@ -1636,7 +1692,7 @@ async function attachFiles(files, source = "picker") {
     state.attachments = skipped.map((item) => ({ ...item, status: "skipped" }));
     renderAttachments();
     addTrail("attachment", "No attachment saved");
-    return;
+    return { ok: false, saved: [], skipped };
   }
 
   state.attachments = payload.map((file) => ({ name: file.name, status: "saving" })).concat(skipped.map((item) => ({ ...item, status: "skipped" })));
@@ -1648,11 +1704,14 @@ async function attachFiles(files, source = "picker") {
       if (item.visionPath) {
         state.selectedFiles.add(item.visionPath);
       }
+      if (item.audioPath) {
+        state.selectedFiles.add(item.audioPath);
+      }
     }
     state.attachments = [
       ...(result.saved || []).map((item) => ({
         name: item.originalName || item.path,
-        path: item.visionPath ? `${item.contextPath || item.path} + ${item.visionPath}` : item.contextPath || item.path,
+        path: [item.contextPath || item.path, item.visionPath, item.audioPath].filter(Boolean).join(" + "),
         status: "saved",
         binary: item.encoding === "base64"
       })),
@@ -1672,10 +1731,12 @@ async function attachFiles(files, source = "picker") {
         addTrail("warning", "No screenshot image was attached");
       }
     }
+    return result;
   } catch (error) {
     state.attachments = payload.map((file) => ({ name: file.name, status: "error", error: error.message })).concat(skipped.map((item) => ({ ...item, status: "skipped" })));
     renderAttachments();
     addTrail("error", error.message);
+    return { ok: false, saved: [], skipped, error: error.message };
   }
 }
 
@@ -1688,13 +1749,21 @@ function attachmentDisplayName(file, source = "picker", index = 0) {
 }
 
 function attachmentMaxBytes(file) {
-  return isImageAttachment(file) ? IMAGE_ATTACHMENT_MAX_BYTES : TEXT_ATTACHMENT_MAX_BYTES;
+  if (isImageAttachment(file)) return IMAGE_ATTACHMENT_MAX_BYTES;
+  if (isAudioAttachment(file)) return AUDIO_ATTACHMENT_MAX_BYTES;
+  return TEXT_ATTACHMENT_MAX_BYTES;
 }
 
 function isImageAttachment(file) {
   const type = String(file.type || "").toLowerCase();
   const name = String(file.name || "").toLowerCase();
   return type.startsWith("image/") || [".png", ".jpg", ".jpeg", ".tif", ".tiff", ".bmp", ".webp"].some((extension) => name.endsWith(extension));
+}
+
+function isAudioAttachment(file) {
+  const type = String(file.type || "").toLowerCase();
+  const name = String(file.name || "").toLowerCase();
+  return type.startsWith("audio/") || type === "video/webm" || type === "video/mp4" || [".wav", ".mp3", ".m4a", ".aac", ".flac", ".ogg", ".opus", ".webm", ".mp4", ".mov"].some((extension) => name.endsWith(extension));
 }
 
 function imageExtensionForType(type) {
@@ -1710,7 +1779,143 @@ function imageExtensionForType(type) {
 function attachmentSourceLabel(source) {
   if (source === "drop") return "dropped file(s)";
   if (source === "paste") return "pasted image(s)";
+  if (source === "voice") return "voice prompt";
   return "attachment(s)";
+}
+
+async function toggleVoicePrompt() {
+  if (state.voiceRecording.active) {
+    stopVoicePromptRecording();
+  } else {
+    await startVoicePromptRecording();
+  }
+}
+
+async function startVoicePromptRecording() {
+  if (state.busy || state.planning) {
+    return;
+  }
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia || typeof MediaRecorder === "undefined") {
+    addTrail("error", "Browser voice recording is not available");
+    return;
+  }
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    const mimeType = preferredAudioMimeType();
+    const recorder = new MediaRecorder(stream, mimeType ? { mimeType } : undefined);
+    state.voiceRecording = {
+      active: true,
+      recorder,
+      chunks: [],
+      stream,
+      startedAt: Date.now()
+    };
+    recorder.addEventListener("dataavailable", (event) => {
+      if (event.data && event.data.size) {
+        state.voiceRecording.chunks.push(event.data);
+      }
+    });
+    recorder.addEventListener("stop", () => {
+      finishVoicePromptRecording(recorder, state.voiceRecording.chunks.slice(), stream);
+    }, { once: true });
+    recorder.start();
+    setVoiceRecordingUi(true);
+    els.workspaceStatus.textContent = "Recording voice prompt";
+    addTrail("audio", "Voice prompt recording started");
+  } catch (error) {
+    addTrail("error", `Voice recording failed: ${error.message}`);
+    setVoiceRecordingUi(false);
+  }
+}
+
+function stopVoicePromptRecording() {
+  const recorder = state.voiceRecording.recorder;
+  if (recorder && recorder.state !== "inactive") {
+    recorder.stop();
+  }
+}
+
+async function finishVoicePromptRecording(recorder, chunks, stream) {
+  stream.getTracks().forEach((track) => track.stop());
+  state.voiceRecording = { active: false, recorder: null, chunks: [], stream: null, startedAt: 0 };
+  setVoiceRecordingUi(false);
+  if (!chunks.length) {
+    addTrail("warning", "Voice prompt had no audio");
+    return;
+  }
+  const type = recorder.mimeType || preferredAudioMimeType() || "audio/webm";
+  const blob = new Blob(chunks, { type });
+  if (blob.size > AUDIO_ATTACHMENT_MAX_BYTES) {
+    addTrail("error", `Voice prompt is too large (${formatBytes(blob.size)})`);
+    return;
+  }
+  const stamp = new Date().toISOString().replace(/[:.]/g, "-");
+  const file = new File([blob], `voice-prompt-${stamp}.${audioExtensionForType(type)}`, { type });
+  els.workspaceStatus.textContent = "Saving voice prompt";
+  const attached = await attachFiles([file], "voice");
+  const savedAudio = (attached.saved || []).find((item) => item.audioPath);
+  if (savedAudio && savedAudio.audioPath) {
+    await transcribeVoicePrompt(savedAudio.audioPath);
+  }
+}
+
+async function transcribeVoicePrompt(audioPath) {
+  els.workspaceStatus.textContent = "Transcribing voice prompt";
+  addTrail("audio", "Transcribing voice prompt locally");
+  try {
+    const outputPath = `transcripts/${safeBaseName(audioPath)}.md`;
+    const result = await postJson("/api/audio/transcribe", {
+      path: audioPath,
+      outputPath,
+      language: "auto"
+    });
+    state.selectedFiles.add(result.output.path);
+    const transcript = await getJson(`/api/files/content?path=${encodeURIComponent(result.output.path)}`);
+    els.prompt.value = appendPromptText(els.prompt.value, extractTranscriptText(transcript.content));
+    resizePrompt();
+    await refreshFiles();
+    await refreshReceipts();
+    renderFiles();
+    renderTrustScore();
+    els.prompt.focus();
+    addTrail("audio", `Voice transcript ready ${result.output.path}`);
+  } catch (error) {
+    addTrail("error", error.message);
+  }
+}
+
+function setVoiceRecordingUi(active) {
+  if (!els.voicePrompt) return;
+  els.voicePrompt.classList.toggle("recording", active);
+  els.voicePrompt.setAttribute("aria-label", active ? "Stop voice recording" : "Record voice prompt");
+  els.voicePrompt.title = active ? "Stop voice recording" : "Record voice prompt";
+  updateSendState();
+}
+
+function preferredAudioMimeType() {
+  const types = ["audio/webm;codecs=opus", "audio/webm", "audio/mp4", "audio/wav"];
+  return types.find((type) => typeof MediaRecorder !== "undefined" && MediaRecorder.isTypeSupported(type)) || "";
+}
+
+function audioExtensionForType(type) {
+  const normalized = String(type || "").toLowerCase();
+  if (normalized.includes("mp4")) return "m4a";
+  if (normalized.includes("wav")) return "wav";
+  if (normalized.includes("ogg")) return "ogg";
+  return "webm";
+}
+
+function appendPromptText(current, next) {
+  const cleaned = String(next || "").trim();
+  if (!cleaned) return current;
+  return current && current.trim() ? `${current.trim()}\n\n${cleaned}` : cleaned;
+}
+
+function extractTranscriptText(markdown) {
+  const text = String(markdown || "");
+  const marker = "## Transcript";
+  const index = text.indexOf(marker);
+  return index === -1 ? text : text.slice(index + marker.length).trim();
 }
 
 function hasSelectedVisionFile() {
@@ -1720,6 +1925,25 @@ function hasSelectedVisionFile() {
 function isVisionPath(filePath) {
   const path = String(filePath || "").toLowerCase();
   return [".png", ".jpg", ".jpeg", ".tif", ".tiff", ".bmp", ".webp"].some((extension) => path.endsWith(extension));
+}
+
+function firstSelectedAudioPath() {
+  return Array.from(state.selectedFiles || []).find((filePath) => isAudioPath(filePath)) || "";
+}
+
+function isAudioPath(filePath) {
+  const value = String(filePath || "").toLowerCase();
+  return [".wav", ".mp3", ".m4a", ".aac", ".flac", ".ogg", ".opus", ".webm", ".mp4", ".mov"].some((extension) => value.endsWith(extension));
+}
+
+function safeBaseName(filePath) {
+  return String(filePath || "audio")
+    .split("/")
+    .pop()
+    .replace(/\.[a-z0-9]+$/i, "")
+    .replace(/[^a-z0-9._-]+/gi, "-")
+    .replace(/-+/g, "-")
+    .slice(0, 80) || "audio";
 }
 
 function renderAttachments() {
@@ -2551,7 +2775,7 @@ function parseSseChunk(chunk) {
 function renderMessages() {
   els.messages.innerHTML = "";
 
-  for (const message of state.messages) {
+  for (const [index, message] of state.messages.entries()) {
     const row = document.createElement("article");
     row.className = `message ${message.role}`;
 
@@ -2569,6 +2793,10 @@ function renderMessages() {
       caret.className = "stream-caret";
       caret.setAttribute("aria-hidden", "true");
       bubble.appendChild(caret);
+    }
+
+    if (message.role === "assistant" && message.content && message.content.trim()) {
+      bubble.appendChild(renderMessageActions(message, index));
     }
 
     if (message.events && message.events.length) {
@@ -2592,6 +2820,48 @@ function renderMessages() {
   }
 
   els.messages.scrollTop = els.messages.scrollHeight;
+}
+
+function renderMessageActions(message, index) {
+  const actions = document.createElement("div");
+  actions.className = "message-actions";
+  const speak = document.createElement("button");
+  speak.type = "button";
+  speak.className = "message-action";
+  speak.textContent = state.speakingMessage === index ? "Speaking" : "Speak";
+  speak.disabled = state.speakingMessage === index;
+  speak.addEventListener("click", () => speakAssistantMessage(message, index, speak));
+  actions.appendChild(speak);
+  return actions;
+}
+
+async function speakAssistantMessage(message, index, button) {
+  const text = stripMarkdownForSpeech(message.content || "");
+  if (!text) {
+    return;
+  }
+  const originalLabel = button.textContent;
+  state.speakingMessage = index;
+  button.disabled = true;
+  button.textContent = "Speaking";
+  addTrail("audio", "Creating local speech audio");
+  try {
+    const result = await postJson("/api/audio/speak", { text });
+    const audio = new Audio(result.audioUrl);
+    audio.addEventListener("ended", () => {
+      state.speakingMessage = null;
+      renderMessages();
+    }, { once: true });
+    await audio.play();
+    if (result.receipt && result.receipt.path) {
+      addTrail("receipt", `Speech receipt ${result.receipt.path}`);
+    }
+  } catch (error) {
+    state.speakingMessage = null;
+    button.disabled = false;
+    button.textContent = originalLabel;
+    addTrail("error", error.message);
+  }
 }
 
 function renderPreviewEvent(item) {
@@ -2723,6 +2993,17 @@ function formatMessage(text) {
     .join("");
 }
 
+function stripMarkdownForSpeech(text) {
+  return String(text || "")
+    .replace(/```[\s\S]*?```/g, " ")
+    .replace(/`([^`]+)`/g, "$1")
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1")
+    .replace(/[#*_>~]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, 8000);
+}
+
 function resizePrompt() {
   els.prompt.style.height = "auto";
   els.prompt.style.height = `${Math.min(els.prompt.scrollHeight, 180)}px`;
@@ -2734,6 +3015,9 @@ function updateSendState() {
   els.planButton.disabled = state.busy || state.planning || !els.prompt.value.trim();
   if (els.screenshotAction) {
     els.screenshotAction.disabled = state.busy || state.planning;
+  }
+  if (els.voicePrompt) {
+    els.voicePrompt.disabled = (state.busy || state.planning) && !state.voiceRecording.active;
   }
   els.stepBudgetSelect.disabled = state.busy || state.planning;
   els.stopButton.disabled = !state.busy || state.cancelRequested;

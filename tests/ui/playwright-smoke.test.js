@@ -24,6 +24,7 @@ async function main() {
   assert.match(html, /Attach/);
   assert.match(html, /dropHint/);
   assert.match(html, /screenshotAction/);
+  assert.match(html, /voicePrompt/);
   assert.match(html, /Diff Review/);
   assert.match(app, /renderPendingChanges/);
   assert.match(app, /\/api\/attachments/);
@@ -34,6 +35,10 @@ async function main() {
   assert.match(app, /vision-ready model/);
   assert.match(app, /generateScreenshotActionPlan/);
   assert.match(app, /screenshotToActionPrompt/);
+  assert.match(app, /startVoicePromptRecording/);
+  assert.match(app, /runAudioTranscriptionRecipe/);
+  assert.match(app, /speakAssistantMessage/);
+  assert.match(app, /\/api\/audio\/speak/);
   assert.match(foundation, /\/api\/foundation/);
   assert.match(product, /\/api\/search\/chunks/);
   assert.match(product, /\/api\/replay\/plan/);

@@ -57,7 +57,7 @@ A single dispatcher routes the three model primitives to the active backend:
 - **Generation** — `generateCompletion()` → Ollama `/api/generate` or OpenAI `/v1/chat/completions`.
 - **Vision input** — selected, dragged, or pasted workspace images are attached to Ollama chat/generate as `images` arrays and to OpenAI-compatible chat as `image_url` content parts.
 - **Screenshot-to-action planning** — `/api/agent/plan` can receive those same local image payloads, so screenshots can be described and converted into editable plans before tool execution.
-- **Speech-to-text** — `/api/audio/transcribe` is intentionally model-backend independent: it shells out to a local whisper.cpp-compatible command (`AGENTTRAIL_TRANSCRIBE_COMMAND`) and writes searchable transcript sidecars/receipts before the transcript is used as agent context.
+- **Local audio** — `/api/audio/transcribe` and `/api/audio/speak` are intentionally model-backend independent: they shell out to local whisper.cpp-compatible STT (`AGENTTRAIL_TRANSCRIBE_COMMAND`) and TTS (`AGENTTRAIL_TTS_COMMAND`) tools, then write transcript/speech artifacts and receipts before the output is used as agent context or playback.
 - **Vision capability detection** — `/api/status` scores model names for image readiness, and `/api/models/vision-capability?model=...&refresh=1` can probe a backend with a tiny local image payload.
 - **Model listing** — `fetchOllamaModels()` → Ollama `/api/tags` or OpenAI `/v1/models`.
 - **Embeddings** — `fetchOllamaEmbedding()` → Ollama `/api/embed` or OpenAI `/v1/embeddings`, with a local-vector fallback when no embedding model is available.

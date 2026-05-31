@@ -32,7 +32,9 @@ async function main() {
       WORKSPACE_ROOT: workspaceRoot,
       OLLAMA_HOST: "http://127.0.0.1:1",
       AGENTTRAIL_TRANSCRIBE_COMMAND: process.execPath,
-      AGENTTRAIL_TRANSCRIBE_ARGS: "tests/fixtures/mock-transcribe.js {{input}} {{language}} {{prompt}}"
+      AGENTTRAIL_TRANSCRIBE_ARGS: "tests/fixtures/mock-transcribe.js {{input}} {{language}} {{prompt}}",
+      AGENTTRAIL_TTS_COMMAND: process.execPath,
+      AGENTTRAIL_TTS_ARGS: "tests/fixtures/mock-tts.js {{output}} {{textFile}} {{voice}}"
     },
     stdio: ["ignore", "pipe", "pipe"]
   });
@@ -44,6 +46,18 @@ async function main() {
 
     const unsupported = await rawPost("/api/audio/transcribe", { path: "notes.txt" });
     assert.equal(unsupported.status, 400);
+
+    const audioAttachment = await post("/api/attachments", {
+      files: [{
+        name: "voice-note.webm",
+        type: "audio/webm",
+        encoding: "base64",
+        content: Buffer.from("fake browser voice bytes").toString("base64")
+      }]
+    });
+    assert.equal(audioAttachment.ok, true);
+    assert.match(audioAttachment.saved[0].audioPath, /^attachments\//);
+    assert.equal(audioAttachment.saved[0].transcriptionReady, true);
 
     const transcription = await post("/api/audio/transcribe", {
       path: "audio/meeting.wav",
@@ -68,6 +82,28 @@ async function main() {
     assert.match(receipt.content, /Operation: audio-transcribe/);
     assert.match(receipt.content, /Transcription engine:/);
     assert.match(receipt.content, /Transcript characters:/);
+
+    const speech = await post("/api/audio/speak", {
+      text: "Read this local answer aloud.",
+      voice: "TestVoice",
+      format: "aiff"
+    });
+    assert.equal(speech.ok, true);
+    assert.match(speech.output.path, /^audio\/speech\/speech-/);
+    assert.match(speech.audioUrl, /^\/api\/files\/raw\?path=/);
+    assert.match(speech.receipt.path, /^receipts\/ingestion\//);
+    const speechRaw = await rawRequest("GET", speech.audioUrl);
+    assert.equal(speechRaw.status, 200);
+    assert.match(speechRaw.text, /FAKEAIFF/);
+    const speechReceipt = await get(`/api/files/content?path=${encodeURIComponent(speech.receipt.path)}`);
+    assert.match(speechReceipt.content, /Operation: audio-speak/);
+    assert.match(speechReceipt.content, /Speech engine:/);
+
+    const recipes = await get("/api/recipes");
+    const audioRecipe = recipes.recipes.find((recipe) => recipe.id === "audio-transcription");
+    assert.equal(Boolean(audioRecipe), true);
+    assert.equal(audioRecipe.action.type, "audio-transcribe");
+    assert.equal(audioRecipe.action.endpoint, "/api/audio/transcribe");
   } finally {
     child.kill();
   }

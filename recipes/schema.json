@@ -46,6 +46,24 @@
     },
     "outputSchema": {
       "type": "object"
+    },
+    "action": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["audio-transcribe"]
+        },
+        "endpoint": {
+          "type": "string",
+          "maxLength": 120
+        },
+        "outputDir": {
+          "type": "string",
+          "maxLength": 120
+        }
+      }
     }
   }
 }

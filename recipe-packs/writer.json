@@ -4,6 +4,7 @@
   "description": "Writing workflows for user docs, release notes, README polish, changelogs, and positioning.",
   "recipes": [
     "user-docs",
+    "audio-transcription",
     "release-notes",
     "extract-tasks-json",
     "readme-polish",

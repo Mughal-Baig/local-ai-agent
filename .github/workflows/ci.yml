@@ -19,6 +19,7 @@ jobs:
       - run: node --check src/tool-schemas.js
       - run: node --check src/document-ingestion.js
       - run: node --check src/audio-transcription.js
+      - run: node --check tests/fixtures/mock-tts.js
       - run: node --check scripts/smoke-test.js
       - run: node --check scripts/evaluate-agenttrail.js
       - run: node tests/unit/foundation.test.js

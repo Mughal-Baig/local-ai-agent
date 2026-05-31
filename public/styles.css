@@ -882,6 +882,20 @@ select:hover, .search-input:hover { border-color: var(--line-strong); }
 .tool-chip.error { border-color: #ecd2c8; background: var(--rose-soft); color: #7c3623; }
 .tool-chip.reflection { border-color: #cfe0c6; background: var(--sage-soft); color: #3c5238; }
 .tool-chip.memory { border-color: #d7c7e8; background: #f1eaf6; color: #54386a; }
+.message-actions { display: flex; gap: 8px; margin-top: 12px; }
+.message-action {
+  min-height: 28px;
+  padding: 0 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--ink-soft);
+  font-size: 0.74rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+.message-action:hover { border-color: var(--clay); color: var(--clay-deep); }
+.message-action:disabled { color: var(--faint); cursor: wait; }
 .memory-suggestion button, #memorySuggestions [data-action="save-all"] {
   justify-self: end;
   border: 1px solid var(--line);
@@ -1253,7 +1267,9 @@ textarea:focus, select:focus, input:focus, button:focus-visible {
   min-height: 26px; max-height: 200px; padding: 9px 4px; line-height: 1.5; font-size: 0.96rem; color: var(--ink);
 }
 .composer #prompt:focus { outline: none; border: 0; box-shadow: none; }
-.composer .attach-btn { align-self: flex-end; margin-bottom: 2px; }
+.composer .attach-btn, .composer .voice-btn { align-self: flex-end; margin-bottom: 2px; }
+.composer .voice-btn.recording { color: #fff; background: var(--rose); border-color: var(--rose); box-shadow: 0 0 0 3px rgba(166,82,56,0.16); }
+.composer .voice-btn.recording svg { stroke: currentColor; }
 .composer .run-stop { align-self: flex-end; margin-bottom: 2px; color: var(--rose); }
 .composer .run-stop[disabled] { display: none; }
 .composer #sendButton {

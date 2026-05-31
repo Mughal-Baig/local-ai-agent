@@ -1,0 +1,12 @@
+{
+  "id": "audio-transcription",
+  "title": "Audio Transcription",
+  "description": "Transcribe a selected local audio file, save a searchable transcript, and create an ingestion receipt.",
+  "tags": ["audio", "transcription", "receipt", "local"],
+  "action": {
+    "type": "audio-transcribe",
+    "endpoint": "/api/audio/transcribe",
+    "outputDir": "transcripts"
+  },
+  "prompt": "Use the selected audio transcript as context. Summarize the conversation or recording, list decisions, action items, owners if present, open questions, and follow-up risks. Cite the transcript file path you used."
+}

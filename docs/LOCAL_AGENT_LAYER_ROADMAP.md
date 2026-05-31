@@ -49,6 +49,7 @@ This section tracks the concrete work shipped after the roadmap was publicly ref
 | Codex continuation | T068 | Added vision-model capability detection with model-name heuristics, optional tiny-image backend probe at `/api/models/vision-capability`, Vision scores in the UI/model benchmarks, run warnings when image payloads target clearly non-vision models, and mock Ollama tests. |
 | Codex continuation | T067 | Added screenshot-to-action planning: a composer button opens screenshot intake, attaches selected image pixels to `/api/agent/plan`, adds vision metadata/warnings to planner prompts and receipts, and turns screenshots into editable plans before tool execution. |
 | Codex continuation | T070 | Added local speech-to-text through `/api/audio/transcribe`, a whisper.cpp-compatible command adapter, audio attachment metadata, searchable transcript sidecars, ingestion receipts, route/eval/CI coverage, and mock-command tests. |
+| Codex continuation | T071-T073 | Added voice prompt recording in the composer, local response text-to-speech through `/api/audio/speak`, raw local audio playback, and an actionable Audio Transcription recipe that transcribes selected audio into searchable transcript sidecars with receipts. |
 
 ### Verified After These Passes
 
@@ -58,7 +59,7 @@ This section tracks the concrete work shipped after the roadmap was publicly ref
 
 ### Best Continuation Points
 
-- T071: Voice prompt input in the UI.
+- T074: Optional local image-generation backend adapter.
 
 ---
 
@@ -164,9 +165,9 @@ This section tracks the concrete work shipped after the roadmap was publicly ref
 
 ### Epic I — Audio
 - [x] T070 Local speech-to-text (whisper.cpp integration)
-- [ ] T071 Voice prompt input in the UI
-- [ ] T072 Local text-to-speech for responses
-- [ ] T073 Audio file transcription recipe + receipt
+- [x] T071 Voice prompt input in the UI
+- [x] T072 Local text-to-speech for responses
+- [x] T073 Audio file transcription recipe + receipt
 
 ### Epic J — Image generation (optional)
 - [ ] T074 Optional local image-gen backend adapter (SD/Flux servers)
@@ -382,16 +383,16 @@ This section tracks the concrete work shipped after the roadmap was publicly ref
 4. We expand an epic's tasks into finer sub-tasks (toward 1000) only when we start that epic — so the plan stays honest and current.
 5. We re-mark `[x]` here as we go; this file is the single source of truth for the campaign.
 
-**Next up:** continue Phase 3 audio with voice prompt input in the UI.
+**Next up:** start Phase 3 image generation with an optional local backend adapter.
 
 ## Status & bug sweep (latest)
 
-- Progress: **72 tasks done**, 125 open (across Phases 1-10). Phase 1 (agent reliability) is complete; Phase 2 Epic E/F search foundation complete (T044-T058 done except T044 remains hardening umbrella), Epic G document ingestion is complete, Phase 3 vision is complete, and Phase 3 audio now has local speech-to-text with searchable transcript sidecars and receipts.
+- Progress: **75 tasks done**, 122 open (across Phases 1-10). Phase 1 (agent reliability) is complete; Phase 2 Epic E/F search foundation complete (T044-T058 done except T044 remains hardening umbrella), Epic G document ingestion is complete, Phase 3 vision is complete, and Phase 3 audio is complete with local speech-to-text, voice prompt input, response TTS, searchable transcript sidecars, and receipts.
 - Focused test suite green: unit, document extraction, API integration, smoke, repo eval, and release checksums. All touched source files pass `node --check`.
 - **Bug fixed:** `listWorkspaceFiles` only skipped `.DS_Store`, so internal `.agenttrail/*` state (logs, store, search index, pending-run) was being walked, indexed, and returned in search — adding noise and per-request churn to the index. Now excludes `.agenttrail/`. Verified against smoke, api, search-incremental, search-chunking, and eval:search.
 - Known minor item: a couple of integration tests assert relative/invariant counts (not exact) because the workspace can still gain legit files (e.g. `memory/*`) between calls — intentional, not a bug.
 
-Next code target: T071 voice prompt input in the UI.
+Next code target: T074 optional local image-generation backend adapter.
 
 ---
 

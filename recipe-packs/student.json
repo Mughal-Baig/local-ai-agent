@@ -5,6 +5,7 @@
   "recipes": [
     "workspace-brief",
     "local-rag-brief",
+    "audio-transcription",
     "meeting-notes",
     "extract-tasks-json",
     "extract-table-json",
