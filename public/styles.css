@@ -1265,11 +1265,13 @@ textarea:focus, select:focus, input:focus, button:focus-visible {
 .composer #sendButton:hover { background: var(--clay-deep); }
 .composer #sendButton:disabled { background: #c9c3b6; cursor: not-allowed; }
 
-.composer-tools { display: flex; align-items: center; gap: 12px; margin-top: 9px; padding: 0 8px; }
+.composer-tools { display: flex; align-items: center; flex-wrap: wrap; gap: 10px 12px; margin-top: 9px; padding: 0 8px; }
 .ct-item { display: inline-flex; align-items: center; gap: 6px; font-size: 0.74rem; color: var(--muted); font-weight: 600; }
 .composer-tools #stepBudgetSelect { width: auto; min-height: 30px; padding: 0 8px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); font-size: 0.78rem; }
 .ghost-btn { padding: 6px 11px; border: 1px solid var(--line); border-radius: 8px; background: transparent; color: var(--ink-soft); font-size: 0.78rem; font-weight: 600; cursor: pointer; transition: all 0.15s ease; }
 .ghost-btn:hover { border-color: var(--clay); color: var(--clay-deep); }
+.ghost-btn.icon-ghost { display: inline-flex; align-items: center; gap: 6px; }
+.ghost-btn.icon-ghost svg { width: 14px; height: 14px; }
 .composer-hint { margin-left: auto; font-size: 0.72rem; color: var(--faint); }
 
 /* ---- Plan panel + resume banner sit centered in the column ---- */

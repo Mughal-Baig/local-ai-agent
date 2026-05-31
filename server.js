@@ -1113,23 +1113,47 @@ async function handleAgentPlan(req, res) {
   }
 
   const model = String(body.model || DEFAULT_MODEL).trim() || DEFAULT_MODEL;
-  const prompt = await buildPlannerPrompt(messages, selectedFiles, permissions, securityMode, stepBudget);
+  const visionContext = await collectVisionImages(selectedFiles);
+  const status = await fetchOllamaModels();
+  const selectedModelMeta = status.models.find((item) => item.name === model) || { name: model, size: 0 };
+  const selectedVisionCapability = visionModelCapability(selectedModelMeta);
+  if (visionContext.images.length && selectedVisionCapability.supported === false && selectedVisionCapability.confidence >= 0.7) {
+    visionContext.warnings.push(`Selected model "${model}" does not look vision-capable: ${selectedVisionCapability.reason}`);
+  }
+  const prompt = await buildPlannerPrompt(messages, selectedFiles, permissions, securityMode, stepBudget, visionContext);
   const result = await generateStructuredOutput(model, prompt, descriptor, {
-    temperature: typeof body.temperature === "number" ? body.temperature : 0
+    temperature: typeof body.temperature === "number" ? body.temperature : 0,
+    images: visionContext.images
   });
+  result.vision = {
+    count: visionContext.images.length,
+    warnings: visionContext.warnings,
+    model: {
+      name: model,
+      supported: selectedVisionCapability.supported,
+      confidence: selectedVisionCapability.confidence,
+      reason: selectedVisionCapability.reason
+    }
+  };
   await STORE.append("agent-plan", {
     model,
     ok: result.ok,
     stepCount: result.output && Array.isArray(result.output.steps) ? result.output.steps.length : 0,
-    budget: stepBudget
+    budget: stepBudget,
+    visionImages: visionContext.images.length
   });
   sendJson(res, result.ok ? 200 : 422, result);
 }
 
-async function buildPlannerPrompt(messages, selectedFiles, permissions, securityMode, stepBudget = null) {
+async function buildPlannerPrompt(messages, selectedFiles, permissions, securityMode, stepBudget = null, visionContext = null) {
   const fileBlocks = [];
   for (const filePath of selectedFiles) {
     try {
+      if (isImageDocument(filePath, "")) {
+        const normalized = normalizeRelativePath(filePath);
+        fileBlocks.push(`--- ${normalized} ---\n[Image selected for screenshot-to-action planning. Raw pixels are attached separately when the backend supports local vision models.]`);
+        continue;
+      }
       const file = await readWorkspaceFile(filePath, MAX_PROMPT_FILE_BYTES);
       fileBlocks.push(`--- ${file.path} ---\n${file.content}`);
     } catch (error) {
@@ -1157,6 +1181,11 @@ async function buildPlannerPrompt(messages, selectedFiles, permissions, security
     "",
     "Selected file context:",
     fileBlocks.length ? fileBlocks.join("\n\n") : "No files selected.",
+    "",
+    "Screenshot-to-action context:",
+    formatVisionContextBlock(visionContext),
+    "",
+    "If images are selected, first account for the visible UI/state in the screenshot, then plan the safest next actions.",
     "",
     "Return a plan the user can edit before approval."
   ].join("\n");
@@ -4175,6 +4204,19 @@ function visionImageMediaType(filePath) {
   }[ext] || "image/png";
 }
 
+function formatVisionContextBlock(visionContext) {
+  const images = visionContext && Array.isArray(visionContext.images) ? visionContext.images : [];
+  const warnings = visionContext && Array.isArray(visionContext.warnings) ? visionContext.warnings : [];
+  if (!images.length && !warnings.length) {
+    return "No vision images selected.";
+  }
+  return [
+    `Selected vision images: ${images.length}`,
+    ...images.map((image, index) => `- Image ${index + 1}: ${image.path} (${image.mediaType}, ${image.size} bytes, sha256 ${image.hash.slice(0, 12)})`),
+    ...warnings.map((warning) => `- Warning: ${warning}`)
+  ].join("\n");
+}
+
 async function buildAgentPrompt(messages, selectedFiles, toolHistory, permissions, securityMode, approvedPlan = null, stepBudget = null, visionContext = null) {
   const selectedFileBlocks = [];
   const memoryScopes = await Promise.all(["global", "project"].map(async (scope) => {
@@ -4246,15 +4288,7 @@ async function buildAgentPrompt(messages, selectedFiles, toolHistory, permission
   const projectMemoryBudget = Math.max(240, MEMORY_PROMPT_CHARS - globalMemoryBudget);
   const globalStructuredMemoryBlock = formatStructuredMemoryForPrompt(globalMemory.structured, memoryQuery, globalMemoryBudget);
   const projectStructuredMemoryBlock = formatStructuredMemoryForPrompt(projectMemory.structured, memoryQuery, projectMemoryBudget);
-  const visionImagesForPrompt = visionContext && Array.isArray(visionContext.images) ? visionContext.images : [];
-  const visionWarningsForPrompt = visionContext && Array.isArray(visionContext.warnings) ? visionContext.warnings : [];
-  const visionBlock = visionImagesForPrompt.length || visionWarningsForPrompt.length
-    ? [
-        `Selected vision images: ${visionImagesForPrompt.length}`,
-        ...visionImagesForPrompt.map((image, index) => `- Image ${index + 1}: ${image.path} (${image.mediaType}, ${image.size} bytes, sha256 ${image.hash.slice(0, 12)})`),
-        ...visionWarningsForPrompt.map((warning) => `- Warning: ${warning}`)
-      ].join("\n")
-    : "No vision images selected.";
+  const visionBlock = formatVisionContextBlock(visionContext);
 
   return [
     "You are AgentTrail, a private AI assistant running on the user's computer.",
@@ -4866,6 +4900,7 @@ async function generateStructuredWithOllama(model, prompt, descriptor, options) 
         prompt,
         stream: false,
         format: descriptor.schema,
+        ...(visionImages(options.images).length ? { images: visionImages(options.images).map((image) => image.base64) } : {}),
         keep_alive: OLLAMA_KEEP_ALIVE,
         options: {
           temperature: options.temperature,
@@ -4897,7 +4932,7 @@ async function generateStructuredWithOpenAI(model, prompt, descriptor, options) 
         model,
         messages: [
           { role: "system", content: "Return only JSON that matches the supplied JSON Schema." },
-          { role: "user", content: prompt }
+          openAIUserMessage(prompt, options.images)
         ],
         temperature: options.temperature,
         stream: false,

@@ -95,6 +95,7 @@ Open `http://127.0.0.1:4173`, build the semantic index, ask for a change, review
 - Ollama embedding index using `OLLAMA_EMBED_MODEL=nomic-embed-text`, with local-vector fallback and cached real embeddings keyed by model + content hash
 - First-run setup checklist for Ollama, models, workspace files, recipes, and receipts
 - Attachment picker plus drag/drop and paste image intake that copies local files into `workspace/attachments/`, extracts selectable PDF/DOCX/PPTX/XLSX/HTML/Markdown/code/image text into context notes, and selects image pixels for local vision models
+- Screenshot-to-action flow that turns an attached screenshot into an editable describe-and-plan run before execution
 - Permission toggles for file reads, file writes, write preview mode, and security hardening mode
 - Ollama integration for local models
 - Model capability scoring for coding, tool use, planning, long context, and vision readiness
@@ -247,6 +248,7 @@ When write preview mode is enabled, `write_file` returns a diff preview instead 
 - Local attachments: `/api/attachments` plus browser file picker, drag/drop, and pasted-image intake that saves files into the workspace
 - Document text extraction: `/api/documents/extract`, `/api/documents/ocr`, `/api/documents/ingest-url`, automatic PDF/DOCX/PPTX/XLSX/HTML/Markdown/code/image attachment notes, progress steps, and ingestion receipts for searchable context
 - Vision-model image input: selected, dragged, or pasted PNG/JPEG/TIFF/BMP/WebP files are sent as local image payloads to Ollama vision models and OpenAI-compatible local servers
+- Screenshot-to-action: composer button creates a vision-backed editable plan from the selected screenshot before running tools
 - MCP bridge: [mcp/server.js](mcp/server.js) and [mcp/agenttrail.mcp.json](mcp/agenttrail.mcp.json)
 - Recipe marketplace: [marketplace/recipes.json](marketplace/recipes.json), [recipe-packs](recipe-packs), `/api/packs/import`
 - One-command install surfaces: `bin/agenttrail.js`, [Dockerfile](Dockerfile), [docker-compose.yml](docker-compose.yml), [install.sh](install.sh), [Formula/agenttrail.rb](Formula/agenttrail.rb), [desktop](desktop)

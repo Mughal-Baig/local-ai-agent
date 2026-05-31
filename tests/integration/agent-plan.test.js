@@ -17,10 +17,12 @@ main().catch((error) => {
 });
 
 async function main() {
-  const state = { sawPlanSchema: false, sawApprovedPlan: false };
+  const state = { sawPlanSchema: false, sawApprovedPlan: false, sawVisionPlan: false };
   const mock = startMockOpenAI(mockPort, state);
   const workspaceRoot = await fsp.mkdtemp(path.join(os.tmpdir(), "agenttrail-plan-"));
   await fsp.writeFile(path.join(workspaceRoot, "brief.md"), "Need a safe implementation plan.\n", "utf8");
+  await fsp.mkdir(path.join(workspaceRoot, "screens"), { recursive: true });
+  await fsp.writeFile(path.join(workspaceRoot, "screens", "bug.png"), Buffer.from("fake screenshot bytes"));
 
   const child = spawn(process.execPath, ["server.js"], {
     cwd: projectRoot,
@@ -51,6 +53,17 @@ async function main() {
     assert.equal(plan.output.summary, "Inspect before editing");
     assert.equal(plan.output.steps.length, 2);
     assert.equal(state.sawPlanSchema, true, "planner should request the agent-plan JSON schema");
+
+    const screenshotPlan = await postJson("/api/agent/plan", {
+      model: "mock-model",
+      messages: [{ role: "user", content: "Turn this screenshot into next actions." }],
+      selectedFiles: ["screens/bug.png"],
+      permissions: { readFiles: true, writeFiles: false, previewWrites: true },
+      securityMode: true
+    });
+    assert.equal(screenshotPlan.ok, true);
+    assert.equal(screenshotPlan.vision.count, 1);
+    assert.equal(state.sawVisionPlan, true, "planner should attach screenshot pixels to vision-capable planning");
 
     const text = await streamChat({
       model: "mock-model",
@@ -86,6 +99,11 @@ function startMockOpenAI(port, state) {
 
       if (body.response_format && body.response_format.json_schema && body.response_format.json_schema.name === "agent-plan") {
         state.sawPlanSchema = true;
+        const userContent = body.messages && body.messages[1] && body.messages[1].content;
+        if (Array.isArray(userContent)) {
+          state.sawVisionPlan = userContent.some((part) => part.type === "image_url") &&
+            userContent.some((part) => part.type === "text" && /Screenshot-to-action context/.test(part.text || ""));
+        }
         return json(res, {
           choices: [{
             message: {

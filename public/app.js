@@ -45,6 +45,7 @@ const state = {
   planning: false,
   cancelRequested: false,
   attachmentDragDepth: 0,
+  pendingScreenshotAction: false,
   chatAbortController: null,
   stepBudget: {
     maxSteps: 3,
@@ -133,6 +134,7 @@ const els = {
   planText: document.querySelector("#planText"),
   stepBudgetSelect: document.querySelector("#stepBudgetSelect"),
   planButton: document.querySelector("#planButton"),
+  screenshotAction: document.querySelector("#screenshotAction"),
   stopButton: document.querySelector("#stopButton"),
   resumeBanner: document.querySelector("#resumeBanner"),
   resumeBannerText: document.querySelector("#resumeBannerText"),
@@ -231,6 +233,9 @@ function bindEvents() {
   els.recipeSelect.addEventListener("change", updateRecipeHint);
   els.stepBudgetSelect.addEventListener("change", updateStepBudget);
   els.planButton.addEventListener("click", generatePlan);
+  if (els.screenshotAction) {
+    els.screenshotAction.addEventListener("click", () => generateScreenshotActionPlan());
+  }
   els.stopButton.addEventListener("click", stopCurrentRun);
   if (els.resumeRunButton) {
     els.resumeRunButton.addEventListener("click", resumePendingRun);
@@ -1659,6 +1664,14 @@ async function attachFiles(files, source = "picker") {
     addTrail("attachment", `${(result.saved || []).length} ${attachmentSourceLabel(source)} saved`);
     renderLocalSignals();
     renderTrustScore();
+    if (state.pendingScreenshotAction) {
+      if (hasSelectedVisionFile()) {
+        await generateScreenshotActionPlan({ fromAttachment: true });
+      } else {
+        state.pendingScreenshotAction = false;
+        addTrail("warning", "No screenshot image was attached");
+      }
+    }
   } catch (error) {
     state.attachments = payload.map((file) => ({ name: file.name, status: "error", error: error.message })).concat(skipped.map((item) => ({ ...item, status: "skipped" })));
     renderAttachments();
@@ -1698,6 +1711,15 @@ function attachmentSourceLabel(source) {
   if (source === "drop") return "dropped file(s)";
   if (source === "paste") return "pasted image(s)";
   return "attachment(s)";
+}
+
+function hasSelectedVisionFile() {
+  return Array.from(state.selectedFiles || []).some((filePath) => isVisionPath(filePath));
+}
+
+function isVisionPath(filePath) {
+  const path = String(filePath || "").toLowerCase();
+  return [".png", ".jpg", ".jpeg", ".tif", ".tiff", ".bmp", ".webp"].some((extension) => path.endsWith(extension));
 }
 
 function renderAttachments() {
@@ -1774,6 +1796,37 @@ async function generatePlan() {
     els.workspaceStatus.textContent = `${state.files.length} workspace file(s)`;
     updateSendState();
   }
+}
+
+async function generateScreenshotActionPlan({ fromAttachment = false } = {}) {
+  if (state.busy || state.planning) {
+    return;
+  }
+  if (!hasSelectedVisionFile()) {
+    state.pendingScreenshotAction = true;
+    els.workspaceStatus.textContent = "Attach or paste a screenshot";
+    addTrail("vision", "Waiting for a screenshot image");
+    if (!fromAttachment) {
+      els.attachmentInput.click();
+    }
+    updateSendState();
+    return;
+  }
+
+  state.pendingScreenshotAction = false;
+  els.prompt.value = screenshotToActionPrompt(els.prompt.value.trim());
+  resizePrompt();
+  addTrail("vision", "Requested screenshot-to-action plan");
+  await generatePlan();
+}
+
+function screenshotToActionPrompt(existingPrompt = "") {
+  const base = [
+    "Look at the attached screenshot.",
+    "Describe the visible UI or state, infer what the user is trying to do, identify the likely problem or opportunity, and create a concrete action plan.",
+    "If this is an app or bug screenshot, include what to inspect first, likely files or systems to check, and safe next steps before any edit."
+  ].join(" ");
+  return existingPrompt ? `${base}\n\nUser goal:\n${existingPrompt}` : base;
 }
 
 function renderPlanPanel(plan) {
@@ -2679,6 +2732,9 @@ function resizePrompt() {
 function updateSendState() {
   els.sendButton.disabled = state.busy || state.planning || !els.prompt.value.trim();
   els.planButton.disabled = state.busy || state.planning || !els.prompt.value.trim();
+  if (els.screenshotAction) {
+    els.screenshotAction.disabled = state.busy || state.planning;
+  }
   els.stepBudgetSelect.disabled = state.busy || state.planning;
   els.stopButton.disabled = !state.busy || state.cancelRequested;
   els.approvePlan.disabled = state.busy || state.planning || !els.planText.value.trim();

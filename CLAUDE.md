@@ -49,7 +49,7 @@ Best next Claude tasks:
 
 - Work on docs and UI copy around native tool calling, structured outputs, planner approval, run guardrails, reflection, loop safety, structured memory, memory suggestions, ranked memory retrieval, memory history, scoped memory, markdown-aware chunk citations, hybrid search score parts, reranking, embedding cache, and search evals.
 - Do not rework `server.js` tool-calling, structured-output, planner, run-cancellation, loop/reflection, memory internals, search chunking, hybrid ranking, reranking, embedding cache, search benchmarks, or resumable-run internals unless you also run the matching scripts: `npm run test:tools`, `npm run test:structured`, `npm run test:planner`, `npm run test:guardrails`, `npm run test:reflection`, `npm run test:memory`, `npm run test:memory-suggestions`, `npm run test:memory-retrieval`, `npm run test:memory-history`, `npm run test:memory-scopes`, `npm run test:search`, `npm run test:rerank`, `npm run test:embed-cache`, `npm run test:resume`, `npm run eval:search`, and `npm run bench:search`.
-- Next code target should be T067 screenshot-to-action flow, not the runtime moonshot.
+- Next code target should be T070 local speech-to-text, not the runtime moonshot.
 
 ## Latest Claude Pass
 
@@ -63,7 +63,7 @@ Reviewed Codex's work and continued the roadmap:
 
 - T038 original partial: pending-run snapshot. Added `/api/runs/pending`, `/api/runs/pending/clear`, a resume banner in the UI, route catalog coverage, and `npm run test:resume`. Receipt-derived resume is completed in the latest Codex pass below.
 
-Still open and recommended next: T067 screenshot-to-action flow.
+Still open and recommended next: T070 local speech-to-text with a whisper.cpp-compatible adapter.
 
 ## Latest Claude Pass - UI redesign + handoff completion
 
@@ -204,4 +204,11 @@ Still open and recommended next: T067 screenshot-to-action flow.
 - Chat runs that attach image payloads to a clearly non-vision model add a visible `vision` event/warning, so users can understand bad image answers.
 - Tests/evals/docs updated: mock Ollama model-management test covers heuristic + probe success/failure, API route smoke includes the endpoint, UI smoke checks the Vision surface, repo eval checks the feature, and roadmap/docs were updated.
 
-Next open: T067 screenshot-to-action flow.
+## Latest Codex Pass - Screenshot-to-action flow
+
+- T067 is done: the composer has a Screenshot action button that opens image intake when needed and turns the selected screenshot into an editable plan before execution.
+- `/api/agent/plan` now collects selected vision images, attaches image payloads to Ollama/OpenAI-compatible structured planning calls, adds screenshot context to the planner prompt, and returns `vision` metadata with model-capability warnings.
+- The planner safely treats image files as image context instead of trying to read binary pixels as text, while still preserving path/hash/size metadata for receipts and auditability.
+- Tests/evals/docs updated: planner integration covers image payloads in OpenAI-compatible planning, UI smoke checks the screenshot-action surface, repo eval checks the feature, and README/model-backend/top-1%/roadmap docs were updated.
+
+Next open: T070 local speech-to-text with a whisper.cpp-compatible adapter.
