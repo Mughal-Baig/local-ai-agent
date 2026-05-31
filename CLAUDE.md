@@ -49,7 +49,7 @@ Best next Claude tasks:
 
 - Work on docs and UI copy around native tool calling, structured outputs, planner approval, run guardrails, reflection, loop safety, structured memory, memory suggestions, ranked memory retrieval, memory history, scoped memory, markdown-aware chunk citations, hybrid search score parts, reranking, embedding cache, and search evals.
 - Do not rework `server.js` tool-calling, structured-output, planner, run-cancellation, loop/reflection, memory internals, search chunking, hybrid ranking, reranking, embedding cache, search benchmarks, or resumable-run internals unless you also run the matching scripts: `npm run test:tools`, `npm run test:structured`, `npm run test:planner`, `npm run test:guardrails`, `npm run test:reflection`, `npm run test:memory`, `npm run test:memory-suggestions`, `npm run test:memory-retrieval`, `npm run test:memory-history`, `npm run test:memory-scopes`, `npm run test:search`, `npm run test:rerank`, `npm run test:embed-cache`, `npm run test:resume`, `npm run eval:search`, and `npm run bench:search`.
-- Next code target should be T062 image OCR or T064 ingestion progress + receipts, not the runtime moonshot.
+- Next code target should be T062 image OCR or Phase 3 T065 image input to vision models, not the runtime moonshot.
 
 ## Latest Claude Pass
 
@@ -63,7 +63,7 @@ Reviewed Codex's work and continued the roadmap:
 
 - T038 original partial: pending-run snapshot. Added `/api/runs/pending`, `/api/runs/pending/clear`, a resume banner in the UI, route catalog coverage, and `npm run test:resume`. Receipt-derived resume is completed in the latest Codex pass below.
 
-Still open and recommended next: T062 image OCR or T064 ingestion progress + receipts.
+Still open and recommended next: T062 image OCR or Phase 3 T065 image input to vision models.
 
 ## Latest Claude Pass - UI redesign + handoff completion
 
@@ -167,4 +167,10 @@ Still open and recommended next: T062 image OCR or T064 ingestion progress + rec
 - T063 is done: `POST /api/documents/ingest-url` fetches only explicit allowlisted hosts, re-checks every redirect, blocks private/local hosts unless `allowPrivate: true`, caps response size, extracts supported document text, and writes searchable `.agenttrail.md` sidecars with `Source URL` metadata.
 - Tests/evals/docs updated: API integration covers allowlist/private-host behavior and cleaned HTML URL ingestion; repo eval checks the URL ingestion endpoint.
 
-Next open: T062 image OCR for scanned docs or T064 ingestion progress + receipts.
+## Latest Codex Pass - Ingestion progress receipts
+
+- T064 is done: successful attachment extraction, `/api/documents/extract`, and `/api/documents/ingest-url` now return a `progress` array and save a Markdown receipt under `receipts/ingestion/`.
+- Ingestion receipts record operation, source file, source URL when present, output file, media type, document type, extracted character count, warnings, and completed progress steps.
+- Tests/evals/docs updated: API integration asserts document and URL ingestion receipts, smoke asserts attachment ingestion receipts, repo eval checks the receipt implementation, and the receipt spec now includes ingestion receipts.
+
+Next open: T062 image OCR for scanned docs or Phase 3 T065 image input to vision models.

@@ -114,6 +114,7 @@ async function main() {
     assert.equal(attachment.ok, true);
     assert.equal(attachment.saved.length, 1);
     assert.match(attachment.saved[0].contextPath, /attachments/);
+    assert.match(attachment.saved[0].receiptPath, /^receipts\/ingestion\//);
 
     const attachedFile = await fetchJson(`http://127.0.0.1:${port}/api/files/content?path=${encodeURIComponent(attachment.saved[0].contextPath)}`);
     assert.match(attachedFile.content, /Attachment smoke test content/);
@@ -280,7 +281,8 @@ async function main() {
     assert.equal(replayPlan.steps.length >= 4, true);
 
     const receipts = await fetchJson(`http://127.0.0.1:${port}/api/receipts`);
-    assert.equal(receipts.receipts.length, 1);
+    assert.equal(receipts.receipts.some((item) => item.path === receipt.path), true);
+    assert.equal(receipts.receipts.some((item) => item.path.startsWith("receipts/ingestion/")), true);
 
     console.log("Smoke test passed");
   } finally {

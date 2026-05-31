@@ -93,6 +93,8 @@ async function main() {
     assert.equal(pdfAttachment.ok, true);
     assert.equal(pdfAttachment.saved[0].extracted, true);
     assert.equal(pdfAttachment.saved[0].extraction.ok, true);
+    assert.match(pdfAttachment.saved[0].receiptPath, /^receipts\/ingestion\//);
+    assert.equal(pdfAttachment.saved[0].progress.some((step) => step.id === "save-receipt" && step.percent === 100), true);
     const pdfNote = await get(`/api/files/content?path=${encodeURIComponent(pdfAttachment.saved[0].contextPath)}`);
     assert.match(pdfNote.content, /AgentTrail PDF ingestion text/);
 
@@ -103,8 +105,14 @@ async function main() {
     assert.equal(extracted.ok, true);
     assert.equal(extracted.extraction.type, "pdf");
     assert.match(extracted.output.path, /extracted\/sample-pdf\.md/);
+    assert.match(extracted.receipt.path, /^receipts\/ingestion\//);
+    assert.equal(extracted.progress.some((step) => step.id === "write-sidecar"), true);
     const extractedNote = await get("/api/files/content?path=extracted%2Fsample-pdf.md");
     assert.match(extractedNote.content, /AgentTrail PDF ingestion text/);
+    const extractedReceipt = await get(`/api/files/content?path=${encodeURIComponent(extracted.receipt.path)}`);
+    assert.match(extractedReceipt.content, /AgentTrail Ingestion Receipt/);
+    assert.match(extractedReceipt.content, /Operation: document-extract/);
+    assert.match(extractedReceipt.content, /Output file: extracted\/sample-pdf\.md/);
 
     const officeFiles = [
       ["sample.docx", "application/vnd.openxmlformats-officedocument.wordprocessingml.document", makeDocx("AgentTrail DOCX ingestion text")],
@@ -168,11 +176,16 @@ async function main() {
     assert.equal(urlIngest.ok, true);
     assert.equal(urlIngest.extraction.type, "html");
     assert.match(urlIngest.source.path, /^ingested\/url-/);
+    assert.match(urlIngest.receipt.path, /^receipts\/ingestion\//);
+    assert.equal(urlIngest.progress.some((step) => step.id === "save-receipt" && step.percent === 100), true);
     const urlNote = await get(`/api/files/content?path=${encodeURIComponent(urlIngest.output.path)}`);
     assert.match(urlNote.content, /Source URL: http:\/\/127\.0\.0\.1:/);
     assert.match(urlNote.content, /# AgentTrail URL ingestion/);
     assert.match(urlNote.content, /Allowlisted page text/);
     assert.doesNotMatch(urlNote.content, /stealToken/);
+    const urlReceipt = await get(`/api/files/content?path=${encodeURIComponent(urlIngest.receipt.path)}`);
+    assert.match(urlReceipt.content, /Operation: url-ingest/);
+    assert.match(urlReceipt.content, /Source URL: http:\/\/127\.0\.0\.1:/);
 
     await post("/api/files/content", { path: "docs/guide.md", content: "# Guide\n\nnamespace collection isolated search\n" });
     const collectionIndex = await post("/api/search-index", {

@@ -3081,8 +3081,10 @@ async function handleAttachments(req, res) {
           encoding,
           contextPath: note.path,
           notePath: note.path,
+          receiptPath: documentNote && documentNote.receipt ? documentNote.receipt.path : null,
           extracted: Boolean(documentNote),
-          extraction: documentNote ? documentNote.extraction : null
+          extraction: documentNote ? documentNote.extraction : null,
+          progress: documentNote ? documentNote.progress : null
         });
       } else {
         const content = String(file.content || "");
@@ -3103,8 +3105,10 @@ async function handleAttachments(req, res) {
           encoding,
           contextPath: documentNote ? documentNote.path : result.path,
           notePath: documentNote ? documentNote.path : null,
+          receiptPath: documentNote && documentNote.receipt ? documentNote.receipt.path : null,
           extracted: Boolean(documentNote),
-          extraction: documentNote ? documentNote.extraction : null
+          extraction: documentNote ? documentNote.extraction : null,
+          progress: documentNote ? documentNote.progress : null
         });
       }
     } catch (error) {
@@ -3132,7 +3136,8 @@ async function handleDocumentExtract(req, res) {
     const note = await writeExtractedDocumentNote(file.path, file.content, {
       originalName: body.originalName || path.basename(file.path),
       mediaType: body.mediaType || "",
-      outputPath: body.outputPath
+      outputPath: body.outputPath,
+      operation: "document-extract"
     });
     await STORE.append("document-extract", {
       path: file.path,
@@ -3144,7 +3149,9 @@ async function handleDocumentExtract(req, res) {
       ok: true,
       source: { path: file.path, size: file.size, modifiedAt: file.modifiedAt },
       output: { path: note.path, size: note.size, modifiedAt: note.modifiedAt },
-      extraction: note.extraction
+      extraction: note.extraction,
+      progress: note.progress,
+      receipt: note.receipt
     });
   } catch (error) {
     sendJson(res, 400, { error: error.message || "Could not extract document." });
@@ -3170,7 +3177,8 @@ async function handleUrlIngest(req, res) {
       originalName: fetched.finalUrl.href,
       mediaType,
       outputPath: body.outputPath,
-      sourceUrl: fetched.finalUrl.href
+      sourceUrl: fetched.finalUrl.href,
+      operation: "url-ingest"
     });
     const result = {
       ok: true,
@@ -3179,7 +3187,9 @@ async function handleUrlIngest(req, res) {
       allowlist,
       source: { path: source.path, size: source.size, modifiedAt: source.modifiedAt },
       output: { path: note.path, size: note.size, modifiedAt: note.modifiedAt },
-      extraction: note.extraction
+      extraction: note.extraction,
+      progress: note.progress,
+      receipt: note.receipt
     };
     await STORE.append("url-ingest", {
       url: result.url,
@@ -3208,11 +3218,21 @@ async function handleUrlIngest(req, res) {
 }
 
 async function writeExtractedDocumentNote(sourcePath, data, options = {}) {
+  const startedAt = new Date().toISOString();
+  const progress = [
+    ingestionProgressStep("validate-source", "Validated supported document source", 12, { sourcePath }),
+    ingestionProgressStep("load-source", "Loaded source bytes", 28, { bytes: Buffer.byteLength(data || "") })
+  ];
   const extraction = extractDocumentText(data, {
     sourcePath,
     mediaType: options.mediaType || "",
     type: detectDocumentType(sourcePath, options.mediaType || "")
   });
+  progress.push(ingestionProgressStep("extract-text", `Extracted ${String(extraction.type || "document").toUpperCase()} text`, 62, {
+    type: extraction.type,
+    characters: extraction.charCount,
+    warnings: Array.isArray(extraction.warnings) ? extraction.warnings.length : 0
+  }));
   const outputPath = options.outputPath
     ? normalizeRelativePath(options.outputPath)
     : `${sourcePath}.agenttrail.md`;
@@ -3223,8 +3243,27 @@ async function writeExtractedDocumentNote(sourcePath, data, options = {}) {
     mediaType: options.mediaType || defaultDocumentMediaType(extraction.type),
     extraction
   }));
+  progress.push(ingestionProgressStep("write-sidecar", "Wrote searchable Markdown sidecar", 82, { outputPath: result.path }));
+  const receipt = options.receipt === false ? null : await writeIngestionReceipt({
+    operation: options.operation || "attachment-extract",
+    startedAt,
+    finishedAt: new Date().toISOString(),
+    sourcePath,
+    sourceUrl: options.sourceUrl || "",
+    originalName: options.originalName || path.basename(sourcePath),
+    mediaType: options.mediaType || defaultDocumentMediaType(extraction.type),
+    outputPath: result.path,
+    outputSize: result.size,
+    extraction,
+    progress
+  });
+  if (receipt) {
+    progress.push(ingestionProgressStep("save-receipt", "Saved ingestion receipt", 100, { receiptPath: receipt.path }));
+  }
   return {
     ...result,
+    progress,
+    receipt,
     extraction: {
       ok: extraction.ok,
       type: extraction.type,
@@ -3234,6 +3273,86 @@ async function writeExtractedDocumentNote(sourcePath, data, options = {}) {
       streamsScanned: extraction.streamsScanned,
       warnings: extraction.warnings
     }
+  };
+}
+
+function ingestionProgressStep(id, label, percent, detail = {}) {
+  return {
+    id,
+    label,
+    status: "completed",
+    percent: Math.max(0, Math.min(100, Math.round(percent))),
+    at: new Date().toISOString(),
+    detail
+  };
+}
+
+async function writeIngestionReceipt(details) {
+  const stamp = new Date().toISOString().replace(/[:.]/g, "-");
+  const slug = sanitizeAttachmentName(`${details.operation || "ingestion"}-${path.basename(details.sourcePath || "document")}`)
+    .replace(/\.[a-z0-9]+$/i, "")
+    .slice(0, 90) || "ingestion";
+  const receiptPath = `${RECEIPTS_DIR}/ingestion/${stamp}-${slug}.md`;
+  const extraction = details.extraction || {};
+  const progressRows = (details.progress || []).map((step) => {
+    const suffix = step.detail && Object.keys(step.detail).length
+      ? ` (${Object.entries(step.detail).map(([key, value]) => `${key}: ${Array.isArray(value) ? value.join(", ") : value}`).join("; ")})`
+      : "";
+    return `- [x] ${step.percent}% ${step.label}${suffix}`;
+  });
+  const warnings = Array.isArray(extraction.warnings) && extraction.warnings.length
+    ? extraction.warnings.map((warning) => `- ${warning}`)
+    : ["- none"];
+  const content = [
+    "# AgentTrail Ingestion Receipt",
+    "",
+    `Exported: ${details.finishedAt || new Date().toISOString()}`,
+    `Operation: ${details.operation || "ingestion"}`,
+    `Source file: ${details.sourcePath || "unknown"}`,
+    details.sourceUrl ? `Source URL: ${details.sourceUrl}` : null,
+    `Original name: ${details.originalName || path.basename(details.sourcePath || "document")}`,
+    `Output file: ${details.outputPath || "unknown"}`,
+    `Media type: ${details.mediaType || "application/octet-stream"}`,
+    `Document type: ${extraction.type || "unknown"}`,
+    `Extracted characters: ${extraction.charCount || 0}`,
+    `Status: ${extraction.ok ? "completed" : "completed-with-empty-text"}`,
+    "",
+    "## Progress",
+    "",
+    ...progressRows,
+    "",
+    "## Extraction Warnings",
+    "",
+    ...warnings,
+    "",
+    "## Searchable Output",
+    "",
+    details.outputPath || "No output file recorded."
+  ].filter((line) => line !== null).join("\n");
+  const receipt = await writeWorkspaceFile(receiptPath, content);
+  await STORE.append("ingestion-receipt", {
+    path: receipt.path,
+    operation: details.operation || "ingestion",
+    sourcePath: details.sourcePath,
+    outputPath: details.outputPath,
+    type: extraction.type,
+    chars: extraction.charCount || 0
+  });
+  SQLITE.insert("ingestion-receipt", {
+    path: receipt.path,
+    operation: details.operation || "ingestion",
+    outputPath: details.outputPath,
+    type: extraction.type
+  });
+  await LOGGER.log("info", "document.ingestion-receipt", {
+    path: receipt.path,
+    operation: details.operation || "ingestion",
+    outputPath: details.outputPath
+  });
+  return {
+    path: receipt.path,
+    size: receipt.size,
+    modifiedAt: receipt.modifiedAt
   };
 }
 

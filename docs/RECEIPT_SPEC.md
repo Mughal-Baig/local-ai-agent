@@ -2,7 +2,7 @@
 
 A **receipt** is AgentTrail's core artifact: a human- and machine-readable record of what the agent did during a run — what it searched, what it read, what it proposed to write, and under which permissions. The point is auditability: anyone should be able to reconstruct a run from its receipt.
 
-This document specifies the three related artifacts AgentTrail produces. They are intentionally plain (Markdown + JSON) so they can be read in any editor, diffed in Git, and parsed without a dependency.
+This document specifies the four related artifacts AgentTrail produces. They are intentionally plain (Markdown + JSON) so they can be read in any editor, diffed in Git, and parsed without a dependency.
 
 ## 1. Trail Receipt (`receipts/trail-<timestamp>.md`)
 
@@ -97,11 +97,37 @@ Loading a session (`GET /api/sessions/content?path=…`) restores `messages`, `s
 
 A polished, self-contained Markdown export for sharing (`POST /api/reports`): trust score, model, search provider, selected files, the full trail, memory citations, and every pending/applied diff in fenced `diff` blocks. Built for sending to a teammate who wants to see exactly what happened, without running AgentTrail.
 
+## 4. Ingestion Receipt (`receipts/ingestion/<timestamp>-<source>.md`)
+
+Saved automatically when AgentTrail extracts a document attachment, extracts a workspace document through `/api/documents/extract`, or ingests an allowlisted URL through `/api/documents/ingest-url`.
+
+Each ingestion API response also includes a `progress` array with completed steps and percentages, plus a `receipt.path` that points to the Markdown receipt.
+
+```markdown
+# AgentTrail Ingestion Receipt
+
+Exported: 2026-05-31T10:25:00.000Z
+Operation: url-ingest
+Source file: ingested/url-...
+Source URL: https://example.com/research.html
+Output file: ingested/url-....agenttrail.md
+Document type: html
+Extracted characters: 842
+Status: completed
+
+## Progress
+
+- [x] 12% Validated supported document source
+- [x] 28% Loaded source bytes
+- [x] 62% Extracted HTML text
+- [x] 82% Wrote searchable Markdown sidecar
+```
+
 ## Design principles
 
 1. **Plain by default.** Markdown and JSON only — no proprietary container, no dependency to read or write a receipt.
 2. **Append-only history.** Receipts and sessions are timestamped files; runs are never overwritten.
-3. **Writes are provable.** Every disk mutation has a preceding preview event and a diff, so a receipt is sufficient to audit what changed.
+3. **Writes and ingestion are provable.** Every disk mutation has a preceding preview event and a diff, and every extracted document records its source, output, warnings, and progress.
 4. **Local and portable.** Receipts live in `workspace/receipts/` and contain no secrets beyond what the run touched.
 
 ## Versioning
