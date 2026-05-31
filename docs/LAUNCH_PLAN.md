@@ -15,6 +15,7 @@ AgentTrail is a tiny local AI agent kit with Ollama, workspace search, diff-safe
 7. Open 5-10 `good first issue` recipe requests.
 8. Submit to awesome lists for Ollama, local-first AI, self-hosted tools, and MCP.
 9. Share a short demo post in communities focused on local LLMs, self-hosting, and open-source tools.
+10. Use `docs/LAUNCH_RESPONSE_WORKFLOW.md` for the first 48 hours of replies and issue triage.
 
 ## Demo Post Draft
 
@@ -34,6 +35,10 @@ It is not trying to be a giant platform. It is a readable starter agent with:
 The goal is to make local agents easier to inspect, trust, and modify.
 
 GitHub: https://github.com/Mughal-Baig/local-ai-agent
+
+## Response Kit
+
+The launch response kit lives in `docs/launch/response-kit.json`. Keep post copy, response macros, and triage labels there so the public launch stays consistent across GitHub, social posts, and community replies.
 
 ## Good First Issues To Open
 

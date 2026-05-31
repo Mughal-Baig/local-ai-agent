@@ -1,0 +1,23 @@
+{
+  "schema": "agenttrail.plugin.v1",
+  "id": "receipt-reporter",
+  "title": "Receipt Reporter",
+  "version": "0.1.0",
+  "description": "Example plugin manifest for summarizing one selected AgentTrail receipt.",
+  "tools": [
+    {
+      "name": "receipt.summary",
+      "description": "Summarize a selected receipt into actions, files, and trust signals.",
+      "risk": "low",
+      "receipt": true
+    }
+  ],
+  "permissions": [
+    {
+      "tool": "receipt.summary",
+      "scope": "Read one user-selected receipt and return a summary. No network access.",
+      "risk": "low",
+      "receipt": true
+    }
+  ]
+}

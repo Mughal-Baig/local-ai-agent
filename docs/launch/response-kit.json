@@ -1,0 +1,36 @@
+{
+  "schema": "agenttrail.launch-response-kit.v1",
+  "launchPromise": "A local AI agent that shows its work: search, diff preview, Apply, receipt, report.",
+  "primaryAssets": [
+    "docs/agenttrail-demo.gif",
+    "docs/preview-app.png",
+    "docs/preview-diff.png",
+    "docs/public-demo.html"
+  ],
+  "posts": [
+    {
+      "id": "short-social",
+      "audience": "local AI builders",
+      "text": "I built AgentTrail, a local AI agent that shows its work. It searches your workspace, previews diffs before writing, requires Apply, and leaves receipts you can inspect or export. Ollama-first, local-first, and readable."
+    },
+    {
+      "id": "developer-launch",
+      "audience": "GitHub developers",
+      "text": "AgentTrail is a tiny local agent layer for auditable runs: workspace search, diff-safe writes, explicit approvals, project memory, recipe packs, and shareable reports. It is designed to be learned from and extended."
+    }
+  ],
+  "responseMacros": {
+    "privacy": "AgentTrail keeps workspace files, receipts, sessions, and memory local by default. With Ollama or a local OpenAI-compatible server, prompts stay on your machine.",
+    "safety": "AgentTrail is preview-first. It can propose a diff, but Apply is explicit, and the receipt records what happened.",
+    "contribution": "Good first contributions are small recipes, benchmark fixtures, docs fixes, showcase entries, or plugin examples."
+  },
+  "triageLabels": [
+    "bug",
+    "recipe",
+    "good first issue",
+    "showcase",
+    "benchmark",
+    "security",
+    "docs"
+  ]
+}

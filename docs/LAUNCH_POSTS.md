@@ -17,3 +17,11 @@ I built AgentTrail: a local AI agent that shows its work. Search local files, pr
 ## Awesome List Submission
 
 AgentTrail - auditable local AI agent with Ollama, semantic workspace search, diff previews, explicit approvals, receipt replay, MCP server, recipe packs, and shareable reports.
+
+## Reply Link Pack
+
+- Launch response workflow: `docs/LAUNCH_RESPONSE_WORKFLOW.md`
+- Marketplace submissions: `docs/RECIPE_MARKETPLACE.md`
+- Good first issues: `docs/GOOD_FIRST_ISSUES.md`
+- Showcase gallery: `docs/SHOWCASE.md`
+- Honest comparisons: `docs/COMPARISON_BENCHMARKS.md`

@@ -18,7 +18,7 @@ Codex completed Epic W (T156-T160):
 - T159: optional AES-256-GCM encrypted-at-rest managed artifacts via `AGENTTRAIL_ENCRYPT_AT_REST` + `AGENTTRAIL_ENCRYPTION_KEY`; receipts decrypt through normal read APIs when the key is present.
 - T160: added `npm run test:security-privacy`, covering path escape, exfiltration, prompt injection, egress denial, redaction, policies, and encrypted receipt readback.
 
-Recommended verification before changing this layer: `npm run test:security-privacy`, `npm run test:redact`, `npm run test:quality`, `npm run test:docs`, `npm run coverage`, `npm run bench:quality`, `npm run test:unit`, `npm run test:integration`, `npm test`, and `npm run eval`.
+Recommended verification before changing this layer: `npm run test:security-privacy`, `npm run test:redact`, `npm run test:quality`, `npm run test:docs`, `npm run test:community`, `npm run coverage`, `npm run bench:quality`, `npm run test:unit`, `npm run test:integration`, `npm test`, and `npm run eval`.
 
 ## Latest Codex Roadmap Pass
 
@@ -378,4 +378,13 @@ Next section records the Epic AA documentation pass.
 - Docs are now generated and checked with `npm run docs:build` / `npm run test:docs`; CI verifies generated docs are current.
 - Tests/docs updated: README, top-1% implementation notes, roadmap progress, repo eval, release artifact list, SBOM/checksum paths, and docs unit coverage.
 
-Next open: Epic AB community and growth, starting with T188 launch response workflow and T189 recipe marketplace submissions/curation.
+Next section records the Epic AB community and growth pass.
+
+## Latest Codex Pass - Epic AB community and growth
+
+- T188-T195 are implemented through `docs/LAUNCH_RESPONSE_WORKFLOW.md`, `docs/launch/response-kit.json`, `docs/RECIPE_MARKETPLACE.md`, `marketplace/recipes.json`, `docs/GOOD_FIRST_ISSUES.md`, `docs/community/good-first-issues.json`, `.github/labels.yml`, `GOVERNANCE.md`, `CHANGELOG.md`, `docs/RELEASE_PROCESS.md`, `docs/SHOWCASE.md`, `docs/showcase/gallery.json`, `docs/COMPARISON_BENCHMARKS.md`, `docs/benchmarks/comparison.json`, `docs/PLUGIN_SDK.md`, and example plugin manifests in `plugins/receipt-reporter` and `plugins/read-only-url`.
+- Added launch response macros, marketplace curation state, starter issue backlog, GitHub label config, contribution/governance rules, changelog/release discipline, public workflow showcase metadata, honest comparison fixtures, and a plugin SDK contract with permission/receipt examples.
+- Community assets are now checked with `npm run test:community`; CI and `npm run eval` cover the Epic AB public-growth surface.
+- Tests/docs updated: README, docs site, roadmap progress, repo eval, release artifact list, SBOM/checksum paths, and community-growth unit coverage.
+
+Next open: Epic AC model ecosystem, starting with T196 LoRA/adapter loading and T197 fine-tuning launcher.

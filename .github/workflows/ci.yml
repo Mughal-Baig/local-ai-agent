@@ -67,6 +67,7 @@ jobs:
       - run: node --check tests/unit/quality-engineering.test.js
       - run: node --check tests/unit/workspace-safety-fuzz.test.js
       - run: node --check tests/unit/docs.test.js
+      - run: node --check tests/unit/community-growth.test.js
       - run: node --check tests/integration/model-registry.test.js
       - run: node --check tests/integration/threat-model.test.js
       - run: node --check tests/integration/observability.test.js
@@ -91,6 +92,7 @@ jobs:
       - run: node scripts/generate-api-reference.js --check
       - run: node scripts/generate-docs-site.js --check
       - run: node tests/unit/docs.test.js
+      - run: node tests/unit/community-growth.test.js
       - run: node tests/unit/security-privacy.test.js
       - run: node tests/unit/redact.test.js
       - run: node tests/unit/pdf-extraction.test.js

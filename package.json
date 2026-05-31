@@ -29,6 +29,10 @@
     "docs/quality",
     "docs/site",
     "docs/video-walkthroughs",
+    "docs/launch",
+    "docs/community",
+    "docs/showcase",
+    "docs/benchmarks",
     "docs/sbom",
     "docs/screenshots",
     "marketplace",
@@ -55,6 +59,9 @@
     "install.sh",
     "server.js",
     "README.md",
+    "CHANGELOG.md",
+    "CONTRIBUTING.md",
+    "GOVERNANCE.md",
     "LICENSE"
   ],
   "engines": {
@@ -79,6 +86,7 @@
     "test:team": "node tests/unit/team-enterprise.test.js && node tests/integration/team-enterprise.test.js",
     "test:quality": "node tests/unit/quality-engineering.test.js && node tests/unit/workspace-safety-fuzz.test.js",
     "test:docs": "node scripts/generate-api-reference.js --check && node scripts/generate-docs-site.js --check && node tests/unit/docs.test.js",
+    "test:community": "node scripts/generate-docs-site.js --check && node tests/unit/community-growth.test.js",
     "test:fuzz": "node tests/unit/workspace-safety-fuzz.test.js",
     "coverage": "node scripts/coverage-report.js",
     "test:redact": "node tests/unit/redact.test.js",

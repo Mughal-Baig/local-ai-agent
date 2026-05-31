@@ -1,0 +1,23 @@
+{
+  "schema": "agenttrail.plugin.v1",
+  "id": "read-only-url",
+  "title": "Read-Only URL Fetch",
+  "version": "0.1.0",
+  "description": "Example plugin manifest for a network tool that must use AgentTrail's allowlist policy.",
+  "tools": [
+    {
+      "name": "url.fetch_readonly",
+      "description": "Fetch one allowlisted URL and return extracted text.",
+      "risk": "medium",
+      "receipt": true
+    }
+  ],
+  "permissions": [
+    {
+      "tool": "url.fetch_readonly",
+      "scope": "Read one allowlisted URL. No POST requests, no cookies, no credential forwarding.",
+      "risk": "medium",
+      "receipt": true
+    }
+  ]
+}

@@ -293,7 +293,7 @@ When write preview mode is enabled, `write_file` returns a diff preview instead 
 - README star engine: demo, comparison, 60-second quick start, roadmap
 - Security hardening engine: prompt flags, path escape checks, exfiltration patterns, secret-like value detection, egress policy, `/api/security/scan`, `/api/security/privacy`
 - Shareable reports: polished Markdown/HTML exports in `workspace/reports/`
-- Community growth loop: issue templates, launch posts, marketplace submissions, and good-first contribution docs
+- Community growth loop: launch response workflow, recipe marketplace curation, good-first issue backlog, labels, governance, changelog discipline, showcase gallery, comparison benchmarks, and plugin SDK examples
 - Guided replay: `/api/replay/plan`
 - Interrupted-run resume: `/api/runs/pending`, `/api/runs/pending/from-receipt`, `/api/receipts/resume`
 - Chunk citations: `/api/search/chunks` and `/api/search` return section headings, chunk type, line ranges, and exact character spans
@@ -316,6 +316,7 @@ When write preview mode is enabled, `write_file` returns a diff preview instead 
 - Append-only store: [src/json-store.js](src/json-store.js)
 - Background jobs: [src/jobs.js](src/jobs.js)
 - Plugin architecture: [plugins](plugins)
+- Plugin SDK: [docs/PLUGIN_SDK.md](docs/PLUGIN_SDK.md), [plugins/receipt-reporter](plugins/receipt-reporter), [plugins/read-only-url](plugins/read-only-url)
 - Team users/RBAC: [team/users.json](team/users.json), [src/team-enterprise.js](src/team-enterprise.js)
 - Workspace safety and diff helpers: [src/workspace-safety.js](src/workspace-safety.js)
 - Quality engineering: [docs/QUALITY_ENGINEERING.md](docs/QUALITY_ENGINEERING.md), [docs/quality](docs/quality)
@@ -439,6 +440,7 @@ npm run test:memory-scopes
 npm run test:ui
 npm run test:quality
 npm run test:docs
+npm run test:community
 npm run coverage
 npm run bench:quality
 npm run eval
@@ -464,13 +466,13 @@ See [docs/ROADMAP.md](docs/ROADMAP.md).
 
 ## Growth Research
 
-See [docs/GROWTH_RESEARCH.md](docs/GROWTH_RESEARCH.md) for research-backed positioning, [docs/LAUNCH_PLAN.md](docs/LAUNCH_PLAN.md) for the public launch checklist, and [docs/TOP_1_PERCENT_PLAYBOOK.md](docs/TOP_1_PERCENT_PLAYBOOK.md) for the focused growth path.
+See [docs/GROWTH_RESEARCH.md](docs/GROWTH_RESEARCH.md) for research-backed positioning, [docs/LAUNCH_PLAN.md](docs/LAUNCH_PLAN.md) and [docs/LAUNCH_RESPONSE_WORKFLOW.md](docs/LAUNCH_RESPONSE_WORKFLOW.md) for the public launch checklist, [docs/RECIPE_MARKETPLACE.md](docs/RECIPE_MARKETPLACE.md) for submissions, [docs/GOOD_FIRST_ISSUES.md](docs/GOOD_FIRST_ISSUES.md) for the starter backlog, [docs/SHOWCASE.md](docs/SHOWCASE.md) for workflow proof, [docs/COMPARISON_BENCHMARKS.md](docs/COMPARISON_BENCHMARKS.md) for honest comparisons, and [docs/TOP_1_PERCENT_PLAYBOOK.md](docs/TOP_1_PERCENT_PLAYBOOK.md) for the focused growth path.
 
 The v0.7 implementation map is in [docs/TOP_1_PERCENT_IMPLEMENTATION.md](docs/TOP_1_PERCENT_IMPLEMENTATION.md).
 
 ## Contributing
 
-Small, focused contributions are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md).
+Small, focused contributions are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md), [GOVERNANCE.md](GOVERNANCE.md), and [CHANGELOG.md](CHANGELOG.md).
 
 ## Upload To GitHub
 

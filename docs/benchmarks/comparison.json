@@ -1,0 +1,39 @@
+{
+  "schema": "agenttrail.comparison-benchmarks.v1",
+  "updated": "2026-05-31",
+  "principles": [
+    "honest",
+    "reproducible",
+    "capability-separated-from-speed",
+    "limitations-included"
+  ],
+  "scenarios": [
+    {
+      "id": "search-diff-receipt-loop",
+      "title": "Search -> diff preview -> Apply -> receipt",
+      "type": "capability",
+      "setup": "Use the bundled demo workspace and docs/agenttrail-demo.gif flow.",
+      "metric": "User can inspect evidence, approve a diff, and export a receipt.",
+      "agenttrailStatus": "supported",
+      "limitations": "This is a product-flow check, not a model speed benchmark."
+    },
+    {
+      "id": "local-backend-start",
+      "title": "Local backend start path",
+      "type": "setup",
+      "setup": "Run npx agenttrail with Ollama or an OpenAI-compatible local backend.",
+      "metric": "Time from command to browser-ready local UI.",
+      "agenttrailStatus": "supported",
+      "limitations": "Actual model download time depends on backend and network."
+    },
+    {
+      "id": "receipt-replay-inspection",
+      "title": "Receipt replay inspection",
+      "type": "trust",
+      "setup": "Open a saved session and inspect prompt, files, model, tools, diffs, and report.",
+      "metric": "Run has enough metadata to understand what happened.",
+      "agenttrailStatus": "supported",
+      "limitations": "Deterministic replay can vary by model temperature and backend behavior."
+    }
+  ]
+}

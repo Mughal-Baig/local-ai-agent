@@ -1,0 +1,27 @@
+title: "Showcase: "
+labels: ["showcase"]
+body:
+  - type: markdown
+    attributes:
+      value: "Share a real AgentTrail workflow without private files, secrets, or customer data."
+  - type: input
+    id: workflow
+    attributes:
+      label: Workflow
+      placeholder: "Example: local code review with diff preview and receipt export"
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps
+      description: "What did AgentTrail search, preview, apply, and export?"
+    validations:
+      required: true
+  - type: textarea
+    id: proof
+    attributes:
+      label: Proof
+      description: "Screenshots, receipt summary, or report link. Redact secrets."
+    validations:
+      required: true

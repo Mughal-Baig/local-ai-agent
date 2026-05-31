@@ -385,6 +385,262 @@
       ]
     },
     {
+      "file": "LAUNCH_RESPONSE_WORKFLOW.md",
+      "title": "Launch Response",
+      "description": "Public launch checklist, response macros, triage, and success metrics.",
+      "tags": [
+        "launch",
+        "community",
+        "growth"
+      ],
+      "href": "../LAUNCH_RESPONSE_WORKFLOW.md",
+      "sections": [
+        {
+          "title": "Launch Goal",
+          "anchor": "launch-goal",
+          "snippet": "Show one concrete loop in under a minute: flowchart LR A[\"Open AgentTrail\"] --> B[\"Search workspace\"] B --> C[\"Preview diff\"] C --> D[\"Click Apply\"] D --> E[\"Export receipt\"] E --> F[\"Share report\"]"
+        },
+        {
+          "title": "Post Copy",
+          "anchor": "post-copy",
+          "snippet": "Short launch post: > I built AgentTrail, a local AI agent that shows its work. It searches your workspace, previews diffs before writing, requires Apply, and leaves receipts you can inspect or export. Ollama-first, lo..."
+        },
+        {
+          "title": "Response Triage",
+          "anchor": "response-triage",
+          "snippet": ""
+        },
+        {
+          "title": "Response Macros",
+          "anchor": "response-macros",
+          "snippet": "Privacy: AgentTrail is local-first: workspace files, receipts, memory, and sessions stay in the project folder by default. If you use Ollama or a local OpenAI-compatible server, prompts stay on your machine. The app a..."
+        },
+        {
+          "title": "Launch Checklist",
+          "anchor": "launch-checklist",
+          "snippet": "Verify `docs/agenttrail-demo.gif`, `docs/preview-app.png`, and `docs/preview-diff.png` render in the README. Run `npm run test:community` and `npm run eval`. Open 5-8 good-first issues from `docs/community/good-first-..."
+        },
+        {
+          "title": "Success Metrics",
+          "anchor": "success-metrics",
+          "snippet": "10 useful comments or issues from real users. 5 recipe requests with enough detail to implement. 3 showcase-worthy workflows. 1 comparison benchmark improvement. No unresolved safety or privacy confusion in the first ..."
+        }
+      ]
+    },
+    {
+      "file": "RECIPE_MARKETPLACE.md",
+      "title": "Recipe Marketplace",
+      "description": "Submission path, curation rules, review rubric, and featured pack queue.",
+      "tags": [
+        "recipes",
+        "marketplace",
+        "community"
+      ],
+      "href": "../RECIPE_MARKETPLACE.md",
+      "sections": [
+        {
+          "title": "Submission Path",
+          "anchor": "submission-path",
+          "snippet": "1. Open a recipe-pack issue with role, recipes, inputs, expected outputs, and safety behavior. 2. Add or update recipes in `recipes/`. 3. Add the role pack to `recipe-packs/` if it belongs to a pack."
+        },
+        {
+          "title": "Curation Rules",
+          "anchor": "curation-rules",
+          "snippet": "Every recipe must have a specific role and task, not generic \"be helpful\" text. File-writing recipes must mention diff preview or explicit Apply. Recipes that inspect files should request the smallest useful workspace..."
+        },
+        {
+          "title": "Review Rubric",
+          "anchor": "review-rubric",
+          "snippet": ""
+        },
+        {
+          "title": "Featured Pack Queue",
+          "anchor": "featured-pack-queue",
+          "snippet": "Coder Pack: stable built-in. Founder Pack: stable built-in. Security Pack: stable built-in. Student Pack: stable built-in. Writer Pack: stable built-in. Researcher Pack: next candidate when enough research workflows l..."
+        },
+        {
+          "title": "Marketplace Metadata",
+          "anchor": "marketplace-metadata",
+          "snippet": "`marketplace/recipes.json` stores public pack metadata, submission links, and curation rules. Keep this file human-readable so contributors can update it without tooling. { \"id\": \"researcher-pack\","
+        },
+        {
+          "title": "Maintainer Checklist",
+          "anchor": "maintainer-checklist",
+          "snippet": "Confirm all referenced recipe IDs exist. Confirm the pack appears in the import/export UI. Confirm the pack has a useful one-sentence description. Confirm no recipe asks users to paste secrets into external services."
+        }
+      ]
+    },
+    {
+      "file": "GOOD_FIRST_ISSUES.md",
+      "title": "Good First Issues",
+      "description": "Scoped issue backlog, label set, and maintainer rules for starter tasks.",
+      "tags": [
+        "issues",
+        "labels",
+        "community"
+      ],
+      "href": "../GOOD_FIRST_ISSUES.md",
+      "sections": [
+        {
+          "title": "Label Set",
+          "anchor": "label-set",
+          "snippet": "Use `.github/labels.yml` as the source of truth for community labels: `good first issue` `help wanted` `recipe` `docs` `showcase` `benchmark` `plugin` `security` `needs receipt`"
+        },
+        {
+          "title": "Opening Issues",
+          "anchor": "opening-issues",
+          "snippet": "For each new issue, include: The user problem. Why the contribution matters. Exact files likely to change. Acceptance criteria. The command to verify the change."
+        },
+        {
+          "title": "Seed Backlog",
+          "anchor": "seed-backlog",
+          "snippet": ""
+        },
+        {
+          "title": "Maintainer Rule",
+          "anchor": "maintainer-rule",
+          "snippet": "Do not open vague issues like \"improve docs\" or \"add more recipes.\" A good first issue should be finishable in one small pull request and reviewable without knowing the whole system."
+        }
+      ]
+    },
+    {
+      "file": "RELEASE_PROCESS.md",
+      "title": "Release Process",
+      "description": "Changelog discipline, release note shape, and release readiness gates.",
+      "tags": [
+        "release",
+        "changelog",
+        "process"
+      ],
+      "href": "../RELEASE_PROCESS.md",
+      "sections": [
+        {
+          "title": "Version Checklist",
+          "anchor": "version-checklist",
+          "snippet": "1. Update `CHANGELOG.md`. 2. Add or update `docs/RELEASE_NOTES_vX.Y.Z.md`. 3. Run `npm run docs:build`. 4. Run `npm run test:community`. 5. Run `npm run eval`. 6. Run release artifact checks:"
+        },
+        {
+          "title": "Release Notes Shape",
+          "anchor": "release-notes-shape",
+          "snippet": "Each release note should include: One-line user promise. What changed. How to verify. Known limits. Links to screenshots, demo, or docs."
+        },
+        {
+          "title": "Changelog Rules",
+          "anchor": "changelog-rules",
+          "snippet": "`CHANGELOG.md` summarizes public changes by version. `docs/RELEASE_NOTES_v*.md` gives the detailed version-specific story. Do not list unreleased features as shipped. Do not claim performance wins without a benchmark ..."
+        },
+        {
+          "title": "Release Readiness Gate",
+          "anchor": "release-readiness-gate",
+          "snippet": "A release is ready only when: CI is green. Quality Matrix is green. Docs site check passes. Community test passes. Checksums have no missing artifacts. The README still shows the demo and quick start above the fold."
+        }
+      ]
+    },
+    {
+      "file": "SHOWCASE.md",
+      "title": "Showcase Gallery",
+      "description": "How to collect real workflows with receipt, report, and trust proof.",
+      "tags": [
+        "showcase",
+        "receipts",
+        "proof"
+      ],
+      "href": "../SHOWCASE.md",
+      "sections": [
+        {
+          "title": "What Belongs Here",
+          "anchor": "what-belongs-here",
+          "snippet": "A workflow users can understand quickly. A receipt or report summary. A trust signal such as diff preview, explicit Apply, citations, or replay. Redacted screenshots or generated demo assets."
+        },
+        {
+          "title": "What Does Not Belong",
+          "anchor": "what-does-not-belong",
+          "snippet": "Private customer data. Unredacted file paths from sensitive projects. Claims without receipts, screenshots, or reproducible steps. Workflows that require a cloud-only service."
+        },
+        {
+          "title": "Featured Workflows",
+          "anchor": "featured-workflows",
+          "snippet": ""
+        },
+        {
+          "title": "Submission Checklist",
+          "anchor": "submission-checklist",
+          "snippet": "Add metadata to `docs/showcase/gallery.json`. Include a redacted artifact path or public link. Explain what the agent searched, changed, and exported. Run `npm run test:community`."
+        }
+      ]
+    },
+    {
+      "file": "COMPARISON_BENCHMARKS.md",
+      "title": "Comparison Benchmarks",
+      "description": "Honest reproducible comparison matrix and benchmark rules.",
+      "tags": [
+        "benchmarks",
+        "comparison",
+        "growth"
+      ],
+      "href": "../COMPARISON_BENCHMARKS.md",
+      "sections": [
+        {
+          "title": "Positioning",
+          "anchor": "positioning",
+          "snippet": "AgentTrail does not try to replace broad local AI platforms. It focuses on a smaller wedge: auditable local agent runs diff-safe writes visible receipts recipe packs readable implementation"
+        },
+        {
+          "title": "Benchmark Rules",
+          "anchor": "benchmark-rules",
+          "snippet": "Use public commands and fixtures. Include hardware, OS, Node version, backend, and model when measuring runtime behavior. Separate product capability checks from speed checks. Record limitations beside every result."
+        },
+        {
+          "title": "Current Comparison Matrix",
+          "anchor": "current-comparison-matrix",
+          "snippet": ""
+        },
+        {
+          "title": "Reproducible Fixtures",
+          "anchor": "reproducible-fixtures",
+          "snippet": "The data file `docs/benchmarks/comparison.json` tracks scenarios and metrics. Add new entries only when the setup is specific enough for another maintainer to rerun."
+        },
+        {
+          "title": "Known Limits",
+          "anchor": "known-limits",
+          "snippet": "AgentTrail is not the fastest model runner. AgentTrail is not a full team collaboration suite. Desktop packaging is scaffolded but still needs signed public releases. Benchmark data is small until more community fixtu..."
+        }
+      ]
+    },
+    {
+      "file": "PLUGIN_SDK.md",
+      "title": "Plugin SDK",
+      "description": "Plugin manifest shape, permission contract, and example plugins.",
+      "tags": [
+        "plugins",
+        "sdk",
+        "permissions"
+      ],
+      "href": "../PLUGIN_SDK.md",
+      "sections": [
+        {
+          "title": "Plugin Shape",
+          "anchor": "plugin-shape",
+          "snippet": "Each plugin lives under `plugins/<plugin-id>/plugin.json`. { \"schema\": \"agenttrail.plugin.v1\", \"id\": \"receipt-reporter\", \"title\": \"Receipt Reporter\", \"version\": \"0.1.0\", \"tools\": ["
+        },
+        {
+          "title": "Permission Contract",
+          "anchor": "permission-contract",
+          "snippet": "Every tool needs a human-readable scope. Risk must be explicit: `low`, `medium`, or `high`. File-writing tools must require review and leave receipts. Network tools must declare allowed host behavior."
+        },
+        {
+          "title": "Example Plugins",
+          "anchor": "example-plugins",
+          "snippet": ""
+        },
+        {
+          "title": "Contributor Checklist",
+          "anchor": "contributor-checklist",
+          "snippet": "Add a manifest under `plugins/`. Use `agenttrail.plugin.v1`. Include at least one permission with scope and receipt behavior. Add docs if the tool has user-visible setup. Run `npm run test:community`."
+        }
+      ]
+    },
+    {
       "file": "QUALITY_ENGINEERING.md",
       "title": "Quality Engineering",
       "description": "Coverage, fuzzing, UI E2E, performance gates, and matrix CI.",
@@ -1233,6 +1489,486 @@
         "launch"
       ],
       "text": "Publishing Checklist Keep videos under 90 seconds. Start with the actual app, not slides. Show local address and workspace boundary. Show diff preview before apply. End with receipt/report proof. Link back to [GETTING_STARTED.md](GETTING_..."
+    },
+    {
+      "type": "doc",
+      "title": "Launch Response",
+      "description": "Public launch checklist, response macros, triage, and success metrics.",
+      "href": "../LAUNCH_RESPONSE_WORKFLOW.md",
+      "tags": [
+        "launch",
+        "community",
+        "growth"
+      ],
+      "text": "Launch Response Workflow Epic AB launch work is designed to make AgentTrail easy to share without turning the maintainer into a full-time support queue. Use this workflow when posting a release, replying to early users, or turning feedback into issues. Launch Goal Show one concrete loop in under a minute: The public promise should stay narrow: local workspace search, diff-safe writes, visible receipts, replayable sessions, and no hidden cloud dependency. Post Copy Short launch post: I built AgentTrail, a local AI agent that shows its work. It searches your workspace, previews diffs before writing, requires Apply, and leaves receipts you can inspect or export. Ollama-first, local-first, and built to be readable instead of magical. Long launch post: AgentTrail is a local AI agent for people who want receipts, not mystery. The demo shows search - diff preview - Apply - receipt/report. It runs with Ollama or an OpenAI-compatible local backend, keeps project memory visible, and stores sessions in your workspace. The goal is a small, inspectable agent layer that developers can learn from, extend, and trust. Response Triage Signal Reply Follow-up --- --- --- \"Does it work with LM Studio?\" Link to backend setup and ask which model they use. Add a backend fixture if the model exposes an OpenAI-compatible API. \"Can it edit files?\" Explain preview-first writes and explicit Apply. Link to the diff-safe demo and security checklist. \"Is it private?\" Explain local storage, Ollama/local backends, and optional network policy. Ask for the exact privacy expectation. \"How is this different from Open WebUI?\" Be honest: AgentTrail is smaller and focused on auditable local agent runs. Link to comparison benchmarks. \"I want a recipe for X.\" Ask for role, input files, expected output, and safety constraints. Convert into a recipe-pack issue. Bug report Thank them, ask for OS, Node version, backend, command, and receipt if safe. Convert into a bug issue with reproduction steps. Response Macros Privacy: Safety: Contribution: Launch Checklist - Verify docs/agenttrail-demo.gif , docs/preview-app.png , and docs/preview-diff.png render in the README. - Run npm run test:community and npm run eval . - Open 5-8 good-first issues from docs/community/good-first-issues.json . - Add labels from .github/labels.yml . - Pin one issue asking for recipe pack submissions. - Share the short post with the GIF. - Reply for the first 48 hours using the triage table. - Move repeated questions into docs/TROUBLESHOOTING.md . Success Metrics - 10 useful comments or issues from real users. - 5 recipe requests with enough detail to implement. - 3 showcase-worthy workflows. - 1 comparison benchmark improvement. - No unresolved safety or privacy confusion in the first wave."
+    },
+    {
+      "type": "section",
+      "title": "Launch Response - Launch Goal",
+      "description": "Show one concrete loop in under a minute: flowchart LR A[\"Open AgentTrail\"] --> B[\"Search workspace\"] B --> C[\"Preview diff\"] C --> D[\"Click Apply\"] D --> E[\"Export receipt\"] E --> F[\"Share report\"]",
+      "href": "../LAUNCH_RESPONSE_WORKFLOW.md#launch-goal",
+      "tags": [
+        "launch",
+        "community",
+        "growth"
+      ],
+      "text": "Launch Goal Show one concrete loop in under a minute: flowchart LR A[\"Open AgentTrail\"] --> B[\"Search workspace\"] B --> C[\"Preview diff\"] C --> D[\"Click Apply\"] D --> E[\"Export receipt\"] E --> F[\"Share report\"]"
+    },
+    {
+      "type": "section",
+      "title": "Launch Response - Post Copy",
+      "description": "Short launch post: > I built AgentTrail, a local AI agent that shows its work. It searches your workspace, previews diffs before writing, requires Apply, and leaves receipts you can inspect or export. Ollama-first, lo...",
+      "href": "../LAUNCH_RESPONSE_WORKFLOW.md#post-copy",
+      "tags": [
+        "launch",
+        "community",
+        "growth"
+      ],
+      "text": "Post Copy Short launch post: > I built AgentTrail, a local AI agent that shows its work. It searches your workspace, previews diffs before writing, requires Apply, and leaves receipts you can inspect or export. Ollama-first, lo..."
+    },
+    {
+      "type": "section",
+      "title": "Launch Response - Response Triage",
+      "description": "",
+      "href": "../LAUNCH_RESPONSE_WORKFLOW.md#response-triage",
+      "tags": [
+        "launch",
+        "community",
+        "growth"
+      ],
+      "text": "Response Triage "
+    },
+    {
+      "type": "section",
+      "title": "Launch Response - Response Macros",
+      "description": "Privacy: AgentTrail is local-first: workspace files, receipts, memory, and sessions stay in the project folder by default. If you use Ollama or a local OpenAI-compatible server, prompts stay on your machine. The app a...",
+      "href": "../LAUNCH_RESPONSE_WORKFLOW.md#response-macros",
+      "tags": [
+        "launch",
+        "community",
+        "growth"
+      ],
+      "text": "Response Macros Privacy: AgentTrail is local-first: workspace files, receipts, memory, and sessions stay in the project folder by default. If you use Ollama or a local OpenAI-compatible server, prompts stay on your machine. The app a..."
+    },
+    {
+      "type": "section",
+      "title": "Launch Response - Launch Checklist",
+      "description": "Verify `docs/agenttrail-demo.gif`, `docs/preview-app.png`, and `docs/preview-diff.png` render in the README. Run `npm run test:community` and `npm run eval`. Open 5-8 good-first issues from `docs/community/good-first-...",
+      "href": "../LAUNCH_RESPONSE_WORKFLOW.md#launch-checklist",
+      "tags": [
+        "launch",
+        "community",
+        "growth"
+      ],
+      "text": "Launch Checklist Verify `docs/agenttrail-demo.gif`, `docs/preview-app.png`, and `docs/preview-diff.png` render in the README. Run `npm run test:community` and `npm run eval`. Open 5-8 good-first issues from `docs/community/good-first-..."
+    },
+    {
+      "type": "section",
+      "title": "Launch Response - Success Metrics",
+      "description": "10 useful comments or issues from real users. 5 recipe requests with enough detail to implement. 3 showcase-worthy workflows. 1 comparison benchmark improvement. No unresolved safety or privacy confusion in the first ...",
+      "href": "../LAUNCH_RESPONSE_WORKFLOW.md#success-metrics",
+      "tags": [
+        "launch",
+        "community",
+        "growth"
+      ],
+      "text": "Success Metrics 10 useful comments or issues from real users. 5 recipe requests with enough detail to implement. 3 showcase-worthy workflows. 1 comparison benchmark improvement. No unresolved safety or privacy confusion in the first ..."
+    },
+    {
+      "type": "doc",
+      "title": "Recipe Marketplace",
+      "description": "Submission path, curation rules, review rubric, and featured pack queue.",
+      "href": "../RECIPE_MARKETPLACE.md",
+      "tags": [
+        "recipes",
+        "marketplace",
+        "community"
+      ],
+      "text": "Recipe Marketplace The AgentTrail recipe marketplace is intentionally lightweight: JSON recipes, curated role packs, visible safety expectations, and reviewable pull requests. Submission Path 1. Open a recipe-pack issue with role, recipes, inputs, expected outputs, and safety behavior. 2. Add or update recipes in recipes/ . 3. Add the role pack to recipe-packs/ if it belongs to a pack. 4. Add marketplace metadata in marketplace/recipes.json . 5. Run npm run test:community . Curation Rules - Every recipe must have a specific role and task, not generic \"be helpful\" text. - File-writing recipes must mention diff preview or explicit Apply. - Recipes that inspect files should request the smallest useful workspace scope. - Recipes that mention security must ask for evidence and avoid unsupported claims. - Recipes must work without cloud-only services. - A marketplace pack needs at least three useful recipes and one clear target user. Review Rubric Area Pass condition --- --- Role clarity The intended user can tell why this pack exists in one sentence. Local-first fit It works with local files and local models. Safety File reads/writes, tools, and receipts are explicit. Reuse The recipe can be used across projects with minimal edits. Evidence Outputs ask for citations, paths, diffs, receipts, or assumptions. Featured Pack Queue - Coder Pack: stable built-in. - Founder Pack: stable built-in. - Security Pack: stable built-in. - Student Pack: stable built-in. - Writer Pack: stable built-in. - Researcher Pack: next candidate when enough research workflows land. - Maintainer Pack: next candidate when issue triage and release workflows mature. Marketplace Metadata marketplace/recipes.json stores public pack metadata, submission links, and curation rules. Keep this file human-readable so contributors can update it without tooling. Maintainer Checklist - Confirm all referenced recipe IDs exist. - Confirm the pack appears in the import/export UI. - Confirm the pack has a useful one-sentence description. - Confirm no recipe asks users to paste secrets into external services. - Add a short changelog entry when a pack is promoted."
+    },
+    {
+      "type": "section",
+      "title": "Recipe Marketplace - Submission Path",
+      "description": "1. Open a recipe-pack issue with role, recipes, inputs, expected outputs, and safety behavior. 2. Add or update recipes in `recipes/`. 3. Add the role pack to `recipe-packs/` if it belongs to a pack.",
+      "href": "../RECIPE_MARKETPLACE.md#submission-path",
+      "tags": [
+        "recipes",
+        "marketplace",
+        "community"
+      ],
+      "text": "Submission Path 1. Open a recipe-pack issue with role, recipes, inputs, expected outputs, and safety behavior. 2. Add or update recipes in `recipes/`. 3. Add the role pack to `recipe-packs/` if it belongs to a pack."
+    },
+    {
+      "type": "section",
+      "title": "Recipe Marketplace - Curation Rules",
+      "description": "Every recipe must have a specific role and task, not generic \"be helpful\" text. File-writing recipes must mention diff preview or explicit Apply. Recipes that inspect files should request the smallest useful workspace...",
+      "href": "../RECIPE_MARKETPLACE.md#curation-rules",
+      "tags": [
+        "recipes",
+        "marketplace",
+        "community"
+      ],
+      "text": "Curation Rules Every recipe must have a specific role and task, not generic \"be helpful\" text. File-writing recipes must mention diff preview or explicit Apply. Recipes that inspect files should request the smallest useful workspace..."
+    },
+    {
+      "type": "section",
+      "title": "Recipe Marketplace - Review Rubric",
+      "description": "",
+      "href": "../RECIPE_MARKETPLACE.md#review-rubric",
+      "tags": [
+        "recipes",
+        "marketplace",
+        "community"
+      ],
+      "text": "Review Rubric "
+    },
+    {
+      "type": "section",
+      "title": "Recipe Marketplace - Featured Pack Queue",
+      "description": "Coder Pack: stable built-in. Founder Pack: stable built-in. Security Pack: stable built-in. Student Pack: stable built-in. Writer Pack: stable built-in. Researcher Pack: next candidate when enough research workflows l...",
+      "href": "../RECIPE_MARKETPLACE.md#featured-pack-queue",
+      "tags": [
+        "recipes",
+        "marketplace",
+        "community"
+      ],
+      "text": "Featured Pack Queue Coder Pack: stable built-in. Founder Pack: stable built-in. Security Pack: stable built-in. Student Pack: stable built-in. Writer Pack: stable built-in. Researcher Pack: next candidate when enough research workflows l..."
+    },
+    {
+      "type": "section",
+      "title": "Recipe Marketplace - Marketplace Metadata",
+      "description": "`marketplace/recipes.json` stores public pack metadata, submission links, and curation rules. Keep this file human-readable so contributors can update it without tooling. { \"id\": \"researcher-pack\",",
+      "href": "../RECIPE_MARKETPLACE.md#marketplace-metadata",
+      "tags": [
+        "recipes",
+        "marketplace",
+        "community"
+      ],
+      "text": "Marketplace Metadata `marketplace/recipes.json` stores public pack metadata, submission links, and curation rules. Keep this file human-readable so contributors can update it without tooling. { \"id\": \"researcher-pack\","
+    },
+    {
+      "type": "section",
+      "title": "Recipe Marketplace - Maintainer Checklist",
+      "description": "Confirm all referenced recipe IDs exist. Confirm the pack appears in the import/export UI. Confirm the pack has a useful one-sentence description. Confirm no recipe asks users to paste secrets into external services.",
+      "href": "../RECIPE_MARKETPLACE.md#maintainer-checklist",
+      "tags": [
+        "recipes",
+        "marketplace",
+        "community"
+      ],
+      "text": "Maintainer Checklist Confirm all referenced recipe IDs exist. Confirm the pack appears in the import/export UI. Confirm the pack has a useful one-sentence description. Confirm no recipe asks users to paste secrets into external services."
+    },
+    {
+      "type": "doc",
+      "title": "Good First Issues",
+      "description": "Scoped issue backlog, label set, and maintainer rules for starter tasks.",
+      "href": "../GOOD_FIRST_ISSUES.md",
+      "tags": [
+        "issues",
+        "labels",
+        "community"
+      ],
+      "text": "Good First Issues This backlog keeps community work small enough for a first pull request. It is mirrored in docs/community/good-first-issues.json so maintainers can copy tasks into GitHub issues without inventing scope every time. Label Set Use .github/labels.yml as the source of truth for community labels: - good first issue - help wanted - recipe - docs - showcase - benchmark - plugin - security - needs receipt Opening Issues For each new issue, include: - The user problem. - Why the contribution matters. - Exact files likely to change. - Acceptance criteria. - The command to verify the change. Seed Backlog Title Area Verify --- --- --- Add a researcher recipe pack recipes npm run test:community Add a showcase entry for a real receipt workflow showcase npm run test:community Add one honest comparison benchmark fixture benchmarks npm run test:community Create a plugin example for a safe read-only tool plugins npm run test:community Improve the launch response FAQ docs npm run test:docs Add a recipe marketplace curation example marketplace npm run test:community Add Windows or Linux screenshot notes docs npm run test:docs Add a maintainer recipe for issue triage recipes npm run test:community Maintainer Rule Do not open vague issues like \"improve docs\" or \"add more recipes.\" A good first issue should be finishable in one small pull request and reviewable without knowing the whole system."
+    },
+    {
+      "type": "section",
+      "title": "Good First Issues - Label Set",
+      "description": "Use `.github/labels.yml` as the source of truth for community labels: `good first issue` `help wanted` `recipe` `docs` `showcase` `benchmark` `plugin` `security` `needs receipt`",
+      "href": "../GOOD_FIRST_ISSUES.md#label-set",
+      "tags": [
+        "issues",
+        "labels",
+        "community"
+      ],
+      "text": "Label Set Use `.github/labels.yml` as the source of truth for community labels: `good first issue` `help wanted` `recipe` `docs` `showcase` `benchmark` `plugin` `security` `needs receipt`"
+    },
+    {
+      "type": "section",
+      "title": "Good First Issues - Opening Issues",
+      "description": "For each new issue, include: The user problem. Why the contribution matters. Exact files likely to change. Acceptance criteria. The command to verify the change.",
+      "href": "../GOOD_FIRST_ISSUES.md#opening-issues",
+      "tags": [
+        "issues",
+        "labels",
+        "community"
+      ],
+      "text": "Opening Issues For each new issue, include: The user problem. Why the contribution matters. Exact files likely to change. Acceptance criteria. The command to verify the change."
+    },
+    {
+      "type": "section",
+      "title": "Good First Issues - Seed Backlog",
+      "description": "",
+      "href": "../GOOD_FIRST_ISSUES.md#seed-backlog",
+      "tags": [
+        "issues",
+        "labels",
+        "community"
+      ],
+      "text": "Seed Backlog "
+    },
+    {
+      "type": "section",
+      "title": "Good First Issues - Maintainer Rule",
+      "description": "Do not open vague issues like \"improve docs\" or \"add more recipes.\" A good first issue should be finishable in one small pull request and reviewable without knowing the whole system.",
+      "href": "../GOOD_FIRST_ISSUES.md#maintainer-rule",
+      "tags": [
+        "issues",
+        "labels",
+        "community"
+      ],
+      "text": "Maintainer Rule Do not open vague issues like \"improve docs\" or \"add more recipes.\" A good first issue should be finishable in one small pull request and reviewable without knowing the whole system."
+    },
+    {
+      "type": "doc",
+      "title": "Release Process",
+      "description": "Changelog discipline, release note shape, and release readiness gates.",
+      "href": "../RELEASE_PROCESS.md",
+      "tags": [
+        "release",
+        "changelog",
+        "process"
+      ],
+      "text": "Release Process Release discipline matters because AgentTrail makes a trust claim. Every release should explain what changed, how it was verified, and what proof users can inspect. Version Checklist 1. Update CHANGELOG.md . 2. Add or update docs/RELEASE_NOTES_vX.Y.Z.md . 3. Run npm run docs:build . 4. Run npm run test:community . 5. Run npm run eval . 6. Run release artifact checks: 7. Attach the demo GIF, screenshots, checksums, and release notes. 8. Keep the release post honest: show the exact workflow and limitations. Release Notes Shape Each release note should include: - One-line user promise. - What changed. - How to verify. - Known limits. - Links to screenshots, demo, or docs. Changelog Rules - CHANGELOG.md summarizes public changes by version. - docs/RELEASE_NOTES_v .md gives the detailed version-specific story. - Do not list unreleased features as shipped. - Do not claim performance wins without a benchmark entry. - Do not claim security guarantees without the relevant test or docs link. Release Readiness Gate A release is ready only when: - CI is green. - Quality Matrix is green. - Docs site check passes. - Community test passes. - Checksums have no missing artifacts. - The README still shows the demo and quick start above the fold."
+    },
+    {
+      "type": "section",
+      "title": "Release Process - Version Checklist",
+      "description": "1. Update `CHANGELOG.md`. 2. Add or update `docs/RELEASE_NOTES_vX.Y.Z.md`. 3. Run `npm run docs:build`. 4. Run `npm run test:community`. 5. Run `npm run eval`. 6. Run release artifact checks:",
+      "href": "../RELEASE_PROCESS.md#version-checklist",
+      "tags": [
+        "release",
+        "changelog",
+        "process"
+      ],
+      "text": "Version Checklist 1. Update `CHANGELOG.md`. 2. Add or update `docs/RELEASE_NOTES_vX.Y.Z.md`. 3. Run `npm run docs:build`. 4. Run `npm run test:community`. 5. Run `npm run eval`. 6. Run release artifact checks:"
+    },
+    {
+      "type": "section",
+      "title": "Release Process - Release Notes Shape",
+      "description": "Each release note should include: One-line user promise. What changed. How to verify. Known limits. Links to screenshots, demo, or docs.",
+      "href": "../RELEASE_PROCESS.md#release-notes-shape",
+      "tags": [
+        "release",
+        "changelog",
+        "process"
+      ],
+      "text": "Release Notes Shape Each release note should include: One-line user promise. What changed. How to verify. Known limits. Links to screenshots, demo, or docs."
+    },
+    {
+      "type": "section",
+      "title": "Release Process - Changelog Rules",
+      "description": "`CHANGELOG.md` summarizes public changes by version. `docs/RELEASE_NOTES_v*.md` gives the detailed version-specific story. Do not list unreleased features as shipped. Do not claim performance wins without a benchmark ...",
+      "href": "../RELEASE_PROCESS.md#changelog-rules",
+      "tags": [
+        "release",
+        "changelog",
+        "process"
+      ],
+      "text": "Changelog Rules `CHANGELOG.md` summarizes public changes by version. `docs/RELEASE_NOTES_v*.md` gives the detailed version-specific story. Do not list unreleased features as shipped. Do not claim performance wins without a benchmark ..."
+    },
+    {
+      "type": "section",
+      "title": "Release Process - Release Readiness Gate",
+      "description": "A release is ready only when: CI is green. Quality Matrix is green. Docs site check passes. Community test passes. Checksums have no missing artifacts. The README still shows the demo and quick start above the fold.",
+      "href": "../RELEASE_PROCESS.md#release-readiness-gate",
+      "tags": [
+        "release",
+        "changelog",
+        "process"
+      ],
+      "text": "Release Readiness Gate A release is ready only when: CI is green. Quality Matrix is green. Docs site check passes. Community test passes. Checksums have no missing artifacts. The README still shows the demo and quick start above the fold."
+    },
+    {
+      "type": "doc",
+      "title": "Showcase Gallery",
+      "description": "How to collect real workflows with receipt, report, and trust proof.",
+      "href": "../SHOWCASE.md",
+      "tags": [
+        "showcase",
+        "receipts",
+        "proof"
+      ],
+      "text": "Showcase Gallery The showcase gallery collects real workflows that prove AgentTrail's value: visible search, safe diffs, receipts, reports, and local-first behavior. What Belongs Here - A workflow users can understand quickly. - A receipt or report summary. - A trust signal such as diff preview, explicit Apply, citations, or replay. - Redacted screenshots or generated demo assets. - Clear setup notes. What Does Not Belong - Private customer data. - Unredacted file paths from sensitive projects. - Claims without receipts, screenshots, or reproducible steps. - Workflows that require a cloud-only service. Featured Workflows Workflow User Trust signal Artifact --- --- --- --- Diff-safe README polish maintainer Search - diff preview - Apply - receipt docs/agenttrail-demo.gif Local security review security reviewer Prompt-injection flags and receipt summary recipes/prompt-injection-review.json Release proof bundle maintainer Checksums, SBOM, release notes, and reproducible build docs/SUPPLY_CHAIN.md Submission Checklist - Add metadata to docs/showcase/gallery.json . - Include a redacted artifact path or public link. - Explain what the agent searched, changed, and exported. - Run npm run test:community ."
+    },
+    {
+      "type": "section",
+      "title": "Showcase Gallery - What Belongs Here",
+      "description": "A workflow users can understand quickly. A receipt or report summary. A trust signal such as diff preview, explicit Apply, citations, or replay. Redacted screenshots or generated demo assets.",
+      "href": "../SHOWCASE.md#what-belongs-here",
+      "tags": [
+        "showcase",
+        "receipts",
+        "proof"
+      ],
+      "text": "What Belongs Here A workflow users can understand quickly. A receipt or report summary. A trust signal such as diff preview, explicit Apply, citations, or replay. Redacted screenshots or generated demo assets."
+    },
+    {
+      "type": "section",
+      "title": "Showcase Gallery - What Does Not Belong",
+      "description": "Private customer data. Unredacted file paths from sensitive projects. Claims without receipts, screenshots, or reproducible steps. Workflows that require a cloud-only service.",
+      "href": "../SHOWCASE.md#what-does-not-belong",
+      "tags": [
+        "showcase",
+        "receipts",
+        "proof"
+      ],
+      "text": "What Does Not Belong Private customer data. Unredacted file paths from sensitive projects. Claims without receipts, screenshots, or reproducible steps. Workflows that require a cloud-only service."
+    },
+    {
+      "type": "section",
+      "title": "Showcase Gallery - Featured Workflows",
+      "description": "",
+      "href": "../SHOWCASE.md#featured-workflows",
+      "tags": [
+        "showcase",
+        "receipts",
+        "proof"
+      ],
+      "text": "Featured Workflows "
+    },
+    {
+      "type": "section",
+      "title": "Showcase Gallery - Submission Checklist",
+      "description": "Add metadata to `docs/showcase/gallery.json`. Include a redacted artifact path or public link. Explain what the agent searched, changed, and exported. Run `npm run test:community`.",
+      "href": "../SHOWCASE.md#submission-checklist",
+      "tags": [
+        "showcase",
+        "receipts",
+        "proof"
+      ],
+      "text": "Submission Checklist Add metadata to `docs/showcase/gallery.json`. Include a redacted artifact path or public link. Explain what the agent searched, changed, and exported. Run `npm run test:community`."
+    },
+    {
+      "type": "doc",
+      "title": "Comparison Benchmarks",
+      "description": "Honest reproducible comparison matrix and benchmark rules.",
+      "href": "../COMPARISON_BENCHMARKS.md",
+      "tags": [
+        "benchmarks",
+        "comparison",
+        "growth"
+      ],
+      "text": "Comparison Benchmarks AgentTrail should compare itself honestly. This page is for reproducible checks, not marketing claims. Positioning AgentTrail does not try to replace broad local AI platforms. It focuses on a smaller wedge: - auditable local agent runs - diff-safe writes - visible receipts - recipe packs - readable implementation Benchmark Rules - Use public commands and fixtures. - Include hardware, OS, Node version, backend, and model when measuring runtime behavior. - Separate product capability checks from speed checks. - Record limitations beside every result. - Never imply another project is weak because it optimizes for a different use case. Current Comparison Matrix Capability AgentTrail Broad local AI UI Raw model runner --- --- --- --- Local model support Ollama, bundled seam, OpenAI-compatible Usually broad Core purpose Diff-safe writes First-class Varies Not a UI feature Receipts and replay First-class Varies Not a UI feature Recipe marketplace Lightweight JSON packs Varies Not a UI feature Plugin permissions Explicit manifest Varies Not a UI feature One-command start npx agenttrail path Varies Usually install-focused Best fit Auditable project assistant General local AI workspace Model serving Reproducible Fixtures The data file docs/benchmarks/comparison.json tracks scenarios and metrics. Add new entries only when the setup is specific enough for another maintainer to rerun. Known Limits - AgentTrail is not the fastest model runner. - AgentTrail is not a full team collaboration suite. - Desktop packaging is scaffolded but still needs signed public releases. - Benchmark data is small until more community fixtures are added."
+    },
+    {
+      "type": "section",
+      "title": "Comparison Benchmarks - Positioning",
+      "description": "AgentTrail does not try to replace broad local AI platforms. It focuses on a smaller wedge: auditable local agent runs diff-safe writes visible receipts recipe packs readable implementation",
+      "href": "../COMPARISON_BENCHMARKS.md#positioning",
+      "tags": [
+        "benchmarks",
+        "comparison",
+        "growth"
+      ],
+      "text": "Positioning AgentTrail does not try to replace broad local AI platforms. It focuses on a smaller wedge: auditable local agent runs diff-safe writes visible receipts recipe packs readable implementation"
+    },
+    {
+      "type": "section",
+      "title": "Comparison Benchmarks - Benchmark Rules",
+      "description": "Use public commands and fixtures. Include hardware, OS, Node version, backend, and model when measuring runtime behavior. Separate product capability checks from speed checks. Record limitations beside every result.",
+      "href": "../COMPARISON_BENCHMARKS.md#benchmark-rules",
+      "tags": [
+        "benchmarks",
+        "comparison",
+        "growth"
+      ],
+      "text": "Benchmark Rules Use public commands and fixtures. Include hardware, OS, Node version, backend, and model when measuring runtime behavior. Separate product capability checks from speed checks. Record limitations beside every result."
+    },
+    {
+      "type": "section",
+      "title": "Comparison Benchmarks - Current Comparison Matrix",
+      "description": "",
+      "href": "../COMPARISON_BENCHMARKS.md#current-comparison-matrix",
+      "tags": [
+        "benchmarks",
+        "comparison",
+        "growth"
+      ],
+      "text": "Current Comparison Matrix "
+    },
+    {
+      "type": "section",
+      "title": "Comparison Benchmarks - Reproducible Fixtures",
+      "description": "The data file `docs/benchmarks/comparison.json` tracks scenarios and metrics. Add new entries only when the setup is specific enough for another maintainer to rerun.",
+      "href": "../COMPARISON_BENCHMARKS.md#reproducible-fixtures",
+      "tags": [
+        "benchmarks",
+        "comparison",
+        "growth"
+      ],
+      "text": "Reproducible Fixtures The data file `docs/benchmarks/comparison.json` tracks scenarios and metrics. Add new entries only when the setup is specific enough for another maintainer to rerun."
+    },
+    {
+      "type": "section",
+      "title": "Comparison Benchmarks - Known Limits",
+      "description": "AgentTrail is not the fastest model runner. AgentTrail is not a full team collaboration suite. Desktop packaging is scaffolded but still needs signed public releases. Benchmark data is small until more community fixtu...",
+      "href": "../COMPARISON_BENCHMARKS.md#known-limits",
+      "tags": [
+        "benchmarks",
+        "comparison",
+        "growth"
+      ],
+      "text": "Known Limits AgentTrail is not the fastest model runner. AgentTrail is not a full team collaboration suite. Desktop packaging is scaffolded but still needs signed public releases. Benchmark data is small until more community fixtu..."
+    },
+    {
+      "type": "doc",
+      "title": "Plugin SDK",
+      "description": "Plugin manifest shape, permission contract, and example plugins.",
+      "href": "../PLUGIN_SDK.md",
+      "tags": [
+        "plugins",
+        "sdk",
+        "permissions"
+      ],
+      "text": "Plugin SDK AgentTrail plugins are local manifests that describe tools, permissions, and receipt behavior. The SDK is intentionally small so contributors can add integrations without editing core files first. Plugin Shape Each plugin lives under plugins/<plugin-id /plugin.json . Permission Contract - Every tool needs a human-readable scope. - Risk must be explicit: low , medium , or high . - File-writing tools must require review and leave receipts. - Network tools must declare allowed host behavior. - Plugins should fail closed when permissions are missing. Example Plugins Plugin Purpose Risk --- --- --- plugins/example-tool Minimal echo manifest low plugins/receipt-reporter Receipt summary example low plugins/read-only-url Read-only URL fetch example with allowlist expectation medium Contributor Checklist - Add a manifest under plugins/ . - Use agenttrail.plugin.v1 . - Include at least one permission with scope and receipt behavior. - Add docs if the tool has user-visible setup. - Run npm run test:community ."
+    },
+    {
+      "type": "section",
+      "title": "Plugin SDK - Plugin Shape",
+      "description": "Each plugin lives under `plugins/<plugin-id>/plugin.json`. { \"schema\": \"agenttrail.plugin.v1\", \"id\": \"receipt-reporter\", \"title\": \"Receipt Reporter\", \"version\": \"0.1.0\", \"tools\": [",
+      "href": "../PLUGIN_SDK.md#plugin-shape",
+      "tags": [
+        "plugins",
+        "sdk",
+        "permissions"
+      ],
+      "text": "Plugin Shape Each plugin lives under `plugins/<plugin-id>/plugin.json`. { \"schema\": \"agenttrail.plugin.v1\", \"id\": \"receipt-reporter\", \"title\": \"Receipt Reporter\", \"version\": \"0.1.0\", \"tools\": ["
+    },
+    {
+      "type": "section",
+      "title": "Plugin SDK - Permission Contract",
+      "description": "Every tool needs a human-readable scope. Risk must be explicit: `low`, `medium`, or `high`. File-writing tools must require review and leave receipts. Network tools must declare allowed host behavior.",
+      "href": "../PLUGIN_SDK.md#permission-contract",
+      "tags": [
+        "plugins",
+        "sdk",
+        "permissions"
+      ],
+      "text": "Permission Contract Every tool needs a human-readable scope. Risk must be explicit: `low`, `medium`, or `high`. File-writing tools must require review and leave receipts. Network tools must declare allowed host behavior."
+    },
+    {
+      "type": "section",
+      "title": "Plugin SDK - Example Plugins",
+      "description": "",
+      "href": "../PLUGIN_SDK.md#example-plugins",
+      "tags": [
+        "plugins",
+        "sdk",
+        "permissions"
+      ],
+      "text": "Example Plugins "
+    },
+    {
+      "type": "section",
+      "title": "Plugin SDK - Contributor Checklist",
+      "description": "Add a manifest under `plugins/`. Use `agenttrail.plugin.v1`. Include at least one permission with scope and receipt behavior. Add docs if the tool has user-visible setup. Run `npm run test:community`.",
+      "href": "../PLUGIN_SDK.md#contributor-checklist",
+      "tags": [
+        "plugins",
+        "sdk",
+        "permissions"
+      ],
+      "text": "Contributor Checklist Add a manifest under `plugins/`. Use `agenttrail.plugin.v1`. Include at least one permission with scope and receipt behavior. Add docs if the tool has user-visible setup. Run `npm run test:community`."
     },
     {
       "type": "doc",

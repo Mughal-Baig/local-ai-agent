@@ -1,0 +1,110 @@
+{
+  "schema": "agenttrail.good-first-issues.v1",
+  "labels": [
+    "good first issue",
+    "help wanted",
+    "recipe",
+    "docs",
+    "showcase",
+    "benchmark",
+    "plugin"
+  ],
+  "issues": [
+    {
+      "title": "Add a researcher recipe pack",
+      "labels": ["good first issue", "recipe"],
+      "area": "recipes",
+      "why": "Researchers are a natural fit for local RAG, citations, table extraction, and receipt exports.",
+      "acceptance": [
+        "Add a researcher pack JSON file under recipe-packs/",
+        "Reference only recipes that exist or add small new recipes",
+        "Update marketplace/recipes.json",
+        "Run npm run test:community"
+      ]
+    },
+    {
+      "title": "Add a showcase entry for a real receipt workflow",
+      "labels": ["good first issue", "showcase"],
+      "area": "showcase",
+      "why": "Showcase entries turn AgentTrail from abstract tooling into visible workflows.",
+      "acceptance": [
+        "Add one entry to docs/showcase/gallery.json",
+        "Include input, workflow, trust signal, and artifact fields",
+        "Avoid private or sensitive file names",
+        "Run npm run test:community"
+      ]
+    },
+    {
+      "title": "Add one honest comparison benchmark fixture",
+      "labels": ["good first issue", "benchmark"],
+      "area": "benchmarks",
+      "why": "Reproducible comparison data builds credibility without hype.",
+      "acceptance": [
+        "Add a benchmark scenario to docs/benchmarks/comparison.json",
+        "Include setup, metric, and limitations",
+        "Update docs/COMPARISON_BENCHMARKS.md if needed",
+        "Run npm run test:community"
+      ]
+    },
+    {
+      "title": "Create a plugin example for a safe read-only tool",
+      "labels": ["good first issue", "plugin"],
+      "area": "plugins",
+      "why": "Small plugin examples make the SDK real for new contributors.",
+      "acceptance": [
+        "Add a plugin manifest under plugins/",
+        "Set explicit permissions and receipt behavior",
+        "Mention it in docs/PLUGIN_SDK.md",
+        "Run npm run test:community"
+      ]
+    },
+    {
+      "title": "Improve the launch response FAQ with a repeated user question",
+      "labels": ["good first issue", "docs"],
+      "area": "docs",
+      "why": "Good responses reduce maintainer load after public launches.",
+      "acceptance": [
+        "Add the question and answer to docs/LAUNCH_RESPONSE_WORKFLOW.md",
+        "Keep the answer factual and local-first",
+        "Link to the relevant docs page",
+        "Run npm run test:docs"
+      ]
+    },
+    {
+      "title": "Add a recipe marketplace curation example",
+      "labels": ["good first issue", "recipe", "docs"],
+      "area": "marketplace",
+      "why": "Contributors need examples of what maintainers will accept.",
+      "acceptance": [
+        "Add an example pack submission to docs/RECIPE_MARKETPLACE.md",
+        "Explain role, recipes, safety behavior, and receipts",
+        "Do not add fake stars or claims",
+        "Run npm run test:community"
+      ]
+    },
+    {
+      "title": "Add Windows or Linux screenshot notes",
+      "labels": ["good first issue", "docs", "showcase"],
+      "area": "docs",
+      "why": "Cross-platform proof helps non-Mac users trust the install path.",
+      "acceptance": [
+        "Add screenshot capture notes to docs/VIDEO_WALKTHROUGHS.md",
+        "Reference the relevant launcher doc",
+        "Avoid committing personal desktop information",
+        "Run npm run test:docs"
+      ]
+    },
+    {
+      "title": "Add a maintainer recipe for issue triage",
+      "labels": ["good first issue", "recipe"],
+      "area": "recipes",
+      "why": "Maintainers can use AgentTrail on its own community queue.",
+      "acceptance": [
+        "Add a recipe that summarizes issue reports into reproduction steps",
+        "Require citations to issue text",
+        "Avoid external network assumptions",
+        "Run npm run test:community"
+      ]
+    }
+  ]
+}

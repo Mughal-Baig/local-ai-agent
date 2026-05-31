@@ -1,0 +1,32 @@
+{
+  "schema": "agenttrail.showcase-gallery.v1",
+  "entries": [
+    {
+      "id": "diff-safe-readme-polish",
+      "title": "Diff-safe README polish",
+      "audience": "open-source maintainer",
+      "workflow": ["search workspace", "preview README diff", "click Apply", "export receipt"],
+      "trustSignals": ["diff preview", "explicit apply", "receipt export"],
+      "artifact": "docs/agenttrail-demo.gif",
+      "status": "featured"
+    },
+    {
+      "id": "local-security-review",
+      "title": "Local prompt-injection review",
+      "audience": "security reviewer",
+      "workflow": ["select files", "scan suspicious instructions", "summarize evidence", "save receipt"],
+      "trustSignals": ["prompt-injection flags", "file citations", "receipt summary"],
+      "artifact": "recipes/prompt-injection-review.json",
+      "status": "featured"
+    },
+    {
+      "id": "release-proof-bundle",
+      "title": "Release proof bundle",
+      "audience": "release maintainer",
+      "workflow": ["run checks", "generate SBOM", "verify checksums", "publish release notes"],
+      "trustSignals": ["checksums", "SBOM", "reproducible build"],
+      "artifact": "docs/SUPPLY_CHAIN.md",
+      "status": "featured"
+    }
+  ]
+}

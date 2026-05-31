@@ -1,0 +1,27 @@
+- name: good first issue
+  color: "7057ff"
+  description: Small, well-scoped contribution for new contributors.
+- name: help wanted
+  color: "008672"
+  description: Maintainers welcome community help.
+- name: recipe
+  color: "c2e0c6"
+  description: Recipe, recipe pack, or marketplace curation work.
+- name: docs
+  color: "0075ca"
+  description: Documentation, guides, examples, or FAQ.
+- name: showcase
+  color: "f9d0c4"
+  description: User workflow, receipt, demo, or gallery entry.
+- name: benchmark
+  color: "fbca04"
+  description: Reproducible measurement, fixture, or comparison data.
+- name: plugin
+  color: "d4c5f9"
+  description: Plugin SDK, plugin manifest, or tool integration work.
+- name: security
+  color: "d73a4a"
+  description: Safety, privacy, threat model, prompt-injection, or permissions.
+- name: needs receipt
+  color: "bfdadc"
+  description: Needs proof of behavior, receipt, screenshot, or report.

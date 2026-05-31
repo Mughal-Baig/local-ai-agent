@@ -2,6 +2,36 @@
   "title": "AgentTrail Recipe Marketplace",
   "description": "Curated importable recipe packs for auditable local agents. Community submissions should be small, reviewable, and receipt-friendly.",
   "submissionUrl": "https://github.com/Mughal-Baig/local-ai-agent/issues/new?template=recipe_pack.yml",
+  "curation": {
+    "schema": "agenttrail.recipe-marketplace-curation.v1",
+    "reviewUrl": "docs/RECIPE_MARKETPLACE.md",
+    "rules": [
+      "Recipes must have a clear role and concrete task.",
+      "File-writing recipes must mention diff preview or explicit Apply.",
+      "Security recipes must ask for evidence and avoid unsupported claims.",
+      "Packs need at least three useful recipes and one clear target user.",
+      "Cloud-only workflows are not accepted for built-in marketplace packs."
+    ],
+    "states": ["candidate", "reviewing", "featured", "retired"]
+  },
+  "submissionQueue": [
+    {
+      "id": "researcher-pack",
+      "title": "Researcher Pack",
+      "role": "researcher",
+      "state": "candidate",
+      "neededRecipes": ["literature-brief", "citation-check", "dataset-notes"],
+      "reviewFocus": "Citations, evidence boundaries, and local file workflows."
+    },
+    {
+      "id": "maintainer-pack",
+      "title": "Maintainer Pack",
+      "role": "maintainer",
+      "state": "candidate",
+      "neededRecipes": ["issue-triage", "release-readiness", "community-response"],
+      "reviewFocus": "GitHub issue summaries, release proof, and no fake claims."
+    }
+  ],
   "packs": [
     {
       "id": "coder-pack",

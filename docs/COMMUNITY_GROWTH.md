@@ -12,13 +12,18 @@ AgentTrail should earn stars by making the value obvious in the first minute and
 
 ## Good First Issue Backlog
 
-- Add a student recipe pack.
-- Add a writer recipe pack.
+The current source of truth is `docs/community/good-first-issues.json`; the readable guide is `docs/GOOD_FIRST_ISSUES.md`.
+
+Starter areas:
+
 - Add a researcher recipe pack.
-- Add a benchmark fixture for one popular local coding model.
-- Improve the static demo copy for non-developers.
-- Add screenshots for Windows and Linux launchers.
-- Add an example MCP client configuration.
+- Add a showcase entry for a real receipt workflow.
+- Add one honest comparison benchmark fixture.
+- Create a plugin example for a safe read-only tool.
+- Improve the launch response FAQ with a repeated user question.
+- Add a recipe marketplace curation example.
+- Add Windows or Linux screenshot notes.
+- Add a maintainer recipe for issue triage.
 
 ## Launch Checklist
 
@@ -27,3 +32,14 @@ AgentTrail should earn stars by making the value obvious in the first minute and
 - Open five good first issues before launch.
 - Ask early users for one recipe pack each.
 - Tag releases with short notes and a screenshot or GIF.
+
+## Epic AB Assets
+
+- Launch responses: `docs/LAUNCH_RESPONSE_WORKFLOW.md` and `docs/launch/response-kit.json`
+- Marketplace curation: `docs/RECIPE_MARKETPLACE.md` and `marketplace/recipes.json`
+- Issues and labels: `docs/GOOD_FIRST_ISSUES.md`, `docs/community/good-first-issues.json`, `.github/labels.yml`
+- Governance: `CONTRIBUTING.md` and `GOVERNANCE.md`
+- Release discipline: `CHANGELOG.md` and `docs/RELEASE_PROCESS.md`
+- Showcase: `docs/SHOWCASE.md` and `docs/showcase/gallery.json`
+- Benchmarks: `docs/COMPARISON_BENCHMARKS.md` and `docs/benchmarks/comparison.json`
+- Plugin SDK: `docs/PLUGIN_SDK.md` and `plugins/*/plugin.json`

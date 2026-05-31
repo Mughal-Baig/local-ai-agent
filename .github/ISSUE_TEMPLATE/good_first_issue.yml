@@ -17,6 +17,10 @@ body:
         - Security
         - Evaluation
         - Install
+        - Marketplace
+        - Showcase
+        - Benchmark
+        - Plugin
     validations:
       required: true
   - type: textarea

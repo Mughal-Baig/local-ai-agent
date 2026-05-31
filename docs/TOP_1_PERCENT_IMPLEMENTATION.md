@@ -27,7 +27,7 @@ This table maps the requested 30-item top-1% and foundation list to the v0.7 imp
 | Workspace profiles | profile selector, `/api/profiles/apply`, separate permission/model defaults |
 | Lightweight team/audit | `/api/team/status`, read-only shared receipts, local users, RBAC tool caps, audit export, opt-in sync pack, and SSO identity hook |
 | Polished README | GIF, badges, comparison, 60-second quick start, screenshots, roadmap, foundation section |
-| Community loop | good-first issue templates, recipe submissions, launch posts, marketplace manifest |
+| Community loop | launch response workflow, response macros, recipe marketplace curation, good-first backlog, labels, governance, changelog discipline, showcase gallery, comparison benchmarks, and plugin SDK examples |
 | Real screen demo path | `npm run demo:video`, `docs/demo-video/storyboard.json`, recording plan for real browser capture |
 | Screenshots | `npm run screenshots`, screenshot assets under `docs/screenshots/` |
 | Public demo | `docs/public-demo.html` and `/api/demo/public` |
@@ -44,7 +44,7 @@ This table maps the requested 30-item top-1% and foundation list to the v0.7 imp
 | Database-like persistence | SQLite at `workspace/.agenttrail/agenttrail.db`, append-only JSONL event store, `/api/sqlite/status`, `/api/store/stats` |
 | Real tool permission engine | `src/permissions.js`, `/api/permissions`, per-tool policies, permission-audit events, integrated into agent tool execution |
 | Better evals | repo eval now checks foundation modules, semantic hashes/chunks, plugins, jobs, backups, checksums |
-| Better tests | `npm run test:unit`, `npm run test:integration`, `npm run test:ui`, `npm run test:quality`, expanded `npm test`, `npm run eval` |
+| Better tests | `npm run test:unit`, `npm run test:integration`, `npm run test:ui`, `npm run test:quality`, `npm run test:docs`, `npm run test:community`, expanded `npm test`, `npm run eval` |
 | Quality engineering | V8 coverage gate, path/diff fuzz tests, UI E2E smoke, deterministic performance regression budgets, cross-platform Node matrix, and eval scoreboard |
 | Documentation foundation | searchable static docs site, 60-second guide, recipe authoring guide, backend setup guides, architecture deep dive, generated API reference, FAQ, and video walkthrough plans |
 | Migration system | `src/migrations.js`, `migrations/*.json`, `/api/migrations`, migration state in `workspace/.agenttrail/migrations.json` |
@@ -53,7 +53,7 @@ This table maps the requested 30-item top-1% and foundation list to the v0.7 imp
 | Background jobs | `src/jobs.js`, `/api/jobs`, `/api/jobs/start`, Foundation panel job actions |
 | Better error handling | `src/features/errors.js` adds a structured taxonomy with actionable hints for Ollama, embeddings, large files, permissions, path escapes, egress blocks, encryption, rate limits, and timeouts |
 | Signed-release path | `npm run release:checksums`, `/api/releases/checksums`, `/api/releases/signing-plan`, [docs/RELEASE_SIGNING.md](RELEASE_SIGNING.md), release artifact workflow |
-| Plugin architecture | `plugins/`, `/api/plugins`, `/api/plugins/run`, example plugin manifest, VM sandbox |
+| Plugin architecture | `plugins/`, `/api/plugins`, `/api/plugins/run`, example plugin manifests, [docs/PLUGIN_SDK.md](PLUGIN_SDK.md), VM sandbox |
 | Import/export backup | `/api/backup/export`, `/api/backup/import`, `workspace/backups/agenttrail-backup-*.json` |
 | Frontend structure | `public/modules/foundation.js` and `public/modules/product.js` own panels outside `app.js` |
 | Structured logging | `src/logger.js`, `workspace/.agenttrail/logs.jsonl`, `/api/logs` |

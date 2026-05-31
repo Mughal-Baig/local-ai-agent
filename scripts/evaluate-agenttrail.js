@@ -48,6 +48,14 @@ async function main() {
   checks.push(await check("Docs generated API reference exists", async () => includes("scripts/generate-api-reference.js", ["routeCatalog", "Generated docs/API_REFERENCE.md"]) && includes("docs/API_REFERENCE.md", ["Generated from `src/route-catalog.js`", "/api/team/status", "/v1/chat/completions"])));
   checks.push(await check("Docs troubleshooting FAQ exists", async () => includes("docs/TROUBLESHOOTING.md", ["FAQ", "CI Fails On Docs", "OpenAI-Compatible API Returns 401 Or 429"])));
   checks.push(await check("Docs video walkthroughs exist", async () => includes("docs/VIDEO_WALKTHROUGHS.md", ["Walkthrough 1", "Security Hardening", "Quality Proof"]) && includes("docs/video-walkthroughs/storyboards.json", ["agenttrail.video-walkthroughs.v1", "quick-start-60"])));
+  checks.push(await check("Community launch response workflow exists", async () => includes("docs/LAUNCH_RESPONSE_WORKFLOW.md", ["Response Triage", "search -> diff preview -> Apply -> receipt"]) && includes("docs/launch/response-kit.json", ["agenttrail.launch-response-kit.v1", "primaryAssets"])));
+  checks.push(await check("Community recipe marketplace curation exists", async () => includes("docs/RECIPE_MARKETPLACE.md", ["Curation Rules", "Review Rubric"]) && includes("marketplace/recipes.json", ["agenttrail.recipe-marketplace-curation.v1", "submissionQueue"])));
+  checks.push(await check("Community good-first issue backlog exists", async () => includes("docs/GOOD_FIRST_ISSUES.md", ["Seed Backlog", "good first issue"]) && includes("docs/community/good-first-issues.json", ["agenttrail.good-first-issues.v1", "Add a researcher recipe pack"]) && includes(".github/labels.yml", ["needs receipt", "benchmark"])));
+  checks.push(await check("Community governance exists", async () => includes("CONTRIBUTING.md", ["Community Assets", "GOVERNANCE.md"]) && includes("GOVERNANCE.md", ["Maintainer Principles", "Decision Process"])));
+  checks.push(await check("Community changelog discipline exists", async () => includes("CHANGELOG.md", ["Unreleased", "v0.7.0"]) && includes("docs/RELEASE_PROCESS.md", ["Release Readiness Gate", "CHANGELOG.md"])));
+  checks.push(await check("Community showcase gallery exists", async () => includes("docs/SHOWCASE.md", ["Submission Checklist", "Featured Workflows"]) && includes("docs/showcase/gallery.json", ["agenttrail.showcase-gallery.v1", "diff-safe-readme-polish"])));
+  checks.push(await check("Community comparison benchmarks exist", async () => includes("docs/COMPARISON_BENCHMARKS.md", ["Benchmark Rules", "Known Limits"]) && includes("docs/benchmarks/comparison.json", ["agenttrail.comparison-benchmarks.v1", "search-diff-receipt-loop"])));
+  checks.push(await check("Community plugin SDK examples exist", async () => includes("docs/PLUGIN_SDK.md", ["Permission Contract", "plugins/receipt-reporter", "plugins/read-only-url"]) && includes("plugins/receipt-reporter/plugin.json", ["agenttrail.plugin.v1", "receipt.summary"]) && includes("plugins/read-only-url/plugin.json", ["agenttrail.plugin.v1", "url.fetch_readonly"])));
   checks.push(await check("Desktop launchers exist", async () => includes("desktop/README.md", ["macOS", "Windows", "Linux"])));
   checks.push(await check("Epic T desktop distribution exists", async () => includes("desktop/mac/AgentTrailMenuBar.swift", ["NSStatusBar", "Restart Server"]) && includes("desktop/windows/AgentTrail-Tray.ps1", ["NotifyIcon", "Restart server"]) && includes("desktop/linux/agenttrail-tray.sh", ["notify-send", "AGENTTRAIL_DESKTOP"]) && includes("updates/latest.json", ["agenttrail.update-channel.v1", "stable"]) && includes("src/desktop-notifications.js", ["maybeNotifyLongTask", "notify-send"]) && includes("installers/windows/AgentTrail.iss", ["AgentTrail-Setup"]) && includes("installers/linux/agenttrail.spec", ["Name: agenttrail"])));
   checks.push(await check("Real demo GIF exists", async () => hasFile("docs/agenttrail-demo.gif")));
@@ -225,6 +233,7 @@ function buildScoreboard(checks) {
 
 function categoryFor(name) {
   const text = String(name || "").toLowerCase();
+  if (/community|launch response|marketplace|good-first|governance|changelog|showcase|comparison/.test(text)) return "community";
   if (/quality|coverage|fuzz|performance|matrix|ui e2e|scoreboard/.test(text)) return "quality";
   if (/docs|guide|api reference|troubleshooting|walkthrough|architecture|backend setup|recipe authoring/.test(text)) return "docs";
   if (/observability|trace|analytics|metrics|error/.test(text)) return "observability";
