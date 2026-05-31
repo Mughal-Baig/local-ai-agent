@@ -10,8 +10,7 @@ const os = require("node:os");
 const path = require("node:path");
 
 const projectRoot = path.resolve(__dirname, "../..");
-const agentPort = 6000 + Math.floor(Math.random() * 300);
-const mockPort = 6400 + Math.floor(Math.random() * 300);
+let agentPort = 0;
 const tinyPng = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAFgwJ/lA8t4wAAAABJRU5ErkJggg==";
 
 main().catch((error) => {
@@ -21,7 +20,9 @@ main().catch((error) => {
 
 async function main() {
   const state = { requests: [] };
-  const mock = await startMockImageServer(mockPort, state);
+  agentPort = await getOpenPort();
+  const mock = await startMockImageServer(state);
+  const mockPort = mock.address().port;
   const workspaceRoot = await fsp.mkdtemp(path.join(os.tmpdir(), "agenttrail-image-gen-"));
   let output = "";
   const child = spawn(process.execPath, ["server.js"], {
@@ -89,7 +90,7 @@ async function main() {
   }
 }
 
-function startMockImageServer(port, state) {
+function startMockImageServer(state) {
   const server = http.createServer(async (req, res) => {
     if (req.method === "POST" && req.url.startsWith("/sdapi/v1/txt2img")) {
       const body = JSON.parse(await readBody(req) || "{}");
@@ -101,8 +102,20 @@ function startMockImageServer(port, state) {
     }
     json(res, { error: "not found" }, 404);
   });
-  return new Promise((resolve) => {
-    server.listen(port, "127.0.0.1", () => resolve(server));
+  return new Promise((resolve, reject) => {
+    server.on("error", reject);
+    server.listen(0, "127.0.0.1", () => resolve(server));
+  });
+}
+
+function getOpenPort() {
+  const server = http.createServer();
+  return new Promise((resolve, reject) => {
+    server.on("error", reject);
+    server.listen(0, "127.0.0.1", () => {
+      const port = server.address().port;
+      server.close((error) => error ? reject(error) : resolve(port));
+    });
   });
 }
 
