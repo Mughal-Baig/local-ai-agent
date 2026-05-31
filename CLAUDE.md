@@ -8,6 +8,18 @@ This folder is the working source copy that may be synced to GitHub by Codex.
 - If you reference the roadmap, link to `docs/LOCAL_AGENT_LAYER_ROADMAP.md`.
 - Keep stale generated files out of commits: `*.bak`, `docs/.Rhistory`, `docs/preview.svg`, and `docs/demo-flow.svg`.
 
+## Latest Codex Pass - Epic W Security & Privacy
+
+Codex completed Epic W (T156-T160):
+
+- T156: redaction now runs before model context and before receipts/sessions/reports/logs/audit artifacts are stored. Helper: `src/privacy.js`; patterns: `src/features/redact.js`.
+- T157: `src/permissions.js` now exposes per-tool policies and `agenttrail.permission-audit.v1`; agent tool decisions append `permission-audit` and structured log events.
+- T158: centralized network policy in `src/network-policy.js`; URL ingestion, marketplace imports, image-generation endpoints, and model-registry HTTP pulls enforce explicit allowlists/private-network rules.
+- T159: optional AES-256-GCM encrypted-at-rest managed artifacts via `AGENTTRAIL_ENCRYPT_AT_REST` + `AGENTTRAIL_ENCRYPTION_KEY`; receipts decrypt through normal read APIs when the key is present.
+- T160: added `npm run test:security-privacy`, covering path escape, exfiltration, prompt injection, egress denial, redaction, policies, and encrypted receipt readback.
+
+Recommended verification before changing this layer: `npm run test:security-privacy`, `npm run test:redact`, `npm run test:unit`, `npm run test:integration`, `npm test`, and `npm run eval`.
+
 ## Latest Codex Roadmap Pass
 
 Codex completed the first hard engineering slice from Phase 1:

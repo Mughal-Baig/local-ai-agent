@@ -14,6 +14,10 @@ Current schema families:
 - `agenttrail.vector-store.v1`
 - `agenttrail.vector-store-migrations.v1`
 - `agenttrail.tool-permission.v1`
+- `agenttrail.tool-policy.v1`
+- `agenttrail.permission-audit.v1`
+- `agenttrail.privacy.v1`
+- `agenttrail.network-policy.v1`
 - `agenttrail.plugin.v1`
 - `agenttrail.job.v1`
 - `agenttrail.backup.v1`

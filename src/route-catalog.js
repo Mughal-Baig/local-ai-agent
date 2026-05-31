@@ -16,7 +16,7 @@ const ROUTE_CATALOG = [
   { area: "system", module: "server.js", routes: ["/api/health", "/api/resources", "/api/runtime", "/api/concurrency", "/api/updates/check"] },
   { area: "openai-compatible-api", module: "server.js", routes: ["/v1/chat/completions", "/v1/models", "/v1/embeddings", "/v1/openapi.json"] },
   { area: "structured-output", module: "src/structured-output.js", routes: ["/api/structured-output/schemas", "/api/structured-output", "/api/structured-output/recipe"] },
-  { area: "security", module: "src/features/security.js", routes: ["/api/security/scan"] },
+  { area: "security", module: "src/features/security.js + src/privacy.js + src/network-policy.js", routes: ["/api/security/scan", "/api/security/privacy"] },
   { area: "foundation", module: "src/foundation.js", routes: ["/api/foundation", "/api/schemas", "/api/migrations"] },
   { area: "plugins", module: "src/plugin-loader.js + src/plugin-sandbox.js", routes: ["/api/plugins", "/api/plugins/run"] },
   { area: "jobs", module: "src/jobs.js", routes: ["/api/jobs", "/api/jobs/start"] },

@@ -27,6 +27,8 @@ jobs:
       - run: node --check src/audio-transcription.js
       - run: node --check src/image-generation.js
       - run: node --check src/features/redact.js
+      - run: node --check src/privacy.js
+      - run: node --check src/network-policy.js
       - run: node --check src/runtime-hardware.js
       - run: node --check src/runtime-loading.js
       - run: node --check src/model-registry.js
@@ -47,12 +49,14 @@ jobs:
       - run: node --check scripts/smoke-test.js
       - run: node --check scripts/evaluate-agenttrail.js
       - run: node --check tests/unit/redact.test.js
+      - run: node --check tests/unit/security-privacy.test.js
       - run: node --check tests/unit/runtime-hardware.test.js
       - run: node --check tests/unit/runtime-loading.test.js
       - run: node --check tests/unit/model-registry.test.js
       - run: node --check tests/unit/desktop-distribution.test.js
       - run: node --check tests/unit/supply-chain.test.js
       - run: node --check tests/integration/model-registry.test.js
+      - run: node --check tests/integration/threat-model.test.js
       - run: node --check tests/integration/cli.test.js
       - run: node --check tests/integration/openai-compatible-server.test.js
       - run: node --check tests/integration/health.test.js
@@ -66,6 +70,7 @@ jobs:
       - run: node tests/unit/model-registry.test.js
       - run: node tests/unit/desktop-distribution.test.js
       - run: node tests/unit/supply-chain.test.js
+      - run: node tests/unit/security-privacy.test.js
       - run: node tests/unit/redact.test.js
       - run: node tests/unit/pdf-extraction.test.js
       - run: node tests/unit/audio-transcription.test.js
@@ -80,6 +85,7 @@ jobs:
       - run: node tests/integration/openai-compatible-server.test.js
       - run: node tests/integration/model-management.test.js
       - run: node tests/integration/model-registry.test.js
+      - run: node tests/integration/threat-model.test.js
       - run: node tests/integration/cli.test.js
       - run: node tests/integration/embedding-cache.test.js
       - run: node scripts/eval-search.js

@@ -99,6 +99,7 @@ Open `http://127.0.0.1:4173`, build the semantic index, ask for a change, review
 - Optional local image generation through SD/Flux-style servers via `/api/images/generate`, with generated files and provenance saved in the workspace
 - Local speech-to-text adapter for WAV/MP3/M4A/FLAC/WebM/MP4/MOV files through `/api/audio/transcribe`, voice prompt recording in the composer, and local text-to-speech playback for assistant responses
 - Permission toggles for file reads, file writes, write preview mode, and security hardening mode
+- Secret redaction for model context, logs, receipts, sessions, and reports; optional encrypted-at-rest managed artifacts; network egress allowlists for URL/image/model pulls
 - Ollama integration for local models
 - Model capability scoring for coding, tool use, planning, long context, and vision readiness
 - Workspace-aware tools: list files, search files, read files, preview writes, and write files
@@ -280,7 +281,7 @@ When write preview mode is enabled, `write_file` returns a diff preview instead 
 - Workspace profiles: [profiles](profiles), `/api/profiles/apply`
 - Trust Score dashboard: browser UI
 - README star engine: demo, comparison, 60-second quick start, roadmap
-- Security hardening engine: prompt flags, path escape checks, exfiltration patterns, `/api/security/scan`
+- Security hardening engine: prompt flags, path escape checks, exfiltration patterns, secret-like value detection, egress policy, `/api/security/scan`, `/api/security/privacy`
 - Shareable reports: polished Markdown/HTML exports in `workspace/reports/`
 - Community growth loop: issue templates, launch posts, marketplace submissions, and good-first contribution docs
 - Guided replay: `/api/replay/plan`
@@ -298,6 +299,7 @@ When write preview mode is enabled, `write_file` returns a diff preview instead 
 - Server modules: [src](src)
 - Stable schemas: [docs/SCHEMAS.md](docs/SCHEMAS.md)
 - Permission engine: [src/permissions.js](src/permissions.js)
+- Privacy and network policy: [src/privacy.js](src/privacy.js), [src/network-policy.js](src/network-policy.js)
 - Model adapters: [src/model-adapters.js](src/model-adapters.js)
 - Migration system: [src/migrations.js](src/migrations.js)
 - Vector-store migrations: [src/vector-store.js](src/vector-store.js)
@@ -375,6 +377,9 @@ Supported variables:
 - `AGENTTRAIL_MAX_ATTACHMENT_AUDIO_BYTES`: max bytes for saved audio attachments, default `8388608`
 - `AGENTTRAIL_MAX_ATTACHMENT_IMAGE_BYTES`: max bytes for dragged/pasted image attachments, default follows `AGENTTRAIL_MAX_VISION_IMAGE_BYTES`
 - `AGENTTRAIL_MAX_ATTACHMENT_BODY_BYTES`: max `/api/attachments` JSON payload size, default allows the configured vision image batch
+- `AGENTTRAIL_SECRET_REDACTION`: redact common tokens/keys from model context and audit artifacts, default `on`
+- `AGENTTRAIL_ENCRYPT_AT_REST` / `AGENTTRAIL_ENCRYPTION_KEY`: optionally encrypt receipts/reports/sessions/evals at rest
+- `AGENTTRAIL_EGRESS_ALLOWLIST`: comma-separated host allowlist enforced for configured network egress
 - `WORKSPACE_ROOT`: folder the agent can access
 - `MAX_TOOL_ITERATIONS`: maximum tool loop steps per message
 

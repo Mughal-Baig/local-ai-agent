@@ -4,13 +4,12 @@ const fs = require("node:fs");
 const fsp = require("node:fs/promises");
 const { execFile } = require("node:child_process");
 const http = require("node:http");
-const net = require("node:net");
 const path = require("node:path");
 const { promisify } = require("node:util");
 const { URL } = require("node:url");
 const packageMeta = require("./package.json");
 const { SCHEMA_VERSION, listSchemaSummaries, validateSchema, withSchema } = require("./src/schemas");
-const { permissionManifest, evaluateToolPermission } = require("./src/permissions");
+const { permissionManifest, evaluateToolPermission, permissionAuditEvent } = require("./src/permissions");
 const { listModelAdapters, activeModelAdapter } = require("./src/model-adapters");
 const { listToolSchemas, toolDefinitionsForBackend, validateToolArguments, repairToolArguments, formatToolSchemaPrompt } = require("./src/tool-schemas");
 const { listStructuredOutputSchemas, selectStructuredOutputSchema, parseStructuredJson, validateStructuredOutput, structuredOutputMessage } = require("./src/structured-output");
@@ -26,6 +25,8 @@ const { hashContent, chunkTextDetailed, rankChunks, scoreBm25Documents, fuseHybr
 const { FlatVectorStore, summarizeVectorStore, vectorMapsFromStore, annCandidatePaths } = require("./src/vector-store");
 const { scanSecurityText } = require("./src/features/security");
 const { friendlyError } = require("./src/features/errors");
+const { redactTextOnly, redactValueOnly, protectTextForStorage, revealTextFromStorage, privacyStatus } = require("./src/privacy");
+const { validateNetworkEgress, normalizeNetworkAllowlist, hostMatchesAllowlist, isPrivateNetworkHost, networkPolicyStatus } = require("./src/network-policy");
 const { SqliteStore } = require("./src/sqlite-store");
 const { FileWatcher } = require("./src/file-watcher");
 const { runPluginTool } = require("./src/plugin-sandbox");
@@ -595,6 +596,10 @@ const server = http.createServer(async (req, res) => {
 
     if (url.pathname === "/api/security/scan" && req.method === "POST") {
       return handleSecurityScan(req, res);
+    }
+
+    if (url.pathname === "/api/security/privacy" && req.method === "GET") {
+      return handleSecurityPrivacy(res);
     }
 
     if (url.pathname === "/api/onboarding" && req.method === "GET") {
@@ -1813,6 +1818,8 @@ async function handleFoundation(res) {
   foundation.sqlite = SQLITE.status();
   foundation.config = CONFIG_STATUS;
   foundation.watch = WATCHER.status();
+  foundation.privacy = privacyStatus(process.env);
+  foundation.network = networkPolicyStatus(process.env);
   sendJson(res, 200, foundation);
 }
 
@@ -1977,7 +1984,7 @@ async function buildStructuredRecipePrompt(recipe, input, selectedFiles) {
     }
   }
 
-  return [
+  return redactTextOnly([
     recipe.prompt,
     "",
     "User input:",
@@ -1987,7 +1994,7 @@ async function buildStructuredRecipePrompt(recipe, input, selectedFiles) {
     fileBlocks.length ? fileBlocks.join("\n\n") : "No files selected.",
     "",
     "Extract the requested data and return only the typed JSON."
-  ].join("\n");
+  ].join("\n"));
 }
 
 async function handleAgentPlan(req, res) {
@@ -2063,7 +2070,7 @@ async function buildPlannerPrompt(messages, selectedFiles, permissions, security
     .map((message) => `${message.role === "assistant" ? "Assistant" : "User"}: ${message.content}`)
     .join("\n\n");
 
-  return [
+  return redactTextOnly([
     "Create a short, concrete execution plan for AgentTrail before it uses tools or writes files.",
     "Prefer search/read/preview steps before any write-like step.",
     "Use risk high for writes, deletes, external sharing, or ambiguous destructive actions.",
@@ -2085,7 +2092,7 @@ async function buildPlannerPrompt(messages, selectedFiles, permissions, security
     "If images are selected, first account for the visible UI/state in the screenshot, then plan the safest next actions.",
     "",
     "Return a plan the user can edit before approval."
-  ].join("\n");
+  ].join("\n"));
 }
 
 async function handleStoreStats(res) {
@@ -3800,7 +3807,7 @@ async function handleSaveSession(req, res) {
   const safeTitle = title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "session";
   const result = await writeWorkspaceFile(`${SESSIONS_DIR}/${safeTitle}-${stamp}.json`, JSON.stringify(session, null, 2));
   await STORE.append("session", { path: result.path, title: session.title, model: session.model });
-  sendJson(res, 200, { ...result, session });
+  sendJson(res, 200, { ...result, session: redactValueOnly(session) });
 }
 
 async function handleReplayPlan(url, res) {
@@ -3875,6 +3882,12 @@ async function handleMarketplaceImportUrl(req, res) {
   if (!/^https:\/\/(raw\.githubusercontent\.com|gist\.githubusercontent\.com|github\.com)\//.test(sourceUrl)) {
     return sendJson(res, 400, { error: "Only GitHub raw/gist recipe pack URLs are allowed." });
   }
+  validateNetworkEgress(sourceUrl, {
+    allowlist: ["raw.githubusercontent.com", "gist.githubusercontent.com", "github.com"],
+    requireAllowlist: true,
+    purpose: "recipe-marketplace-import",
+    env: process.env
+  });
   const response = await fetch(sourceUrl, { signal: AbortSignal.timeout(12000) });
   if (!response.ok) {
     return sendJson(res, 400, { error: `Could not import pack: HTTP ${response.status}` });
@@ -4065,10 +4078,27 @@ async function handleSecurityScan(req, res) {
   sendJson(res, 200, result);
 }
 
+function handleSecurityPrivacy(res) {
+  sendJson(res, 200, {
+    schema: "agenttrail.security-privacy.v1",
+    privacy: privacyStatus(process.env),
+    network: networkPolicyStatus(process.env),
+    permissions: permissionManifest()
+  });
+}
+
 async function handleReadFile(url, res) {
-  const relativePath = url.searchParams.get("path") || "";
-  const file = await readWorkspaceFile(relativePath, MAX_FILE_BYTES);
-  sendJson(res, 200, file);
+  try {
+    const relativePath = url.searchParams.get("path") || "";
+    const file = await readWorkspaceFile(relativePath, MAX_FILE_BYTES);
+    sendJson(res, 200, file);
+  } catch (error) {
+    sendJson(res, error.status || 400, friendlyError(error, {
+      ollamaHost: OLLAMA_HOST,
+      defaultModel: DEFAULT_MODEL,
+      embeddingModel: OLLAMA_EMBED_MODEL
+    }));
+  }
 }
 
 async function handleReadRawFile(url, res) {
@@ -4091,15 +4121,23 @@ async function handleReadRawFile(url, res) {
 }
 
 async function handleWriteFile(req, res) {
-  const body = await readJsonBody(req);
-  const relativePath = String(body.path || "").trim();
-  const content = typeof body.content === "string" ? body.content : "";
-  if (!relativePath) {
-    return sendJson(res, 400, { error: "Missing file path" });
-  }
+  try {
+    const body = await readJsonBody(req);
+    const relativePath = String(body.path || "").trim();
+    const content = typeof body.content === "string" ? body.content : "";
+    if (!relativePath) {
+      return sendJson(res, 400, { error: "Missing file path" });
+    }
 
-  const result = await writeWorkspaceFile(relativePath, content);
-  sendJson(res, 200, result);
+    const result = await writeWorkspaceFile(relativePath, content);
+    sendJson(res, 200, result);
+  } catch (error) {
+    sendJson(res, error.status || 400, friendlyError(error, {
+      ollamaHost: OLLAMA_HOST,
+      defaultModel: DEFAULT_MODEL,
+      embeddingModel: OLLAMA_EMBED_MODEL
+    }));
+  }
 }
 
 async function handleAttachments(req, res) {
@@ -4786,9 +4824,20 @@ function validateImageGenerationEndpoint(endpoint) {
     throw httpError(400, "Image generation endpoint only supports http:// and https:// URLs.");
   }
   const allowRemote = String(process.env.AGENTTRAIL_IMAGE_ALLOW_REMOTE || "false").toLowerCase() === "true";
-  if (!allowRemote && !isPrivateUrlHost(endpoint.hostname)) {
+  const privateEndpoint = isPrivateUrlHost(endpoint.hostname);
+  if (!allowRemote && !privateEndpoint) {
     throw httpError(403, "Image generation endpoints must be local/private unless AGENTTRAIL_IMAGE_ALLOW_REMOTE=true.");
   }
+  validateNetworkEgress(endpoint, {
+    allowPrivate: privateEndpoint,
+    allowlist: [
+      ...(process.env.AGENTTRAIL_IMAGE_ALLOWLIST ? String(process.env.AGENTTRAIL_IMAGE_ALLOWLIST).split(/[,\s]+/) : []),
+      ...(allowRemote ? String(process.env.AGENTTRAIL_EGRESS_ALLOWLIST || "").split(/[,\s]+/) : [])
+    ],
+    requireAllowlist: !privateEndpoint,
+    purpose: "image-generation",
+    env: process.env
+  });
 }
 
 function imageGenerationProvenanceParameters(payload, backend) {
@@ -5300,32 +5349,14 @@ async function readResponseBodyLimited(response, maxBytes) {
 }
 
 function normalizeUrlAllowlist(value) {
-  const entries = [];
-  if (Array.isArray(value)) {
-    entries.push(...value);
-  } else if (typeof value === "string") {
-    entries.push(...value.split(/[,\s]+/));
-  }
-  if (process.env.AGENTTRAIL_URL_ALLOWLIST) {
-    entries.push(...process.env.AGENTTRAIL_URL_ALLOWLIST.split(/[,\s]+/));
-  }
-  const normalized = entries
-    .map((entry) => normalizeAllowlistHost(entry))
-    .filter(Boolean);
-  return [...new Set(normalized)].slice(0, 50);
+  return normalizeNetworkAllowlist([
+    ...(Array.isArray(value) ? value : String(value || "").split(/[,\s]+/)),
+    ...(process.env.AGENTTRAIL_URL_ALLOWLIST ? String(process.env.AGENTTRAIL_URL_ALLOWLIST).split(/[,\s]+/) : [])
+  ], process.env).slice(0, 50);
 }
 
 function normalizeAllowlistHost(value) {
-  let raw = String(value || "").trim().toLowerCase();
-  if (!raw) {
-    return "";
-  }
-  try {
-    raw = new URL(raw.includes("://") ? raw : `https://${raw}`).host.toLowerCase();
-  } catch {
-    raw = raw.replace(/^https?:\/\//, "").split("/")[0];
-  }
-  return raw.replace(/\.$/, "");
+  return normalizeNetworkAllowlist([value], {}).find(Boolean) || "";
 }
 
 function validateUrlIngestionTarget(sourceUrl, allowlist, options = {}) {
@@ -5338,54 +5369,22 @@ function validateUrlIngestionTarget(sourceUrl, allowlist, options = {}) {
   if (!["http:", "https:"].includes(parsed.protocol)) {
     throw httpError(400, "URL ingestion only supports http:// and https:// URLs.");
   }
-  if (!allowlist.length) {
-    throw httpError(403, "URL ingestion requires an explicit allowlist. Pass allowlist or set AGENTTRAIL_URL_ALLOWLIST.");
-  }
-  if (!urlHostMatchesAllowlist(parsed, allowlist)) {
-    throw httpError(403, `Host ${parsed.host} is not in the URL ingestion allowlist.`);
-  }
-  if (isPrivateUrlHost(parsed.hostname) && options.allowPrivate !== true) {
-    throw httpError(403, "Private/local URLs require allowPrivate: true and an explicit host allowlist entry.");
-  }
+  validateNetworkEgress(parsed, {
+    allowlist,
+    allowPrivate: options.allowPrivate === true,
+    requireAllowlist: true,
+    purpose: "document-url-ingest",
+    env: process.env
+  });
   return parsed;
 }
 
 function urlHostMatchesAllowlist(url, allowlist) {
-  const host = url.host.toLowerCase().replace(/\.$/, "");
-  const hostname = url.hostname.toLowerCase().replace(/\.$/, "");
-  return allowlist.some((entry) => {
-    const allowed = normalizeAllowlistHost(entry);
-    if (!allowed) {
-      return false;
-    }
-    if (allowed === host || allowed === hostname) {
-      return true;
-    }
-    if (allowed.startsWith(".")) {
-      return hostname.endsWith(allowed);
-    }
-    return !net.isIP(hostname) && hostname.endsWith(`.${allowed}`);
-  });
+  return allowlist.some((entry) => hostMatchesAllowlist(url, entry));
 }
 
 function isPrivateUrlHost(hostname) {
-  const host = String(hostname || "").toLowerCase().replace(/^\[|\]$/g, "");
-  if (!host || host === "localhost" || host.endsWith(".localhost") || host === "0.0.0.0") {
-    return true;
-  }
-  const ipVersion = net.isIP(host);
-  if (ipVersion === 4) {
-    const [a, b] = host.split(".").map((part) => Number(part));
-    return a === 10 ||
-      a === 127 ||
-      (a === 169 && b === 254) ||
-      (a === 172 && b >= 16 && b <= 31) ||
-      (a === 192 && b === 168);
-  }
-  if (ipVersion === 6) {
-    return host === "::1" || host.startsWith("fc") || host.startsWith("fd") || host.startsWith("fe80:");
-  }
-  return false;
+  return isPrivateNetworkHost(hostname);
 }
 
 function normalizeContentMediaType(value) {
@@ -5452,15 +5451,23 @@ function defaultDocumentMediaType(type) {
 }
 
 async function handlePreviewFile(req, res) {
-  const body = await readJsonBody(req);
-  const relativePath = String(body.path || "").trim();
-  const content = typeof body.content === "string" ? body.content : "";
-  if (!relativePath) {
-    return sendJson(res, 400, { error: "Missing file path" });
-  }
+  try {
+    const body = await readJsonBody(req);
+    const relativePath = String(body.path || "").trim();
+    const content = typeof body.content === "string" ? body.content : "";
+    if (!relativePath) {
+      return sendJson(res, 400, { error: "Missing file path" });
+    }
 
-  const result = await previewWorkspaceFile(relativePath, content);
-  sendJson(res, 200, result);
+    const result = await previewWorkspaceFile(relativePath, content);
+    sendJson(res, 200, result);
+  } catch (error) {
+    sendJson(res, error.status || 400, friendlyError(error, {
+      ollamaHost: OLLAMA_HOST,
+      defaultModel: DEFAULT_MODEL,
+      embeddingModel: OLLAMA_EMBED_MODEL
+    }));
+  }
 }
 
 // Backpressure wrapper: bound concurrent model runs; reject with 503 when the
@@ -5873,7 +5880,7 @@ async function buildAgentPrompt(messages, selectedFiles, toolHistory, permission
   const projectStructuredMemoryBlock = formatStructuredMemoryForPrompt(projectMemory.structured, memoryQuery, projectMemoryBudget);
   const visionBlock = formatVisionContextBlock(visionContext);
 
-  return [
+  return redactTextOnly([
     "You are AgentTrail, a private AI assistant running on the user's computer.",
     "You are inspired by modern assistants, but you are not Claude, ChatGPT, or Gemini.",
     "You help with coding, writing, planning, and workspace files.",
@@ -5939,7 +5946,7 @@ async function buildAgentPrompt(messages, selectedFiles, toolHistory, permission
     transcript || "No conversation yet.",
     "",
     "Next response:"
-  ].join("\n");
+  ].join("\n"));
 }
 
 async function executeToolCallBatch(toolCalls, permissions) {
@@ -6130,6 +6137,25 @@ function formatApprovedPlanForPrompt(plan) {
   return rows.join("\n") || "Approved plan was empty.";
 }
 
+async function auditToolPermission(tool, decision, args, actor) {
+  const event = permissionAuditEvent(tool, decision, args, actor);
+  await STORE.append("permission-audit", event);
+  await LOGGER.log(event.ok ? "info" : "warn", "permission.audit", {
+    tool,
+    action: event.action,
+    ok: event.ok,
+    risk: event.risk,
+    reason: event.reason,
+    policy: event.policy && {
+      enabled: event.policy.enabled,
+      audit: event.policy.audit,
+      allowedPathPrefixes: event.policy.allowedPathPrefixes,
+      blockedPathPrefixes: event.policy.blockedPathPrefixes
+    }
+  });
+  return event;
+}
+
 async function executeToolCall(toolCall, permissions) {
   let args = toolCall.arguments || {};
   let repaired = false;
@@ -6152,6 +6178,7 @@ async function executeToolCall(toolCall, permissions) {
     await STORE.append("tool-repaired", { tool: toolCall.tool, originalErrors: schemaCheck.errors, arguments: repairedArgs });
   }
   const decision = evaluateToolPermission(toolCall.tool, permissions, args);
+  await auditToolPermission(toolCall.tool, decision, args, "agent");
   if (!decision.ok) {
     await STORE.append("tool-denied", { tool: toolCall.tool, reason: decision.reason, risk: decision.definition.risk });
     return { error: decision.reason, permission: decision.definition };
@@ -7278,7 +7305,7 @@ async function searchWorkspace(query, limit, options = {}) {
 
     let content = "";
     try {
-      content = await fsp.readFile(resolveWorkspacePath(file.path), "utf8");
+      content = (await readWorkspaceFile(file.path, MAX_SEARCH_FILE_BYTES)).content;
     } catch {
       continue;
     }
@@ -7526,7 +7553,7 @@ async function buildSearchIndex(requestedProvider, options = {}) {
   for (const file of searchableFiles) {
     let content = "";
     try {
-      content = await fsp.readFile(resolveWorkspacePath(file.path), "utf8");
+      content = (await readWorkspaceFile(file.path, MAX_SEARCH_FILE_BYTES)).content;
     } catch {
       continue;
     }
@@ -7573,7 +7600,7 @@ async function buildSearchIndex(requestedProvider, options = {}) {
     for (const file of searchableFiles) {
       let content = "";
       try {
-        content = await fsp.readFile(resolveWorkspacePath(file.path), "utf8");
+        content = (await readWorkspaceFile(file.path, MAX_SEARCH_FILE_BYTES)).content;
       } catch {
         continue;
       }
@@ -7665,7 +7692,7 @@ async function incrementalSearchIndex(collection = DEFAULT_SEARCH_COLLECTION, fa
   for (const file of files) {
     let content = "";
     try {
-      content = await fsp.readFile(resolveWorkspacePath(file.path), "utf8");
+      content = (await readWorkspaceFile(file.path, MAX_SEARCH_FILE_BYTES)).content;
     } catch {
       continue;
     }
@@ -8200,7 +8227,7 @@ async function readWorkspaceFile(relativePath, maxBytes) {
     path: normalizeRelativePath(relativePath),
     size: stat.size,
     modifiedAt: stat.mtime.toISOString(),
-    content: await fsp.readFile(absolutePath, "utf8")
+    content: revealTextFromStorage(relativePath, await fsp.readFile(absolutePath, "utf8"), process.env)
   };
 }
 
@@ -8227,15 +8254,18 @@ async function writeWorkspaceFile(relativePath, content) {
   }
 
   const absolutePath = resolveWorkspacePath(relativePath);
+  const protectedContent = protectTextForStorage(relativePath, content, process.env);
   await fsp.mkdir(path.dirname(absolutePath), { recursive: true });
-  await fsp.writeFile(absolutePath, content, "utf8");
+  await fsp.writeFile(absolutePath, protectedContent.content, "utf8");
   const stat = await fsp.stat(absolutePath);
 
   return {
     path: normalizeRelativePath(relativePath),
     size: stat.size,
     modifiedAt: stat.mtime.toISOString(),
-    ok: true
+    ok: true,
+    redactions: protectedContent.redactions,
+    encrypted: protectedContent.encrypted
   };
 }
 
@@ -8273,7 +8303,7 @@ async function previewWorkspaceFile(relativePath, content, options = {}) {
     if (stat.size > MAX_FILE_BYTES) {
       throw new Error(`File is too large to preview here (${stat.size} bytes)`);
     }
-    current = await fsp.readFile(absolutePath, "utf8");
+    current = revealTextFromStorage(normalized, await fsp.readFile(absolutePath, "utf8"), process.env);
     exists = true;
   } catch (error) {
     if (error.code !== "ENOENT") {
@@ -8561,7 +8591,7 @@ function summarizeToolResult(result) {
 function formatToolEvent(toolCall, result, batch) {
   const payload = {
     name: toolCall.tool,
-    arguments: toolCall.arguments || {},
+    arguments: redactValueOnly(toolCall.arguments || {}),
     result: summarizeToolResult(result)
   };
 
@@ -8570,14 +8600,14 @@ function formatToolEvent(toolCall, result, batch) {
       path: result.path,
       exists: result.exists,
       blockedWrite: result.blockedWrite,
-      proposedContent: result.proposedContent,
-      diff: result.diff.text,
+      proposedContent: redactTextOnly(result.proposedContent),
+      diff: redactTextOnly(result.diff.text),
       stats: result.stats
     };
   }
 
   if (result && Array.isArray(result.results)) {
-    payload.results = result.results.slice(0, 5);
+    payload.results = redactValueOnly(result.results.slice(0, 5));
   }
 
   if (result && result.repaired) {
@@ -8597,17 +8627,17 @@ function compactToolResultForPrompt(result) {
   }
 
   if (result.preview) {
-    return {
+    return redactValueOnly({
       path: result.path,
       exists: result.exists,
       preview: true,
       blockedWrite: result.blockedWrite,
       diff: result.diff,
       stats: result.stats
-    };
+    });
   }
 
-  return result;
+  return redactValueOnly(result);
 }
 
 function scoreModel(model) {
@@ -9208,7 +9238,7 @@ function snippetFromChunk(chunk) {
     ? chunk.charEnd
     : (chunk.span && Number.isInteger(chunk.span.charEnd) ? chunk.span.charEnd : null);
   return {
-    text: truncate(String(chunk.preview || chunk.text || "").replace(/\s+/g, " ").trim(), 180),
+    text: redactTextOnly(truncate(String(chunk.preview || chunk.text || "").replace(/\s+/g, " ").trim(), 180)),
     citation: chunk.citation || formatLineCitation(chunk.path, startLine, endLine),
     startLine,
     endLine,
@@ -9226,7 +9256,7 @@ function publicChunkReference(chunk) {
     index: Number(chunk.index || 0),
     heading: chunk.heading || "",
     kind: chunk.kind || "paragraph",
-    preview: truncate(String(chunk.preview || chunk.text || "").replace(/\s+/g, " ").trim(), 180),
+    preview: redactTextOnly(truncate(String(chunk.preview || chunk.text || "").replace(/\s+/g, " ").trim(), 180)),
     citation: chunk.citation || formatLineCitation(chunk.path, startLine, endLine),
     span: {
       startLine,
@@ -9294,7 +9324,7 @@ function createSnippetWithSpan(content, terms) {
   const suffix = bodyOffset + maxLength < body.length ? " ..." : "";
   const charStart = selected.start + leading + bodyOffset;
   return {
-    text: `${prefix}${visible}${suffix}`,
+    text: redactTextOnly(`${prefix}${visible}${suffix}`),
     startLine: selected.line || 1,
     endLine: selected.line || 1,
     charStart,

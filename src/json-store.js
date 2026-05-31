@@ -2,6 +2,7 @@
 
 const fsp = require("node:fs/promises");
 const path = require("node:path");
+const { redactValueOnly } = require("./privacy");
 
 class JsonLineStore {
   constructor(root, relativePath = ".agenttrail/store.jsonl") {
@@ -16,7 +17,7 @@ class JsonLineStore {
       id: `${Date.now()}-${Math.random().toString(16).slice(2)}`,
       type,
       createdAt: new Date().toISOString(),
-      payload
+      payload: redactValueOnly(payload)
     };
     await fsp.appendFile(this.absolutePath, `${JSON.stringify(record)}\n`, "utf8");
     return record;

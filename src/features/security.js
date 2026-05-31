@@ -1,5 +1,7 @@
 "use strict";
 
+const { redactSecrets } = require("./redact");
+
 function scanSecurityText(pathName, content, truncate = defaultTruncate) {
   const lines = String(content || "").split(/\r?\n/);
   const patterns = [
@@ -52,6 +54,14 @@ function scanSecurityText(pathName, content, truncate = defaultTruncate) {
 
   const findings = [];
   lines.forEach((line, index) => {
+    if (redactSecrets(line).count > 0) {
+      findings.push({
+        label: "Secret-like value",
+        severity: "high",
+        line: index + 1,
+        detail: truncate(redactSecrets(line).redacted.trim(), 180)
+      });
+    }
     for (const pattern of patterns) {
       if (pattern.pattern.test(line)) {
         findings.push({

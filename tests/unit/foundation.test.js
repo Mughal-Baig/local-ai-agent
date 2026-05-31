@@ -21,6 +21,8 @@ const { FlatVectorStore, VECTOR_STORE_VERSION, annCandidatePaths, buildVectorAnn
 const { runPluginTool } = require("../../src/plugin-sandbox");
 const { routeCatalog } = require("../../src/route-catalog");
 const { normalizeImageBackend, buildImageGenerationPayload } = require("../../src/image-generation");
+const { privacyStatus } = require("../../src/privacy");
+const { validateNetworkEgress } = require("../../src/network-policy");
 
 main().catch((error) => {
   console.error(error);
@@ -81,6 +83,7 @@ async function main() {
   assert.equal(routeCatalog().some((route) => route.routes.includes("/api/model-registry/pull")), true);
   assert.equal(routeCatalog().some((route) => route.routes.includes("/api/tools/schemas")), true);
   assert.equal(routeCatalog().some((route) => route.routes.includes("/api/structured-output")), true);
+  assert.equal(routeCatalog().some((route) => route.routes.includes("/api/security/privacy")), true);
   assert.equal(listToolSchemas().some((tool) => tool.name === "search_workspace"), true);
   assert.equal(toolDefinitionsForBackend("openai").some((tool) => tool.function.name === "read_file"), true);
   assert.equal(validateToolArguments("read_file", { path: "welcome.md" }).ok, true);
@@ -89,6 +92,8 @@ async function main() {
   assert.deepEqual(repairToolArguments("search_workspace", { q: "receipt", limit: "3" }), { query: "receipt", limit: 3 });
   assert.equal(normalizeImageBackend("sd-webui"), "automatic1111");
   assert.equal(buildImageGenerationPayload({ backend: "openai-compatible", prompt: "x", width: 512, height: 512 }).size, "512x512");
+  assert.equal(privacyStatus({ AGENTTRAIL_ENCRYPT_AT_REST: "off" }).secretRedaction, "on");
+  assert.equal(validateNetworkEgress("https://example.com", { allowlist: ["example.com"], requireAllowlist: true }).host, "example.com");
   const taskSchema = listStructuredOutputSchemas().find((schema) => schema.id === "task-list").schema;
   assert.equal(validateSchema("projectMemory", withSchema("projectMemory", {
     updatedAt: new Date().toISOString(),

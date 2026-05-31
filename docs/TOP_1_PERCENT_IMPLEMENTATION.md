@@ -17,7 +17,7 @@ This table maps the requested 30-item top-1% and foundation list to the v0.7 imp
 | Diff-safe file writing | permission engine, preview-first writes, Diff Review center, explicit Apply buttons |
 | Replayable receipts | `/api/sessions`, `/api/sessions/content`, `/api/replay/plan`, `/api/receipts/resume`, `/api/runs/pending/from-receipt`, saved model/prompt/files/diffs/trail |
 | Trust Score | browser Trust Score dashboard plus `/api/foundation` score |
-| Security hardening | `/api/security/scan`, prompt injection, exfiltration, path escape, hidden instruction, destructive command checks |
+| Security hardening | `/api/security/scan`, `/api/security/privacy`, prompt injection, exfiltration, path escape, hidden instruction, destructive command, secret-like value detection, egress allowlists, optional encrypted receipts |
 | Project memory with citations | `/api/memory/citations`, revision history in `workspace/memory/history/` |
 | Model benchmark dashboard | `/api/benchmarks`, `/api/benchmarks/run`, `/api/models/compare`, `/api/models/vision-capability`, benchmark history, vision-readiness scoring |
 | MCP support | `mcp/server.js`, `mcp/agenttrail.mcp.json`, approval-required tools, MCP receipts |
@@ -40,7 +40,7 @@ This table maps the requested 30-item top-1% and foundation list to the v0.7 imp
 | Split server into modules | `src/schemas.js`, `src/permissions.js`, `src/model-adapters.js`, `src/json-store.js`, `src/jobs.js`, `src/migrations.js`, `src/plugin-loader.js`, `src/release.js`, `src/foundation.js`, `src/features/*` |
 | Stable schemas | `/api/schemas`, [docs/SCHEMAS.md](SCHEMAS.md), schema validation for sessions |
 | Database-like persistence | SQLite at `workspace/.agenttrail/agenttrail.db`, append-only JSONL event store, `/api/sqlite/status`, `/api/store/stats` |
-| Real tool permission engine | `src/permissions.js`, `/api/permissions`, integrated into agent tool execution |
+| Real tool permission engine | `src/permissions.js`, `/api/permissions`, per-tool policies, permission-audit events, integrated into agent tool execution |
 | Better evals | repo eval now checks foundation modules, semantic hashes/chunks, plugins, jobs, backups, checksums |
 | Better tests | `npm run test:unit`, `npm run test:integration`, `npm run test:ui`, expanded `npm test`, `npm run eval` |
 | Migration system | `src/migrations.js`, `migrations/*.json`, `/api/migrations`, migration state in `workspace/.agenttrail/migrations.json` |

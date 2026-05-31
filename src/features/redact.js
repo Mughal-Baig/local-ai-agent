@@ -1,4 +1,5 @@
 "use strict";
+
 // T156/T240 — detect and redact common secrets in text (context, receipts, exports).
 const PATTERNS = [
   { name: "openai", re: /\bsk-[A-Za-z0-9]{20,}\b/g },
@@ -23,4 +24,57 @@ function redactSecrets(input) {
   }
   return { redacted: text, count };
 }
-module.exports = { redactSecrets, PATTERNS };
+
+function redactSecretsDeep(value, options = {}) {
+  const maxDepth = Number.isInteger(options.maxDepth) ? options.maxDepth : 8;
+  const seen = new WeakSet();
+  let count = 0;
+
+  function visit(item, depth) {
+    if (typeof item === "string") {
+      const result = redactSecrets(item);
+      count += result.count;
+      return result.redacted;
+    }
+    if (Buffer.isBuffer(item)) {
+      return item;
+    }
+    if (!item || typeof item !== "object") {
+      return item;
+    }
+    if (depth > maxDepth) {
+      return "[REDACTED:depth-limit]";
+    }
+    if (seen.has(item)) {
+      return "[Circular]";
+    }
+    seen.add(item);
+
+    if (Array.isArray(item)) {
+      return item.map((entry) => visit(entry, depth + 1));
+    }
+
+    const output = {};
+    for (const [key, entry] of Object.entries(item)) {
+      if (secretLikeKey(key)) {
+        const text = String(entry == null ? "" : entry);
+        if (text) count += 1;
+        output[key] = text ? "[REDACTED]" : entry;
+      } else {
+        output[key] = visit(entry, depth + 1);
+      }
+    }
+    return output;
+  }
+
+  return {
+    value: visit(value, 0),
+    count
+  };
+}
+
+function secretLikeKey(key) {
+  return /\b(api[_-]?key|apikey|access[_-]?token|token|secret|password|passwd|pwd|authorization|bearer)\b/i.test(String(key || ""));
+}
+
+module.exports = { redactSecrets, redactSecretsDeep, secretLikeKey, PATTERNS };

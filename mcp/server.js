@@ -3,6 +3,7 @@
 const fs = require("node:fs");
 const fsp = require("node:fs/promises");
 const path = require("node:path");
+const { redactTextOnly, redactValueOnly } = require("../src/privacy");
 
 const PROJECT_ROOT = path.resolve(__dirname, "..");
 const WORKSPACE_ROOT = path.resolve(PROJECT_ROOT, process.env.WORKSPACE_ROOT || "workspace");
@@ -223,7 +224,7 @@ async function searchWorkspace(query, limit) {
     }
     let content = "";
     try {
-      content = await fsp.readFile(resolveWorkspacePath(file.path), "utf8");
+      content = redactTextOnly(await fsp.readFile(resolveWorkspacePath(file.path), "utf8"));
     } catch {
       continue;
     }
@@ -246,7 +247,7 @@ async function readFile(relativePath) {
     path: normalizeRelativePath(relativePath),
     size: stat.size,
     modifiedAt: stat.mtime.toISOString(),
-    content: await fsp.readFile(absolutePath, "utf8")
+    content: redactTextOnly(await fsp.readFile(absolutePath, "utf8"))
   };
 }
 
@@ -275,13 +276,13 @@ async function saveReceipt(tool, args, result) {
     "## Arguments",
     "",
     "```json",
-    JSON.stringify(redactApproval(args), null, 2),
+    JSON.stringify(redactValueOnly(redactApproval(args)), null, 2),
     "```",
     "",
     "## Result",
     "",
     "```json",
-    JSON.stringify(result, null, 2).slice(0, 6000),
+    JSON.stringify(redactValueOnly(result), null, 2).slice(0, 6000),
     "```"
   ].join("\n");
   const target = resolveWorkspacePath(`${RECEIPTS_DIR}/${tool}-${stamp}.md`);

@@ -12,6 +12,11 @@ const RELEASE_ARTIFACTS = [
   ".npmignore",
   "bin/agenttrail.js",
   "src/cli.js",
+  "src/privacy.js",
+  "src/network-policy.js",
+  "src/permissions.js",
+  "src/features/redact.js",
+  "src/features/security.js",
   "scripts/generate-sbom.js",
   "scripts/sign-checksums.js",
   "scripts/verify-checksums.js",
@@ -29,6 +34,7 @@ const RELEASE_ARTIFACTS = [
   "docs/MAC_APP.md",
   "docs/CLI.md",
   "docs/SUPPLY_CHAIN.md",
+  "docs/SECURITY_POSTURE.md",
   "docs/RELEASE_SIGNING.md",
   "docs/NPM_PUBLISH.md",
   "docs/sbom/agenttrail-v0.7.0.spdx.json",
@@ -37,6 +43,8 @@ const RELEASE_ARTIFACTS = [
   ".github/workflows/npm-publish.yml",
   ".github/workflows/release-artifacts.yml",
   "docker-compose.yml",
+  "tests/unit/security-privacy.test.js",
+  "tests/integration/threat-model.test.js",
   "install.sh"
 ];
 

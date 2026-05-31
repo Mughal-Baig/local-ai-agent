@@ -70,6 +70,7 @@
     "test:registry": "node tests/unit/model-registry.test.js && node tests/integration/model-registry.test.js",
     "test:desktop": "node tests/unit/desktop-distribution.test.js",
     "test:supply-chain": "node tests/unit/supply-chain.test.js",
+    "test:security-privacy": "node tests/unit/security-privacy.test.js && node tests/integration/threat-model.test.js",
     "test:redact": "node tests/unit/redact.test.js",
     "test:documents": "node tests/unit/pdf-extraction.test.js",
     "test:audio": "node tests/unit/audio-transcription.test.js && node tests/integration/audio-transcription.test.js",

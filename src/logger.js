@@ -2,6 +2,7 @@
 
 const fsp = require("node:fs/promises");
 const path = require("node:path");
+const { redactValueOnly } = require("./privacy");
 
 class StructuredLogger {
   constructor(root, relativePath = ".agenttrail/logs.jsonl") {
@@ -17,7 +18,7 @@ class StructuredLogger {
       time: new Date().toISOString(),
       level,
       event,
-      ...fields
+      ...redactValueOnly(fields)
     };
     this.recent.unshift(record);
     this.recent = this.recent.slice(0, 100);

@@ -2,7 +2,7 @@
 
 A **receipt** is AgentTrail's core artifact: a human- and machine-readable record of what the agent did during a run — what it searched, what it read, what it proposed to write, and under which permissions. The point is auditability: anyone should be able to reconstruct a run from its receipt.
 
-This document specifies the four related artifacts AgentTrail produces. They are intentionally plain (Markdown + JSON) so they can be read in any editor, diffed in Git, and parsed without a dependency.
+This document specifies the four related artifacts AgentTrail produces. They are intentionally plain (Markdown + JSON) so they can be read in any editor, diffed in Git, and parsed without a dependency. Before these artifacts are stored, AgentTrail redacts common secret patterns. If `AGENTTRAIL_ENCRYPT_AT_REST=receipts` and `AGENTTRAIL_ENCRYPTION_KEY` are set, managed receipt artifacts are AES-256-GCM encrypted on disk and transparently decrypted by the local read APIs.
 
 ## 1. Trail Receipt (`receipts/trail-<timestamp>.md`)
 

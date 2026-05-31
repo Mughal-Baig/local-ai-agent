@@ -6,6 +6,7 @@ const fsp = require("node:fs/promises");
 const path = require("node:path");
 const { fileURLToPath, pathToFileURL } = require("node:url");
 const { pipeline } = require("node:stream/promises");
+const { validateNetworkEgress, normalizeNetworkAllowlist } = require("./network-policy");
 
 const REGISTRY_SCHEMA = "agenttrail.model-registry.v1";
 const MODELFILE_SCHEMA = "agenttrail.modelfile.v1";
@@ -95,6 +96,8 @@ async function pullModel(workspaceRoot, input, env = process.env, onProgress = n
     partPath,
     sha256: input.sha256 || "",
     headers: registryHeaders(input, env),
+    allowlist: registryAllowlist(input, source, env),
+    env,
     onProgress: (event) => emit(onProgress, "progress", event)
   });
   const sha256 = download.sha256 || await sha256File(destination);
@@ -244,13 +247,20 @@ async function shareModel(workspaceRoot, input, env = process.env) {
   return { ok: true, pushed: false, manifestPath: destination, manifest };
 }
 
-async function resumableDownload({ url, destination, partPath = `${destination}.part`, sha256 = "", headers = {}, onProgress = null }) {
+async function resumableDownload({ url, destination, partPath = `${destination}.part`, sha256 = "", headers = {}, allowlist = [], env = process.env, onProgress = null }) {
   await fsp.mkdir(path.dirname(destination), { recursive: true });
   const existing = await statSize(partPath);
   const parsed = new URL(url);
   if (parsed.protocol === "file:") {
     return copyFileResumable(fileURLToPath(parsed), destination, partPath, sha256, existing, onProgress);
   }
+  validateNetworkEgress(parsed, {
+    allowlist,
+    requireAllowlist: true,
+    allowPrivate: false,
+    purpose: "model-registry-pull",
+    env
+  });
 
   const requestHeaders = { ...headers };
   if (existing > 0) requestHeaders.Range = `bytes=${existing}-`;
@@ -418,6 +428,15 @@ function registryHeaders(input, env = process.env) {
   const token = input.token || env.HUGGINGFACE_TOKEN || env.AGENTTRAIL_REGISTRY_TOKEN || "";
   if (token) headers.Authorization = `Bearer ${token}`;
   return headers;
+}
+
+function registryAllowlist(input, source, env = process.env) {
+  const entries = [
+    ...(Array.isArray(input.allowlist) ? input.allowlist : String(input.allowlist || "").split(/[,\s]+/)),
+    ...(env.AGENTTRAIL_MODEL_REGISTRY_ALLOWLIST ? String(env.AGENTTRAIL_MODEL_REGISTRY_ALLOWLIST).split(/[,\s]+/) : []),
+    source && source.type === "huggingface" ? "huggingface.co" : ""
+  ];
+  return normalizeNetworkAllowlist(entries, env);
 }
 
 function publicModelMetadata(model) {
