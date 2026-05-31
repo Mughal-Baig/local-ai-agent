@@ -1,7 +1,7 @@
 {
   "name": "agenttrail",
   "version": "0.7.0",
-  "description": "AgentTrail: an auditable local AI agent with Ollama, workspace search, recipes, diff previews, and receipts.",
+  "description": "AgentTrail: an auditable local AI agent layer for Ollama and local models, with search, diff-safe edits, receipts, replay, memory, MCP, and reports.",
   "main": "server.js",
   "repository": {
     "type": "git",
@@ -169,7 +169,10 @@
     "mcp-server",
     "diff-safe",
     "semantic-search",
-    "local-agent"
+    "local-agent",
+    "receipts",
+    "openai-compatible",
+    "workspace-agent"
   ],
   "author": "",
   "license": "MIT"

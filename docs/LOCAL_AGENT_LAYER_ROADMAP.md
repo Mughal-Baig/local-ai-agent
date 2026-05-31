@@ -404,7 +404,7 @@ This section tracks the concrete work shipped after the roadmap was publicly ref
 4. We expand an epic's tasks into finer sub-tasks (toward 1000) only when we start that epic — so the plan stays honest and current.
 5. We re-mark `[x]` here as we go; this file is the single source of truth for the campaign.
 
-**Next up:** Phase 11 conversation and UX depth, starting with Epic AE chat management.
+**Next up:** Phase 11 conversation and UX depth, starting with Epic AE chat management. The new Phase 17-22 expansion below adds the public "top 1%" path without replacing any earlier phase.
 
 ## Status & bug sweep (latest)
 
@@ -413,7 +413,7 @@ This section tracks the concrete work shipped after the roadmap was publicly ref
 - **Bug fixed:** `listWorkspaceFiles` only skipped `.DS_Store`, so internal `.agenttrail/*` state (logs, store, search index, pending-run) was being walked, indexed, and returned in search — adding noise and per-request churn to the index. Now excludes `.agenttrail/`. Verified against smoke, api, search-incremental, search-chunking, and eval:search.
 - Known minor item: a couple of integration tests assert relative/invariant counts (not exact) because the workspace can still gain legit files (e.g. `memory/*`) between calls — intentional, not a bug.
 
-Next code target: T206 persistent conversation history, then T207 rename a conversation.
+Next code target: T206 persistent conversation history, then T207 rename a conversation. After the conversation UI feels complete, prioritize T281/T288/T295 so the project has a 60-second proof loop, a low-friction install, and a guided first run.
 
 ---
 
@@ -529,3 +529,136 @@ Open items are still marked `[ ]`; a few Phase 11/12 starter tasks are now `[x]`
 - [ ] T278 Local MCP client to consume external MCP servers
 - [ ] T279 Export agent as an OpenAI-compatible endpoint (extend T076)
 - [ ] T280 Shareable, self-contained run replay bundle
+
+---
+
+# Top 1% Upgrade Expansion (Phases 17-22) - added after ranking baseline
+
+This expansion does not replace Phase 0-16. It adds the next public-product layer after the 2026-05-31 comparison against leading local/self-hosted agent projects such as OpenHands, Cline, AnythingLLM, Open Interpreter, Aider, and Continue.
+
+## Ranking baseline (2026-05-31)
+
+- Brutal current score: **62/100** against the best local-agent projects.
+- Strongest wedge: local-first trust, receipts, diff-gated writes, searchable evidence, redaction, and replay/export.
+- Biggest gap: public adoption and instant proof. The repo can look impressive in docs, but top projects win because a new user can install, run, understand, and trust the core loop in minutes.
+- Score targets:
+  - 70/100: conversation UI, first-run flow, one-command install, and demo proof are all reliable.
+  - 80/100: daily workflow is smooth enough for real users, with benchmarks and public comparison proof.
+  - 90/100: signed desktop builds, strong onboarding, stable releases, user showcases, and active issue/discussion loops.
+  - 95+/100: AgentTrail owns a distinct category: the auditable local-agent layer for local models.
+
+## Phase 17 — 60-second proof and install
+
+### Epic AP — Killer demo proof
+- [ ] T281 Record a real GIF/video of search -> diff preview -> apply -> receipt -> shareable report.
+- [ ] T282 Add a one-click demo script that creates a tiny workspace and runs the full trust loop.
+- [ ] T283 Add deterministic demo data so screenshots/GIFs are reproducible.
+- [ ] T284 Add a demo health check that verifies search, diff, apply, receipt, and export before recording.
+- [ ] T285 Put the GIF above the README fold with a short "why star this" caption.
+- [ ] T286 Add a public `/demo-proof.html` page with the same flow and links to source files.
+- [ ] T287 Add a release checklist item that blocks launches when demo assets are stale.
+
+### Epic AQ — One-command install that feels real
+- [ ] T288 Make `npx agenttrail` start the app with a clean first-run path.
+- [ ] T289 Add `brew install agenttrail` instructions that work after the formula is published.
+- [ ] T290 Add a Docker quick-start that persists workspace data safely.
+- [ ] T291 Add a Mac app download path with checksum verification and Gatekeeper notes.
+- [ ] T292 Add a setup doctor that checks Node, Ollama, disk space, ports, and model availability.
+- [ ] T293 Add friendly install failure messages for port conflicts, missing model runtimes, and bad permissions.
+- [ ] T294 Add a 60-second install test in CI using the packaged artifact path.
+
+## Phase 18 — First-run retention and daily-use polish
+
+### Epic AR — First-run product path
+- [ ] T295 Build a guided first-run wizard: choose workspace, choose model, run first task.
+- [ ] T296 Add a sample "fix a typo safely" task that always succeeds locally.
+- [ ] T297 Add empty states that show the next useful action instead of documentation blocks.
+- [ ] T298 Add model download/setup prompts only when the model is actually missing.
+- [ ] T299 Add "use your own project" handoff after the sample task completes.
+- [ ] T300 Add first-run telemetry that is local-only and visible in the privacy dashboard.
+
+### Epic AS — Daily agent workflow
+- [ ] T301 Finish persistent conversation UI for list/open/rename/pin/delete/search.
+- [ ] T302 Add one-screen run review: files read, evidence used, diff preview, trust score, receipt.
+- [ ] T303 Add a "continue last run" button from the home/empty state.
+- [ ] T304 Add recent workspaces and recent recipes with clear privacy boundaries.
+- [ ] T305 Add quick actions for code review, docs summarize, security scan, and meeting notes.
+- [ ] T306 Add run failure recovery: retry, save prompt, export debug bundle, or open troubleshooting.
+- [ ] T307 Add keyboard-first navigation for the core chat/search/diff/receipt loop.
+
+## Phase 19 — Trust, safety, and reliability proof
+
+### Epic AT — End-to-end reliability gates
+- [ ] T308 Add an end-to-end trust-loop test covering search -> plan -> diff -> apply -> receipt -> report.
+- [ ] T309 Add fixture workspaces for code, docs, secrets, images, audio, and large files.
+- [ ] T310 Add a nightly long-run suite for memory, replay, MCP, search, and report export.
+- [ ] T311 Add flaky-test quarantine rules with issue creation and owner labels.
+- [ ] T312 Add release-blocking regression budgets for startup, search, first token, and report export.
+- [ ] T313 Add crash-recovery tests for interrupted writes, corrupt receipts, and partial indexes.
+- [ ] T314 Add cross-platform smoke tests for macOS, Windows, and Linux packages.
+
+### Epic AU — Public safety proof
+- [ ] T315 Add a public threat-model page with concrete blocked attack examples.
+- [ ] T316 Add prompt-injection demo fixtures and screenshots showing safe refusal/flagging.
+- [ ] T317 Add a "nothing leaves your machine" audit page that maps every network path.
+- [ ] T318 Add receipt redaction verification for reports, conversation export, and debug bundles.
+- [ ] T319 Add path-boundary proof tests for symlinks, dotfiles, archives, and generated files.
+- [ ] T320 Add a security disclosure policy and supported-version table.
+
+## Phase 20 — Credibility, benchmarks, and public comparison
+
+### Epic AV — Honest comparison engine
+- [ ] T321 Publish a comparison table against OpenHands, Cline, AnythingLLM, Open Interpreter, Aider, and Continue.
+- [ ] T322 Separate comparison dimensions: install, local privacy, coding, RAG, multimodal, MCP, safety, receipts, replay.
+- [ ] T323 Add reproducible benchmark scripts behind every comparison claim.
+- [ ] T324 Add screenshots for each feature claim so readers can see proof before installing.
+- [ ] T325 Add a "where AgentTrail is weaker" section to build trust and reduce hype.
+- [ ] T326 Refresh comparison data on every major release.
+
+### Epic AW — Community growth loop
+- [ ] T327 Open and label starter issues mapped to the next 20 roadmap tasks.
+- [ ] T328 Add GitHub Discussions categories for showcase, support, recipes, and roadmap voting.
+- [ ] T329 Add contributor quick-start that gets tests running in under 5 minutes.
+- [ ] T330 Add release posts for HN, Reddit, X, LinkedIn, Product Hunt, and local-LLM communities.
+- [ ] T331 Add a user showcase submission template for receipts, reports, and workflows.
+- [ ] T332 Add "good first recipe" tasks so non-core contributors can help without touching server code.
+- [ ] T333 Add a weekly roadmap status note template with completed, next, blockers, and help wanted.
+
+## Phase 21 — Real distribution for non-developers
+
+### Epic AX — Signed desktop releases
+- [ ] T334 Produce signed macOS builds with notarization and checksum verification.
+- [ ] T335 Produce signed Windows installer builds with SmartScreen-friendly metadata.
+- [ ] T336 Produce Linux AppImage/deb/rpm artifacts with desktop integration.
+- [ ] T337 Add automatic update checks that respect local-only/privacy settings.
+- [ ] T338 Add release provenance: SBOM, checksums, signatures, and build logs linked from releases.
+- [ ] T339 Add a download page that chooses the right installer for the user's OS.
+- [ ] T340 Add post-install smoke checks that launch the app and verify the local server.
+
+### Epic AY — Supportability
+- [ ] T341 Add one-click local diagnostic bundle with redaction and explicit user review.
+- [ ] T342 Add troubleshooting flows for model missing, Ollama offline, port busy, slow GPU, and disk full.
+- [ ] T343 Add versioned migration tests for receipts, conversations, memory, indexes, and profiles.
+- [ ] T344 Add upgrade notes inside the app after major releases.
+- [ ] T345 Add backwards compatibility policy for CLI, receipts, reports, and plugin manifests.
+- [ ] T346 Add issue templates that request diagnostic output without secrets.
+- [ ] T347 Add a public support matrix for macOS, Windows, Linux, Node, Ollama, and model backends.
+
+## Phase 22 — Durable moat
+
+### Epic AZ — AgentTrail-only differentiators
+- [ ] T348 Make trust score explainable: each score item links to evidence, files, diffs, or receipts.
+- [ ] T349 Add receipt replay bundles that can be shared without exposing private workspace files.
+- [ ] T350 Add "proof mode" that refuses to answer without cited local evidence when enabled.
+- [ ] T351 Add an agent black-box recorder: prompts, tools, diffs, approvals, timing, errors, and model settings.
+- [ ] T352 Add recipe-to-report pipelines for repeatable workflows with consistent outputs.
+- [ ] T353 Add local governance rules: "this workspace never allows shell", "reports always redact secrets", etc.
+- [ ] T354 Add a public gallery of safe, redacted receipts as the main brand artifact.
+
+### Epic BA — Ecosystem integrations
+- [ ] T355 Finish MCP client/server parity with per-tool scopes, receipts, and approvals.
+- [ ] T356 Add IDE integrations beyond VS Code: JetBrains, Cursor-compatible endpoint, and editor-agnostic CLI hooks.
+- [ ] T357 Add Obsidian/Markdown vault workflow for local knowledge agents.
+- [ ] T358 Add GitHub issue/PR workflow recipes that still run locally and preserve receipts.
+- [ ] T359 Add import/export packs for teams, students, founders, writers, security reviewers, and researchers.
+- [ ] T360 Add a plugin compatibility test kit so third-party plugins can prove safety and receipt behavior.

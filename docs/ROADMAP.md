@@ -2,12 +2,23 @@
 
 ## Next
 
+- Finish the conversation-management UI: persistent chat list, rename, pin, delete, search, import/export, and branching.
+- Build the 60-second proof loop: search -> diff preview -> apply -> receipt -> shareable report.
+- Make the install path undeniable: `npx agenttrail`, Docker persistence, Homebrew publication, setup doctor, and friendly failure states.
+- Add a guided first-run wizard so new users can complete one safe local task before touching their real project.
+- Add public safety proof: prompt-injection demo fixtures, network-path audit, redaction checks, and threat-model page.
+- Publish an honest comparison page against OpenHands, Cline, AnythingLLM, Open Interpreter, Aider, and Continue.
 - Add true local embedding backends behind optional dependencies.
 - Add a recorded GIF/video in addition to the animated SVG proof.
 - Add real signed native desktop binaries after certificate setup.
 - Turn the community launch kit into real public posts, pinned discussions, and curated user showcases.
 - Validate model ecosystem delegates against real LLaMA-Factory/Axolotl/llama.cpp toolchains on a hardware box.
-- Add conversation-management depth: persistent chat list, rename/pin/delete/search/export/import/branch.
+
+## Current Standing Snapshot
+
+- Brutal current product score: **62/100** against the best local/self-hosted agent projects.
+- Strong wedge: auditable local-agent layer with receipts, diff-safe writes, searchable evidence, redaction, replay/export, and local privacy.
+- Main gap: public adoption and instant proof. The next roadmap push is about install friction, first-run success, real demos, safety proof, and shareable comparison evidence.
 
 ## Later
 
@@ -51,6 +62,7 @@
 - Model ecosystem layer: LoRA adapter manifests, fine-tuning launcher, quantization wrapper, safetensors-to-GGUF conversion helper, and per-task model evaluation suite.
 - Advanced agent layer: multi-agent orchestration plans, scheduled-run manifests, resumable task journals, budget-isolated sub-agents, and deterministic replay diffs.
 - Conversation export and theme starter: persistent conversation API foundation, redacted Markdown/JSON/HTML export, `/api/redact`, and a local light/dark/system theme toggle.
+- Top 1% expansion added to the long roadmap: Phase 17-22 now covers demo proof, one-command install, first-run retention, safety proof, public comparisons, signed releases, supportability, and durable AgentTrail-specific moat.
 
 ## Not Planned
 

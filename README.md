@@ -1,13 +1,14 @@
-# AgentTrail Local AI Agent
+# AgentTrail - Auditable Local AI Agent
 
 [![CI](https://github.com/Mughal-Baig/local-ai-agent/actions/workflows/ci.yml/badge.svg)](https://github.com/Mughal-Baig/local-ai-agent/actions/workflows/ci.yml)
 ![No npm dependencies](https://img.shields.io/badge/runtime-zero%20npm%20deps-B35F43)
 ![Local first](https://img.shields.io/badge/privacy-local--first-5C7257)
 ![Ollama](https://img.shields.io/badge/models-Ollama-C2933B)
+![OpenAI-compatible](https://img.shields.io/badge/backends-OpenAI--compatible-7D6F5C)
 ![Auditable](https://img.shields.io/badge/every%20action-auditable%20receipt-CC785C)
 
-> ### A local AI agent that shows its work.
-> Every search, every edit, every reason — on your machine. Nothing leaves.
+> ### A local AI agent layer that shows its work.
+> Every search, every edit, every reason — on your machine, with receipts you can inspect.
 
 ![AgentTrail core loop: ask, search before answer, diff preview, explicit Apply, replayable receipt](docs/agenttrail-demo.gif)
 
@@ -15,7 +16,7 @@
 
 **Live demo, zero install:** [mughal-baig.github.io/local-ai-agent/demo.html](https://mughal-baig.github.io/local-ai-agent/demo.html) or the richer [public recipe/safety/receipt demo](https://mughal-baig.github.io/local-ai-agent/public-demo.html)
 
-ChatGPT and Claude are great — until you need them to touch private files. AgentTrail gives you that same chat-and-workspace workflow, but it runs entirely on your machine with Ollama, and it turns every action into an auditable, replayable receipt. It is the only local agent built so you can verify exactly what it did and why.
+ChatGPT and Claude are great until you need an agent to touch private files. AgentTrail gives you the same chat-and-workspace workflow, but keeps the agent layer local: Ollama first, OpenAI-compatible local servers supported, workspace access sandboxed, writes diff-gated, and every action recorded as an auditable, replayable receipt.
 
 ## A Look Inside
 
@@ -33,6 +34,8 @@ Writes are off by default. The agent proposes a unified diff; you click **Apply*
 - UI preview: [`docs/preview-app.png`](docs/preview-app.png)
 - Diff preview: [`docs/preview-diff.png`](docs/preview-diff.png)
 - Social preview upload asset: [`docs/social-preview.png`](docs/social-preview.png)
+- Public demo page: [`docs/public-demo.html`](docs/public-demo.html)
+- Roadmap to top 1% local-agent polish: [`docs/LOCAL_AGENT_LAYER_ROADMAP.md`](docs/LOCAL_AGENT_LAYER_ROADMAP.md)
 
 ## Why Star This
 
@@ -49,19 +52,19 @@ Writes are off by default. The agent proposes a unified diff; you click **Apply*
 - **Recipe-driven**: reusable local workflows live in plain JSON files anyone can add.
 - **Demo-first**: the GIF and static demo let visitors understand the project before installing Ollama.
 - **Permission-aware**: file reads are explicit and file writes are off by default.
-- **Private by design**: the server only talks to Ollama and the local browser UI.
+- **Private by design**: the app binds locally, uses local model backends by default, and gates optional network paths with explicit policy.
 - **Safe workspace boundary**: file reads and writes are blocked outside `workspace/`.
-- **Zero npm dependencies**: clone, run `node server.js`, and start building.
+- **Zero runtime npm dependencies**: clone, run `node server.js`, and start building.
 - **Serious foundation**: schemas, migrations, permission engine, background jobs, backups, plugins, SBOM, signed-checksum path, reproducible package checks, and tests keep it from feeling like a toy.
 - **Product proof loop**: exact line/character citations, replay guidance, model comparison, plugin gallery, onboarding, and trust badges make the value obvious fast.
 
 ## What Makes It Different
 
-Popular local AI tools are often full platforms. This project is intentionally smaller: it is a starter agent you can read, modify, and trust in an afternoon.
+Popular local AI tools usually optimize for broad chat, model management, or autonomous coding. AgentTrail is narrower on purpose: it is the auditable local-agent layer for people who want proof before an AI edits their files.
 
 | Area | AgentTrail |
 | --- | --- |
-| Setup | One Node command, `npx`-ready package metadata, multi-arch Docker workflow, publishable Homebrew formula, desktop launchers |
+| Setup | One Node command, `npx` path, multi-arch Docker workflow, publishable Homebrew formula, desktop launchers, setup-doctor roadmap |
 | Model backend | Ollama, or any OpenAI-compatible local server (LM Studio, llama.cpp, vLLM, Jan) — see [Model Backends](docs/MODEL_BACKENDS.md) |
 | File access | Sandboxed workspace tools plus keyword search, versioned local vector store, and Ollama embedding index |
 | Trust UX | Trust Score, local signals, security scan, reviewable diff previews, explicit apply buttons, exportable reports, replay sessions, receipts, and tool history |
@@ -69,7 +72,7 @@ Popular local AI tools are often full platforms. This project is intentionally s
 | Team/audit | Read-only shared receipts, local multi-user profiles, RBAC tool caps, audit export, opt-in local sync packs, and SSO header/domain hook |
 | Workflow system | Plain JSON recipes, role-based recipe packs, import/export UI, and marketplace manifest |
 | Foundation | Stable schemas, migrations, append-only store, permission engine, plugin manifests, backups, jobs, checksums, advanced-agent manifests |
-| Best use | Personal workspace agent starter kit and auditable local workflow lab |
+| Best use | Auditable local project agent for developers, founders, students, writers, security reviewers, and teams that need proof |
 
 ## 60-second Quick Start
 
@@ -88,7 +91,7 @@ cd local-ai-agent
 node server.js
 ```
 
-Open `http://127.0.0.1:4173`, build the semantic index, ask for a change, review the diff, click **Apply**, then export the receipt/report/replay session.
+Open `http://127.0.0.1:4173`, build the semantic index, ask for a change, review the diff, click **Apply**, then export the receipt/report/replay session. That proof loop is the main product.
 
 ## Features
 
@@ -167,9 +170,11 @@ Other local tools let an AI *do* things. AgentTrail is the one that makes the AI
 | --- | --- | --- |
 | Open WebUI | Broad self-hosted chat platform | Turns every tool call into a receipt; writes gated behind an explicit diff Apply |
 | AnythingLLM | Document chat and workspaces | Shows the search evidence *before* the answer, then logs it |
-| Jan | Polished offline chat app | Adds workspace edits, a live Trust Score, and replayable runs |
+| Jan | Polished offline chat app | Adds workspace edits, a live Trust Score, receipts, replay, and diff-gated applies |
 | Aider | Terminal coding agent | Same diff-approval safety in a readable browser UI, plus exportable receipts |
-| OpenHands | Full coding-agent platform | A tiny, zero-dependency lab you can read and fork in an afternoon |
+| Cline | IDE coding agent | Local-first receipts, explicit workspace boundaries, and shareable audit reports |
+| Continue | Source-controlled AI checks | Local workspace agent UI with receipts, memory, reports, and model/backend flexibility |
+| OpenHands | Full coding-agent platform | A small, zero-runtime-dependency lab you can read and fork in an afternoon |
 
 **The one-line wedge:** every other tool asks you to trust the output. AgentTrail hands you the receipt.
 
@@ -255,7 +260,7 @@ The `/api/recipes` endpoint validates every recipe file, skips invalid community
 
 ## How It Works
 
-The browser sends messages to the local Node server. The server sends a prompt to Ollama with a small tool protocol. When the model requests a tool, the server runs it against the workspace and sends the result into the next model step.
+The browser sends messages to the local Node server. The server talks to Ollama, an OpenAI-compatible local backend, or the optional bundled-runtime adapter through a small model adapter layer. When the model requests a tool, AgentTrail validates the call, runs it against the sandboxed workspace, shows the evidence/diff in the UI, and records the step in receipts/reports.
 
 Available tools:
 
@@ -265,7 +270,7 @@ Available tools:
 - `preview_write_file`: returns a diff preview without writing
 - `write_file`: creates or updates a workspace file
 
-When write preview mode is enabled, `write_file` returns a diff preview instead of changing the file. The browser shows that diff with an explicit **Apply** button, keeping the default experience reviewable even when an LLM tries to write.
+When write preview mode is enabled, `write_file` returns a diff preview instead of changing the file. The browser shows that diff with an explicit **Apply** button, keeping the default experience reviewable even when an LLM tries to write. Secret redaction, prompt-injection scanning, network policy, and path safety sit around that loop.
 
 ## Top 1% Surfaces
 

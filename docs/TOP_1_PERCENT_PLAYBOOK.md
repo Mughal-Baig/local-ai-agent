@@ -2,39 +2,40 @@
 
 AgentTrail should not try to beat Open WebUI, Dify, AnythingLLM, Jan, Aider, or OpenHands at platform breadth. The believable path is to own a smaller promise:
 
-> the clearest auditable local agent kit for people who want recipes, workspace search, diff previews, and receipts they can inspect.
+> the clearest auditable local-agent layer for people who want workspace search, diff previews, explicit approvals, receipts, replay, and reports they can inspect.
 
 ## What Must Be Obvious In 30 Seconds
 
 - It runs locally with Ollama.
+- It can also use OpenAI-compatible local model servers.
 - It cannot read or write outside the workspace.
 - It searches local files before answering.
 - It previews writes as diffs before touching files.
 - It saves receipts so users can audit what happened.
-- It is small enough to read and fork.
+- It is still small enough to inspect, fork, and test.
 
 ## Current Moat
 
-- Zero npm dependencies.
+- Zero runtime npm dependencies in the core app.
 - Plain JSON recipes.
 - Keyword search plus local vector search across files, sessions, and receipts.
 - Agent Trail receipts.
 - Write preview mode with explicit Apply.
 - Trust Score dashboard.
 - Receipt timeline and shareable reports.
-- Recipe packs, profiles, model scoring, MCP manifest, Dockerfile, and eval harness.
+- Conversation export, redaction, recipe packs, profiles, model scoring, MCP, Dockerfile, and eval harness.
 - GitHub Pages demo before install.
 
 ## Next Star Drivers
 
-1. Record a real 20-second GIF using the v0.4 trust loop.
-2. Keep improving local embedding quality and model-specific search benchmarks.
-3. Add receipt replay so users can rerun a prior session with the same context.
-4. Add real MCP server transport behind the approval manifest.
-5. Add recipe pack import UI and community gallery.
-6. Add a desktop wrapper for non-developers.
-7. Add 50 high-quality recipes grouped by role.
-8. Publish benchmark screenshots from `npm run eval`.
+1. Record a real 20-second GIF using the search -> diff -> Apply -> receipt/report loop.
+2. Make one-command install feel production-ready: `npx`, Docker persistence, Homebrew, setup doctor.
+3. Finish persistent conversation UI: list, open, rename, pin, delete, search, import/export, branch.
+4. Add guided first-run onboarding so a new user succeeds before using their own files.
+5. Publish honest comparison proof against OpenHands, Cline, AnythingLLM, Open Interpreter, Aider, and Continue.
+6. Turn prompt-injection, redaction, network policy, and path safety into visible demo proof.
+7. Ship signed desktop releases after certificate setup.
+8. Add user showcases built around safe, redacted receipts.
 
 ## Brutal Anti-Goals
 
