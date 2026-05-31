@@ -30,19 +30,20 @@ This section tracks the concrete work shipped after the roadmap was publicly ref
 | `aa32467` | T045 | Added markdown-aware overlapping search chunks with section headings, chunk type, line ranges, saved chunking metadata, `/api/search/chunks` citation improvements, `npm run test:search`, CI coverage, README/eval/handoff updates. |
 | `fb492da` | T046 | Added BM25 keyword scoring, semantic vector score fusion, `/api/search?mode=semantic` ranker `hybrid-bm25-vector`, exposed `scoreParts`, BM25 chunk ranking, tests, README/eval/handoff updates. |
 | Claude handoff + Codex review | T038 partial, T047, T048, T052 | Imported and hardened the Claude pass: local pending-run snapshot API/UI, lexical top-k reranker with `scoreParts.rerank`/`.final`, real embedding cache keyed by model + content hash, search hit@3 eval harness, CI scripts, focused tests, route catalog/eval visibility, and resume-banner UI polish. |
+| Claude RAG pass + Codex continuation | T049, T051, T056 | Imported Claude's incremental re-index and metadata filters, then added exact line/character citation spans across `/api/search`, `/api/search/chunks`, saved search chunks, UI search metadata, tests, eval checks, and README visibility. |
 
 ### Verified After These Passes
 
-- Local suites covered: `npm run test:unit`, `npm run test:search`, `npm run test:rerank`, `npm run test:integration`, `npm run test:backend`, `npm run test:models`, `npm run test:embed-cache`, `npm run test:resume`, `npm run eval:search`, `npm run test:tools`, `npm run test:structured`, `npm run test:planner`, `npm run test:guardrails`, `npm run test:reflection`, memory integration suites, `npm run test:ui`, `npm test`, `npm run eval`, `npm run release:checksums`, and `git diff --check`.
+- Local suites covered: `npm run test:unit`, `npm run test:search`, `npm run test:rerank`, `npm run test:integration`, `npm run test:backend`, `npm run test:models`, `npm run test:embed-cache`, `npm run test:resume`, `npm run test:reindex`, `npm run eval:search`, `npm run test:tools`, `npm run test:structured`, `npm run test:planner`, `npm run test:guardrails`, `npm run test:reflection`, memory integration suites, `npm run test:ui`, `npm test`, `npm run eval`, `npm run release:checksums`, and `git diff --check`.
 - GitHub CI and GitHub Pages passed for the latest search commits.
 - Known follow-up: GitHub Actions reports a future Node 20 action-runtime deprecation warning. It is not a test failure, but the workflows should be updated before GitHub forces Node 24 defaults.
 
 ### Best Continuation Points
 
 - T038: finish true receipt-based resume beyond the current pending-run snapshot.
-- T049: incremental re-index on file change.
-- T051: exact answer citations with line/char spans.
+- T050: multi-vector / late-interaction option for long docs.
 - T053: on-disk vector store.
+- T058: benchmark recall/latency vs brute force.
 
 ---
 
@@ -114,16 +115,16 @@ This section tracks the concrete work shipped after the roadmap was publicly ref
 - [x] T046 Hybrid search (BM25 keyword + vector) with score fusion
 - [x] T047 Lexical reranker of top-k (exact-phrase, coverage, bigram, path-field; blended with hybrid; `scoreParts.rerank`/`.final`; test: `npm run test:rerank`)
 - [x] T048 Embedding cache keyed by content hash (model + content hash; gated by `AGENTTRAIL_CACHE`; test: `npm run test:embed-cache`)
-- [ ] T049 Incremental re-index on file change (watcher-driven)
+- [x] T049 Incremental re-index — reuse embeddings for unchanged files by content hash, refresh chunk metadata, re-embed only changed/new, drop deleted (`POST /api/search-index {incremental:true}`; returns reused/reembedded/removed; test: `npm run test:reindex`)
 - [ ] T050 Multi-vector / late-interaction option for long docs
-- [ ] T051 Citations with exact line/char spans in answers
+- [x] T051 Citations with exact line/char spans in answers (`/api/search` and `/api/search/chunks` return `citation` + `span` with line and char offsets; tests/eval assert spans)
 - [x] T052 Search quality eval set + scoring harness (`scripts/eval-search.js`, `npm run eval:search`; scores hit@3 for keyword + hybrid, gated in CI)
 
 ### Epic F — Persistent vector store
 - [ ] T053 On-disk vector store (SQLite-vec or flat-file ANN)
 - [ ] T054 HNSW/IVF index for large corpora
 - [ ] T055 Namespace/collection support per workspace
-- [ ] T056 Metadata filters (path, type, date) in queries
+- [x] T056 Metadata filters — `path` (substring) and `ext` (comma-separated) query params on `/api/search` filter before ranking (test: `npm run test:reindex`)
 - [ ] T057 Store versioning + migration
 - [ ] T058 Benchmark recall/latency vs brute force
 
@@ -366,4 +367,128 @@ This section tracks the concrete work shipped after the roadmap was publicly ref
 4. We expand an epic's tasks into finer sub-tasks (toward 1000) only when we start that epic — so the plan stays honest and current.
 5. We re-mark `[x]` here as we go; this file is the single source of truth for the campaign.
 
-**Next up:** Phase 1, Epic A — native tool calling (T017–T024).
+**Next up:** Phase 2, Epic E/F — T050 multi-vector search, T053 on-disk vector store, and T058 recall/latency benchmarks.
+
+## Status & bug sweep (latest)
+
+- Progress: **53 tasks done**, 144 open (across Phases 1–10). Phase 1 (agent reliability) essentially complete; Phase 2 (RAG) in progress (T044–T052, T056 done).
+- Full test suite green: **25/25** (unit, integration, smoke, search eval) — run twice, no flakes. All source files pass `node --check`.
+- **Bug fixed:** `listWorkspaceFiles` only skipped `.DS_Store`, so internal `.agenttrail/*` state (logs, store, search index, pending-run) was being walked, indexed, and returned in search — adding noise and per-request churn to the index. Now excludes `.agenttrail/`. Verified against smoke, api, search-incremental, search-chunking, and eval:search.
+- Known minor item: a couple of integration tests assert relative/invariant counts (not exact) because the workspace can still gain legit files (e.g. `memory/*`) between calls — intentional, not a bug.
+
+Next code targets: T050 multi-vector / late-interaction search, T053 on-disk vector store, T058 recall/latency benchmark.
+
+---
+
+# Roadmap Expansion (Phases 11–16) — added to grow toward 1000
+
+All `[ ]` open. Continues the sequential numbering from T205.
+
+## Phase 11 — Conversation & UX depth
+
+### Epic AE — Chat management
+- [ ] T206 Persistent conversation history (list, open, continue past chats)
+- [ ] T207 Rename a conversation
+- [ ] T208 Pin / favorite conversations
+- [ ] T209 Delete a conversation (with confirm + undo)
+- [ ] T210 Full-text search across past conversations
+- [ ] T211 Auto-title a chat from its first message
+- [ ] T212 Export a single conversation (Markdown / JSON / HTML)
+- [ ] T213 Import a conversation
+- [ ] T214 Folders / tags for conversations
+- [ ] T215 Branch a conversation from any message
+
+### Epic AF — Composer & editing
+- [ ] T216 Edit a sent user message and re-run
+- [ ] T217 Regenerate the last assistant response
+- [ ] T218 Stop-and-continue (resume generation)
+- [ ] T219 Copy-message and copy-code buttons
+- [ ] T220 Markdown + syntax-highlighted code rendering with copy
+- [ ] T221 Slash-command palette in the composer (`/recipe`, `/file`, `/model`)
+- [ ] T222 @-mention workspace files to attach context inline
+- [ ] T223 Drag-and-drop files onto the chat to attach
+- [ ] T224 Paste image / file into the composer
+
+### Epic AG — Look, feel & access
+- [ ] T225 Light/dark/system theme toggle (persisted)
+- [ ] T226 Additional warm + high-contrast themes
+- [ ] T227 Adjustable font size / density
+- [ ] T228 Full keyboard navigation + visible focus states
+- [ ] T229 Screen-reader pass (ARIA roles, live regions, labels)
+- [ ] T230 Reduced-motion support
+- [ ] T231 Responsive mobile layout polish
+- [ ] T232 Installable PWA / offline shell
+- [ ] T233 Internationalization (i18n) scaffolding + first locale
+
+## Phase 12 — Data, privacy & portability
+
+### Epic AH — Portability
+- [ ] T234 Export all data (chats, receipts, memory, index) as a single archive
+- [ ] T235 Import / restore from an exported archive
+- [ ] T236 Per-workspace data isolation
+- [ ] T237 Migrate workspace between machines
+- [ ] T238 Scheduled local backups + retention policy
+
+### Epic AI — Privacy controls
+- [ ] T239 One-click "wipe all local data"
+- [ ] T240 Secret detection + redaction in receipts/exports (extend T156)
+- [ ] T241 Configurable data-retention windows per artifact type
+- [ ] T242 Privacy dashboard: what is stored and where
+- [ ] T243 Opt-in, local-only usage analytics (no network)
+
+## Phase 13 — Reliability & operations
+
+### Epic AJ — Resilience
+- [ ] T244 Graceful degradation when the model backend is down (clear UI state)
+- [ ] T245 Health endpoint + UI status indicator
+- [ ] T246 Auto-retry with backoff on transient backend errors
+- [ ] T247 Crash-safe writes (atomic temp-file + rename) for all stores
+- [ ] T248 Corrupt-index detection + auto-rebuild
+- [ ] T249 Disk-space guard before large writes/pulls
+- [ ] T250 Structured error taxonomy with actionable messages (extend T165)
+- [ ] T251 Request timeouts + cancellation surfaced consistently
+
+### Epic AK — Config & admin
+- [ ] T252 Settings UI for all env vars (model, cache, budget, host)
+- [ ] T253 Config validation with friendly errors at startup
+- [ ] T254 Per-workspace config overrides
+- [ ] T255 First-run setup wizard
+
+## Phase 14 — Evaluation & quality depth
+
+### Epic AL — Evals
+- [ ] T256 Golden-dataset eval harness for agent tasks
+- [ ] T257 Citation-faithfulness check (answer claims map to evidence)
+- [ ] T258 Hallucination / unsupported-claim detector
+- [ ] T259 Regression eval gate in CI with trend tracking
+- [ ] T260 A/B compare two models on the same task set
+- [ ] T261 Tool-use correctness eval (right tool, right args)
+- [ ] T262 Latency + tokens/sec benchmark across models (extend T058)
+
+## Phase 15 — Cost, usage & smart routing
+
+### Epic AM — Accounting & routing
+- [ ] T263 Per-chat token + time accounting surfaced in UI (extend T164)
+- [ ] T264 Usage dashboard (per model, per recipe, over time)
+- [ ] T265 Budget caps with soft/hard limits and prompts
+- [ ] T266 Automatic model routing by task type (code vs chat vs long-context)
+- [ ] T267 Cheap-model draft → strong-model verify (speculative routing)
+- [ ] T268 Per-recipe default model selection
+
+## Phase 16 — Extensibility & ecosystem depth
+
+### Epic AN — SDK & plugins
+- [ ] T269 Documented plugin SDK + typed manifest
+- [ ] T270 Plugin permissions + sandbox hardening review
+- [ ] T271 Plugin hot-reload in dev
+- [ ] T272 Example plugins (web-fetch, calculator, shell-guarded)
+- [ ] T273 Plugin marketplace browse/install from UI
+- [ ] T274 Recipe sharing import/export from URL (extend marketplace)
+
+### Epic AO — Interop
+- [ ] T275 VS Code extension MVP (chat + diff-apply in editor)
+- [ ] T276 CLI chat REPL parity (extend Epic U)
+- [ ] T277 Webhook triggers for automation
+- [ ] T278 Local MCP client to consume external MCP servers
+- [ ] T279 Export agent as an OpenAI-compatible endpoint (extend T076)
+- [ ] T280 Shareable, self-contained run replay bundle

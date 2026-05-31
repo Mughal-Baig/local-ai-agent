@@ -1259,12 +1259,17 @@ async function handleSearch(url, res) {
   const query = url.searchParams.get("query") || "";
   const limit = Math.min(Math.max(Number(url.searchParams.get("limit") || 8), 1), 20);
   const mode = url.searchParams.get("mode") || "keyword";
-  const results = await searchWorkspace(query, limit, { semantic: mode === "semantic" });
+  const pathPrefix = (url.searchParams.get("path") || "").trim().toLowerCase();
+  const extParam = (url.searchParams.get("ext") || "").trim().toLowerCase();
+  const exts = extParam ? extParam.split(",").map((e) => e.trim().replace(/^\./, "")).filter(Boolean) : [];
+  const filters = { pathPrefix, exts };
+  const results = await searchWorkspace(query, limit, { semantic: mode === "semantic", filters });
   const semanticProvider = results.find((item) => item.semanticProvider)?.semanticProvider || null;
   sendJson(res, 200, {
     query,
     mode,
     ranker: mode === "semantic" ? "hybrid-bm25-vector" : "bm25",
+    filters: { path: pathPrefix || null, ext: exts.length ? exts : null },
     semanticProvider,
     results
   });
@@ -1312,6 +1317,10 @@ async function handleGetSearchIndex(res) {
 
 async function handleBuildSearchIndex(req, res) {
   const body = await readJsonBody(req);
+  if (body.incremental) {
+    const result = await incrementalSearchIndex();
+    return sendJson(res, 200, result);
+  }
   const requestedProvider = String(body.provider || "auto").trim().toLowerCase();
   const result = await buildSearchIndex(requestedProvider);
   sendJson(res, 200, result);
@@ -4317,7 +4326,7 @@ async function listWorkspaceFiles() {
     entries.sort((a, b) => a.name.localeCompare(b.name));
 
     for (const entry of entries) {
-      if (entry.name === ".DS_Store") {
+      if (entry.name === ".DS_Store" || entry.name === ".agenttrail") {
         continue;
       }
 
@@ -4348,7 +4357,21 @@ async function searchWorkspace(query, limit, options = {}) {
     .map((term) => term.trim().toLowerCase())
     .filter((term) => term.length >= 2)
     .slice(0, 8);
-  const files = await listWorkspaceFiles();
+  const allFiles = await listWorkspaceFiles();
+  const filters = options.filters || {};
+  const files = allFiles.filter((file) => {
+    const lowerPath = String(file.path).toLowerCase();
+    if (filters.pathPrefix && !lowerPath.includes(filters.pathPrefix)) {
+      return false;
+    }
+    if (Array.isArray(filters.exts) && filters.exts.length) {
+      const ext = lowerPath.includes(".") ? lowerPath.split(".").pop() : "";
+      if (!filters.exts.includes(ext)) {
+        return false;
+      }
+    }
+    return true;
+  });
   const semanticContext = options.semantic ? await getSemanticContext(normalizedQuery) : null;
   const documents = [];
 
@@ -4380,6 +4403,7 @@ async function searchWorkspace(query, limit, options = {}) {
   const keywordScores = new Map(scoreBm25Documents(normalizedQuery, documents).map((item) => [item.path, item]));
   const scored = documents.map((document) => {
     const keyword = keywordScores.get(document.path) || {};
+    const snippet = createSnippetWithSpan(document.content, terms);
     let semanticScore = 0;
     if (semanticContext && semanticContext.queryVector) {
       const indexedVector = semanticContext.fileVectors.get(document.path);
@@ -4396,7 +4420,14 @@ async function searchWorkspace(query, limit, options = {}) {
       semanticProvider: semanticContext ? semanticContext.provider : null,
       embeddingModel: semanticContext ? semanticContext.model : null,
       text: String(document.content || "").slice(0, 6000),
-      snippet: createSnippet(document.content, terms)
+      snippet: snippet.text,
+      citation: formatLineCitation(document.path, snippet.startLine, snippet.endLine),
+      span: {
+        startLine: snippet.startLine,
+        endLine: snippet.endLine,
+        charStart: snippet.charStart,
+        charEnd: snippet.charEnd
+      }
     };
   });
 
@@ -4428,7 +4459,9 @@ async function searchWorkspace(query, limit, options = {}) {
           ...item.scoreParts,
           matches: item.keywordMatches
         },
-        snippet: item.snippet
+        snippet: item.snippet,
+        citation: item.citation,
+        span: item.span
       };
     });
 
@@ -4600,6 +4633,106 @@ async function buildSearchIndex(requestedProvider) {
   };
 }
 
+// T049 - incremental re-index: reuse embeddings for unchanged files (by content
+// hash), refresh chunk metadata from current content, re-embed only new/changed
+// files, and drop deleted ones. Falls back to a full rebuild when there is no
+// existing index or the embedding backend is down.
+async function incrementalSearchIndex() {
+  const existing = await readSearchIndex();
+  if (!existing || !Array.isArray(existing.items)) {
+    return { ...(await buildSearchIndex("auto")), incremental: false, reason: "no-existing-index" };
+  }
+
+  const provider = existing.provider;
+  const model = existing.model;
+  const chunking = existing.chunking || { strategy: "markdown-overlap-v1", size: 1800, overlap: 220 };
+  const oldItems = new Map(existing.items.map((item) => [item.path, item]));
+
+  const files = (await listWorkspaceFiles()).filter((file) => file.size <= MAX_SEARCH_FILE_BYTES);
+  const items = [];
+  const chunks = [];
+  const fileHashes = {};
+  let reused = 0;
+  let reembedded = 0;
+  let dimensions = existing.dimensions || 0;
+
+  for (const file of files) {
+    let content = "";
+    try {
+      content = await fsp.readFile(resolveWorkspacePath(file.path), "utf8");
+    } catch {
+      continue;
+    }
+    if (content.indexOf(String.fromCharCode(0)) !== -1) {
+      continue;
+    }
+    const hash = hashContent(content);
+    fileHashes[file.path] = hash;
+    const fileChunks = buildSearchChunks(file, content, chunking);
+
+    const prev = oldItems.get(file.path);
+    if (prev && prev.hash === hash && Array.isArray(prev.embedding) && prev.embedding.length) {
+      items.push({ ...prev, size: file.size, modifiedAt: file.modifiedAt, chunkCount: fileChunks.length });
+      chunks.push(...fileChunks);
+      reused += 1;
+      continue;
+    }
+
+    const text = `${file.path}\n${content.slice(0, MAX_SEARCH_FILE_BYTES)}`;
+    let embedding = null;
+    if (provider === "ollama") {
+      embedding = await fetchEmbeddingCached(text, model || OLLAMA_EMBED_MODEL).catch(() => null);
+      if (!embedding || !embedding.length) {
+        return { ...(await buildSearchIndex("auto")), incremental: false, reason: "embed-unavailable" };
+      }
+      embedding = normalizeVector(embedding);
+    } else {
+      embedding = embedTextDense(text);
+    }
+    dimensions = embedding.length;
+    items.push({
+      path: file.path,
+      size: file.size,
+      modifiedAt: file.modifiedAt,
+      hash,
+      chunkCount: fileChunks.length,
+      embedding
+    });
+    chunks.push(...fileChunks);
+    reembedded += 1;
+  }
+
+  const removed = [...oldItems.keys()].filter((p) => !(p in fileHashes)).length;
+  const index = {
+    schema: "agenttrail.search-index.v1",
+    provider,
+    model,
+    dimensions,
+    builtAt: new Date().toISOString(),
+    workspaceRoot: WORKSPACE_ROOT,
+    chunking,
+    fileHashes,
+    chunks,
+    items
+  };
+  await writeWorkspaceFile(SEARCH_INDEX_PATH, JSON.stringify(index, null, 2));
+  return {
+    ok: true,
+    path: SEARCH_INDEX_PATH,
+    provider,
+    model,
+    dimensions,
+    chunking,
+    itemCount: items.length,
+    chunkCount: chunks.length,
+    builtAt: index.builtAt,
+    incremental: true,
+    reused,
+    reembedded,
+    removed
+  };
+}
+
 function buildSearchChunks(file, content, chunking) {
   return chunkTextDetailed(content, chunking).map((chunk, index) => ({
     id: `${file.path}#${index + 1}`,
@@ -4611,6 +4744,15 @@ function buildSearchChunks(file, content, chunking) {
     kind: chunk.kind || "paragraph",
     startLine: chunk.startLine || 1,
     endLine: chunk.endLine || chunk.startLine || 1,
+    charStart: Number.isInteger(chunk.charStart) ? chunk.charStart : null,
+    charEnd: Number.isInteger(chunk.charEnd) ? chunk.charEnd : null,
+    span: {
+      startLine: chunk.startLine || 1,
+      endLine: chunk.endLine || chunk.startLine || 1,
+      charStart: Number.isInteger(chunk.charStart) ? chunk.charStart : null,
+      charEnd: Number.isInteger(chunk.charEnd) ? chunk.charEnd : null
+    },
+    citation: formatLineCitation(file.path, chunk.startLine || 1, chunk.endLine || chunk.startLine || 1),
     preview: truncate(chunk.preview || chunk.text.replace(/\s+/g, " ").trim(), 160)
   }));
 }
@@ -5614,18 +5756,103 @@ function countOccurrences(text, term) {
 }
 
 function createSnippet(content, terms) {
-  const lines = String(content || "").split(/\r?\n/);
-  const fallback = lines.find((line) => line.trim()) || "";
-  if (!terms.length) {
-    return truncate(fallback.trim(), 180);
+  return createSnippetWithSpan(content, terms).text;
+}
+
+function createSnippetWithSpan(content, terms) {
+  const records = contentLineRecords(content);
+  const cleanTerms = (Array.isArray(terms) ? terms : [])
+    .map((term) => String(term || "").trim().toLowerCase())
+    .filter(Boolean);
+
+  let selected = null;
+  for (const record of records) {
+    const lower = record.text.toLowerCase();
+    if (cleanTerms.some((term) => lower.includes(term))) {
+      selected = record;
+      break;
+    }
   }
 
-  const found = lines.find((line) => {
-    const lower = line.toLowerCase();
-    return terms.some((term) => lower.includes(term));
-  });
+  if (!selected) {
+    selected = records.find((record) => record.text.trim()) || records[0] || {
+      line: 1,
+      start: 0,
+      end: 0,
+      text: ""
+    };
+  }
 
-  return truncate((found || fallback).trim(), 180);
+  const leading = (selected.text.match(/^\s*/) || [""])[0].length;
+  const trailing = (selected.text.match(/\s*$/) || [""])[0].length;
+  const bodyEnd = selected.text.length - trailing;
+  const body = selected.text.slice(leading, bodyEnd);
+  if (!body) {
+    return {
+      text: "",
+      startLine: selected.line || 1,
+      endLine: selected.line || 1,
+      charStart: selected.start || 0,
+      charEnd: selected.start || 0
+    };
+  }
+
+  const lowerBody = body.toLowerCase();
+  const hitIndex = cleanTerms
+    .map((term) => lowerBody.indexOf(term))
+    .filter((index) => index >= 0)
+    .sort((a, b) => a - b)[0] || 0;
+  const maxLength = 180;
+  let bodyOffset = 0;
+  if (body.length > maxLength) {
+    bodyOffset = Math.max(0, hitIndex - Math.floor(maxLength / 2));
+    if (bodyOffset + maxLength > body.length) {
+      bodyOffset = body.length - maxLength;
+    }
+  }
+
+  const visible = body.slice(bodyOffset, bodyOffset + maxLength);
+  const prefix = bodyOffset > 0 ? "... " : "";
+  const suffix = bodyOffset + maxLength < body.length ? " ..." : "";
+  const charStart = selected.start + leading + bodyOffset;
+  return {
+    text: `${prefix}${visible}${suffix}`,
+    startLine: selected.line || 1,
+    endLine: selected.line || 1,
+    charStart,
+    charEnd: charStart + visible.length
+  };
+}
+
+function contentLineRecords(content) {
+  const text = String(content || "");
+  const records = [];
+  let start = 0;
+  let line = 1;
+  for (let i = 0; i <= text.length; i += 1) {
+    if (i === text.length || text[i] === "\n") {
+      let end = i;
+      if (end > start && text[end - 1] === "\r") {
+        end -= 1;
+      }
+      records.push({
+        line,
+        start,
+        end,
+        text: text.slice(start, end)
+      });
+      start = i + 1;
+      line += 1;
+    }
+  }
+  return records;
+}
+
+function formatLineCitation(filePath, startLine, endLine) {
+  const source = String(filePath || "workspace");
+  const start = Math.max(1, Number(startLine) || 1);
+  const end = Math.max(start, Number(endLine) || start);
+  return start === end ? `${source}:${start}` : `${source}:${start}-${end}`;
 }
 
 function createUnifiedDiff(filePath, before, after) {

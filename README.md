@@ -49,7 +49,7 @@ Writes are off by default. The agent proposes a unified diff; you click **Apply*
 - **Safe workspace boundary**: file reads and writes are blocked outside `workspace/`.
 - **Zero npm dependencies**: clone, run `node server.js`, and start building.
 - **Serious foundation**: schemas, migrations, permission engine, background jobs, backups, plugins, checksums, and tests keep it from feeling like a toy.
-- **Product proof loop**: chunk citations, replay guidance, model comparison, plugin gallery, onboarding, and trust badges make the value obvious fast.
+- **Product proof loop**: exact line/character citations, replay guidance, model comparison, plugin gallery, onboarding, and trust badges make the value obvious fast.
 
 ## What Makes It Different
 
@@ -91,7 +91,7 @@ Open `http://127.0.0.1:4173`, build the semantic index, ask for a change, review
 - **Response cache** so repeated recipe runs return instantly, plus prompt and step-budget guards that keep long workspaces fast
 - Starter prompts for summarize, plan, review, and save-note workflows
 - Local recipe picker backed by plain JSON workflow files
-- BM25 keyword search and hybrid semantic local search across workspace files, sessions, and saved receipts, with markdown-aware chunks, reranking, and score parts for better citations
+- BM25 keyword search and hybrid semantic local search across workspace files, sessions, and saved receipts, with markdown-aware chunks, reranking, score parts, and exact line/character citation spans
 - Ollama embedding index using `OLLAMA_EMBED_MODEL=nomic-embed-text`, with local-vector fallback and cached real embeddings keyed by model + content hash
 - First-run setup checklist for Ollama, models, workspace files, recipes, and receipts
 - Attachment picker that copies local files into `workspace/attachments/` and selects them for agent context
@@ -260,7 +260,7 @@ When write preview mode is enabled, `write_file` returns a diff preview instead 
 - Community growth loop: issue templates, launch posts, marketplace submissions, and good-first contribution docs
 - Guided replay: `/api/replay/plan`
 - Interrupted-run resume: `/api/runs/pending`
-- Chunk citations: `/api/search/chunks` with section headings, chunk type, and line ranges
+- Chunk citations: `/api/search/chunks` and `/api/search` return section headings, chunk type, line ranges, and exact character spans
 - Trust badge: `/api/trust/badge`
 - Model comparison: `/api/models/compare`
 - Real benchmark run endpoint: `/api/benchmarks/run`

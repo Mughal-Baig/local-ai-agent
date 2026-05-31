@@ -135,7 +135,14 @@ const els = {
   discardPlan: document.querySelector("#discardPlan"),
   composer: document.querySelector("#composer"),
   prompt: document.querySelector("#prompt"),
-  sendButton: document.querySelector("#sendButton")
+  sendButton: document.querySelector("#sendButton"),
+  newChat: document.querySelector("#newChat"),
+  toolsDrawer: document.querySelector("#toolsDrawer"),
+  toolsBackdrop: document.querySelector("#toolsBackdrop"),
+  toolsToggle: document.querySelector("#toolsToggle"),
+  toolsToggleTop: document.querySelector("#toolsToggleTop"),
+  toolsToggleMobile: document.querySelector("#toolsToggleMobile"),
+  closeTools: document.querySelector("#closeTools")
 };
 
 document.addEventListener("DOMContentLoaded", async () => {
@@ -221,6 +228,23 @@ function bindEvents() {
   if (els.dismissResumeButton) {
     els.dismissResumeButton.addEventListener("click", dismissPendingRun);
   }
+  if (els.newChat) {
+    els.newChat.addEventListener("click", startNewChat);
+  }
+  [els.toolsToggle, els.toolsToggleTop, els.toolsToggleMobile].forEach((button) => {
+    if (button) button.addEventListener("click", openToolsDrawer);
+  });
+  if (els.closeTools) {
+    els.closeTools.addEventListener("click", closeToolsDrawer);
+  }
+  if (els.toolsBackdrop) {
+    els.toolsBackdrop.addEventListener("click", closeToolsDrawer);
+  }
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && els.toolsDrawer && !els.toolsDrawer.hidden) {
+      closeToolsDrawer();
+    }
+  });
   els.approvePlan.addEventListener("click", approvePlanAndRun);
   els.discardPlan.addEventListener("click", discardPlan);
   els.planText.addEventListener("input", updateSendState);
@@ -1031,10 +1055,11 @@ function renderSearchResults() {
     item.type = "button";
     item.className = `search-result${state.selectedFiles.has(result.path) ? " selected" : ""}`;
     item.title = result.path;
+    const meta = [result.citation, result.semanticProvider].filter(Boolean).join(" - ");
     item.innerHTML = `
       <span class="search-path">${escapeHtml(result.path)}</span>
       <span class="search-snippet">${escapeHtml(result.snippet || "No preview available")}</span>
-      ${result.semanticProvider ? `<span class="search-provider">${escapeHtml(result.semanticProvider)}</span>` : ""}
+      ${meta ? `<span class="search-provider">${escapeHtml(meta)}</span>` : ""}
     `;
     item.addEventListener("click", () => {
       state.selectedFiles.add(result.path);
@@ -1223,6 +1248,43 @@ function dismissPendingRun() {
   clearPendingRun();
 }
 
+function startNewChat() {
+  state.messages = [{
+    role: "assistant",
+    content: "New chat - ask me anything, or attach files to work on locally.",
+    events: []
+  }];
+  renderMessages();
+  els.prompt.value = "";
+  resizePrompt();
+  els.prompt.focus();
+  state.pendingRun = null;
+  clearPendingRun();
+  if (els.resumeBanner) {
+    els.resumeBanner.hidden = true;
+  }
+  addTrail("system", "Started a new chat");
+}
+
+function openToolsDrawer() {
+  if (!els.toolsDrawer) {
+    return;
+  }
+  els.toolsDrawer.hidden = false;
+  if (els.toolsBackdrop) {
+    els.toolsBackdrop.hidden = false;
+  }
+}
+
+function closeToolsDrawer() {
+  if (els.toolsDrawer) {
+    els.toolsDrawer.hidden = true;
+  }
+  if (els.toolsBackdrop) {
+    els.toolsBackdrop.hidden = true;
+  }
+}
+
 async function refreshInstalledModels() {
   if (!els.installedModels) {
     return;
@@ -1283,7 +1345,7 @@ async function pullModel() {
     }
     await readEventStream(response.body, (eventName, data) => {
       if (eventName === "progress") {
-        els.pullModelStatus.textContent = data.percent != null ? `${data.status} — ${data.percent}%` : (data.status || "pulling...");
+        els.pullModelStatus.textContent = data.percent != null ? `${data.status} - ${data.percent}%` : (data.status || "pulling...");
       }
       if (eventName === "error") {
         els.pullModelStatus.textContent = data.message || "Pull failed.";
@@ -2154,7 +2216,7 @@ code{background:#ebe7da;padding:2px 6px;border-radius:5px;font-size:.82rem;color
 .foot a{color:var(--clayDeep)}
 </style></head>
 <body><div class="wrap">
-<div class="head"><div class="mark"></div><div><h1>AgentTrail Receipt</h1><div class="sub">A local agent that shows its work — exported ${escapeHtml(new Date().toLocaleString())}</div></div></div>
+<div class="head"><div class="mark"></div><div><h1>AgentTrail Receipt</h1><div class="sub">A local agent that shows its work - exported ${escapeHtml(new Date().toLocaleString())}</div></div></div>
 <div class="meta">
 <span class="chip">Model <b>${escapeHtml(data.model)}</b></span>
 <span class="chip">Search index <b>${escapeHtml(data.provider)}</b></span>

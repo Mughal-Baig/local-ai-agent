@@ -38,14 +38,21 @@ assert.equal(chunks.length >= 2, true);
 assert.equal(chunks.every((chunk) => typeof chunk.text === "string" && chunk.text.length > 0), true);
 assert.equal(chunks.every((chunk) => Number.isInteger(chunk.startLine) && chunk.startLine >= 1), true);
 assert.equal(chunks.every((chunk) => Number.isInteger(chunk.endLine) && chunk.endLine >= chunk.startLine), true);
+assert.equal(chunks.every((chunk) => Number.isInteger(chunk.charStart) && chunk.charStart >= 0), true);
+assert.equal(chunks.every((chunk) => Number.isInteger(chunk.charEnd) && chunk.charEnd >= chunk.charStart), true);
 assert.equal(chunks.some((chunk) => chunk.heading.includes("Install")), true);
 assert.equal(chunks.some((chunk) => chunk.kind === "code" || chunk.kind === "mixed"), true);
 assert.equal(chunkText(markdown, 260, 90).every((chunk) => typeof chunk === "string"), true);
 
+const installChunk = chunks.find((chunk) => chunk.heading.includes("Install"));
+assert.equal(markdown.slice(installChunk.charStart, installChunk.charEnd).includes("Run `npx agenttrail`"), true);
+
 const ranked = rankChunks("install npx", chunks.map((chunk) => ({ ...chunk, path: "README.md" })), 1);
 assert.equal(ranked.length, 1);
 assert.equal(ranked[0].heading.includes("Install"), true);
-assert.match(ranked[0].citation, /^README\.md#chunk-\d+$/);
+assert.match(ranked[0].citation, /^README\.md:\d+(-\d+)?$/);
+assert.match(ranked[0].chunkRef, /^README\.md#chunk-\d+$/);
+assert.equal(Number.isInteger(ranked[0].span.charStart), true);
 assert.equal(ranked[0].scoreParts.matches.includes("install"), true);
 
 const bm25 = scoreBm25Documents("install npx", [

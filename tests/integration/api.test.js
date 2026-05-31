@@ -58,9 +58,11 @@ async function main() {
     const hybridSearch = await get("/api/search?query=semantic&mode=semantic");
     assert.equal(hybridSearch.ranker, "hybrid-bm25-vector");
     assert.equal(hybridSearch.results.some((result) => result.mode === "hybrid" && result.scoreParts && typeof result.scoreParts.bm25 === "number"), true);
+    assert.equal(hybridSearch.results.some((result) => /^notes\/api\.md:\d+$/.test(result.citation || "") && result.span && Number.isInteger(result.span.charStart)), true);
 
     const chunkResults = await get("/api/search/chunks?query=receipt");
     assert.equal(chunkResults.chunks.some((chunk) => chunk.heading === "API" && chunk.startLine >= 1 && chunk.endLine >= chunk.startLine), true);
+    assert.equal(chunkResults.chunks.some((chunk) => /^notes\/api\.md:\d+(-\d+)?$/.test(chunk.citation || "") && chunk.span && Number.isInteger(chunk.span.charStart)), true);
 
     const badge = await post("/api/trust/badge", { score: 96, label: "run" });
     assert.match(badge.svg, /AgentTrail/);

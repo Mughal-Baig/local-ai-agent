@@ -49,7 +49,7 @@ Best next Claude tasks:
 
 - Work on docs and UI copy around native tool calling, structured outputs, planner approval, run guardrails, reflection, loop safety, structured memory, memory suggestions, ranked memory retrieval, memory history, scoped memory, markdown-aware chunk citations, hybrid search score parts, reranking, embedding cache, and search evals.
 - Do not rework `server.js` tool-calling, structured-output, planner, run-cancellation, loop/reflection, memory internals, search chunking, hybrid ranking, reranking, embedding cache, or resumable-run internals unless you also run the matching scripts: `npm run test:tools`, `npm run test:structured`, `npm run test:planner`, `npm run test:guardrails`, `npm run test:reflection`, `npm run test:memory`, `npm run test:memory-suggestions`, `npm run test:memory-retrieval`, `npm run test:memory-history`, `npm run test:memory-scopes`, `npm run test:search`, `npm run test:rerank`, `npm run test:embed-cache`, `npm run test:resume`, and `npm run eval:search`.
-- Next code target should be finishing T038 receipt-derived resume, T049 incremental re-index, T051 exact citations, or T053 on-disk vector store, not the runtime moonshot.
+- Next code target should be finishing T038 receipt-derived resume, T050 multi-vector search, T053 on-disk vector store, or T058 recall/latency benchmarks, not the runtime moonshot.
 
 ## Latest Claude Pass
 
@@ -63,4 +63,33 @@ Reviewed Codex's work and continued the roadmap:
 
 - T038 partial: pending-run snapshot. Added `/api/runs/pending`, `/api/runs/pending/clear`, a resume banner in the UI, route catalog coverage, and `npm run test:resume`. This handles interrupted browser runs, but full receipt-derived resume remains open.
 
-Still open and recommended next: finish T038 receipt-derived resume, T049 incremental re-index on file change, T051 exact citations, T053 on-disk vector store.
+Still open and recommended next: finish T038 receipt-derived resume, T050 multi-vector search, T053 on-disk vector store, or T058 recall/latency benchmarks.
+
+## Latest Claude Pass - UI redesign + handoff completion
+
+- Verified Codex's pass (all suites green, clean modules) and finished the open items.
+- T038: supplied the server endpoints (`handleSavePendingRun`/`handleGetPendingRun`/`handleClearPendingRun`, `PENDING_RUN_PATH = .agenttrail/pending-run.json`) that Codex's `tests/integration/resumable-run.test.js` expects. That test now passes (was failing/missing endpoints, which had broken CI). Client saves a snapshot on send, clears on clean completion, shows a resume banner on reload.
+- T047: lexical reranker confirmed (`rerankDocuments`), `npm run test:rerank` added to CI.
+- T052/T048: search eval + embedding cache (prior pass), in CI.
+
+### Chat-first UI redesign (per user: "make it simple like Claude/Ollama/Gemini")
+- `public/index.html` + `public/styles.css` (v15) + `public/app.js` (v23): slim sidebar (`.rail`: brand, `#newChat`, privacy note, `#toolsToggle`), minimal topbar (`#modelSelect` + small `#workspaceStatus` + Trust pill `#trustScore` + `#toolsToggleTop`), centered chat (max 792px), subtle `[data-prompt]` suggestion chips, and a rounded composer pill with a paperclip `#attachFiles` and a circular `#sendButton`; `#stepBudgetSelect`/`#planButton`/`#stopButton` moved to a quiet row.
+- **All advanced panels were moved verbatim into a slide-in `#toolsDrawer`** (toggled by `#toolsToggle`/`#toolsToggleTop`/`#toolsToggleMobile`/`#toolsBackdrop`/Esc). Every prior element ID is preserved, so all wiring still works.
+- New additive JS: `startNewChat`, `openToolsDrawer`, `closeToolsDrawer`.
+- Pre-redesign backups at `public/index.html.bak2` / `public/styles.css.bak2` - git-ignored (`*.bak2`), do not commit.
+- Verified: full suite 24/24 (unit/integration/smoke/eval), all app.js IDs present in HTML, tags balanced.
+
+## Latest Claude Pass - Phase 2 RAG (T049 + T056)
+
+- T049 Incremental re-index: `incrementalSearchIndex()` in `server.js` reuses embeddings for unchanged files (by content hash from the existing index), refreshes chunk metadata, re-embeds only changed/new files, drops deleted ones, and falls back to a full rebuild when no index exists or the embedding backend is down. Exposed via `POST /api/search-index {"incremental": true}` (returns `reused`/`reembedded`/`removed`).
+- T056 Metadata filters: `/api/search` accepts `path` (substring) and `ext` (comma-separated extensions); filtering happens on the file list before ranking, so ranking internals are untouched.
+- Tests: `tests/integration/search-incremental.test.js` (`npm run test:reindex`), added to CI. Did NOT modify chunking/hybrid/rerank internals; ran `test:search`, `test:rerank`, `eval:search` - all pass. Full suite 25/25.
+- Note: `.agenttrail/` is now excluded from workspace walking so internal logs, stores, pending runs, and search indexes do not pollute file search. Tests still assert relative/invariant counts because legitimate workspace files such as `memory/*` can appear during server startup.
+
+## Latest Codex Pass - Citation spans + GitHub sync
+
+- T051 exact-span citations: `/api/search` and `/api/search/chunks` now return `citation` plus `span` with `startLine`, `endLine`, `charStart`, and `charEnd`.
+- Search chunks now persist char spans in the index, file-level snippets keep exact source offsets, and the UI shows line citations under each search result.
+- Tests/evals updated: `test:search`, `test:integration`, `test:reindex`, and `eval:search` assert citation spans.
+
+Next open: T050 multi-vector search, T053 on-disk vector store, T058 recall/latency benchmark, and the remaining receipt-derived part of T038.

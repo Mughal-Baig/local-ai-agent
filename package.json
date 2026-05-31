@@ -57,6 +57,7 @@
     "eval:search": "node scripts/eval-search.js",
     "test:rerank": "node tests/unit/rerank.test.js",
     "test:resume": "node tests/integration/resumable-run.test.js",
+    "test:reindex": "node tests/integration/search-incremental.test.js",
     "test:tools": "node tests/integration/native-tool-calling.test.js && node tests/integration/ollama-native-tools.test.js && node tests/integration/tool-repair.test.js && node tests/integration/multi-tool-calls.test.js",
     "test:structured": "node tests/integration/structured-output.test.js",
     "test:planner": "node tests/integration/agent-plan.test.js",

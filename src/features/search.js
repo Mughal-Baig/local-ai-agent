@@ -64,6 +64,7 @@ function chunkTextDetailed(content, options = {}) {
 
 function markdownBlocks(text) {
   const lines = String(text || "").split("\n");
+  const lineOffsets = lineStartOffsets(text);
   const blocks = [];
   const headings = [];
   let buffer = [];
@@ -74,12 +75,18 @@ function markdownBlocks(text) {
 
   const currentHeading = () => headings.map((item) => item.title).join(" > ");
   const pushBuffer = (endLine) => {
-    const body = buffer.join("\n").trim();
+    const raw = buffer.join("\n");
+    const leading = (raw.match(/^\s*/) || [""])[0].length;
+    const trailing = (raw.match(/\s*$/) || [""])[0].length;
+    const body = raw.trim();
     if (body) {
+      const rawStart = offsetForLine(lineOffsets, startLine);
       blocks.push({
         text: body,
         startLine,
         endLine,
+        charStart: rawStart + leading,
+        charEnd: rawStart + raw.length - trailing,
         heading: currentHeading(),
         kind
       });
@@ -112,10 +119,13 @@ function markdownBlocks(text) {
         headings.pop();
       }
       headings.push({ level, title: heading[2].trim() });
+      const headingStart = offsetForLine(lineOffsets, lineNumber) + Math.max(0, line.indexOf(trimmed));
       blocks.push({
         text: trimmed,
         startLine: lineNumber,
         endLine: lineNumber,
+        charStart: headingStart,
+        charEnd: headingStart + trimmed.length,
         heading: currentHeading(),
         kind: "heading"
       });
@@ -163,9 +173,16 @@ function splitLargeBlock(block, size, overlap) {
   let index = 0;
   while (index < block.text.length && chunks.length < 80) {
     const text = block.text.slice(index, index + size);
+    const priorLineBreaks = countLineBreaks(block.text.slice(0, index));
+    const sliceLineBreaks = countLineBreaks(text);
+    const startLine = (block.startLine || 1) + priorLineBreaks;
     chunks.push({
       ...block,
       text,
+      startLine,
+      endLine: startLine + sliceLineBreaks,
+      charStart: Number.isInteger(block.charStart) ? block.charStart + index : undefined,
+      charEnd: Number.isInteger(block.charStart) ? block.charStart + index + text.length : undefined,
       kind: `${block.kind}-slice`
     });
     index += step;
@@ -203,6 +220,8 @@ function buildChunk(blocks, index) {
   const heading = blocks.map((block) => block.heading).filter(Boolean).find(Boolean) || "";
   const startLine = Math.min(...blocks.map((block) => block.startLine || 1));
   const endLine = Math.max(...blocks.map((block) => block.endLine || block.startLine || 1));
+  const charStarts = blocks.map((block) => block.charStart).filter(Number.isInteger);
+  const charEnds = blocks.map((block) => block.charEnd).filter(Number.isInteger);
   const kinds = Array.from(new Set(blocks.map((block) => block.kind).filter(Boolean)));
   const preview = `${heading ? `${heading} - ` : ""}${text.replace(/\s+/g, " ").trim()}`.slice(0, 220);
   return {
@@ -211,6 +230,8 @@ function buildChunk(blocks, index) {
     heading,
     startLine,
     endLine,
+    charStart: charStarts.length ? Math.min(...charStarts) : null,
+    charEnd: charEnds.length ? Math.max(...charEnds) : null,
     kind: kinds.length === 1 ? kinds[0] : "mixed",
     preview
   };
@@ -226,15 +247,27 @@ function rankChunks(query, chunks, limit = 8) {
   return scoreBm25Documents(query, documents)
     .filter((chunk) => !terms.length || chunk.keywordScore > 0)
     .sort((a, b) => b.keywordScore - a.keywordScore || String(a.path).localeCompare(String(b.path)))
-    .map((chunk) => ({
-      ...chunk,
-      score: roundScore(chunk.keywordScore),
-      scoreParts: {
-        bm25: roundScore(chunk.keywordScore),
-        matches: chunk.keywordMatches || []
-      },
-      citation: `${chunk.path || "workspace"}#chunk-${Number(chunk.index || 0) + 1}`
-    }))
+    .map((chunk) => {
+      const sourcePath = chunk.path || "workspace";
+      const startLine = chunk.startLine || 1;
+      const endLine = chunk.endLine || startLine;
+      return {
+        ...chunk,
+        score: roundScore(chunk.keywordScore),
+        scoreParts: {
+          bm25: roundScore(chunk.keywordScore),
+          matches: chunk.keywordMatches || []
+        },
+        citation: lineCitation(sourcePath, startLine, endLine),
+        chunkRef: `${sourcePath}#chunk-${Number(chunk.index || 0) + 1}`,
+        span: {
+          startLine,
+          endLine,
+          charStart: Number.isInteger(chunk.charStart) ? chunk.charStart : null,
+          charEnd: Number.isInteger(chunk.charEnd) ? chunk.charEnd : null
+        }
+      };
+    })
     .slice(0, Math.min(Math.max(Number(limit) || 8, 1), 30));
 }
 
@@ -442,6 +475,31 @@ function clampNumber(value, min, max, fallback) {
   const parsed = Number(value);
   const clean = Number.isFinite(parsed) ? parsed : fallback;
   return Math.max(min, Math.min(max, Math.round(clean)));
+}
+
+function lineStartOffsets(text) {
+  const offsets = [0];
+  for (let i = 0; i < text.length; i += 1) {
+    if (text[i] === "\n") {
+      offsets.push(i + 1);
+    }
+  }
+  return offsets;
+}
+
+function offsetForLine(offsets, lineNumber) {
+  return offsets[Math.max(0, Number(lineNumber || 1) - 1)] || 0;
+}
+
+function countLineBreaks(text) {
+  const matches = String(text || "").match(/\n/g);
+  return matches ? matches.length : 0;
+}
+
+function lineCitation(sourcePath, startLine, endLine) {
+  const start = Math.max(1, Number(startLine) || 1);
+  const end = Math.max(start, Number(endLine) || start);
+  return start === end ? `${sourcePath}:${start}` : `${sourcePath}:${start}-${end}`;
 }
 
 module.exports = {

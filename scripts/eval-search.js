@@ -81,6 +81,7 @@ async function scoreMode(mode) {
       `http://127.0.0.1:${port}/api/search?query=${encodeURIComponent(testCase.query)}&limit=${TOP_K}&mode=${mode}`
     );
     const top = (data.results || []).slice(0, TOP_K).map((r) => r.path);
+    assert.equal((data.results || []).every((r) => r.citation && r.span && Number.isInteger(r.span.charStart)), true);
     if (top.includes(testCase.expect)) hits += 1;
   }
   return { hits, total: CASES.length, score: Math.round((hits / CASES.length) * 100) };
