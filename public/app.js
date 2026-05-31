@@ -44,6 +44,7 @@ const state = {
   busy: false,
   planning: false,
   cancelRequested: false,
+  attachmentDragDepth: 0,
   chatAbortController: null,
   stepBudget: {
     maxSteps: 3,
@@ -53,6 +54,10 @@ const state = {
   approvedPlan: null,
   selectedReceiptPath: null
 };
+
+const MAX_ATTACHMENT_COUNT = 12;
+const TEXT_ATTACHMENT_MAX_BYTES = 76 * 1024;
+const IMAGE_ATTACHMENT_MAX_BYTES = 2 * 1024 * 1024;
 
 const els = {
   connectionStatus: document.querySelector("#connectionStatus"),
@@ -135,6 +140,8 @@ const els = {
   dismissResumeButton: document.querySelector("#dismissResumeButton"),
   approvePlan: document.querySelector("#approvePlan"),
   discardPlan: document.querySelector("#discardPlan"),
+  composerWrap: document.querySelector(".composer-wrap"),
+  dropHint: document.querySelector("#dropHint"),
   composer: document.querySelector("#composer"),
   prompt: document.querySelector("#prompt"),
   sendButton: document.querySelector("#sendButton"),
@@ -219,6 +226,7 @@ function bindEvents() {
   els.newNote.addEventListener("click", createNewNote);
   els.attachFiles.addEventListener("click", () => els.attachmentInput.click());
   els.attachmentInput.addEventListener("change", attachSelectedFiles);
+  bindComposerAttachmentIntake();
   els.useRecipe.addEventListener("click", applySelectedRecipe);
   els.recipeSelect.addEventListener("change", updateRecipeHint);
   els.stepBudgetSelect.addEventListener("change", updateStepBudget);
@@ -1494,33 +1502,113 @@ async function createNewNote() {
   renderLocalSignals();
 }
 
+function bindComposerAttachmentIntake() {
+  const dropTarget = els.composerWrap || els.composer;
+  if (!dropTarget) {
+    return;
+  }
+
+  ["dragenter", "dragover"].forEach((eventName) => {
+    dropTarget.addEventListener(eventName, (event) => {
+      if (!hasTransferFiles(event.dataTransfer)) {
+        return;
+      }
+      event.preventDefault();
+      if (eventName === "dragenter") {
+        state.attachmentDragDepth += 1;
+      }
+      setAttachmentDragActive(true);
+    });
+  });
+
+  dropTarget.addEventListener("dragleave", (event) => {
+    if (!hasTransferFiles(event.dataTransfer)) {
+      return;
+    }
+    state.attachmentDragDepth = Math.max(0, state.attachmentDragDepth - 1);
+    if (!state.attachmentDragDepth) {
+      setAttachmentDragActive(false);
+    }
+  });
+
+  dropTarget.addEventListener("drop", async (event) => {
+    if (!hasTransferFiles(event.dataTransfer)) {
+      return;
+    }
+    event.preventDefault();
+    state.attachmentDragDepth = 0;
+    setAttachmentDragActive(false);
+    await attachFiles(Array.from(event.dataTransfer.files || []), "drop");
+  });
+
+  els.prompt.addEventListener("paste", async (event) => {
+    const files = Array.from(event.clipboardData?.files || []).filter(isImageAttachment);
+    if (!files.length) {
+      return;
+    }
+    event.preventDefault();
+    await attachFiles(files, "paste");
+  });
+}
+
+function hasTransferFiles(dataTransfer) {
+  return Array.from(dataTransfer?.types || []).includes("Files");
+}
+
+function setAttachmentDragActive(active) {
+  if (els.composerWrap) {
+    els.composerWrap.classList.toggle("drag-active", active);
+  }
+  if (els.dropHint) {
+    els.dropHint.hidden = !active;
+  }
+  if (active) {
+    els.workspaceStatus.textContent = "Drop to attach locally";
+  } else if (!state.busy) {
+    els.workspaceStatus.textContent = state.selectedFiles.size ? `${state.selectedFiles.size} selected` : `${state.files.length} workspace file(s)`;
+  }
+}
+
 async function attachSelectedFiles() {
   const files = Array.from(els.attachmentInput.files || []);
   els.attachmentInput.value = "";
+  await attachFiles(files, "picker");
+}
+
+async function attachFiles(files, source = "picker") {
   if (!files.length) {
     return;
   }
 
-  state.attachments = files.map((file) => ({ name: file.name, status: "reading", size: file.size }));
+  const limitedFiles = files.slice(0, MAX_ATTACHMENT_COUNT);
+  const skipped = files.length > MAX_ATTACHMENT_COUNT
+    ? files.slice(MAX_ATTACHMENT_COUNT).map((file, index) => ({
+        name: attachmentDisplayName(file, source, MAX_ATTACHMENT_COUNT + index),
+        error: `Only ${MAX_ATTACHMENT_COUNT} attachments can be saved at once`
+      }))
+    : [];
+
+  state.attachments = limitedFiles.map((file, index) => ({ name: attachmentDisplayName(file, source, index), status: "reading", size: file.size }));
   renderAttachments();
   const payload = [];
-  const skipped = [];
-  for (const file of files.slice(0, 12)) {
-    if (file.size > 76 * 1024) {
-      skipped.push({ name: file.name, error: `Too large for local context (${formatBytes(file.size)})` });
+  for (const [index, file] of limitedFiles.entries()) {
+    const displayName = attachmentDisplayName(file, source, index);
+    const maxBytes = attachmentMaxBytes(file);
+    if (file.size > maxBytes) {
+      skipped.push({ name: displayName, error: `Too large for local context (${formatBytes(file.size)} > ${formatBytes(maxBytes)})` });
       continue;
     }
     try {
       if (isTextAttachment(file)) {
         payload.push({
-          name: file.name,
+          name: displayName,
           type: file.type || "text/plain",
           encoding: "text",
           content: await file.text()
         });
       } else {
         payload.push({
-          name: file.name,
+          name: displayName,
           type: file.type || "application/octet-stream",
           encoding: "base64",
           content: arrayBufferToBase64(await file.arrayBuffer())
@@ -1560,7 +1648,7 @@ async function attachSelectedFiles() {
     await refreshFiles();
     renderAttachments();
     els.workspaceStatus.textContent = `${state.selectedFiles.size} selected`;
-    addTrail("attachment", `${(result.saved || []).length} attachment(s) saved`);
+    addTrail("attachment", `${(result.saved || []).length} ${attachmentSourceLabel(source)} saved`);
     renderLocalSignals();
     renderTrustScore();
   } catch (error) {
@@ -1568,6 +1656,40 @@ async function attachSelectedFiles() {
     renderAttachments();
     addTrail("error", error.message);
   }
+}
+
+function attachmentDisplayName(file, source = "picker", index = 0) {
+  if (file.name && file.name.trim()) {
+    return file.name;
+  }
+  const extension = imageExtensionForType(file.type) || "png";
+  return `${source === "paste" ? "pasted" : "dropped"}-image-${index + 1}.${extension}`;
+}
+
+function attachmentMaxBytes(file) {
+  return isImageAttachment(file) ? IMAGE_ATTACHMENT_MAX_BYTES : TEXT_ATTACHMENT_MAX_BYTES;
+}
+
+function isImageAttachment(file) {
+  const type = String(file.type || "").toLowerCase();
+  const name = String(file.name || "").toLowerCase();
+  return type.startsWith("image/") || [".png", ".jpg", ".jpeg", ".tif", ".tiff", ".bmp", ".webp"].some((extension) => name.endsWith(extension));
+}
+
+function imageExtensionForType(type) {
+  const normalized = String(type || "").toLowerCase();
+  if (normalized.includes("jpeg")) return "jpg";
+  if (normalized.includes("png")) return "png";
+  if (normalized.includes("tiff")) return "tiff";
+  if (normalized.includes("bmp")) return "bmp";
+  if (normalized.includes("webp")) return "webp";
+  return "";
+}
+
+function attachmentSourceLabel(source) {
+  if (source === "drop") return "dropped file(s)";
+  if (source === "paste") return "pasted image(s)";
+  return "attachment(s)";
 }
 
 function renderAttachments() {

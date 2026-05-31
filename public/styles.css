@@ -1202,13 +1202,40 @@ textarea:focus, select:focus, input:focus, button:focus-visible {
 .messages .message { width: 100%; max-width: 792px; margin-inline: auto; }
 
 /* ---- Composer ---- */
-.composer-wrap { width: 100%; max-width: 792px; margin: 0 auto; padding: 6px 20px 22px; }
+.composer-wrap { position: relative; width: 100%; max-width: 792px; margin: 0 auto; padding: 6px 20px 22px; }
+.composer-wrap.drag-active .composer {
+  border-color: var(--clay);
+  box-shadow: 0 0 0 3px rgba(204,120,92,0.18), 0 10px 28px rgba(31,30,29,0.10);
+}
 .suggestions { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-bottom: 12px; }
 .suggestions button {
   padding: 7px 14px; border: 1px solid var(--line); border-radius: 999px; background: var(--panel);
   color: var(--muted); font-size: 0.82rem; font-weight: 500; cursor: pointer; transition: all 0.15s ease;
 }
 .suggestions button:hover { border-color: var(--clay); color: var(--clay-deep); background: var(--clay-faint); }
+
+.drop-hint {
+  position: absolute;
+  left: 28px;
+  right: 28px;
+  bottom: 78px;
+  z-index: 6;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 42px;
+  border: 1px solid var(--clay);
+  border-radius: 14px;
+  background: rgba(250,249,245,0.96);
+  color: var(--clay-deep);
+  box-shadow: var(--shadow);
+  font-size: 0.86rem;
+  font-weight: 700;
+  pointer-events: none;
+}
+.drop-hint[hidden] { display: none; }
+.drop-hint svg { width: 18px; height: 18px; }
 
 .composer {
   display: flex; align-items: flex-end; gap: 6px; padding: 7px 8px 7px 8px;

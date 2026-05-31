@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>AgentTrail</title>
     <link rel="icon" href="/logo.svg" />
-    <link rel="stylesheet" href="/styles.css?v=15" />
+    <link rel="stylesheet" href="/styles.css?v=16" />
   </head>
   <body>
     <div class="app-shell">
@@ -87,6 +87,10 @@
           </div>
 
           <div id="attachmentQueue" class="attachment-queue" aria-live="polite"></div>
+          <div id="dropHint" class="drop-hint" hidden>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14"/><path d="m19 12-7 7-7-7"/></svg>
+            <span>Drop to attach locally</span>
+          </div>
 
           <form id="composer" class="composer">
             <input id="attachmentInput" type="file" multiple hidden />
@@ -378,7 +382,7 @@
       </div>
     </aside>
 
-    <script src="/app.js?v=24"></script>
+    <script src="/app.js?v=25"></script>
     <script src="/modules/foundation.js?v=1"></script>
     <script src="/modules/product.js?v=1"></script>
   </body>

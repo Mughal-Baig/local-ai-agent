@@ -22,9 +22,13 @@ async function main() {
   assert.match(html, /Import pack URL/);
   assert.match(html, /attachmentInput/);
   assert.match(html, /Attach/);
+  assert.match(html, /dropHint/);
   assert.match(html, /Diff Review/);
   assert.match(app, /renderPendingChanges/);
   assert.match(app, /\/api\/attachments/);
+  assert.match(app, /bindComposerAttachmentIntake/);
+  assert.match(app, /IMAGE_ATTACHMENT_MAX_BYTES/);
+  assert.match(app, /isImageAttachment/);
   assert.match(foundation, /\/api\/foundation/);
   assert.match(product, /\/api\/search\/chunks/);
   assert.match(product, /\/api\/replay\/plan/);

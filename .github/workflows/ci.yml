@@ -46,5 +46,6 @@ jobs:
       - run: node tests/integration/memory-retrieval.test.js
       - run: node tests/integration/memory-history.test.js
       - run: node tests/integration/memory-scopes.test.js
+      - run: node tests/ui/playwright-smoke.test.js
       - run: node scripts/smoke-test.js
       - run: node scripts/evaluate-agenttrail.js

@@ -49,7 +49,7 @@ Best next Claude tasks:
 
 - Work on docs and UI copy around native tool calling, structured outputs, planner approval, run guardrails, reflection, loop safety, structured memory, memory suggestions, ranked memory retrieval, memory history, scoped memory, markdown-aware chunk citations, hybrid search score parts, reranking, embedding cache, and search evals.
 - Do not rework `server.js` tool-calling, structured-output, planner, run-cancellation, loop/reflection, memory internals, search chunking, hybrid ranking, reranking, embedding cache, search benchmarks, or resumable-run internals unless you also run the matching scripts: `npm run test:tools`, `npm run test:structured`, `npm run test:planner`, `npm run test:guardrails`, `npm run test:reflection`, `npm run test:memory`, `npm run test:memory-suggestions`, `npm run test:memory-retrieval`, `npm run test:memory-history`, `npm run test:memory-scopes`, `npm run test:search`, `npm run test:rerank`, `npm run test:embed-cache`, `npm run test:resume`, `npm run eval:search`, and `npm run bench:search`.
-- Next code target should be T066 drag-drop image into chat, T067 screenshot-to-action flow, or T068 vision-model capability detection, not the runtime moonshot.
+- Next code target should be T067 screenshot-to-action flow or T068 vision-model capability detection, not the runtime moonshot.
 
 ## Latest Claude Pass
 
@@ -63,7 +63,7 @@ Reviewed Codex's work and continued the roadmap:
 
 - T038 original partial: pending-run snapshot. Added `/api/runs/pending`, `/api/runs/pending/clear`, a resume banner in the UI, route catalog coverage, and `npm run test:resume`. Receipt-derived resume is completed in the latest Codex pass below.
 
-Still open and recommended next: T066 drag-drop image into chat, T067 screenshot-to-action flow, or T068 vision-model capability detection.
+Still open and recommended next: T067 screenshot-to-action flow or T068 vision-model capability detection.
 
 ## Latest Claude Pass - UI redesign + handoff completion
 
@@ -188,4 +188,12 @@ Still open and recommended next: T066 drag-drop image into chat, T067 screenshot
 - The prompt includes image path/hash metadata, `/api/chat` emits a `vision` SSE event, and cache keys include selected image hashes.
 - Tests/evals/docs updated: `tests/integration/vision-input.test.js`, `npm run test:vision`, CI coverage, repo eval check, README/model-backend docs, and roadmap status.
 
-Next open: T066 drag-drop image into chat, T067 screenshot-to-action flow, or T068 vision-model capability detection.
+## Latest Codex Pass - Drag-drop image composer
+
+- T066 is done: users can drag image files into the chat composer or paste screenshots/images into the prompt, and AgentTrail saves them through `/api/attachments`.
+- Browser-side image intake now allows up to 2 MB per image by default, while text attachments keep the smaller prompt-context limit.
+- The server now has separate attachment limits for text, generic binary files, image files, and `/api/attachments` request bodies, so dropped screenshots can be stored and then selected for vision-model calls.
+- Dropped/pasted images still produce local attachment notes/OCR receipts when available, and their raw image paths are selected as `visionPath` for the next chat run.
+- Tests/evals/docs updated: API integration covers image attachments above the old 80 KB cap, UI smoke checks drag/paste wiring, repo eval checks the feature, and README/roadmap/env docs were updated.
+
+Next open: T067 screenshot-to-action flow or T068 vision-model capability detection.

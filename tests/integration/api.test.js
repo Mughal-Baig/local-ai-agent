@@ -181,6 +181,20 @@ async function main() {
     assert.match(imageNote.content, /AgentTrail OCR ingestion text/);
     assert.match(imageNote.content, /OCR engine:/);
 
+    const largeImageAttachment = await post("/api/attachments", {
+      files: [{
+        name: "dropped-screenshot.png",
+        type: "image/png",
+        encoding: "base64",
+        content: Buffer.alloc(128 * 1024, 7).toString("base64")
+      }],
+      ocrLanguage: "eng"
+    });
+    assert.equal(largeImageAttachment.ok, true);
+    assert.equal(largeImageAttachment.saved[0].visionPath, largeImageAttachment.saved[0].path);
+    assert.equal(largeImageAttachment.saved[0].extracted, true);
+    assert.match(largeImageAttachment.saved[0].receiptPath, /^receipts\/ingestion\//);
+
     const imageOcr = await post("/api/documents/ocr", {
       path: imageAttachment.saved[0].path,
       outputPath: "extracted/scan-ocr.md",

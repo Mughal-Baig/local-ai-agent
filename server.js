@@ -110,6 +110,13 @@ const OCR_TIMEOUT_MS = Number(process.env.AGENTTRAIL_OCR_TIMEOUT_MS || 30000);
 const OCR_MAX_OUTPUT_BYTES = Number(process.env.AGENTTRAIL_OCR_MAX_OUTPUT_BYTES || 1024 * 1024);
 const MAX_VISION_IMAGES = Number(process.env.AGENTTRAIL_MAX_VISION_IMAGES || 4);
 const MAX_VISION_IMAGE_BYTES = Number(process.env.AGENTTRAIL_MAX_VISION_IMAGE_BYTES || 2 * 1024 * 1024);
+const MAX_ATTACHMENT_TEXT_BYTES = Number(process.env.AGENTTRAIL_MAX_ATTACHMENT_TEXT_BYTES || MAX_FILE_BYTES);
+const MAX_ATTACHMENT_BINARY_BYTES = Number(process.env.AGENTTRAIL_MAX_ATTACHMENT_BINARY_BYTES || MAX_FILE_BYTES);
+const MAX_ATTACHMENT_IMAGE_BYTES = Number(process.env.AGENTTRAIL_MAX_ATTACHMENT_IMAGE_BYTES || MAX_VISION_IMAGE_BYTES);
+const MAX_ATTACHMENT_BODY_BYTES = Number(
+  process.env.AGENTTRAIL_MAX_ATTACHMENT_BODY_BYTES ||
+  Math.max(MAX_BODY_BYTES, Math.ceil(MAX_ATTACHMENT_IMAGE_BYTES * Math.max(1, MAX_VISION_IMAGES) * 1.4) + 128 * 1024)
+);
 const LOCAL_EMBED_DIMS = 192;
 const STOP_WORDS = new Set(["the", "and", "for", "with", "that", "this", "from", "you", "your", "are", "was", "were", "have", "has", "not", "but", "can", "will"]);
 
@@ -3046,7 +3053,7 @@ async function handleWriteFile(req, res) {
 }
 
 async function handleAttachments(req, res) {
-  const body = await readJsonBody(req);
+  const body = await readJsonBody(req, MAX_ATTACHMENT_BODY_BYTES);
   const files = Array.isArray(body.files) ? body.files.slice(0, 12) : [];
   if (!files.length) {
     return sendJson(res, 400, { error: "No attachments provided" });
@@ -3062,6 +3069,7 @@ async function handleAttachments(req, res) {
     const type = String(file.type || "application/octet-stream");
     const encoding = file.encoding === "base64" ? "base64" : "text";
     const relativePath = `${ATTACHMENTS_DIR}/${stamp}/${safeName}`;
+    const isImage = isImageDocument(safeName, type);
 
     try {
       if (encoding === "base64") {
@@ -3069,7 +3077,8 @@ async function handleAttachments(req, res) {
         if (!data.length) {
           throw new Error("Attachment is empty");
         }
-        if (data.length > MAX_FILE_BYTES) {
+        const maxBytes = isImage ? MAX_ATTACHMENT_IMAGE_BYTES : MAX_ATTACHMENT_BINARY_BYTES;
+        if (data.length > maxBytes) {
           throw new Error(`Attachment is too large (${data.length} bytes)`);
         }
         const binary = await writeWorkspaceBinaryFile(relativePath, data);
@@ -3077,7 +3086,7 @@ async function handleAttachments(req, res) {
         let ocrError = null;
         if (isSupportedDocument(safeName, type)) {
           documentNote = await writeExtractedDocumentNote(binary.path, data, { originalName, mediaType: type });
-        } else if (isImageDocument(safeName, type)) {
+        } else if (isImage) {
           try {
             documentNote = await writeOcrDocumentNote(binary.path, {
               originalName,
@@ -3107,7 +3116,7 @@ async function handleAttachments(req, res) {
           encoding,
           contextPath: note.path,
           notePath: note.path,
-          visionPath: isImageDocument(binary.path, type) ? binary.path : null,
+          visionPath: isImage ? binary.path : null,
           receiptPath: documentNote && documentNote.receipt ? documentNote.receipt.path : null,
           extracted: Boolean(documentNote),
           extraction: documentNote ? documentNote.extraction : null,
@@ -3119,7 +3128,7 @@ async function handleAttachments(req, res) {
         if (!content.trim()) {
           throw new Error("Attachment is empty");
         }
-        if (Buffer.byteLength(content, "utf8") > MAX_FILE_BYTES) {
+        if (Buffer.byteLength(content, "utf8") > MAX_ATTACHMENT_TEXT_BYTES) {
           throw new Error(`Attachment is too large (${Buffer.byteLength(content, "utf8")} bytes)`);
         }
         const result = await writeWorkspaceFile(relativePath, content);
@@ -6478,13 +6487,13 @@ async function serveStaticFrom(rootDir, relativePath, req, res) {
   }
 }
 
-async function readJsonBody(req) {
+async function readJsonBody(req, maxBytes = MAX_BODY_BYTES) {
   const chunks = [];
   let size = 0;
 
   for await (const chunk of req) {
     size += chunk.length;
-    if (size > MAX_BODY_BYTES) {
+    if (size > maxBytes) {
       throw new Error("Request body is too large");
     }
     chunks.push(chunk);

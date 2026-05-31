@@ -77,6 +77,7 @@ async function main() {
   checks.push(await check("Release artifact workflow exists", async () => includes(".github/workflows/release-artifacts.yml", ["release:checksums", "package:desktop"])));
   checks.push(await check("Attachment workflow exists", async () => includes("server.js", ["/api/attachments", "handleAttachments", "attachments"])));
   checks.push(await check("Attachment UI exists", async () => includes("public/index.html", ["attachmentInput", "attachFiles", "Attach"])));
+  checks.push(await check("Drag-drop image composer exists", async () => includes("public/index.html", ["dropHint"]) && includes("public/app.js", ["bindComposerAttachmentIntake", "IMAGE_ATTACHMENT_MAX_BYTES", "isImageAttachment"]) && includes("server.js", ["MAX_ATTACHMENT_IMAGE_BYTES", "MAX_ATTACHMENT_BODY_BYTES"])));
   checks.push(await check("PDF extraction exists", async () => includes("src/document-ingestion.js", ["extractPdfText", "FlateDecode", "buildExtractedDocumentMarkdown"]) && includes("server.js", ["/api/documents/extract", "writeExtractedDocumentNote"])));
   checks.push(await check("Office extraction exists", async () => includes("src/document-ingestion.js", ["extractOfficeText", "extractDocxText", "extractPptxText", "extractXlsxText"])));
   checks.push(await check("HTML markdown code ingestion exists", async () => includes("src/document-ingestion.js", ["htmlToMarkdown", "extractTextDocument", "inferCodeLanguage"])));

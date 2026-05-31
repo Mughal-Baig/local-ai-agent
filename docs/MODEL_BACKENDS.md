@@ -55,7 +55,7 @@ and `/api/status` reports it under a `backend` field.
 A single dispatcher routes the three model primitives to the active backend:
 
 - **Generation** — `generateCompletion()` → Ollama `/api/generate` or OpenAI `/v1/chat/completions`.
-- **Vision input** — selected workspace images are attached to Ollama chat/generate as `images` arrays and to OpenAI-compatible chat as `image_url` content parts.
+- **Vision input** — selected, dragged, or pasted workspace images are attached to Ollama chat/generate as `images` arrays and to OpenAI-compatible chat as `image_url` content parts.
 - **Model listing** — `fetchOllamaModels()` → Ollama `/api/tags` or OpenAI `/v1/models`.
 - **Embeddings** — `fetchOllamaEmbedding()` → Ollama `/api/embed` or OpenAI `/v1/embeddings`, with a local-vector fallback when no embedding model is available.
 
