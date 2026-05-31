@@ -43,13 +43,13 @@ Codex completed the first hard engineering slice from Phase 1:
 - T047: deterministic lexical top-k reranker with phrase, coverage, bigram, and path-field signals
 - T048: real embedding cache keyed by model + content hash
 - T052: search quality eval harness with hit@3 scoring for keyword and hybrid modes
-- T038 partial: local pending-run snapshot API/UI for interrupted browser runs; true receipt-derived resume remains open
+- T038: local pending-run snapshots plus receipt/report-derived resume are done
 
 Best next Claude tasks:
 
 - Work on docs and UI copy around native tool calling, structured outputs, planner approval, run guardrails, reflection, loop safety, structured memory, memory suggestions, ranked memory retrieval, memory history, scoped memory, markdown-aware chunk citations, hybrid search score parts, reranking, embedding cache, and search evals.
 - Do not rework `server.js` tool-calling, structured-output, planner, run-cancellation, loop/reflection, memory internals, search chunking, hybrid ranking, reranking, embedding cache, search benchmarks, or resumable-run internals unless you also run the matching scripts: `npm run test:tools`, `npm run test:structured`, `npm run test:planner`, `npm run test:guardrails`, `npm run test:reflection`, `npm run test:memory`, `npm run test:memory-suggestions`, `npm run test:memory-retrieval`, `npm run test:memory-history`, `npm run test:memory-scopes`, `npm run test:search`, `npm run test:rerank`, `npm run test:embed-cache`, `npm run test:resume`, `npm run eval:search`, and `npm run bench:search`.
-- Next code target should be finishing T038 receipt-derived resume or starting T059 PDF ingestion, not the runtime moonshot.
+- Next code target should be T059 PDF ingestion, T060 office-document ingestion, or T061 HTML/Markdown/code-aware ingestion, not the runtime moonshot.
 
 ## Latest Claude Pass
 
@@ -61,9 +61,9 @@ Reviewed Codex's work and continued the roadmap:
 
 - T052: search-quality eval harness. Added `scripts/eval-search.js` (boots a temp-workspace server, seeds a labeled 4-doc corpus, builds a local-vector index, scores hit@3 for keyword and hybrid ranking, exits non-zero below `SEARCH_EVAL_THRESHOLD`, default 75%). `npm run eval:search`, added to CI. Currently 100% hit@3 for both modes.
 
-- T038 partial: pending-run snapshot. Added `/api/runs/pending`, `/api/runs/pending/clear`, a resume banner in the UI, route catalog coverage, and `npm run test:resume`. This handles interrupted browser runs, but full receipt-derived resume remains open.
+- T038 original partial: pending-run snapshot. Added `/api/runs/pending`, `/api/runs/pending/clear`, a resume banner in the UI, route catalog coverage, and `npm run test:resume`. Receipt-derived resume is completed in the latest Codex pass below.
 
-Still open and recommended next: finish T038 receipt-derived resume, T059 PDF ingestion, or T060 office-document ingestion.
+Still open and recommended next: T059 PDF ingestion, T060 office-document ingestion, or T061 HTML/Markdown/code-aware ingestion.
 
 ## Latest Claude Pass - UI redesign + handoff completion
 
@@ -133,4 +133,12 @@ Still open and recommended next: finish T038 receipt-derived resume, T059 PDF in
 - Collection builds accept scoped filters such as `{ "filters": { "path": "docs", "ext": "md" } }`; search and incremental rebuilds preserve those filters.
 - Tests/evals/docs updated: API tests cover collection build/search/chunk search, reindex tests cover collection incremental rebuilds, and repo eval checks collection support.
 
-Next open: the remaining receipt-derived part of T038, T059 PDF text extraction, or T060 DOCX/PPTX/XLSX extraction.
+## Latest Codex Pass - Receipt-derived resume
+
+- T038 is now fully done: receipts/reports can be parsed back into a resumable pending run.
+- New APIs: `GET /api/receipts/resume?path=...` and `POST /api/runs/pending/from-receipt`; `/api/replay/plan` also accepts receipt/report paths.
+- Markdown receipts and shareable reports now include a `## Resume Prompt` section, plus model/files/permissions/trail parsing for replay.
+- UI: the receipt timeline has a "Resume selected receipt" action that restores prompt, model, selected files, permissions, and trail without auto-running.
+- Tests/evals/docs updated: `npm run test:resume` covers receipt-derived restore; repo eval checks the new endpoints.
+
+Next open: T059 PDF text extraction, T060 DOCX/PPTX/XLSX extraction, or T061 HTML/Markdown/code-aware ingestion.

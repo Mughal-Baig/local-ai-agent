@@ -10,7 +10,7 @@ This table maps the requested 30-item top-1% and foundation list to the v0.7 imp
 | One-command install | `agenttrail` bin, `npx github:Mughal-Baig/local-ai-agent`, npm publish checklist, `install.sh`, Docker Compose, Homebrew formula draft, desktop launchers |
 | Real semantic local search | `/api/search-index`, `/api/search/chunks`, Ollama embeddings, local-vector fallback, file hashes, chunk metadata, UI citations |
 | Diff-safe file writing | permission engine, preview-first writes, Diff Review center, explicit Apply buttons |
-| Replayable receipts | `/api/sessions`, `/api/sessions/content`, `/api/replay/plan`, saved model/prompt/files/diffs/trail |
+| Replayable receipts | `/api/sessions`, `/api/sessions/content`, `/api/replay/plan`, `/api/receipts/resume`, `/api/runs/pending/from-receipt`, saved model/prompt/files/diffs/trail |
 | Trust Score | browser Trust Score dashboard plus `/api/foundation` score |
 | Security hardening | `/api/security/scan`, prompt injection, exfiltration, path escape, hidden instruction, destructive command checks |
 | Project memory with citations | `/api/memory/citations`, revision history in `workspace/memory/history/` |

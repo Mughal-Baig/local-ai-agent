@@ -50,7 +50,8 @@ const state = {
     override: false
   },
   pendingPlan: null,
-  approvedPlan: null
+  approvedPlan: null,
+  selectedReceiptPath: null
 };
 
 const els = {
@@ -93,6 +94,7 @@ const els = {
   receiptFilter: document.querySelector("#receiptFilter"),
   sessionSelect: document.querySelector("#sessionSelect"),
   replaySession: document.querySelector("#replaySession"),
+  resumeReceipt: document.querySelector("#resumeReceipt"),
   receiptTimeline: document.querySelector("#receiptTimeline"),
   exportReport: document.querySelector("#exportReport"),
   memoryInput: document.querySelector("#memoryInput"),
@@ -252,6 +254,9 @@ function bindEvents() {
   els.applyAllPreviews.addEventListener("click", applyAllPreviews);
   els.receiptFilter.addEventListener("input", renderReceiptTimeline);
   els.replaySession.addEventListener("click", replaySelectedSession);
+  if (els.resumeReceipt) {
+    els.resumeReceipt.addEventListener("click", resumeSelectedReceipt);
+  }
   els.exportReport.addEventListener("click", exportShareableReport);
   els.memoryScope.addEventListener("change", changeMemoryScope);
   els.saveMemory.addEventListener("click", saveMemory);
@@ -1227,6 +1232,10 @@ function resumePendingRun() {
   if (!run) {
     return;
   }
+  restorePendingRun(run, { submit: true, trailLabel: "Resumed interrupted run" });
+}
+
+function restorePendingRun(run, options = {}) {
   if (run.model && [...els.modelSelect.options].some((option) => option.value === run.model)) {
     state.model = run.model;
     els.modelSelect.value = run.model;
@@ -1236,11 +1245,45 @@ function resumePendingRun() {
     renderFiles();
     renderLocalSignals();
   }
+  if (run.permissions) {
+    state.permissions = {
+      ...state.permissions,
+      ...run.permissions
+    };
+    els.readPermission.checked = state.permissions.readFiles !== false;
+    els.writePermission.checked = state.permissions.writeFiles === true;
+    els.previewWritePermission.checked = state.permissions.previewWrites !== false;
+  }
   els.prompt.value = run.prompt || "";
   resizePrompt();
-  els.resumeBanner.hidden = true;
-  addTrail("run", "Resumed interrupted run");
-  els.composer.requestSubmit();
+  if (els.resumeBanner) {
+    els.resumeBanner.hidden = true;
+  }
+  addTrail("run", options.trailLabel || "Restored resumable run");
+  if (options.submit) {
+    els.composer.requestSubmit();
+  } else {
+    els.prompt.focus();
+  }
+}
+
+async function resumeSelectedReceipt() {
+  const path = state.selectedReceiptPath || state.receipts[0]?.path;
+  if (!path) {
+    return;
+  }
+  try {
+    const data = await postJson("/api/runs/pending/from-receipt", { path });
+    state.pendingRun = data.pending || null;
+    if (state.pendingRun) {
+      restorePendingRun(state.pendingRun, { trailLabel: `Restored receipt ${path}` });
+    }
+    if (data.warnings && data.warnings.length) {
+      addTrail("warning", data.warnings[0]);
+    }
+  } catch (error) {
+    addTrail("error", `Could not resume receipt: ${error.message}`);
+  }
 }
 
 function dismissPendingRun() {
@@ -1864,6 +1907,7 @@ function addTrail(type, label) {
 
 async function exportTrailReceipt() {
   addTrail("system", "Exported audit receipt");
+  const resumePrompt = latestUiUserPrompt() || els.prompt.value.trim();
   const rows = state.trail
     .slice()
     .reverse()
@@ -1877,6 +1921,11 @@ async function exportTrailReceipt() {
     `Selected files: ${Array.from(state.selectedFiles).join(", ") || "none"}`,
     `Permissions: reads ${state.permissions.readFiles ? "on" : "off"}, writes ${state.permissions.writeFiles ? "on" : "off"}, previews ${state.permissions.previewWrites ? "on" : "off"}`,
     `Tool calls: ${state.toolCount}`,
+    `Resume prompt: ${resumePrompt ? resumePrompt.replace(/\s+/g, " ").slice(0, 240) : "none"}`,
+    "",
+    "## Resume Prompt",
+    "",
+    resumePrompt || "No prompt captured.",
     "",
     "## Events",
     "",
@@ -2020,7 +2069,17 @@ function renderReceiptTimeline() {
 
   if (!receipts.length) {
     els.receiptTimeline.innerHTML = `<div class="empty-state compact">No receipts match this filter.</div>`;
+    if (els.resumeReceipt) {
+      els.resumeReceipt.disabled = true;
+    }
     return;
+  }
+
+  if (!state.selectedReceiptPath || !receipts.some((receipt) => receipt.path === state.selectedReceiptPath)) {
+    state.selectedReceiptPath = receipts[0].path;
+  }
+  if (els.resumeReceipt) {
+    els.resumeReceipt.disabled = false;
   }
 
   els.receiptTimeline.innerHTML = receipts
@@ -2039,6 +2098,10 @@ function renderReceiptTimeline() {
     row.addEventListener("click", () => {
       const path = row.dataset.path;
       if (path) {
+        state.selectedReceiptPath = path;
+        if (els.resumeReceipt) {
+          els.resumeReceipt.disabled = false;
+        }
         state.selectedFiles.add(path);
         renderFiles();
         addTrail("receipt", `Selected ${path}`);
@@ -2071,6 +2134,7 @@ function renderTrustScore() {
 
 async function exportShareableReport() {
   const trustScore = els.trustScore.textContent;
+  const resumePrompt = latestUiUserPrompt() || els.prompt.value.trim();
   const rows = state.trail
     .slice()
     .reverse()
@@ -2090,6 +2154,11 @@ async function exportShareableReport() {
     `Model: ${state.model || "not selected"}`,
     `Search index: ${state.searchIndex?.provider || "not built"}`,
     `Selected files: ${Array.from(state.selectedFiles).join(", ") || "none"}`,
+    `Resume prompt: ${resumePrompt ? resumePrompt.replace(/\s+/g, " ").slice(0, 240) : "none"}`,
+    "",
+    "## Resume Prompt",
+    "",
+    resumePrompt || "No prompt captured.",
     "",
     "## Trail",
     "",
@@ -2532,6 +2601,14 @@ function normalizeUiMessages(messages) {
       content: message.content || "",
       events: Array.isArray(message.events) ? message.events : []
     }));
+}
+
+function latestUiUserPrompt() {
+  const message = state.messages
+    .slice()
+    .reverse()
+    .find((item) => item.role === "user" && String(item.content || "").trim());
+  return message ? String(message.content || "").trim() : "";
 }
 
 function setConnection(text) {

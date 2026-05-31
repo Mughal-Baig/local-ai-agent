@@ -18,7 +18,7 @@ Current schema families:
 - `agenttrail.job.v1`
 - `agenttrail.backup.v1`
 
-The running app exposes schema summaries at `/api/schemas`.
+The running app exposes schema summaries at `/api/schemas`. Markdown receipts now include a resume prompt section so `/api/receipts/resume` can recreate a pending run without depending on a proprietary container.
 
 ## Migration Rule
 

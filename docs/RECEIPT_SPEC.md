@@ -16,6 +16,11 @@ Model: llama3.2
 Selected files: README.md, docs/ROADMAP.md
 Permissions: reads on, writes off, previews on
 Tool calls: 5
+Resume prompt: Update the README intro and keep all writes reviewable.
+
+## Resume Prompt
+
+Update the README intro and keep all writes reviewable.
 
 ## Events
 
@@ -35,6 +40,11 @@ Tool calls: 5
 | `Selected files` | Workspace paths supplied as context, comma-separated, or `none` |
 | `Permissions` | Effective read / write / preview permission state at export |
 | `Tool calls` | Count of tool invocations in the run |
+| `Resume prompt` | Single-line preview of the captured prompt used for receipt-derived resume |
+
+### Receipt-derived resume
+
+`GET /api/receipts/resume?path=receipts/trail-....md` parses a Markdown receipt or report into a resumable run: prompt, model, selected files, permissions, and trail events. `POST /api/runs/pending/from-receipt` saves that parsed run into `.agenttrail/pending-run.json`, so the browser can restore the prompt and files before the user deliberately reruns.
 
 ### Event line grammar
 

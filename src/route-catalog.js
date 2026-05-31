@@ -5,7 +5,7 @@ const ROUTE_CATALOG = [
   { area: "attachments", module: "server.js", routes: ["/api/attachments", "/api/files/content"] },
   { area: "memory", module: "server.js", routes: ["/api/memory", "/api/memory/scopes", "/api/memory/structured", "/api/memory/retrieve", "/api/memory/history", "/api/memory/history/diff", "/api/memory/history/revert", "/api/memory/suggestions", "/api/memory/suggestions/apply", "/api/memory/citations"] },
   { area: "reports", module: "server.js", routes: ["/api/reports", "/api/trust/badge"] },
-  { area: "sessions", module: "server.js", routes: ["/api/sessions", "/api/replay/plan", "/api/runs/pending"] },
+  { area: "sessions", module: "server.js", routes: ["/api/sessions", "/api/replay/plan", "/api/runs/pending", "/api/runs/pending/from-receipt", "/api/receipts/resume"] },
   { area: "planner", module: "server.js + src/structured-output.js", routes: ["/api/agent/plan", "/api/chat"] },
   { area: "tools", module: "src/permissions.js + src/tool-schemas.js", routes: ["/api/permissions", "/api/tools/schemas", "/api/tools/capability", "/api/mcp"] },
   { area: "structured-output", module: "src/structured-output.js", routes: ["/api/structured-output/schemas", "/api/structured-output", "/api/structured-output/recipe"] },

@@ -55,6 +55,7 @@ async function main() {
   checks.push(await check("Search benchmark harness exists", async () => includes("scripts/benchmark-search.js", ["agenttrail.search-benchmark.v1", "brute force recall", "p95LatencyMs"])));
   checks.push(await check("Resumable run endpoints exist", async () => includes("server.js", ["/api/runs/pending", "handleSavePendingRun", "PENDING_RUN_PATH"])));
   checks.push(await check("Resumable run UI exists", async () => includes("public/index.html", ["resumeBanner", "resumeRunButton", "dismissResumeButton"])));
+  checks.push(await check("Receipt-derived resume exists", async () => includes("server.js", ["/api/runs/pending/from-receipt", "/api/receipts/resume", "buildReceiptResume"])));
   checks.push(await check("Recipe marketplace exists", async () => includes("marketplace/recipes.json", ["Recipe Marketplace", "submissionUrl"])));
   checks.push(await check("Student and writer packs exist", async () => (await countJson("recipe-packs")) >= 5));
   checks.push(await check("Frontend split foundation module exists", async () => includes("public/modules/foundation.js", ["/api/foundation", "/api/backup/export"])));

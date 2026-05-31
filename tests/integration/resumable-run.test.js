@@ -60,6 +60,50 @@ async function main() {
     const cleared = await getJson("/api/runs/pending");
     assert.equal(cleared.pending, null);
 
+    const receipt = await postJson("/api/receipts", {
+      content: [
+        "# AgentTrail Receipt",
+        "",
+        "Exported: 2026-05-31T00:00:00.000Z",
+        "Model: llama3.2",
+        "Selected files: billing.md, refunds.md",
+        "Permissions: reads on, writes off, previews on",
+        "Tool calls: 1",
+        "Resume prompt: Review billing refund flow",
+        "",
+        "## Resume Prompt",
+        "",
+        "Review billing refund flow",
+        "",
+        "## Events",
+        "",
+        "- 10:00:00 [chat] Sent prompt with 2 file(s)",
+        "- 10:00:01 [tool] search_workspace: billing"
+      ].join("\n")
+    });
+    assert.equal(receipt.ok, true);
+
+    const receiptResume = await getJson(`/api/receipts/resume?path=${encodeURIComponent(receipt.path)}`);
+    assert.equal(receiptResume.pending.prompt, "Review billing refund flow");
+    assert.equal(receiptResume.pending.model, "llama3.2");
+    assert.deepEqual(receiptResume.pending.selectedFiles, ["billing.md", "refunds.md"]);
+    assert.equal(receiptResume.pending.permissions.readFiles, true);
+    assert.equal(receiptResume.pending.permissions.writeFiles, false);
+    assert.equal(receiptResume.pending.trail.length, 2);
+
+    const receiptPlan = await getJson(`/api/replay/plan?path=${encodeURIComponent(receipt.path)}`);
+    assert.equal(receiptPlan.replay.receiptPath, receipt.path);
+    assert.equal(receiptPlan.steps.some((step) => step.id === "parse-receipt"), true);
+
+    const fromReceipt = await postJson("/api/runs/pending/from-receipt", { path: receipt.path });
+    assert.equal(fromReceipt.pending.source, "receipt");
+    assert.equal(fromReceipt.pending.receiptPath, receipt.path);
+    assert.equal(fromReceipt.pending.prompt, "Review billing refund flow");
+
+    const restored = await getJson("/api/runs/pending");
+    assert.equal(restored.pending.source, "receipt");
+    assert.equal(restored.pending.prompt, "Review billing refund flow");
+
     console.log("Resumable run integration test passed");
   } finally {
     child.kill("SIGTERM");

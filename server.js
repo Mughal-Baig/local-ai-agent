@@ -258,6 +258,10 @@ const server = http.createServer(async (req, res) => {
       return handleReadFile(url, res);
     }
 
+    if (url.pathname === "/api/receipts/resume" && req.method === "GET") {
+      return handleReceiptResume(url, res);
+    }
+
     if (url.pathname === "/api/search" && req.method === "GET") {
       return handleSearch(url, res);
     }
@@ -416,6 +420,10 @@ const server = http.createServer(async (req, res) => {
 
     if (url.pathname === "/api/runs/pending" && req.method === "POST") {
       return handleSavePendingRun(req, res);
+    }
+
+    if (url.pathname === "/api/runs/pending/from-receipt" && req.method === "POST") {
+      return handleSavePendingRunFromReceipt(req, res);
     }
 
     if (url.pathname === "/api/runs/pending/clear" && req.method === "POST") {
@@ -622,20 +630,46 @@ async function handleDeleteModel(req, res) {
 
 async function handleSavePendingRun(req, res) {
   const body = await readJsonBody(req);
-  const prompt = String(body.prompt || "").trim();
-  if (!prompt) {
+  const record = normalizePendingRunRecord(body);
+  if (!record.prompt) {
     return sendJson(res, 400, { error: "A prompt is required to snapshot a run." });
   }
-  const record = {
-    prompt,
-    model: String(body.model || ""),
-    selectedFiles: Array.isArray(body.selectedFiles) ? body.selectedFiles.slice(0, 16) : [],
-    permissions: body.permissions && typeof body.permissions === "object" ? body.permissions : {},
-    securityMode: body.securityMode !== false,
-    startedAt: new Date().toISOString()
-  };
-  await writeWorkspaceFile(PENDING_RUN_PATH, JSON.stringify(record, null, 2));
-  sendJson(res, 200, { ok: true });
+  await persistPendingRun(record);
+  sendJson(res, 200, { ok: true, pending: record });
+}
+
+async function handleReceiptResume(url, res) {
+  const receiptPath = url.searchParams.get("path") || "";
+  if (!receiptPath) {
+    return sendJson(res, 400, { error: "Receipt path is required." });
+  }
+  try {
+    const resume = await buildReceiptResume(receiptPath);
+    sendJson(res, 200, resume);
+  } catch (error) {
+    sendJson(res, 400, { error: error.message || "Could not parse receipt." });
+  }
+}
+
+async function handleSavePendingRunFromReceipt(req, res) {
+  const body = await readJsonBody(req);
+  const receiptPath = String(body.path || body.receiptPath || "").trim();
+  if (!receiptPath) {
+    return sendJson(res, 400, { error: "Receipt path is required." });
+  }
+  try {
+    const resume = await buildReceiptResume(receiptPath);
+    const record = {
+      ...resume.pending,
+      source: "receipt",
+      receiptPath: resume.path,
+      startedAt: new Date().toISOString()
+    };
+    await persistPendingRun(record);
+    sendJson(res, 200, { ok: true, path: resume.path, pending: record, warnings: resume.warnings });
+  } catch (error) {
+    sendJson(res, 400, { error: error.message || "Could not resume receipt." });
+  }
 }
 
 async function handleGetPendingRun(res) {
@@ -655,6 +689,155 @@ async function handleClearPendingRun(res) {
     // best effort
   }
   sendJson(res, 200, { ok: true });
+}
+
+async function persistPendingRun(record) {
+  await writeWorkspaceFile(PENDING_RUN_PATH, JSON.stringify(record, null, 2));
+}
+
+function normalizePendingRunRecord(value) {
+  const body = value && typeof value === "object" ? value : {};
+  const prompt = String(body.prompt || "").trim();
+  return {
+    prompt,
+    model: truncate(String(body.model || ""), 120),
+    selectedFiles: normalizeReceiptSelectedFiles(body.selectedFiles).slice(0, 16),
+    permissions: normalizePermissions(body.permissions),
+    securityMode: body.securityMode !== false,
+    source: body.source ? truncate(String(body.source), 40) : "snapshot",
+    receiptPath: body.receiptPath ? normalizeRelativePath(body.receiptPath) : null,
+    trail: Array.isArray(body.trail) ? body.trail.slice(0, 40) : [],
+    startedAt: body.startedAt ? String(body.startedAt) : new Date().toISOString()
+  };
+}
+
+async function buildReceiptResume(relativePath) {
+  const normalizedPath = normalizeRelativePath(relativePath);
+  if (!normalizedPath.startsWith(`${RECEIPTS_DIR}/`) && !normalizedPath.startsWith(`${REPORTS_DIR}/`)) {
+    throw new Error("Receipt resume only accepts files under receipts/ or reports/.");
+  }
+  const file = await readWorkspaceFile(normalizedPath, MAX_FILE_BYTES);
+  const content = String(file.content || "");
+  const prompt = extractReceiptPrompt(content, file.path);
+  const model = parseReceiptLine(content, "Model") || DEFAULT_MODEL;
+  const selectedLine = parseReceiptLine(content, "Selected files") || parseReceiptLine(content, "Context files");
+  const selectedFiles = normalizeReceiptSelectedFiles(selectedLine);
+  const permissions = parseReceiptPermissions(parseReceiptLine(content, "Permissions"));
+  const trail = parseReceiptTrail(content);
+  const warnings = [];
+  if (!prompt.captured) {
+    warnings.push("Receipt did not include a captured prompt; AgentTrail created a review prompt from the receipt path.");
+  }
+  return {
+    path: file.path,
+    resume: {
+      prompt: prompt.value,
+      model: truncate(model, 120),
+      selectedFiles,
+      permissions,
+      securityMode: true,
+      trail,
+      source: "receipt",
+      receiptPath: file.path
+    },
+    pending: {
+      prompt: prompt.value,
+      model: truncate(model, 120),
+      selectedFiles,
+      permissions,
+      securityMode: true,
+      trail,
+      source: "receipt",
+      receiptPath: file.path
+    },
+    warnings
+  };
+}
+
+function extractReceiptPrompt(content, receiptPath) {
+  const section = extractMarkdownSection(content, "Resume Prompt") ||
+    extractMarkdownSection(content, "Prompt") ||
+    parseReceiptLine(content, "Resume prompt") ||
+    parseReceiptLine(content, "Prompt");
+  const value = String(section || "").trim();
+  if (value && !/^no prompt captured\.?$/i.test(value) && value.toLowerCase() !== "none") {
+    return { value: truncate(value, 4000), captured: true };
+  }
+  return {
+    value: `Resume from receipt ${receiptPath}: review the saved trail, selected files, and pending diffs before continuing.`,
+    captured: false
+  };
+}
+
+function parseReceiptLine(content, label) {
+  const escaped = String(label).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const match = String(content || "").match(new RegExp(`^${escaped}:\\s*(.*)$`, "im"));
+  return match ? match[1].trim() : "";
+}
+
+function extractMarkdownSection(content, heading) {
+  const lines = splitLines(content);
+  const target = String(heading || "").trim().toLowerCase();
+  let start = -1;
+  for (let index = 0; index < lines.length; index += 1) {
+    const match = lines[index].match(/^##+\s+(.+?)\s*$/);
+    if (match && match[1].trim().toLowerCase() === target) {
+      start = index + 1;
+      break;
+    }
+  }
+  if (start === -1) {
+    return "";
+  }
+  const collected = [];
+  for (let index = start; index < lines.length; index += 1) {
+    if (/^##+\s+/.test(lines[index])) {
+      break;
+    }
+    collected.push(lines[index]);
+  }
+  return collected.join("\n").trim();
+}
+
+function parseReceiptPermissions(line) {
+  const text = String(line || "").toLowerCase();
+  if (!text) {
+    return normalizePermissions({});
+  }
+  return normalizePermissions({
+    readFiles: !/\breads?\s+off\b/.test(text),
+    writeFiles: /\bwrites?\s+on\b/.test(text),
+    previewWrites: !/\bpreviews?\s+off\b/.test(text)
+  });
+}
+
+function parseReceiptTrail(content) {
+  const section = extractMarkdownSection(content, "Events") || extractMarkdownSection(content, "Trail");
+  return splitLines(section)
+    .map((line) => line.match(/^-\s+(.+?)\s+\[([^\]]+)]\s+(.+)$/))
+    .filter(Boolean)
+    .slice(0, 40)
+    .map((match) => ({
+      time: truncate(match[1].trim(), 40),
+      type: truncate(match[2].trim(), 24),
+      label: truncate(match[3].trim(), 240)
+    }));
+}
+
+function normalizeReceiptSelectedFiles(value) {
+  const raw = Array.isArray(value) ? value : String(value || "").split(",");
+  const files = [];
+  for (const item of raw) {
+    const normalized = normalizeRelativePath(item);
+    if (!normalized || normalized.toLowerCase() === "none") {
+      continue;
+    }
+    const absolutePath = path.resolve(WORKSPACE_ROOT, normalized);
+    if (absolutePath !== WORKSPACE_ROOT && absolutePath.startsWith(`${WORKSPACE_ROOT}${path.sep}`)) {
+      files.push(normalized);
+    }
+  }
+  return [...new Set(files)];
 }
 
 async function handleSqliteStatus(res) {
@@ -2561,6 +2744,24 @@ async function handleReplayPlan(url, res) {
   const relativePath = url.searchParams.get("path") || "";
   if (!relativePath) {
     return sendJson(res, 400, { error: "Session path is required" });
+  }
+  const normalizedPath = normalizeRelativePath(relativePath);
+  if (normalizedPath.startsWith(`${RECEIPTS_DIR}/`) || normalizedPath.startsWith(`${REPORTS_DIR}/`)) {
+    const receiptResume = await buildReceiptResume(normalizedPath);
+    return sendJson(res, 200, {
+      path: receiptResume.path,
+      title: "Resume receipt",
+      steps: [
+        { id: "parse-receipt", label: "Parse receipt metadata and trail", done: true },
+        { id: "restore-model", label: `Restore model ${receiptResume.pending.model || DEFAULT_MODEL}`, done: Boolean(receiptResume.pending.model) },
+        { id: "restore-files", label: `Select ${receiptResume.pending.selectedFiles.length} file(s)`, done: true },
+        { id: "restore-prompt", label: "Load captured receipt prompt into composer", done: receiptResume.warnings.length === 0 },
+        { id: "restore-trail", label: `Restore ${receiptResume.pending.trail.length} trail event(s)`, done: true },
+        { id: "rerun", label: "User reviews and reruns deliberately", done: false }
+      ],
+      replay: receiptResume.pending,
+      warnings: receiptResume.warnings
+    });
   }
   const file = await readWorkspaceFile(relativePath, MAX_FILE_BYTES);
   const session = JSON.parse(file.content || "{}");

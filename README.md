@@ -103,12 +103,12 @@ Open `http://127.0.0.1:4173`, build the semantic index, ask for a change, review
 - Structured JSON output endpoint for Ollama schema `format` and OpenAI-compatible `response_format.json_schema`, plus typed extraction recipes with readable schema-error reasons
 - Planner approval flow: generate a structured plan, edit it, approve it, then run the agent with that plan in context
 - Run guardrails: choose a step budget, use a deep-run override deliberately, and stop an active run so the backend stream aborts
-- Interrupted-run resume banner: active prompts are snapshotted locally and can be resumed after a stopped or interrupted browser session
+- Interrupted-run resume banner: active prompts are snapshotted locally, and saved receipts/reports can be parsed back into a resumable run
 - Reflection and loop safety: every final answer gets a self-check score, and repeated identical tool loops abort before wasting another step
 - In-chat diff cards with explicit **Apply** buttons for proposed file changes
 - Diff Review center with pending-change apply/reject controls
 - Agent Trail receipts for tool calls, selected context, model status, and errors
-- Receipt timeline, replayable saved sessions, and exportable Markdown/HTML reports
+- Receipt timeline, replayable saved sessions, receipt-derived resume, and exportable Markdown/HTML reports
 - Project memory stored locally as Markdown plus structured facts/preferences/decisions JSON, with visible citations, revision history, and ranked prompt-budget retrieval
 - Post-run memory suggestions that the user can review and apply; nothing is silently remembered
 - Memory history view with revision diffs and revert that creates a new auditable history entry
@@ -242,7 +242,7 @@ When write preview mode is enabled, `write_file` returns a diff preview instead 
 
 - Visual demo proof: [docs/agenttrail-demo.gif](docs/agenttrail-demo.gif), [docs/preview-app.png](docs/preview-app.png), [docs/preview-diff.png](docs/preview-diff.png)
 - True semantic search: `/api/search-index`, `/api/search?mode=semantic`, named search collections, versioned on-disk vector store with IVF-lite ANN buckets, Ollama embeddings with local-vector fallback, BM25 + vector score fusion, late-interaction chunk vectors for long docs, reranking, and embedding cache
-- Receipt timeline and replay: saved Markdown receipts in `workspace/receipts/`, JSON sessions in `workspace/sessions/`
+- Receipt timeline and replay: saved Markdown receipts in `workspace/receipts/`, JSON sessions in `workspace/sessions/`, and receipt-derived resume
 - Diff Review center: pending preview apply/reject UI
 - Local attachments: `/api/attachments` plus browser file picker that saves files into the workspace
 - MCP bridge: [mcp/server.js](mcp/server.js) and [mcp/agenttrail.mcp.json](mcp/agenttrail.mcp.json)
@@ -259,7 +259,7 @@ When write preview mode is enabled, `write_file` returns a diff preview instead 
 - Shareable reports: polished Markdown/HTML exports in `workspace/reports/`
 - Community growth loop: issue templates, launch posts, marketplace submissions, and good-first contribution docs
 - Guided replay: `/api/replay/plan`
-- Interrupted-run resume: `/api/runs/pending`
+- Interrupted-run resume: `/api/runs/pending`, `/api/runs/pending/from-receipt`, `/api/receipts/resume`
 - Chunk citations: `/api/search/chunks` and `/api/search` return section headings, chunk type, line ranges, and exact character spans
 - Trust badge: `/api/trust/badge`
 - Model comparison: `/api/models/compare`
