@@ -10,6 +10,7 @@ AgentTrail v0.7 expands the foundation API:
 - `/api/watch/start`
 - `/api/watch/stop`
 - `/api/documents/extract`
+- `/api/documents/ingest-url`
 - `/api/search/chunks`
 - `/api/replay/plan`
 - `/api/receipts/resume`

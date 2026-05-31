@@ -245,7 +245,7 @@ When write preview mode is enabled, `write_file` returns a diff preview instead 
 - Receipt timeline and replay: saved Markdown receipts in `workspace/receipts/`, JSON sessions in `workspace/sessions/`, and receipt-derived resume
 - Diff Review center: pending preview apply/reject UI
 - Local attachments: `/api/attachments` plus browser file picker that saves files into the workspace
-- Document text extraction: `/api/documents/extract` and automatic PDF/DOCX/PPTX/XLSX/HTML/Markdown/code attachment notes for searchable context
+- Document text extraction: `/api/documents/extract`, `/api/documents/ingest-url`, and automatic PDF/DOCX/PPTX/XLSX/HTML/Markdown/code attachment notes for searchable context
 - MCP bridge: [mcp/server.js](mcp/server.js) and [mcp/agenttrail.mcp.json](mcp/agenttrail.mcp.json)
 - Recipe marketplace: [marketplace/recipes.json](marketplace/recipes.json), [recipe-packs](recipe-packs), `/api/packs/import`
 - One-command install surfaces: `bin/agenttrail.js`, [Dockerfile](Dockerfile), [docker-compose.yml](docker-compose.yml), [install.sh](install.sh), [Formula/agenttrail.rb](Formula/agenttrail.rb), [desktop](desktop)

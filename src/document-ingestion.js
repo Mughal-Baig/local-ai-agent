@@ -136,7 +136,7 @@ function extractPdfText(input, options = {}) {
   };
 }
 
-function buildExtractedDocumentMarkdown({ sourcePath, originalName, mediaType, extraction }) {
+function buildExtractedDocumentMarkdown({ sourcePath, sourceUrl, originalName, mediaType, extraction }) {
   const text = extraction && extraction.text ? extraction.text : "";
   const warnings = extraction && extraction.warnings && extraction.warnings.length
     ? extraction.warnings.map((warning) => `- ${warning}`).join("\n")
@@ -146,6 +146,7 @@ function buildExtractedDocumentMarkdown({ sourcePath, originalName, mediaType, e
     `# Extracted ${type}: ${originalName || path.basename(sourcePath || "document")}`,
     "",
     `- Source file: ${sourcePath}`,
+    sourceUrl ? `- Source URL: ${sourceUrl}` : null,
     `- Media type: ${mediaType || "application/octet-stream"}`,
     extraction && extraction.pageCount ? `- Pages detected: ${extraction.pageCount}` : null,
     extraction && extraction.partCount ? `- Parts extracted: ${extraction.partCount}` : null,

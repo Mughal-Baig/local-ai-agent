@@ -3,6 +3,7 @@
 const fs = require("node:fs");
 const fsp = require("node:fs/promises");
 const http = require("node:http");
+const net = require("node:net");
 const path = require("node:path");
 const { URL } = require("node:url");
 const packageMeta = require("./package.json");
@@ -78,6 +79,7 @@ const REPORTS_DIR = "reports";
 const SESSIONS_DIR = "sessions";
 const EVALS_DIR = "evals";
 const ATTACHMENTS_DIR = "attachments";
+const URL_INGEST_DIR = "ingested";
 const MEMORY_PATH = "memory/project-memory.md";
 const MEMORY_STRUCTURED_PATH = "memory/project-memory.json";
 const MEMORY_HISTORY_DIR = "memory/history";
@@ -98,6 +100,9 @@ const MAX_BODY_BYTES = 1024 * 1024;
 const MAX_FILE_BYTES = 80 * 1024;
 const MAX_PROMPT_FILE_BYTES = 28 * 1024;
 const MAX_SEARCH_FILE_BYTES = 160 * 1024;
+const URL_INGEST_MAX_BYTES = Number(process.env.AGENTTRAIL_URL_INGEST_MAX_BYTES || 512 * 1024);
+const URL_INGEST_TIMEOUT_MS = Number(process.env.AGENTTRAIL_URL_INGEST_TIMEOUT_MS || 12000);
+const URL_INGEST_MAX_REDIRECTS = 3;
 const LOCAL_EMBED_DIMS = 192;
 const STOP_WORDS = new Set(["the", "and", "for", "with", "that", "this", "from", "you", "your", "are", "was", "were", "have", "has", "not", "but", "can", "will"]);
 
@@ -449,6 +454,10 @@ const server = http.createServer(async (req, res) => {
 
     if (url.pathname === "/api/documents/extract" && req.method === "POST") {
       return handleDocumentExtract(req, res);
+    }
+
+    if (url.pathname === "/api/documents/ingest-url" && req.method === "POST") {
+      return handleUrlIngest(req, res);
     }
 
     if (url.pathname === "/api/files/content" && req.method === "GET") {
@@ -3116,7 +3125,7 @@ async function handleDocumentExtract(req, res) {
     return sendJson(res, 400, { error: "Document path is required." });
   }
   if (!isSupportedDocument(sourcePath, body.mediaType || "")) {
-    return sendJson(res, 400, { error: "Supported document types: PDF, DOCX, PPTX, XLSX." });
+    return sendJson(res, 400, { error: "Supported document types: PDF, DOCX, PPTX, XLSX, HTML, Markdown, code, and plain text." });
   }
   try {
     const file = await readWorkspaceBinaryFile(sourcePath, MAX_BODY_BYTES);
@@ -3142,6 +3151,62 @@ async function handleDocumentExtract(req, res) {
   }
 }
 
+async function handleUrlIngest(req, res) {
+  const body = await readJsonBody(req);
+  const sourceUrl = String(body.url || body.sourceUrl || "").trim();
+  const allowlist = normalizeUrlAllowlist(body.allowlist);
+  const allowPrivate = body.allowPrivate === true || body.allowLocal === true;
+  if (!sourceUrl) {
+    return sendJson(res, 400, { error: "URL is required." });
+  }
+
+  try {
+    const requestedUrl = validateUrlIngestionTarget(sourceUrl, allowlist, { allowPrivate });
+    const fetched = await fetchAllowedDocumentUrl(requestedUrl, allowlist, { allowPrivate });
+    const mediaType = fetched.mediaType || defaultDocumentMediaType(detectDocumentType(fetched.sourceFileName, ""));
+    const sourcePath = normalizeUrlIngestSourcePath(body.sourcePath || "", fetched.finalUrl, fetched.extension);
+    const source = await writeWorkspaceBinaryFile(sourcePath, fetched.buffer);
+    const note = await writeExtractedDocumentNote(source.path, fetched.buffer, {
+      originalName: fetched.finalUrl.href,
+      mediaType,
+      outputPath: body.outputPath,
+      sourceUrl: fetched.finalUrl.href
+    });
+    const result = {
+      ok: true,
+      url: requestedUrl.href,
+      finalUrl: fetched.finalUrl.href,
+      allowlist,
+      source: { path: source.path, size: source.size, modifiedAt: source.modifiedAt },
+      output: { path: note.path, size: note.size, modifiedAt: note.modifiedAt },
+      extraction: note.extraction
+    };
+    await STORE.append("url-ingest", {
+      url: result.url,
+      finalUrl: result.finalUrl,
+      sourcePath: source.path,
+      outputPath: note.path,
+      type: note.extraction.type,
+      chars: note.extraction.charCount
+    });
+    SQLITE.insert("url-ingest", {
+      url: result.url,
+      finalUrl: result.finalUrl,
+      outputPath: note.path,
+      type: note.extraction.type
+    });
+    await LOGGER.log("info", "document.ingest-url", {
+      url: result.url,
+      finalUrl: result.finalUrl,
+      outputPath: note.path,
+      type: note.extraction.type
+    });
+    sendJson(res, 200, result);
+  } catch (error) {
+    sendJson(res, error.status || 400, { error: error.message || "Could not ingest URL." });
+  }
+}
+
 async function writeExtractedDocumentNote(sourcePath, data, options = {}) {
   const extraction = extractDocumentText(data, {
     sourcePath,
@@ -3153,6 +3218,7 @@ async function writeExtractedDocumentNote(sourcePath, data, options = {}) {
     : `${sourcePath}.agenttrail.md`;
   const result = await writeWorkspaceFile(outputPath, buildExtractedDocumentMarkdown({
     sourcePath,
+    sourceUrl: options.sourceUrl || "",
     originalName: options.originalName || path.basename(sourcePath),
     mediaType: options.mediaType || defaultDocumentMediaType(extraction.type),
     extraction
@@ -3169,6 +3235,219 @@ async function writeExtractedDocumentNote(sourcePath, data, options = {}) {
       warnings: extraction.warnings
     }
   };
+}
+
+async function fetchAllowedDocumentUrl(startUrl, allowlist, options = {}) {
+  let currentUrl = startUrl;
+  for (let redirectCount = 0; redirectCount <= URL_INGEST_MAX_REDIRECTS; redirectCount += 1) {
+    validateUrlIngestionTarget(currentUrl.href, allowlist, options);
+    let response;
+    try {
+      response = await fetch(currentUrl.href, {
+        redirect: "manual",
+        headers: {
+          Accept: "text/html,text/markdown,text/plain,application/pdf,application/json,application/xml,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.openxmlformats-officedocument.presentationml.presentation,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;q=0.9,*/*;q=0.2"
+        },
+        signal: AbortSignal.timeout(URL_INGEST_TIMEOUT_MS)
+      });
+    } catch (error) {
+      throw httpError(502, `Could not fetch URL: ${error.message}`);
+    }
+
+    if (response.status >= 300 && response.status < 400) {
+      const location = response.headers.get("location");
+      if (!location) {
+        throw httpError(502, `URL redirected with HTTP ${response.status} but did not include a Location header.`);
+      }
+      currentUrl = new URL(location, currentUrl);
+      continue;
+    }
+
+    if (!response.ok) {
+      throw httpError(502, `URL returned HTTP ${response.status}.`);
+    }
+
+    const mediaType = normalizeContentMediaType(response.headers.get("content-type"));
+    const extension = extensionForIngestedUrl(mediaType, currentUrl.pathname);
+    const sourceFileName = `url${extension}`;
+    if (!isSupportedDocument(sourceFileName, mediaType)) {
+      throw httpError(415, "URL response is not a supported document type.");
+    }
+
+    const declaredLength = Number(response.headers.get("content-length") || 0);
+    if (declaredLength > URL_INGEST_MAX_BYTES) {
+      throw httpError(413, `URL response is too large (${declaredLength} bytes).`);
+    }
+
+    const buffer = await readResponseBodyLimited(response, URL_INGEST_MAX_BYTES);
+    if (!buffer.length) {
+      throw httpError(400, "URL response was empty.");
+    }
+
+    return {
+      finalUrl: currentUrl,
+      mediaType,
+      extension,
+      sourceFileName,
+      buffer
+    };
+  }
+  throw httpError(502, `URL redirected more than ${URL_INGEST_MAX_REDIRECTS} times.`);
+}
+
+async function readResponseBodyLimited(response, maxBytes) {
+  const chunks = [];
+  let total = 0;
+  if (!response.body) {
+    const buffer = Buffer.from(await response.arrayBuffer());
+    if (buffer.length > maxBytes) {
+      throw httpError(413, `URL response is too large (${buffer.length} bytes).`);
+    }
+    return buffer;
+  }
+
+  for await (const chunk of response.body) {
+    const buffer = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
+    total += buffer.length;
+    if (total > maxBytes) {
+      throw httpError(413, `URL response is too large (over ${maxBytes} bytes).`);
+    }
+    chunks.push(buffer);
+  }
+  return Buffer.concat(chunks);
+}
+
+function normalizeUrlAllowlist(value) {
+  const entries = [];
+  if (Array.isArray(value)) {
+    entries.push(...value);
+  } else if (typeof value === "string") {
+    entries.push(...value.split(/[,\s]+/));
+  }
+  if (process.env.AGENTTRAIL_URL_ALLOWLIST) {
+    entries.push(...process.env.AGENTTRAIL_URL_ALLOWLIST.split(/[,\s]+/));
+  }
+  const normalized = entries
+    .map((entry) => normalizeAllowlistHost(entry))
+    .filter(Boolean);
+  return [...new Set(normalized)].slice(0, 50);
+}
+
+function normalizeAllowlistHost(value) {
+  let raw = String(value || "").trim().toLowerCase();
+  if (!raw) {
+    return "";
+  }
+  try {
+    raw = new URL(raw.includes("://") ? raw : `https://${raw}`).host.toLowerCase();
+  } catch {
+    raw = raw.replace(/^https?:\/\//, "").split("/")[0];
+  }
+  return raw.replace(/\.$/, "");
+}
+
+function validateUrlIngestionTarget(sourceUrl, allowlist, options = {}) {
+  let parsed;
+  try {
+    parsed = sourceUrl instanceof URL ? sourceUrl : new URL(String(sourceUrl));
+  } catch {
+    throw httpError(400, "URL must be a valid http:// or https:// URL.");
+  }
+  if (!["http:", "https:"].includes(parsed.protocol)) {
+    throw httpError(400, "URL ingestion only supports http:// and https:// URLs.");
+  }
+  if (!allowlist.length) {
+    throw httpError(403, "URL ingestion requires an explicit allowlist. Pass allowlist or set AGENTTRAIL_URL_ALLOWLIST.");
+  }
+  if (!urlHostMatchesAllowlist(parsed, allowlist)) {
+    throw httpError(403, `Host ${parsed.host} is not in the URL ingestion allowlist.`);
+  }
+  if (isPrivateUrlHost(parsed.hostname) && options.allowPrivate !== true) {
+    throw httpError(403, "Private/local URLs require allowPrivate: true and an explicit host allowlist entry.");
+  }
+  return parsed;
+}
+
+function urlHostMatchesAllowlist(url, allowlist) {
+  const host = url.host.toLowerCase().replace(/\.$/, "");
+  const hostname = url.hostname.toLowerCase().replace(/\.$/, "");
+  return allowlist.some((entry) => {
+    const allowed = normalizeAllowlistHost(entry);
+    if (!allowed) {
+      return false;
+    }
+    if (allowed === host || allowed === hostname) {
+      return true;
+    }
+    if (allowed.startsWith(".")) {
+      return hostname.endsWith(allowed);
+    }
+    return !net.isIP(hostname) && hostname.endsWith(`.${allowed}`);
+  });
+}
+
+function isPrivateUrlHost(hostname) {
+  const host = String(hostname || "").toLowerCase().replace(/^\[|\]$/g, "");
+  if (!host || host === "localhost" || host.endsWith(".localhost") || host === "0.0.0.0") {
+    return true;
+  }
+  const ipVersion = net.isIP(host);
+  if (ipVersion === 4) {
+    const [a, b] = host.split(".").map((part) => Number(part));
+    return a === 10 ||
+      a === 127 ||
+      (a === 169 && b === 254) ||
+      (a === 172 && b >= 16 && b <= 31) ||
+      (a === 192 && b === 168);
+  }
+  if (ipVersion === 6) {
+    return host === "::1" || host.startsWith("fc") || host.startsWith("fd") || host.startsWith("fe80:");
+  }
+  return false;
+}
+
+function normalizeContentMediaType(value) {
+  return String(value || "").split(";")[0].trim().toLowerCase();
+}
+
+function extensionForIngestedUrl(mediaType, pathname = "") {
+  const ext = path.extname(String(pathname || "").toLowerCase());
+  if ([".pdf", ".docx", ".pptx", ".xlsx", ".html", ".htm", ".md", ".markdown", ".txt", ".log", ".csv", ".js", ".jsx", ".ts", ".tsx", ".css", ".json", ".xml", ".yml", ".yaml", ".toml", ".py", ".rb", ".go", ".rs", ".java", ".c", ".cpp", ".h", ".hpp", ".swift", ".sh", ".zsh", ".sql"].includes(ext)) {
+    return ext === ".htm" ? ".html" : ext === ".markdown" ? ".md" : ext;
+  }
+  if (mediaType.includes("application/pdf")) return ".pdf";
+  if (mediaType.includes("wordprocessingml.document")) return ".docx";
+  if (mediaType.includes("presentationml.presentation")) return ".pptx";
+  if (mediaType.includes("spreadsheetml.sheet")) return ".xlsx";
+  if (mediaType.includes("text/html")) return ".html";
+  if (mediaType.includes("markdown")) return ".md";
+  if (mediaType.includes("application/json")) return ".json";
+  if (mediaType.includes("application/xml") || mediaType.includes("text/xml")) return ".xml";
+  if (mediaType.startsWith("text/")) return ".txt";
+  return ".bin";
+}
+
+function normalizeUrlIngestSourcePath(sourcePath, finalUrl, extension) {
+  const requested = normalizeRelativePath(sourcePath);
+  if (requested) {
+    return requested;
+  }
+  const stamp = new Date().toISOString().replace(/[:.]/g, "-");
+  const slug = safeUrlSlug(finalUrl);
+  return `${URL_INGEST_DIR}/url-${stamp}-${slug}${extension || ".txt"}`;
+}
+
+function safeUrlSlug(url) {
+  const host = String(url.hostname || "url").replace(/^www\./i, "");
+  const pathParts = String(url.pathname || "").split("/").filter(Boolean).slice(-2).join("-");
+  const base = sanitizeAttachmentName(`${host}-${pathParts || "index"}`).replace(/\.[a-z0-9]+$/i, "");
+  return base.slice(0, 90) || "url";
+}
+
+function httpError(status, message) {
+  const error = new Error(message);
+  error.status = status;
+  return error;
 }
 
 function defaultDocumentMediaType(type) {

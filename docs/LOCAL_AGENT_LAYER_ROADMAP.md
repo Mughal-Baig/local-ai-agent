@@ -41,6 +41,7 @@ This section tracks the concrete work shipped after the roadmap was publicly ref
 | Codex continuation | T061 | Added HTML, Markdown, code, and plain-text ingestion with cleaned HTML-to-Markdown conversion, language-aware code fences, automatic text attachment sidecars, API tests, eval checks, and docs. |
 | Codex continuation | T057 | Added vector-store version metadata, legacy normalization, search-index-to-vector-store migration, `.agenttrail/vector-store-migrations.json`, migration `005-vector-store-versioning`, tests, eval checks, and docs. |
 | Codex continuation | T058 | Added `npm run bench:search`: deterministic local corpus, local-vector index build timing, AgentTrail semantic recall/latency, brute-force scanner baseline, top-1 agreement threshold, CI coverage, and docs. |
+| Codex continuation | T063 | Added allowlisted URL ingestion with redirect re-validation, private-host opt-in, response-size limits, cleaned document extraction, searchable Markdown sidecars with source URL metadata, API tests, eval checks, and docs. |
 
 ### Verified After These Passes
 
@@ -51,7 +52,6 @@ This section tracks the concrete work shipped after the roadmap was publicly ref
 ### Best Continuation Points
 
 - T062: Image OCR for scanned docs.
-- T063: URL ingestion (fetch + clean + index) with allowlist.
 - T064: Ingestion progress + receipts.
 
 ---
@@ -142,7 +142,7 @@ This section tracks the concrete work shipped after the roadmap was publicly ref
 - [x] T060 DOCX / PPTX / XLSX extraction (dependency-free OpenXML text extraction and attachment sidecars)
 - [x] T061 HTML / Markdown / code-aware ingestion (clean HTML-to-Markdown, Markdown normalization, language-aware code fences)
 - [ ] T062 Image OCR for scanned docs
-- [ ] T063 URL ingestion (fetch + clean + index) with allowlist
+- [x] T063 URL ingestion (fetch + clean + index) with allowlist (`/api/documents/ingest-url`, explicit host allowlist, redirect validation, private-host opt-in)
 - [ ] T064 Ingestion progress + receipts
 
 ---
@@ -380,12 +380,12 @@ This section tracks the concrete work shipped after the roadmap was publicly ref
 
 ## Status & bug sweep (latest)
 
-- Progress: **63 tasks done**, 134 open (across Phases 1-10). Phase 1 (agent reliability) is complete; Phase 2 Epic E/F search foundation complete (T044-T058 done except T044 remains hardening umbrella), and Epic G now has PDF, Office, HTML, Markdown, and code-aware extraction.
+- Progress: **64 tasks done**, 133 open (across Phases 1-10). Phase 1 (agent reliability) is complete; Phase 2 Epic E/F search foundation complete (T044-T058 done except T044 remains hardening umbrella), and Epic G now has PDF, Office, HTML, Markdown, code-aware extraction, and allowlisted URL ingestion.
 - Focused test suite green: unit, document extraction, API integration, smoke, repo eval, and release checksums. All touched source files pass `node --check`.
 - **Bug fixed:** `listWorkspaceFiles` only skipped `.DS_Store`, so internal `.agenttrail/*` state (logs, store, search index, pending-run) was being walked, indexed, and returned in search — adding noise and per-request churn to the index. Now excludes `.agenttrail/`. Verified against smoke, api, search-incremental, search-chunking, and eval:search.
 - Known minor item: a couple of integration tests assert relative/invariant counts (not exact) because the workspace can still gain legit files (e.g. `memory/*`) between calls — intentional, not a bug.
 
-Next code targets: T062 Image OCR for scanned docs, T063 URL ingestion, T064 ingestion progress + receipts.
+Next code targets: T062 Image OCR for scanned docs or T064 ingestion progress + receipts.
 
 ---
 

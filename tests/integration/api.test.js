@@ -3,6 +3,7 @@
 const assert = require("node:assert/strict");
 const { spawn } = require("node:child_process");
 const fsp = require("node:fs/promises");
+const http = require("node:http");
 const os = require("node:os");
 const path = require("node:path");
 const { makePdf, makeDocx, makePptx, makeXlsx } = require("../helpers/document-fixtures");
@@ -17,6 +18,7 @@ main().catch((error) => {
 
 async function main() {
   const workspaceRoot = await fsp.mkdtemp(path.join(os.tmpdir(), "agenttrail-api-"));
+  let urlServer = null;
   const child = spawn(process.execPath, ["server.js"], {
     cwd: projectRoot,
     env: { ...process.env, PORT: String(port), WORKSPACE_ROOT: workspaceRoot, OLLAMA_HOST: "http://127.0.0.1:1" },
@@ -148,6 +150,30 @@ async function main() {
     assert.match(codeNote.content, /```typescript/);
     assert.match(codeNote.content, /export const agentTrail = true/);
 
+    urlServer = await startUrlFixtureServer();
+    const urlPath = `http://127.0.0.1:${urlServer.address().port}/research.html`;
+    const blockedUrl = await rawPost("/api/documents/ingest-url", { url: urlPath, allowlist: ["127.0.0.1"] });
+    assert.equal(blockedUrl.status, 403);
+    const blockedRedirect = await rawPost("/api/documents/ingest-url", {
+      url: `http://127.0.0.1:${urlServer.address().port}/redirect-out`,
+      allowlist: ["127.0.0.1"],
+      allowPrivate: true
+    });
+    assert.equal(blockedRedirect.status, 403);
+    const urlIngest = await post("/api/documents/ingest-url", {
+      url: urlPath,
+      allowlist: ["127.0.0.1"],
+      allowPrivate: true
+    });
+    assert.equal(urlIngest.ok, true);
+    assert.equal(urlIngest.extraction.type, "html");
+    assert.match(urlIngest.source.path, /^ingested\/url-/);
+    const urlNote = await get(`/api/files/content?path=${encodeURIComponent(urlIngest.output.path)}`);
+    assert.match(urlNote.content, /Source URL: http:\/\/127\.0\.0\.1:/);
+    assert.match(urlNote.content, /# AgentTrail URL ingestion/);
+    assert.match(urlNote.content, /Allowlisted page text/);
+    assert.doesNotMatch(urlNote.content, /stealToken/);
+
     await post("/api/files/content", { path: "docs/guide.md", content: "# Guide\n\nnamespace collection isolated search\n" });
     const collectionIndex = await post("/api/search-index", {
       provider: "local-vector",
@@ -182,6 +208,9 @@ async function main() {
 
     console.log("API integration tests passed");
   } finally {
+    if (urlServer) {
+      await new Promise((resolve) => urlServer.close(resolve));
+    }
     child.kill();
     await fsp.rm(workspaceRoot, { recursive: true, force: true });
   }
@@ -212,8 +241,35 @@ async function post(endpoint, body) {
   return response.json();
 }
 
+async function rawPost(endpoint, body) {
+  return fetch(`http://127.0.0.1:${port}${endpoint}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body || {})
+  });
+}
+
 async function get(endpoint) {
   const response = await fetch(`http://127.0.0.1:${port}${endpoint}`);
   assert.equal(response.ok, true, endpoint);
   return response.json();
+}
+
+async function startUrlFixtureServer() {
+  const server = http.createServer((req, res) => {
+    if (req.url === "/research.html") {
+      res.writeHead(200, { "Content-Type": "text/html; charset=utf-8" });
+      res.end("<h1>AgentTrail URL ingestion</h1><p>Allowlisted page text.</p><script>stealToken()</script>");
+      return;
+    }
+    if (req.url === "/redirect-out") {
+      res.writeHead(302, { Location: "https://example.test/research.html" });
+      res.end("");
+      return;
+    }
+    res.writeHead(404, { "Content-Type": "text/plain; charset=utf-8" });
+    res.end("not found");
+  });
+  await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
+  return server;
 }
