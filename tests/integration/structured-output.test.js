@@ -200,7 +200,7 @@ async function postRaw(port, endpoint, body) {
 async function waitForServer(port, getOutput) {
   for (let i = 0; i < 80; i += 1) {
     try {
-      const response = await fetch(`http://127.0.0.1:${port}/api/status`);
+      const response = await fetch(`http://127.0.0.1:${port}/api/config`);
       if (response.ok) return;
     } catch {
       // not up yet
