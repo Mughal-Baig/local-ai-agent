@@ -34,6 +34,11 @@ jobs:
       - run: node --check src/bundled-runtime.js
       - run: node --check scripts/load-test.js
       - run: node --check scripts/benchmark-runtime.js
+      - run: node --check scripts/generate-sbom.js
+      - run: node --check scripts/sign-checksums.js
+      - run: node --check scripts/verify-checksums.js
+      - run: node --check scripts/reproducible-build.js
+      - run: node --check scripts/update-homebrew-formula.js
       - run: node --check scripts/package-linux.js
       - run: node --check scripts/sign-mac-app.js
       - run: node --check scripts/sign-windows.js
@@ -46,6 +51,7 @@ jobs:
       - run: node --check tests/unit/runtime-loading.test.js
       - run: node --check tests/unit/model-registry.test.js
       - run: node --check tests/unit/desktop-distribution.test.js
+      - run: node --check tests/unit/supply-chain.test.js
       - run: node --check tests/integration/model-registry.test.js
       - run: node --check tests/integration/cli.test.js
       - run: node --check tests/integration/openai-compatible-server.test.js
@@ -59,6 +65,7 @@ jobs:
       - run: node tests/unit/runtime-loading.test.js
       - run: node tests/unit/model-registry.test.js
       - run: node tests/unit/desktop-distribution.test.js
+      - run: node tests/unit/supply-chain.test.js
       - run: node tests/unit/redact.test.js
       - run: node tests/unit/pdf-extraction.test.js
       - run: node tests/unit/audio-transcription.test.js

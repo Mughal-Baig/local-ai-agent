@@ -1,0 +1,10 @@
+docs/checksums/
+dist/
+.git/
+.github/
+.playwright-cli/
+node_modules/
+installers/linux/staging/
+*.bak
+*.bak2
+*.tgz

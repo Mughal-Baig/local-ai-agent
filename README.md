@@ -48,7 +48,7 @@ Writes are off by default. The agent proposes a unified diff; you click **Apply*
 - **Private by design**: the server only talks to Ollama and the local browser UI.
 - **Safe workspace boundary**: file reads and writes are blocked outside `workspace/`.
 - **Zero npm dependencies**: clone, run `node server.js`, and start building.
-- **Serious foundation**: schemas, migrations, permission engine, background jobs, backups, plugins, checksums, and tests keep it from feeling like a toy.
+- **Serious foundation**: schemas, migrations, permission engine, background jobs, backups, plugins, SBOM, signed-checksum path, reproducible package checks, and tests keep it from feeling like a toy.
 - **Product proof loop**: exact line/character citations, replay guidance, model comparison, plugin gallery, onboarding, and trust badges make the value obvious fast.
 
 ## What Makes It Different
@@ -57,7 +57,7 @@ Popular local AI tools are often full platforms. This project is intentionally s
 
 | Area | AgentTrail |
 | --- | --- |
-| Setup | One Node command, `npx`-ready package metadata, Docker Compose, Homebrew formula draft, desktop launchers |
+| Setup | One Node command, `npx`-ready package metadata, multi-arch Docker workflow, publishable Homebrew formula, desktop launchers |
 | Model backend | Ollama, or any OpenAI-compatible local server (LM Studio, llama.cpp, vLLM, Jan) — see [Model Backends](docs/MODEL_BACKENDS.md) |
 | File access | Sandboxed workspace tools plus keyword search, versioned local vector store, and Ollama embedding index |
 | Trust UX | Trust Score, local signals, security scan, reviewable diff previews, explicit apply buttons, exportable reports, replay sessions, receipts, and tool history |
@@ -123,7 +123,7 @@ Open `http://127.0.0.1:4173`, build the semantic index, ask for a change, review
 - Real MCP stdio server with explicit per-tool approvals and receipts
 - Workspace profile templates with profile switching API/UI
 - Local evaluation harness plus saved pass/fail history and model benchmark surface
-- Dockerfile, Docker Compose, `agenttrail` bin entry, install script, Homebrew formula draft, desktop launchers, macOS menu-bar app bundle, Windows tray launcher, Linux desktop/package templates, and update-channel metadata
+- Dockerfile, Docker Compose, `agenttrail` bin entry, install script, publishable Homebrew formula, npm provenance workflow, SBOM, reproducibility check, desktop launchers, macOS menu-bar app bundle, Windows tray launcher, Linux desktop/package templates, and update-channel metadata
 - Stable schemas exposed at `/api/schemas`
 - Route catalog exposed at `/api/routes`
 - Config validation exposed at `/api/config`
@@ -139,6 +139,7 @@ Open `http://127.0.0.1:4173`, build the semantic index, ask for a change, review
 - Backup import exposed at `/api/backup/import`
 - Release checksums exposed at `/api/releases/checksums`
 - Release signing plan exposed at `/api/releases/signing-plan`, update checks at `/api/updates/check`, and native desktop notifications for long local runs/pulls
+- Supply-chain release docs: [docs/SUPPLY_CHAIN.md](docs/SUPPLY_CHAIN.md)
 - Separate frontend foundation and product modules in `public/modules/`
 - Saved receipt history in `workspace/receipts/`
 - Safe path handling so the agent stays inside `workspace/`
@@ -206,6 +207,8 @@ npm run package:mac-app
 npm run package:linux
 npm run sign:mac-app -- --dry-run
 npm run sign:windows -- --dry-run
+npm run release:sbom
+npm run release:reproducible
 ```
 
 ## Try It
@@ -266,6 +269,7 @@ When write preview mode is enabled, `write_file` returns a diff preview instead 
 - MCP bridge: [mcp/server.js](mcp/server.js) and [mcp/agenttrail.mcp.json](mcp/agenttrail.mcp.json)
 - Recipe marketplace: [marketplace/recipes.json](marketplace/recipes.json), [recipe-packs](recipe-packs), `/api/packs/import`
 - One-command install surfaces: `bin/agenttrail.js`, [Dockerfile](Dockerfile), [docker-compose.yml](docker-compose.yml), [install.sh](install.sh), [Formula/agenttrail.rb](Formula/agenttrail.rb), [desktop](desktop)
+- Supply-chain proof: multi-arch GHCR workflow, npm provenance workflow, SPDX SBOM, signed-checksum script, and reproducible `npm pack` check in [docs/SUPPLY_CHAIN.md](docs/SUPPLY_CHAIN.md)
 - CLI and editor integrations: Ollama-style `agenttrail run/pull/list/rm/ps/show/serve/create`, `agenttrail-chat`, shell completions, [docs/CLI.md](docs/CLI.md), [docs/INTEGRATIONS.md](docs/INTEGRATIONS.md), and the VS Code MVP in [editor/vscode-agenttrail](editor/vscode-agenttrail)
 - Physical desktop app: `npm run package:mac-app` builds `dist/mac/AgentTrail.app`; Windows tray and Linux desktop/package templates live in [desktop](desktop) and [installers](installers)
 - Model scoring and benchmarking: `/api/status`, `/api/models/vision-capability`, `/api/benchmarks`

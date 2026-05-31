@@ -1,0 +1,13 @@
+.git
+.github
+.DS_Store
+.playwright-cli
+node_modules
+dist
+installers/linux/staging
+workspace/*
+!workspace/welcome.md
+*.bak
+*.bak2
+*.tgz
+npm-debug.log*

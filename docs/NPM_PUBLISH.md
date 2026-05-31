@@ -9,9 +9,10 @@ npm publish --access public
 Before publishing:
 
 - Confirm ownership or availability of the `agenttrail` package name.
-- Run `npm test`, `npm run test:unit`, `npm run test:integration`, and `npm run eval`.
+- Run `npm test`, `npm run test:unit`, `npm run test:supply-chain`, `npm run test:integration`, and `npm run eval`.
+- Run `npm run release:sbom` and `npm run release:reproducible`.
 - Confirm `npm whoami`.
-- Prefer npm provenance once the GitHub release workflow is configured.
+- Use the GitHub npm publish workflow for provenance, or publish manually with `npm publish --provenance --access public`.
 
 After publishing:
 

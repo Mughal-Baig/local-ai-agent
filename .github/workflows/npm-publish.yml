@@ -1,0 +1,44 @@
+name: npm Publish
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+
+on:
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Run npm publish as a dry-run"
+        required: true
+        default: "true"
+  release:
+    types: [published]
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          registry-url: "https://registry.npmjs.org"
+      - run: npm run test:unit
+      - run: npm run test:supply-chain
+      - run: npm test
+      - run: npm run eval
+      - run: npm run release:sbom
+      - run: npm run release:reproducible
+      - run: mkdir -p dist/npm
+      - run: npm pack --json --pack-destination dist/npm
+      - name: Dry-run publish
+        if: github.event_name == 'workflow_dispatch' && inputs.dry_run == 'true'
+        run: npm publish --dry-run --access public
+      - name: Publish to npm with provenance
+        if: github.event_name == 'release' || inputs.dry_run != 'true'
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: npm publish --provenance --access public

@@ -320,3 +320,14 @@ Next open: real `node-llama-cpp` validation with a tiny GGUF on actual hardware,
 - Tests/docs updated: `npm run test:cli`, CI node checks and integration step, `docs/CLI.md`, integration docs, README/NPM docs, roadmap progress, repo eval, and release checksums.
 
 Next open: real `node-llama-cpp` validation with a tiny GGUF on actual hardware, then Epic V packaging and supply-chain polish.
+
+## Latest Codex Pass - Epic V packaging and supply chain
+
+- T147-T152 are implemented at the repo/workflow level: Dockerfile is BuildKit/OCI/multi-arch ready with a non-root runtime, and `.github/workflows/container.yml` publishes linux/amd64 + linux/arm64 images to GHCR on tags/dispatch.
+- Homebrew is now publishable: `npm run release:homebrew` computes the SHA-256 from the npm tarball and updates `Formula/agenttrail.rb`, including both `agenttrail` and `agenttrail-chat` plus a service.
+- npm provenance pipeline exists in `.github/workflows/npm-publish.yml`, with dry-run/manual support and real publish via `NPM_TOKEN`.
+- SBOM and reproducibility are first-class: `npm run release:sbom` writes SPDX 2.3 output, and `npm run release:reproducible` verifies two isolated-cache `npm pack` outputs match.
+- Release checksums are stronger: `npm run release:verify-checksums` validates every row, and `npm run release:sign-checksums` supports PEM-key signatures with dry-run fallback.
+- Tests/docs updated: `npm run test:supply-chain`, `docs/SUPPLY_CHAIN.md`, release signing/npm docs, README, release workflow artifact uploads, repo eval, and checksum coverage.
+
+Next open: real `node-llama-cpp` validation with a tiny GGUF on actual hardware, then package-publication launch polish.

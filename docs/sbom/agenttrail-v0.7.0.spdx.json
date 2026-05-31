@@ -1,0 +1,3953 @@
+{
+  "spdxVersion": "SPDX-2.3",
+  "dataLicense": "CC0-1.0",
+  "SPDXID": "SPDXRef-DOCUMENT",
+  "name": "AgentTrail 0.7.0",
+  "documentNamespace": "https://github.com/Mughal-Baig/local-ai-agent/sbom/v0.7.0/b914a10f279957d7",
+  "creationInfo": {
+    "created": "2026-05-31T00:00:00Z",
+    "creators": [
+      "Tool: AgentTrail generate-sbom.js"
+    ]
+  },
+  "packages": [
+    {
+      "name": "agenttrail",
+      "SPDXID": "SPDXRef-Package-AgentTrail",
+      "versionInfo": "0.7.0",
+      "downloadLocation": "https://github.com/Mughal-Baig/local-ai-agent",
+      "filesAnalyzed": true,
+      "licenseConcluded": "MIT",
+      "licenseDeclared": "MIT",
+      "copyrightText": "NOASSERTION",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "b914a10f279957d7692038f79b1741e34a28a60b11e4b26f8466bb6cc0c89b3f"
+        }
+      ],
+      "packageVerificationCode": {
+        "packageVerificationCodeValue": "5583f46d22be9cce1350f0e046292b2b7ab49c172a1f7136c79c9dce7cfc426b"
+      }
+    }
+  ],
+  "files": [
+    {
+      "fileName": "./Dockerfile",
+      "SPDXID": "SPDXRef-File-Dockerfile",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "527f260d92fe794b43b2072df6bd6efe40f313d11a7d4b8fef5376f6a2368ac0"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./LICENSE",
+      "SPDXID": "SPDXRef-File-LICENSE",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "1126322e2cc8d165adc4c792eeb195717de2bcc7b39be1ce77959d78e87ef685"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./README.md",
+      "SPDXID": "SPDXRef-File-README.md",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "62d9736554926e48e5d605bb089b9054d0a73d97b8e2c4b7f5aa69c7b46b5c30"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./bin/agenttrail-chat.js",
+      "SPDXID": "SPDXRef-File-bin-agenttrail-chat.js",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "045bf1c13b2cee9ebe15efee444a7c795c808a61d2bec1e2751053bdbef498ee"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./bin/agenttrail.js",
+      "SPDXID": "SPDXRef-File-bin-agenttrail.js",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "fb7a7a04ae806638d76a38c4097ed0b7641bcd5a0771cf012aef65a568f5803d"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./desktop/README.md",
+      "SPDXID": "SPDXRef-File-desktop-README.md",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "fc49cc6d67baaf3efd7bc1e89d483c91fb353089ab49b6f5954887b72f1962f3"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./desktop/linux/agenttrail-tray.sh",
+      "SPDXID": "SPDXRef-File-desktop-linux-agenttrail-tray.sh",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "2d466422c947a5e0c6d1848eacf70d54d9d8a328be2113f3f1aa66cc98c3f734"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./desktop/linux/agenttrail.desktop",
+      "SPDXID": "SPDXRef-File-desktop-linux-agenttrail.desktop",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "f34de9cc04464153e80e2801559584df1645700c5ebd6a848b656fbc4b6b4847"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./desktop/mac/AgentTrail.command",
+      "SPDXID": "SPDXRef-File-desktop-mac-AgentTrail.command",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "65dadcb5890bf364b1009031c4bcc5142b134f34456f83f846f172aefa0f0a67"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./desktop/mac/AgentTrailMenuBar.swift",
+      "SPDXID": "SPDXRef-File-desktop-mac-AgentTrailMenuBar.swift",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "1fc63d9599af023392a8602e10449408b9bb3d950594298c3fb80c0cdc85c825"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./desktop/windows/AgentTrail-Tray.ps1",
+      "SPDXID": "SPDXRef-File-desktop-windows-AgentTrail-Tray.ps1",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "a5b25d28ef19ef4e47cc09f784997fe529b00867ceeed4d0743117c7fd93a6e5"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./desktop/windows/AgentTrail.cmd",
+      "SPDXID": "SPDXRef-File-desktop-windows-AgentTrail.cmd",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "799927e20b9bd8d8111b42732920c36ad706f158aefb27f8f538deeb9b335877"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./docs/CLI.md",
+      "SPDXID": "SPDXRef-File-docs-CLI.md",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "9f838e40fe6da4bada4de997bb2258274708c5ad9324826184428f0873778b6a"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./docs/COMMUNITY_GROWTH.md",
+      "SPDXID": "SPDXRef-File-docs-COMMUNITY-GROWTH.md",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "d5b2acd0ad8fac11f4fc12e5f53845922caeb7a3b1f68212d7c822457eaa0b62"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./docs/DESKTOP_DISTRIBUTION.md",
+      "SPDXID": "SPDXRef-File-docs-DESKTOP-DISTRIBUTION.md",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "4d4805c7763b7d87d857868093e25ffda65c82ffd9673663110006eec26755cb"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./docs/ELITE_UPGRADE_PLAN.md",
+      "SPDXID": "SPDXRef-File-docs-ELITE-UPGRADE-PLAN.md",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "c4084e178c9a6740b6daa10fa6ce1ff58b2b5a81566beb84f49009ce8ba7b41e"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./docs/FOUNDATION_ROUTES.md",
+      "SPDXID": "SPDXRef-File-docs-FOUNDATION-ROUTES.md",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "b672ff64da334a74e123975b0ca570bff9a5abc9c144fc18a56fe812ad13cfb6"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./docs/GROWTH_RESEARCH.md",
+      "SPDXID": "SPDXRef-File-docs-GROWTH-RESEARCH.md",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "56f455e19eb963ab6e091743f9f978886b6d32fbb2e43b3289cc344e69c95922"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./docs/INTEGRATIONS.md",
+      "SPDXID": "SPDXRef-File-docs-INTEGRATIONS.md",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "3cf3a9f9272803fede303fb41aa5c723971802687fb1755c187f83466359cc86"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./docs/LAUNCH_PLAN.md",
+      "SPDXID": "SPDXRef-File-docs-LAUNCH-PLAN.md",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "13ceee705fe81704dd32dfc65a5a0b97a56305ea6a3eb0cd34be26021294688d"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./docs/LAUNCH_POSTS.md",
+      "SPDXID": "SPDXRef-File-docs-LAUNCH-POSTS.md",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "de731a54a77b1ad9a25ce2e3ba0a95dfc3542a434c2b585b49fac08386c04ba0"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./docs/LAUNCH_POST_v0.7.md",
+      "SPDXID": "SPDXRef-File-docs-LAUNCH-POST-v0.7.md",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "d03cd0bf796eb3a1477b7b7d6ad286191be101fb3916e13a10eb77d4134d3ee9"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./docs/LOCAL_AGENT_LAYER_ROADMAP.md",
+      "SPDXID": "SPDXRef-File-docs-LOCAL-AGENT-LAYER-ROADMAP.md",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "8750e4a93644d3c801d0dc55a49f0fee48254179490703de659a7b55162365ce"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./docs/MAC_APP.md",
+      "SPDXID": "SPDXRef-File-docs-MAC-APP.md",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "2cacd180f6462990f070541c5799da26ae27aaac44b8fa111358fee5127c93db"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./docs/MODELS.md",
+      "SPDXID": "SPDXRef-File-docs-MODELS.md",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "83bcf855ebb1c06632f434ed0c44003cc0387cdd7a45d10639fde46f45ffa239"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./docs/MODEL_BACKENDS.md",
+      "SPDXID": "SPDXRef-File-docs-MODEL-BACKENDS.md",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "b8146e075fde9578e04189dec0c31af84b4597e410936402c175ada86c025877"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./docs/NEXT_PLAN_v0.8.md",
+      "SPDXID": "SPDXRef-File-docs-NEXT-PLAN-v0.8.md",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "3e8348caf5f9c7f6abad37f27ac54d51879f50e5bb4ef56a398cf2ed2ed1d33e"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./docs/NPM_PUBLISH.md",
+      "SPDXID": "SPDXRef-File-docs-NPM-PUBLISH.md",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "5996328409cc3831965f98d60b6bdff6b1e25a10554230e53d7d4ff5d03ef42b"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./docs/OLLAMA_GAP_ANALYSIS.md",
+      "SPDXID": "SPDXRef-File-docs-OLLAMA-GAP-ANALYSIS.md",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "4799bc06686991c76fdb25b968f89d3a1e80c614b8c061479d1775e82f1142af"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./docs/OPENAI_COMPATIBLE_API.md",
+      "SPDXID": "SPDXRef-File-docs-OPENAI-COMPATIBLE-API.md",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "9201947b5ece0dd55d8f3f456d2fd591ec38ddba9a86cd70abce55a71fe2ddc0"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./docs/POSITIONING.md",
+      "SPDXID": "SPDXRef-File-docs-POSITIONING.md",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "1faf20f654f0f44675da28aa2aefd7b5d49d6f276c0e89bbd83d8ddc3796c84f"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./docs/RECEIPT_SPEC.md",
+      "SPDXID": "SPDXRef-File-docs-RECEIPT-SPEC.md",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "8af1b60017260fd2107469da08a0289dfa74089c59562aaa7262d81477f9f1e2"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./docs/RELEASE_NOTES_v0.2.0.md",
+      "SPDXID": "SPDXRef-File-docs-RELEASE-NOTES-v0.2.0.md",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "f9162ccaff2ddf2d98cf9c93309ce16fc3993728c39da66975f526114e0902c2"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./docs/RELEASE_NOTES_v0.3.0.md",
+      "SPDXID": "SPDXRef-File-docs-RELEASE-NOTES-v0.3.0.md",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "f6036c05b36e1a4c9ea17e29e14ccc0adc4a3de5484ef9fcbe2ac6cc561e2bde"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./docs/RELEASE_NOTES_v0.3.1.md",
+      "SPDXID": "SPDXRef-File-docs-RELEASE-NOTES-v0.3.1.md",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "612b5a384563714c1d20ffd50ad15ff9d77e67eada234da6dce97fb5c27801c4"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./docs/RELEASE_NOTES_v0.4.0.md",
+      "SPDXID": "SPDXRef-File-docs-RELEASE-NOTES-v0.4.0.md",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "fd4690c85d2284d579d6f2c091b140e90a06d2118bf90d9d368018d9bb942a80"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./docs/RELEASE_NOTES_v0.5.0.md",
+      "SPDXID": "SPDXRef-File-docs-RELEASE-NOTES-v0.5.0.md",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "bbf3e61c5b123e6c6cb520839ae8ed720966845eaeb8803ab9b46efe52aab114"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./docs/RELEASE_NOTES_v0.6.0.md",
+      "SPDXID": "SPDXRef-File-docs-RELEASE-NOTES-v0.6.0.md",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "1682d2a1784c70a1d92e61b040b32f76a9fc20e495f0ebdeda14296a4b3977c0"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./docs/RELEASE_NOTES_v0.7.0.md",
+      "SPDXID": "SPDXRef-File-docs-RELEASE-NOTES-v0.7.0.md",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "fe4077d368c01efc757bdbc607b16d17e581aa3214ee8067390ba005629e3bdf"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./docs/RELEASE_SIGNING.md",
+      "SPDXID": "SPDXRef-File-docs-RELEASE-SIGNING.md",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "fc1804dc7e46330daca9ca0673c85fa0e116f739f1e140cc451b883c021cc0eb"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./docs/ROADMAP.md",
+      "SPDXID": "SPDXRef-File-docs-ROADMAP.md",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "353db728f7cca497ad01808a631a926d058ee0882773dca6a96b8555b8246901"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./docs/RUNTIME_PHASE6.md",
+      "SPDXID": "SPDXRef-File-docs-RUNTIME-PHASE6.md",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "5eee4e38fdf741750bf9900e77fab11600054e274cf937070bd2955904ba66cc"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./docs/SCHEMAS.md",
+      "SPDXID": "SPDXRef-File-docs-SCHEMAS.md",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "c34afe56b569a8bc0f3e440d037cf6248bead8a1ed4821352c1a2ac3239a5ebd"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./docs/SECURITY_CHECKLIST.md",
+      "SPDXID": "SPDXRef-File-docs-SECURITY-CHECKLIST.md",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "035eeafaa00f8b58b478f51ea9ebb2f7fa33fe31a94e273b4f3528604dbb54a5"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./docs/SECURITY_POSTURE.md",
+      "SPDXID": "SPDXRef-File-docs-SECURITY-POSTURE.md",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "2110b3766a2472ee7b3d1d09f9123025d0df78e25108fdfb0d5d09aa332f1238"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./docs/SUPPLY_CHAIN.md",
+      "SPDXID": "SPDXRef-File-docs-SUPPLY-CHAIN.md",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "0b04db3c8b677643b09271f87a4e478c6ecae11e2117514ab57b8098d42c5135"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./docs/TOP_1_PERCENT_IMPLEMENTATION.md",
+      "SPDXID": "SPDXRef-File-docs-TOP-1-PERCENT-IMPLEMENTATION.md",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "777167ac30cc72a5362e4a78fcc8091e66fa2a0de87f48a0d52618c13e7bb089"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./docs/TOP_1_PERCENT_PLAYBOOK.md",
+      "SPDXID": "SPDXRef-File-docs-TOP-1-PERCENT-PLAYBOOK.md",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "eb8582466bedba6957e1d8137d5146ef2a32a54069e5829edfd1a9659f77f3b2"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./docs/TROUBLESHOOTING.md",
+      "SPDXID": "SPDXRef-File-docs-TROUBLESHOOTING.md",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "88b6ecb93c88d5a0caa8c31797fa7d70683b56fc87f8974ae6fb9c10f69c5f8a"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./docs/agenttrail-demo.gif",
+      "SPDXID": "SPDXRef-File-docs-agenttrail-demo.gif",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "a9d89d47da9a36d5275e8e4f84ca6c4cb3b9f5131622d867c9c4ca4df88c3086"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./docs/demo-video/README.md",
+      "SPDXID": "SPDXRef-File-docs-demo-video-README.md",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "a60e300407950ea73bb3ca9066284d0fe6ff3d1a4ef3509742f512470d44a92d"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./docs/demo-video/storyboard.json",
+      "SPDXID": "SPDXRef-File-docs-demo-video-storyboard.json",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "e386f1c7ac80e84af984335ad70d54364aff6257d814407f90d58ee7d4f3381e"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./docs/demo.html",
+      "SPDXID": "SPDXRef-File-docs-demo.html",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "9059c87085d8c198515f86d82adaf955a943318cbb502d0c3a29102ca2e8546d"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./docs/mcp/CLIENT_SETUP.md",
+      "SPDXID": "SPDXRef-File-docs-mcp-CLIENT-SETUP.md",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "894b3c5bb384ea9b694d048a074e0ce709cca96e8bde20f2fac283416cb63408"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./docs/openapi/agenttrail-v1-openapi.json",
+      "SPDXID": "SPDXRef-File-docs-openapi-agenttrail-v1-openapi.json",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "024c98773b416bf9818ff416b096ffe200efcfa6131d3f70d641d315ed03ce88"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./docs/preview-app.png",
+      "SPDXID": "SPDXRef-File-docs-preview-app.png",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "af5f529ca9327cb63f37422d9aa319c9687797d32bb191de29cf61ddaaecdd83"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./docs/preview-diff.png",
+      "SPDXID": "SPDXRef-File-docs-preview-diff.png",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "eccef95c5f6fe143efa4eca9e85281994d068492a0787634b9d547c0a16e7b66"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./docs/public-demo.html",
+      "SPDXID": "SPDXRef-File-docs-public-demo.html",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "b6364abfa24d71b1431c3a767cc9902cc68117240df2148de5db164b5c0dffcd"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./docs/screenshots/dashboard.svg",
+      "SPDXID": "SPDXRef-File-docs-screenshots-dashboard.svg",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "19c977573b98ad66e86c82c27cb06c7532271206db314eb46173c6daaba7e825"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./docs/screenshots/diff-review.svg",
+      "SPDXID": "SPDXRef-File-docs-screenshots-diff-review.svg",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "7c794506de5cf32c6c7ec562fd89a9542cc054f233d06a6fceda0b3d260de360"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./docs/screenshots/foundation.svg",
+      "SPDXID": "SPDXRef-File-docs-screenshots-foundation.svg",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "5b5de8b3c142b4b73511027bdaa48487bb52182a47fa47a4e52b3d576690c767"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./docs/screenshots/semantic-search.svg",
+      "SPDXID": "SPDXRef-File-docs-screenshots-semantic-search.svg",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "e78b8cf50b002ff78e1e4b021fad7c7577b330eafbb851e44e8e65666bb94663"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./docs/social-preview.html",
+      "SPDXID": "SPDXRef-File-docs-social-preview.html",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "31a89a56e1825a47b3464fd7b99dd2005a65d6c2df782f5d98b619045dcc39ab"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./docs/social-preview.png",
+      "SPDXID": "SPDXRef-File-docs-social-preview.png",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "f22fc3d0ef0434314c2cb293dd4fb743b038882b030bbb4029602f5bdc2e2737"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./docs/top1-demo.svg",
+      "SPDXID": "SPDXRef-File-docs-top1-demo.svg",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "19fc0e6fdd054d8438e53ae9530e21a62854ec8c548d757f369ef47fda0d7392"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./install.sh",
+      "SPDXID": "SPDXRef-File-install.sh",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "b52103529dbf4cf93b25701670ed3649bb728aa91d07ef81f81f0f848fe5423b"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./installers/linux/AgentTrail-Linux-readme.txt",
+      "SPDXID": "SPDXRef-File-installers-linux-AgentTrail-Linux-readme.txt",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "f073d61c210a0d58e061c2c9a00a1de391ae477405367c3eefb64428fdf812a6"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./installers/linux/AppRun",
+      "SPDXID": "SPDXRef-File-installers-linux-AppRun",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "2fcb3eaa86dd0eec9fa134dea387d285b09e12e4435ab8d4669129c5e7fec6ae"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./installers/linux/agenttrail.appdata.xml",
+      "SPDXID": "SPDXRef-File-installers-linux-agenttrail.appdata.xml",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "14060788c3f1ca92b29230b14d252d902cce1fc2784500eb0aa624b7bd753ee1"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./installers/linux/agenttrail.spec",
+      "SPDXID": "SPDXRef-File-installers-linux-agenttrail.spec",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "999b357147c659bcd3c66f50bbd873e642e8990f8ef8280eca2c22e8afe2169d"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./installers/linux/debian/control",
+      "SPDXID": "SPDXRef-File-installers-linux-debian-control",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "91634482c4c5725ab2c8f46a232bbbf1579b237341d31a773a8b33f3143186ef"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./installers/macos/AgentTrail-macOS-readme.txt",
+      "SPDXID": "SPDXRef-File-installers-macos-AgentTrail-macOS-readme.txt",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "142fd3f53b12dfb64df43aa0f39bf43cfbdc061d3db9e766c09c4f0c708791d6"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./installers/windows/AgentTrail-Windows-readme.txt",
+      "SPDXID": "SPDXRef-File-installers-windows-AgentTrail-Windows-readme.txt",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "e3ce93941b4e94a88a070ca39140003015307e5f35a3dc0d04bfe75c717ea675"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./installers/windows/AgentTrail.iss",
+      "SPDXID": "SPDXRef-File-installers-windows-AgentTrail.iss",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "14566d4f877860c29dec15d1e202b07abd0114b013caf07138994df6c09bf026"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./installers/windows/AgentTrail.wxs",
+      "SPDXID": "SPDXRef-File-installers-windows-AgentTrail.wxs",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "a5b4c4903a3b6ee105efb48c42f244341873190d5390288bd750bd3cc84b26f1"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./installers/windows/Sign-Windows.ps1",
+      "SPDXID": "SPDXRef-File-installers-windows-Sign-Windows.ps1",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "ebb1113d11b4b66ccf33c154cccf732940217ded8454a41d169a7df6a908d090"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./marketplace/recipes.json",
+      "SPDXID": "SPDXRef-File-marketplace-recipes.json",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "cb69b918ffd1853bf470f910a7707bf08d92a5ddccade1b8366b6f999ed2b7c7"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./mcp/agenttrail.mcp.json",
+      "SPDXID": "SPDXRef-File-mcp-agenttrail.mcp.json",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "eb416a24ce405b7479509f15a3b3804cd49aa3419ae114d6e953e5b1b3d1d014"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./mcp/server.js",
+      "SPDXID": "SPDXRef-File-mcp-server.js",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "3222b41860802a65930302438fc7036df7e59c89b9b965073a8445c9209d71fa"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./migrations/001-agenttrail-directories.json",
+      "SPDXID": "SPDXRef-File-migrations-001-agenttrail-directories.json",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "8080f8f29ea60631b657f0dddc4546b63537238107f0535f64aa1c4787284bde"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./migrations/002-schema-manifest.json",
+      "SPDXID": "SPDXRef-File-migrations-002-schema-manifest.json",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "8fff7a9efdf23f2b4f3ac112d3f091bb992ae55093186cb43a93ec214e5d041a"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./migrations/003-jsonl-store.json",
+      "SPDXID": "SPDXRef-File-migrations-003-jsonl-store.json",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "7b121ad5fd8e5e3cf00d6d7e9791a73e27a139862ee87df9476fb2f09fa40543"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./migrations/004-sqlite-store.json",
+      "SPDXID": "SPDXRef-File-migrations-004-sqlite-store.json",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "6edc81311fe68b3c15bb97b9f5f6faa21e93954a3b7f1da26f4710c177709556"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./migrations/005-vector-store-versioning.json",
+      "SPDXID": "SPDXRef-File-migrations-005-vector-store-versioning.json",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "ed3bfb9b5a4b31e37ca738631e40ab5d9fa922258a30e71dda9a5da6580e5131"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./package.json",
+      "SPDXID": "SPDXRef-File-package.json",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "0a59f4a3eef4a22d91641c7fed03ae7ddde58159a7ceaa799c0ac0218983473a"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./plugins/README.md",
+      "SPDXID": "SPDXRef-File-plugins-README.md",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "3f6c1a828e0a64bb2373195c8eac8c232be0d08a69cd6c006e117554766c032a"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./plugins/example-tool/plugin.json",
+      "SPDXID": "SPDXRef-File-plugins-example-tool-plugin.json",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "bc09963a8612810d16faa8cdb6d9f84a615cf207ce31f7a1fa2f10910feda797"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./profiles/default.json",
+      "SPDXID": "SPDXRef-File-profiles-default.json",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "100c8b34d95b570ff1e7e9b740b83bbad8f42f7f92ba14d746755833b06b6c34"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./profiles/security-review.json",
+      "SPDXID": "SPDXRef-File-profiles-security-review.json",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "35c0f653b9d2874b87743f48ece6473030cfa87c6cdaa09f57f6f43b905c0c84"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./public/app-icon.png",
+      "SPDXID": "SPDXRef-File-public-app-icon.png",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "ca04db188abf9d64913af3ad6caed87e1662067c76cdea30820d9b2eae6e9119"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./public/app-icon.svg",
+      "SPDXID": "SPDXRef-File-public-app-icon.svg",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "c7473e43d13ab93402876602bc5088557f29c10907e0f1f4c5bdd19d0aa379c1"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./public/app.js",
+      "SPDXID": "SPDXRef-File-public-app.js",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "09fbe3b3d85a107c7fdfbde950a91a3ec193d9387f5df8ce215c0a8d5c25e599"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./public/index.html",
+      "SPDXID": "SPDXRef-File-public-index.html",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "d8f8df5181830f09f00071ce9f814a930dd90fb9a9bd976847b7ea041d049578"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./public/logo.svg",
+      "SPDXID": "SPDXRef-File-public-logo.svg",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "cfa0a2741e2dc138dcd57df368850a8fc0c443127f65e5fbae36d3ae51ede199"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./public/modules/foundation.js",
+      "SPDXID": "SPDXRef-File-public-modules-foundation.js",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "a018f1dd30b49d61951e8268bd813808a187f781815798daca3689212dae24df"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./public/modules/product.js",
+      "SPDXID": "SPDXRef-File-public-modules-product.js",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "c9888a869ce528ee5908961e849de314a6fa30cea3f381035a729863702c0efc"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./public/styles.css",
+      "SPDXID": "SPDXRef-File-public-styles.css",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "30586b0595cad2cf6706ddc65f75b6e1ec8ebf211ea1c6e717f6db2a8c4d6dd3"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./recipe-packs/coder.json",
+      "SPDXID": "SPDXRef-File-recipe-packs-coder.json",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "264e897dac7fba452a33c3a69d2cd67ee8d863ae79e1c6fb415cb0ffc55f23ab"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./recipe-packs/founder.json",
+      "SPDXID": "SPDXRef-File-recipe-packs-founder.json",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "0ea96b1f35c59481240a1217900072518bfda27c0f9e450b9e61fa01fedb3244"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./recipe-packs/security.json",
+      "SPDXID": "SPDXRef-File-recipe-packs-security.json",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "00dd62f14062d608f196a6d3560ed69cc478211a6b96560be09d34566f37bccd"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./recipe-packs/student.json",
+      "SPDXID": "SPDXRef-File-recipe-packs-student.json",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "6e39ecb2aac3378f69bddd3b8680537ea892babba26b218236de1439e907bc30"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./recipe-packs/writer.json",
+      "SPDXID": "SPDXRef-File-recipe-packs-writer.json",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "f88acf5e5a1bd86c688d300d400e7c1974545b92c0d5f266a2d217100f0bb85a"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./recipes/architecture-brief.json",
+      "SPDXID": "SPDXRef-File-recipes-architecture-brief.json",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "00ca353166b3ea01fbe0cc4268bedd3aba172733c5f94897a3d98f78ab5d19ba"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./recipes/audio-transcription.json",
+      "SPDXID": "SPDXRef-File-recipes-audio-transcription.json",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "f4ab5eb79e8d492d37c70662c5785f41e1f9b5dbdddc527d1b87aaef2d0419fd"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./recipes/bug-triage.json",
+      "SPDXID": "SPDXRef-File-recipes-bug-triage.json",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "19dc383b8ad9be708fc82d2948c48da19a0e1a428087e1b554ad23797902e2cd"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./recipes/changelog.json",
+      "SPDXID": "SPDXRef-File-recipes-changelog.json",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "52a7f1f9b8ffcc985fa6fb2d481322413837fb9ca9287467a6c258df267de678"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./recipes/code-review.json",
+      "SPDXID": "SPDXRef-File-recipes-code-review.json",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "aca2e4fe1e76163c9f34de0b116f9b27ce43d1db55a99dfb9bd6749125f9d97f"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./recipes/dependency-audit.json",
+      "SPDXID": "SPDXRef-File-recipes-dependency-audit.json",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "013481e0a9092b110cdae81d2bb11cdae17d65aaed07d73e9b191b13ac48d071"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./recipes/diff-safe-coder.json",
+      "SPDXID": "SPDXRef-File-recipes-diff-safe-coder.json",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "e3dda1afd45e65cb4aa07a37e8bfced7a87a46067c1b59de3c62ac97e66263af"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./recipes/explain-file.json",
+      "SPDXID": "SPDXRef-File-recipes-explain-file.json",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "9353c121738f146d894424b4f1101e9611dda9e7bd9b1c14e91c81c75b49fcad"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./recipes/extract-table-json.json",
+      "SPDXID": "SPDXRef-File-recipes-extract-table-json.json",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "8e48c0496b43b29a74a96d1b70a6c5b0a35bafa811dbca404bc9702e210b9d04"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./recipes/extract-tasks-json.json",
+      "SPDXID": "SPDXRef-File-recipes-extract-tasks-json.json",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "b6e3ad0efcfe12aad1bded1a9480748744b665db362c98e9ee5d9eb5c334aacc"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./recipes/github-star-teardown.json",
+      "SPDXID": "SPDXRef-File-recipes-github-star-teardown.json",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "0f2fb82316da5e054af5f9eb98e6232cc93f5fe3556fd2a5b174eeb86eae980a"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./recipes/launch-readme.json",
+      "SPDXID": "SPDXRef-File-recipes-launch-readme.json",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "5d11d8f78a3b490868edac84a9d3d2f5664c17e69a41cb709dcac08d5af38abd"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./recipes/local-agent-hardening.json",
+      "SPDXID": "SPDXRef-File-recipes-local-agent-hardening.json",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "2c16dc71132ac11e3d5d81eac2aa358bba80a028fa93434908f710d57a92fb59"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./recipes/local-rag-brief.json",
+      "SPDXID": "SPDXRef-File-recipes-local-rag-brief.json",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "46ed07d8803da9c529e1ce7916e76d79e718880b95615a54ea000abccc25f5b3"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./recipes/mcp-readiness-review.json",
+      "SPDXID": "SPDXRef-File-recipes-mcp-readiness-review.json",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "1d612782b6586af6b82187cb34a02e9b60de1015fc873a220ab1d0c9ea923726"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./recipes/meeting-follow-up-email.json",
+      "SPDXID": "SPDXRef-File-recipes-meeting-follow-up-email.json",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "53e9fdf3100477e0bf2cb893b29a77a3cf219e4532c17deffe6275f6651c51ff"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./recipes/meeting-notes.json",
+      "SPDXID": "SPDXRef-File-recipes-meeting-notes.json",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "b566e6697c9c928987d46d6ccbb9893207a851783036fcbdeb2582acf319be6c"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./recipes/prompt-injection-review.json",
+      "SPDXID": "SPDXRef-File-recipes-prompt-injection-review.json",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "04d5bf231dddc5ac2bf8fdbd7f094f4eb5176a0c705ec498a996dee11bdf1a47"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./recipes/readme-polish.json",
+      "SPDXID": "SPDXRef-File-recipes-readme-polish.json",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "5b49475dbd7e6ec0c799a6a18d1e3878a69d654c17c341f4959824c21e7b6b50"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./recipes/receipt-auditor.json",
+      "SPDXID": "SPDXRef-File-recipes-receipt-auditor.json",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "7553c5da9df612cd15b291e704f9af1fee4dcb5f5de5ae5cf13018d346761819"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./recipes/receipt-summary.json",
+      "SPDXID": "SPDXRef-File-recipes-receipt-summary.json",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "5facb2ff90d9eb978efb23f3b28f2f8c9ca179b10552501a6cc1803bf870d6e5"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./recipes/release-notes.json",
+      "SPDXID": "SPDXRef-File-recipes-release-notes.json",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "cec4e263d65ce8bda251ba72e6ad1185d2974df114cbfd5bc3e00ed47b0671fe"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./recipes/schema.json",
+      "SPDXID": "SPDXRef-File-recipes-schema.json",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "9ef37d88ec59b8d78e01d47bc2bcb5a741c33ca990392cd900923a7692c419cb"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./recipes/test-plan.json",
+      "SPDXID": "SPDXRef-File-recipes-test-plan.json",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "c0952fa2cb491b9adaa54d8c28f151cfa3ebb5a1e56397f9b1faa1fe122cbb0f"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./recipes/threat-model.json",
+      "SPDXID": "SPDXRef-File-recipes-threat-model.json",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "7a9bd3b67f4bc90d71922067f9b439b6440f1b3d0807949392d46a76149d75ae"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./recipes/user-docs.json",
+      "SPDXID": "SPDXRef-File-recipes-user-docs.json",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "20d2d603462b4a2c0512ec47e74ea14d42bca85a1a222eb80306fc36dedc41cc"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./recipes/workspace-brief.json",
+      "SPDXID": "SPDXRef-File-recipes-workspace-brief.json",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "cc68d912653426aa5d1c994fb73a9e6bab4fd25b6d94bfb9017f1a3b8a970a32"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./scripts/benchmark-runtime.js",
+      "SPDXID": "SPDXRef-File-scripts-benchmark-runtime.js",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "58498ff3aff610f44b7a636659c5430c06638cc6b05e8fbe0b97b4ae13f29139"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./scripts/benchmark-search.js",
+      "SPDXID": "SPDXRef-File-scripts-benchmark-search.js",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "b7e6ecafbbbc615d7a9859580e0d941632d19ac30f4aaa804cc798310157407e"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./scripts/eval-search.js",
+      "SPDXID": "SPDXRef-File-scripts-eval-search.js",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "1bf9e1238356fa136be845e8e45c0e34e24a10b427891f016db2be03f50744ca"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./scripts/evaluate-agenttrail.js",
+      "SPDXID": "SPDXRef-File-scripts-evaluate-agenttrail.js",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "45c84224c2b3cf333489f763bc5dfe6a1ef60de125171f3c05a96b1cad6a8ec1"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./scripts/generate-demo-gif.js",
+      "SPDXID": "SPDXRef-File-scripts-generate-demo-gif.js",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "f9dd3144a01fe4fb68f14f841bfad060038252c262454d251fd4ff6ef6784e88"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./scripts/generate-demo-screenshots.js",
+      "SPDXID": "SPDXRef-File-scripts-generate-demo-screenshots.js",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "2f0a72aeaac33d86370a140b3b81f713ca21c4714e140d8e46f12161303b37ee"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./scripts/generate-release-checksums.js",
+      "SPDXID": "SPDXRef-File-scripts-generate-release-checksums.js",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "e45cbde6ed25d52dac6b588162e5cb0ef80f8c76addcc31c94e8a4bae5ab66fe"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./scripts/generate-sbom.js",
+      "SPDXID": "SPDXRef-File-scripts-generate-sbom.js",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "3186c31d2922432ce9bde3f55cdff705585c0b23e1470df7794fc606e36ff28d"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./scripts/load-test.js",
+      "SPDXID": "SPDXRef-File-scripts-load-test.js",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "e3e73817b29d38f7a3ebbce29fabf4b41fcb1aea0fdeecc20ae6d250cd9abd26"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./scripts/package-desktop.js",
+      "SPDXID": "SPDXRef-File-scripts-package-desktop.js",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "cf20bb747302a0a0465d2d1e4163d91f9fa174fb6f91e28aeffe76848bca329c"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./scripts/package-linux.js",
+      "SPDXID": "SPDXRef-File-scripts-package-linux.js",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "df44d0a3ff730d9b1f8130de7059085b43f94447fc4c76ab2741a12035b94e3e"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./scripts/package-mac-app.js",
+      "SPDXID": "SPDXRef-File-scripts-package-mac-app.js",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "df4ab7d46d6e495d9ecd4f704ef2fd4784cd6d0ab7f4de6007e265f54e39aea6"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./scripts/record-demo.js",
+      "SPDXID": "SPDXRef-File-scripts-record-demo.js",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "2c0144392b5f5ac920be523206570bd1268c3faab66d407cdab011a68d6a791a"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./scripts/reproducible-build.js",
+      "SPDXID": "SPDXRef-File-scripts-reproducible-build.js",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "cff237368beec75afe9ba2a220c6aa7cdac4fe11f294de23c92884c9afafe885"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./scripts/sign-checksums.js",
+      "SPDXID": "SPDXRef-File-scripts-sign-checksums.js",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "a07fa7ade36a0e45ba52c89eb29a1c60cca31d02add10ab73528d300623fb75c"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./scripts/sign-mac-app.js",
+      "SPDXID": "SPDXRef-File-scripts-sign-mac-app.js",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "a06576c51ffbc1c71ce6a42cf3271fbffb2b82d9b8ef3cdcae0974b4c2f63f29"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./scripts/sign-windows.js",
+      "SPDXID": "SPDXRef-File-scripts-sign-windows.js",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "7618924f200b472c3ccbb292241d10ae56e0b3ddc89828d8830e0732c6bc75eb"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./scripts/smoke-test.js",
+      "SPDXID": "SPDXRef-File-scripts-smoke-test.js",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "3ceb6ce16759f47a5af62baf1fdb6e0805ff8336c2a184356b72fdcfcf32500f"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./scripts/update-homebrew-formula.js",
+      "SPDXID": "SPDXRef-File-scripts-update-homebrew-formula.js",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "fe221ae042dc8df2f25b7890dd1e7237a601d1b97227a01241d31e5c608d4789"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./scripts/verify-checksums.js",
+      "SPDXID": "SPDXRef-File-scripts-verify-checksums.js",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "64e0b63817886e6224ae843f98541d8c4ca991bcd9e427819506932816e96179"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./server.js",
+      "SPDXID": "SPDXRef-File-server.js",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "37d106952f9a8cec7d3d319e97fd53b48006c2d329e577b55384847e0848253b"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./src/audio-transcription.js",
+      "SPDXID": "SPDXRef-File-src-audio-transcription.js",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "971582041028c165a809f27a4a40c929b0ae289634f588f8ceaa7bdb2ff4134c"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./src/bundled-runtime.js",
+      "SPDXID": "SPDXRef-File-src-bundled-runtime.js",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "baeed538ca49f3d4051f86573ef57afa33307ab575d1fe978ef485fae255e1fe"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./src/cli.js",
+      "SPDXID": "SPDXRef-File-src-cli.js",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "459bc8845833b3d55d01e3b9ee64cc59998ef66490f3265189201cb6c6a0020c"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./src/config.js",
+      "SPDXID": "SPDXRef-File-src-config.js",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "b2f5bdc576fb463d41fd01b634aa5577271e64b5809c489f138ca7cb44f147ec"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./src/desktop-notifications.js",
+      "SPDXID": "SPDXRef-File-src-desktop-notifications.js",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "e4c2cb388efd9c55127304684a001b10d392c9eae20b44d943d2c136203db777"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./src/document-ingestion.js",
+      "SPDXID": "SPDXRef-File-src-document-ingestion.js",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "2e53a023d81db1ca28589c09af3bcac07e9afc1d402fdece3e39bb61e15f5a00"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./src/features/errors.js",
+      "SPDXID": "SPDXRef-File-src-features-errors.js",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "ba7e3ab42f56901ec68603d454137afd955c11cbd8e3fcdaefee9f1b249c0fff"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./src/features/redact.js",
+      "SPDXID": "SPDXRef-File-src-features-redact.js",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "71c6687484cb88db20cbfab42181c747660ee9229633178167f55804f2f35ced"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./src/features/search.js",
+      "SPDXID": "SPDXRef-File-src-features-search.js",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "46b0174f31faa441b2d80abdc8f68b8d86c4adc88824e70a595b076d3c58f31b"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./src/features/security.js",
+      "SPDXID": "SPDXRef-File-src-features-security.js",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "4402b0a95cd294992d0484ca776cd75c9035e15ff24c06d8c4ac2eef2753e909"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./src/file-watcher.js",
+      "SPDXID": "SPDXRef-File-src-file-watcher.js",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "a28b505a7d6a1650603b6eea787f50d2ecf0e669df061e4ba9618d1b3044fcda"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./src/foundation.js",
+      "SPDXID": "SPDXRef-File-src-foundation.js",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "f595b77e0e9cdcc41977e19069470a288b0352036cd8ee5c3f972eba65b7ba65"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./src/image-generation.js",
+      "SPDXID": "SPDXRef-File-src-image-generation.js",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "a3326932be502763590313b93b2a31ac6a975cce3a9a3f124128118766df79a6"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./src/jobs.js",
+      "SPDXID": "SPDXRef-File-src-jobs.js",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "99bb6ef126d91d09626920b745d33ebe0792fcebfaf565db121ecbf382577b33"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./src/json-store.js",
+      "SPDXID": "SPDXRef-File-src-json-store.js",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "a62fafb8b9194112176cdcd9587aff481bac1bb121ff5239a44d43c3e00e90e3"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./src/logger.js",
+      "SPDXID": "SPDXRef-File-src-logger.js",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "e97ad23adaacf979aef03d68966634eebd51e9f4acf88e27eb5d2ecec50fecc5"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./src/migrations.js",
+      "SPDXID": "SPDXRef-File-src-migrations.js",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "800b5337b5025d6777fa168a06869df2f913a36c34a8b1a638302661af5a595c"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./src/model-adapters.js",
+      "SPDXID": "SPDXRef-File-src-model-adapters.js",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "e5ee9c4a21e58cc8c460216fa31c0e028b0d37175db1fe5b3f98f8c2978d284f"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./src/model-registry.js",
+      "SPDXID": "SPDXRef-File-src-model-registry.js",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "c6c3a7afe888f7b7c5f41325be883b920750b757baad60ce69ab111a2a0e7858"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./src/permissions.js",
+      "SPDXID": "SPDXRef-File-src-permissions.js",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "e222ef0d385b25f5d50338ddda4f54c05d18d70ddbc83d4ed1aa390afb6999d7"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./src/plugin-loader.js",
+      "SPDXID": "SPDXRef-File-src-plugin-loader.js",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "fd60a0acaa2fbab993162891b1a5f4a842c48eaed21e0ffe436cc9ffa7b06922"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./src/plugin-sandbox.js",
+      "SPDXID": "SPDXRef-File-src-plugin-sandbox.js",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "634b70345d3522c0fe8a6ced10b46500098f25ba36e306dfb219bce91b9a8f37"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./src/release.js",
+      "SPDXID": "SPDXRef-File-src-release.js",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "76676668a6fabc633eaaa38c8a9437c7c356c16a233f8393dd5b93268682b7b1"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./src/route-catalog.js",
+      "SPDXID": "SPDXRef-File-src-route-catalog.js",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "0b2bb8a81e9ee1ad81bb8f6627fdb816f12fe76b1e329023930c7ca6b282d416"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./src/runtime-hardware.js",
+      "SPDXID": "SPDXRef-File-src-runtime-hardware.js",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "038d962708ba6a998fa8e8f61bfd3b42d72ccf896a0200c24fde50c3b2164fda"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./src/runtime-loading.js",
+      "SPDXID": "SPDXRef-File-src-runtime-loading.js",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "29ffa343c671223e0dd2cf23a711624ca9a0aff02e1f9a7cf68ff6f50d41220a"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./src/schemas.js",
+      "SPDXID": "SPDXRef-File-src-schemas.js",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "652ccb9e538e9a52054098396e136dbd22e12571352d2c600915445fd7d497c8"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./src/sqlite-store.js",
+      "SPDXID": "SPDXRef-File-src-sqlite-store.js",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "2af96cc7ad915bc3bfca112d37108a20f0726668525e9c581bf9eab8d6988028"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./src/structured-output.js",
+      "SPDXID": "SPDXRef-File-src-structured-output.js",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "4eb32934984f04104dcd1e8f88921232cce2815f844b81eac6bcefae705544b5"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./src/tool-schemas.js",
+      "SPDXID": "SPDXRef-File-src-tool-schemas.js",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "a35a48627dcc36163e77d1809670dd2aa6930763d4fbe33f048338076b9ad595"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./src/vector-store.js",
+      "SPDXID": "SPDXRef-File-src-vector-store.js",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "66b6388491158aaa6fba124d9e9427cc990bb47f90f2f7f4dbef42be9f345332"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./tests/fixtures/mock-bundled-runtime.js",
+      "SPDXID": "SPDXRef-File-tests-fixtures-mock-bundled-runtime.js",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "00aff04e42a0ba20923a054ba142bca0c6c2c1c05e4022d45aaaefdaae29aae0"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./tests/fixtures/mock-ocr.js",
+      "SPDXID": "SPDXRef-File-tests-fixtures-mock-ocr.js",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "451d7050a67c2c4450952faf4e8af7b56d85da7ab5e71fed7d034be305d9bf2f"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./tests/fixtures/mock-transcribe.js",
+      "SPDXID": "SPDXRef-File-tests-fixtures-mock-transcribe.js",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "f968189c61d93518fbc867a6e2c6d947608bcacf9d88c672f4dab54dcd81b429"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./tests/fixtures/mock-tts.js",
+      "SPDXID": "SPDXRef-File-tests-fixtures-mock-tts.js",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "2abb0d722a8d1d332addd765abc64a9f68c24d8d2e233d56aae8bae5f04990a8"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./tests/helpers/document-fixtures.js",
+      "SPDXID": "SPDXRef-File-tests-helpers-document-fixtures.js",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "14089b4242b4dfe6c031ac14f9d844a93d411d2fe50ccd4374ae4fe1716e8d76"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./tests/integration/agent-plan.test.js",
+      "SPDXID": "SPDXRef-File-tests-integration-agent-plan.test.js",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "c4ea64c5742b73388b0b80f95a71d240c86f3b87d06634ade4e5c49437d323ea"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./tests/integration/api.test.js",
+      "SPDXID": "SPDXRef-File-tests-integration-api.test.js",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "5a68c3dc3c41e35e377f93eb65c64033bd75b87b1eafaf772c1ba6df0cbcf63f"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./tests/integration/audio-transcription.test.js",
+      "SPDXID": "SPDXRef-File-tests-integration-audio-transcription.test.js",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "4fa7e34ed3a09f4145a333d9f27b2e9b0bac29e4fa5ebb4498983c7940c968e4"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./tests/integration/bundled-runtime.test.js",
+      "SPDXID": "SPDXRef-File-tests-integration-bundled-runtime.test.js",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "56d47ebd6c6e0b5a06c7521b3cc2d58e2228d12f1b465510b1407deec5af1ad6"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./tests/integration/cli.test.js",
+      "SPDXID": "SPDXRef-File-tests-integration-cli.test.js",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "7913125250b09d38b35f37592f74358703ec40d7fa0622a2b96436d88e26cf36"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./tests/integration/concurrency.test.js",
+      "SPDXID": "SPDXRef-File-tests-integration-concurrency.test.js",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "757a80fbc470ed3ff9d267dcf964187b9eba2e9bb45165fcb8a4b541ff4aa55d"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./tests/integration/embedding-cache.test.js",
+      "SPDXID": "SPDXRef-File-tests-integration-embedding-cache.test.js",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "d3633e010ee4947c1d3425ecb1ec621bbfb9a268453e97e7006218d5ca893d61"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./tests/integration/health.test.js",
+      "SPDXID": "SPDXRef-File-tests-integration-health.test.js",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "870a66899e9e34050494ae84677d3e4e526fe88b7007c0a4f7f7cc1a7124c332"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./tests/integration/image-generation.test.js",
+      "SPDXID": "SPDXRef-File-tests-integration-image-generation.test.js",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "eff2cfc321a3ba2898bd38fc4e499ada63c859d604daf066a254d310b5d24bc4"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./tests/integration/memory-history.test.js",
+      "SPDXID": "SPDXRef-File-tests-integration-memory-history.test.js",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "ad2198ae7b339cf61cc00e0894de42aa837b94fbc2d1c269f6b07a4f00c9c802"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./tests/integration/memory-retrieval.test.js",
+      "SPDXID": "SPDXRef-File-tests-integration-memory-retrieval.test.js",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "74429efb16c71c39b12cffb73985170a6d5f0db76dfdc76975ac3404cf2e3475"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./tests/integration/memory-scopes.test.js",
+      "SPDXID": "SPDXRef-File-tests-integration-memory-scopes.test.js",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "af0206bee6e06cb5c60359e04a845b6a76798f52f09d5d818005967f216c6faa"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./tests/integration/memory-structured.test.js",
+      "SPDXID": "SPDXRef-File-tests-integration-memory-structured.test.js",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "c824917b395a712fc9fee0f8fa88dbc437c176173e8f550314b10114e22b6015"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./tests/integration/memory-suggestions.test.js",
+      "SPDXID": "SPDXRef-File-tests-integration-memory-suggestions.test.js",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "f91e4c87b7645170884842ec542c84589274417ead2ca2a8b02d36c9da54c15c"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./tests/integration/model-management.test.js",
+      "SPDXID": "SPDXRef-File-tests-integration-model-management.test.js",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "216415e4da845a21eba518dc1cc60f56723b2da6a01649a12838c3e32dab9ea9"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./tests/integration/model-options.test.js",
+      "SPDXID": "SPDXRef-File-tests-integration-model-options.test.js",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "55f4dd5e9c8addd170e76335cf1f0f68e4dad50e7b0bdb6ba171eb0db7748df2"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./tests/integration/model-registry.test.js",
+      "SPDXID": "SPDXRef-File-tests-integration-model-registry.test.js",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "4f65fe27825ef6d964c982d0a58f6bf3730dcb88363c898e15f97776da48e7fc"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./tests/integration/multi-tool-calls.test.js",
+      "SPDXID": "SPDXRef-File-tests-integration-multi-tool-calls.test.js",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "9ff005f7dfa1bde4034b2814848fda115b205b334485af151460eaae52d3785d"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./tests/integration/native-tool-calling.test.js",
+      "SPDXID": "SPDXRef-File-tests-integration-native-tool-calling.test.js",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "9bd773c6c93fe2073f7412454298182102bf7555d6436710ae16f1f708eff6bd"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./tests/integration/ollama-native-tools.test.js",
+      "SPDXID": "SPDXRef-File-tests-integration-ollama-native-tools.test.js",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "00bc4be6be6c0c38d70d4b897d830c132c418776dba853a3149f428eda35dce0"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./tests/integration/openai-backend.test.js",
+      "SPDXID": "SPDXRef-File-tests-integration-openai-backend.test.js",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "8289c11ce6f08edbc912c5dc430ed151f9da1aebf2616e4f4759817bfff349fa"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./tests/integration/openai-compatible-server.test.js",
+      "SPDXID": "SPDXRef-File-tests-integration-openai-compatible-server.test.js",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "4005002326dc149aa8db9290a8cccfb4fd729d82d9c22787bd8d23a9c6aacea8"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./tests/integration/reflection-loop.test.js",
+      "SPDXID": "SPDXRef-File-tests-integration-reflection-loop.test.js",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "17517abf7ab7d263c9fc0ff77ed2726ab3f42dfb3bf9238612c160c27691259f"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./tests/integration/resources.test.js",
+      "SPDXID": "SPDXRef-File-tests-integration-resources.test.js",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "ffafb338aad4f4140659098339c038fe507575b4a833e136c01b4b76292ddc56"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./tests/integration/resumable-run.test.js",
+      "SPDXID": "SPDXRef-File-tests-integration-resumable-run.test.js",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "660ad8a07d25d899bf3bdc7ac8504ae462e4d6f51b66f3ed1ca4913c94df752b"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./tests/integration/run-guardrails.test.js",
+      "SPDXID": "SPDXRef-File-tests-integration-run-guardrails.test.js",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "2b14df2f566983704de2583715d648e91daf053ce4d315ac826889fd0beb23c2"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./tests/integration/search-incremental.test.js",
+      "SPDXID": "SPDXRef-File-tests-integration-search-incremental.test.js",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "560a41b2396aa1f2a2869cfa066de2a662b9fc152e36f281c872e3fccfacff00"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./tests/integration/structured-output.test.js",
+      "SPDXID": "SPDXRef-File-tests-integration-structured-output.test.js",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "8b2bbda16bb493323f7a7d91ee4f3b90810d33d87b740df2a4215e9ea8c46b01"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./tests/integration/tool-repair.test.js",
+      "SPDXID": "SPDXRef-File-tests-integration-tool-repair.test.js",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "e9ce235e5c3d87cfb61162c919b85e2816068fff1c9f23077ef17743b4611d43"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./tests/integration/vision-input.test.js",
+      "SPDXID": "SPDXRef-File-tests-integration-vision-input.test.js",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "26e6538650d86d1b26b3fb2d05a6dd780848a8d911f10e4fd5db444ca2cf6050"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./tests/ui/playwright-smoke.test.js",
+      "SPDXID": "SPDXRef-File-tests-ui-playwright-smoke.test.js",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "6dee260465be8934896a32669be3f803c8f4d3c6804e25972903c90a8f9bb265"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./tests/unit/audio-transcription.test.js",
+      "SPDXID": "SPDXRef-File-tests-unit-audio-transcription.test.js",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "9e9c87dae05b1cde65b478365c2976e83840eedf21ad190233c1430d037d3319"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./tests/unit/desktop-distribution.test.js",
+      "SPDXID": "SPDXRef-File-tests-unit-desktop-distribution.test.js",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "ac79dcc1c404f3c70765ae74a904c66a4b6093f46eef7f49d4102b196e4c629a"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./tests/unit/foundation.test.js",
+      "SPDXID": "SPDXRef-File-tests-unit-foundation.test.js",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "b26859441dbab130b79397730b4e3508b640cc1574b8b642ef1771952d788894"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./tests/unit/image-generation.test.js",
+      "SPDXID": "SPDXRef-File-tests-unit-image-generation.test.js",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "097cb99d101375c55f5a5881523e26a59b3491a358c0e6b58669462e0a7aa761"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./tests/unit/model-registry.test.js",
+      "SPDXID": "SPDXRef-File-tests-unit-model-registry.test.js",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "e2b0ea6efef265e5cefc0ac761397e2b238e277cb4f8ed56f33f2c45ab685523"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./tests/unit/pdf-extraction.test.js",
+      "SPDXID": "SPDXRef-File-tests-unit-pdf-extraction.test.js",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "a3e7170527eb9f4261e6140dd41e94cf7d62d127836ac8c408abcb085543d0fb"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./tests/unit/redact.test.js",
+      "SPDXID": "SPDXRef-File-tests-unit-redact.test.js",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "bbce1b1ca0705d30527a4df08d39890b2c82685f32bdcc9ad5bae5b9bcc6151d"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./tests/unit/rerank.test.js",
+      "SPDXID": "SPDXRef-File-tests-unit-rerank.test.js",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "af96db91abad4032b1a0c6d48609bdede1c7f433fc6d8c0c2c01640012d9c02f"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./tests/unit/runtime-hardware.test.js",
+      "SPDXID": "SPDXRef-File-tests-unit-runtime-hardware.test.js",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "fdac4fce676651aa2aa98436c749c8a7087dadac296999de084247311a418af9"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./tests/unit/runtime-loading.test.js",
+      "SPDXID": "SPDXRef-File-tests-unit-runtime-loading.test.js",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "deed5fdc0b9f17d424129455c06939bbdefc9993e12374e9334a2186f8662f61"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./tests/unit/search-chunking.test.js",
+      "SPDXID": "SPDXRef-File-tests-unit-search-chunking.test.js",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "0ecc66d8e97f9918b0995da30e4c7f4a74ac7b5182abd12dbaa8901df9e28dfd"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./tests/unit/supply-chain.test.js",
+      "SPDXID": "SPDXRef-File-tests-unit-supply-chain.test.js",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "bfb1d7b011ae41a79c6b86110d5200fd2a7ddd903ffa10bfa4fb0d6359b041fe"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./workspace/welcome.md",
+      "SPDXID": "SPDXRef-File-workspace-welcome.md",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "7e5622330053ac856ec156c1e969912c11c6b6ecdca056649ffd7d4f17181393"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    }
+  ],
+  "relationships": [
+    {
+      "spdxElementId": "SPDXRef-DOCUMENT",
+      "relationshipType": "DESCRIBES",
+      "relatedSpdxElement": "SPDXRef-Package-AgentTrail"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-Dockerfile"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-LICENSE"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-README.md"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-bin-agenttrail-chat.js"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-bin-agenttrail.js"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-desktop-README.md"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-desktop-linux-agenttrail-tray.sh"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-desktop-linux-agenttrail.desktop"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-desktop-mac-AgentTrail.command"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-desktop-mac-AgentTrailMenuBar.swift"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-desktop-windows-AgentTrail-Tray.ps1"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-desktop-windows-AgentTrail.cmd"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-docs-CLI.md"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-docs-COMMUNITY-GROWTH.md"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-docs-DESKTOP-DISTRIBUTION.md"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-docs-ELITE-UPGRADE-PLAN.md"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-docs-FOUNDATION-ROUTES.md"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-docs-GROWTH-RESEARCH.md"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-docs-INTEGRATIONS.md"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-docs-LAUNCH-PLAN.md"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-docs-LAUNCH-POSTS.md"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-docs-LAUNCH-POST-v0.7.md"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-docs-LOCAL-AGENT-LAYER-ROADMAP.md"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-docs-MAC-APP.md"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-docs-MODELS.md"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-docs-MODEL-BACKENDS.md"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-docs-NEXT-PLAN-v0.8.md"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-docs-NPM-PUBLISH.md"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-docs-OLLAMA-GAP-ANALYSIS.md"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-docs-OPENAI-COMPATIBLE-API.md"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-docs-POSITIONING.md"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-docs-RECEIPT-SPEC.md"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-docs-RELEASE-NOTES-v0.2.0.md"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-docs-RELEASE-NOTES-v0.3.0.md"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-docs-RELEASE-NOTES-v0.3.1.md"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-docs-RELEASE-NOTES-v0.4.0.md"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-docs-RELEASE-NOTES-v0.5.0.md"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-docs-RELEASE-NOTES-v0.6.0.md"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-docs-RELEASE-NOTES-v0.7.0.md"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-docs-RELEASE-SIGNING.md"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-docs-ROADMAP.md"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-docs-RUNTIME-PHASE6.md"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-docs-SCHEMAS.md"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-docs-SECURITY-CHECKLIST.md"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-docs-SECURITY-POSTURE.md"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-docs-SUPPLY-CHAIN.md"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-docs-TOP-1-PERCENT-IMPLEMENTATION.md"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-docs-TOP-1-PERCENT-PLAYBOOK.md"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-docs-TROUBLESHOOTING.md"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-docs-agenttrail-demo.gif"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-docs-demo-video-README.md"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-docs-demo-video-storyboard.json"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-docs-demo.html"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-docs-mcp-CLIENT-SETUP.md"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-docs-openapi-agenttrail-v1-openapi.json"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-docs-preview-app.png"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-docs-preview-diff.png"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-docs-public-demo.html"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-docs-screenshots-dashboard.svg"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-docs-screenshots-diff-review.svg"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-docs-screenshots-foundation.svg"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-docs-screenshots-semantic-search.svg"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-docs-social-preview.html"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-docs-social-preview.png"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-docs-top1-demo.svg"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-install.sh"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-installers-linux-AgentTrail-Linux-readme.txt"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-installers-linux-AppRun"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-installers-linux-agenttrail.appdata.xml"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-installers-linux-agenttrail.spec"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-installers-linux-debian-control"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-installers-macos-AgentTrail-macOS-readme.txt"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-installers-windows-AgentTrail-Windows-readme.txt"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-installers-windows-AgentTrail.iss"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-installers-windows-AgentTrail.wxs"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-installers-windows-Sign-Windows.ps1"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-marketplace-recipes.json"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-mcp-agenttrail.mcp.json"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-mcp-server.js"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-migrations-001-agenttrail-directories.json"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-migrations-002-schema-manifest.json"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-migrations-003-jsonl-store.json"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-migrations-004-sqlite-store.json"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-migrations-005-vector-store-versioning.json"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-package.json"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-plugins-README.md"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-plugins-example-tool-plugin.json"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-profiles-default.json"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-profiles-security-review.json"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-public-app-icon.png"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-public-app-icon.svg"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-public-app.js"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-public-index.html"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-public-logo.svg"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-public-modules-foundation.js"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-public-modules-product.js"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-public-styles.css"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-recipe-packs-coder.json"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-recipe-packs-founder.json"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-recipe-packs-security.json"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-recipe-packs-student.json"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-recipe-packs-writer.json"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-recipes-architecture-brief.json"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-recipes-audio-transcription.json"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-recipes-bug-triage.json"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-recipes-changelog.json"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-recipes-code-review.json"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-recipes-dependency-audit.json"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-recipes-diff-safe-coder.json"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-recipes-explain-file.json"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-recipes-extract-table-json.json"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-recipes-extract-tasks-json.json"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-recipes-github-star-teardown.json"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-recipes-launch-readme.json"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-recipes-local-agent-hardening.json"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-recipes-local-rag-brief.json"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-recipes-mcp-readiness-review.json"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-recipes-meeting-follow-up-email.json"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-recipes-meeting-notes.json"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-recipes-prompt-injection-review.json"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-recipes-readme-polish.json"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-recipes-receipt-auditor.json"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-recipes-receipt-summary.json"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-recipes-release-notes.json"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-recipes-schema.json"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-recipes-test-plan.json"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-recipes-threat-model.json"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-recipes-user-docs.json"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-recipes-workspace-brief.json"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-scripts-benchmark-runtime.js"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-scripts-benchmark-search.js"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-scripts-eval-search.js"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-scripts-evaluate-agenttrail.js"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-scripts-generate-demo-gif.js"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-scripts-generate-demo-screenshots.js"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-scripts-generate-release-checksums.js"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-scripts-generate-sbom.js"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-scripts-load-test.js"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-scripts-package-desktop.js"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-scripts-package-linux.js"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-scripts-package-mac-app.js"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-scripts-record-demo.js"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-scripts-reproducible-build.js"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-scripts-sign-checksums.js"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-scripts-sign-mac-app.js"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-scripts-sign-windows.js"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-scripts-smoke-test.js"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-scripts-update-homebrew-formula.js"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-scripts-verify-checksums.js"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-server.js"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-src-audio-transcription.js"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-src-bundled-runtime.js"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-src-cli.js"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-src-config.js"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-src-desktop-notifications.js"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-src-document-ingestion.js"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-src-features-errors.js"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-src-features-redact.js"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-src-features-search.js"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-src-features-security.js"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-src-file-watcher.js"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-src-foundation.js"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-src-image-generation.js"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-src-jobs.js"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-src-json-store.js"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-src-logger.js"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-src-migrations.js"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-src-model-adapters.js"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-src-model-registry.js"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-src-permissions.js"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-src-plugin-loader.js"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-src-plugin-sandbox.js"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-src-release.js"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-src-route-catalog.js"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-src-runtime-hardware.js"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-src-runtime-loading.js"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-src-schemas.js"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-src-sqlite-store.js"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-src-structured-output.js"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-src-tool-schemas.js"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-src-vector-store.js"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-tests-fixtures-mock-bundled-runtime.js"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-tests-fixtures-mock-ocr.js"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-tests-fixtures-mock-transcribe.js"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-tests-fixtures-mock-tts.js"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-tests-helpers-document-fixtures.js"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-tests-integration-agent-plan.test.js"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-tests-integration-api.test.js"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-tests-integration-audio-transcription.test.js"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-tests-integration-bundled-runtime.test.js"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-tests-integration-cli.test.js"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-tests-integration-concurrency.test.js"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-tests-integration-embedding-cache.test.js"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-tests-integration-health.test.js"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-tests-integration-image-generation.test.js"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-tests-integration-memory-history.test.js"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-tests-integration-memory-retrieval.test.js"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-tests-integration-memory-scopes.test.js"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-tests-integration-memory-structured.test.js"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-tests-integration-memory-suggestions.test.js"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-tests-integration-model-management.test.js"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-tests-integration-model-options.test.js"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-tests-integration-model-registry.test.js"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-tests-integration-multi-tool-calls.test.js"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-tests-integration-native-tool-calling.test.js"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-tests-integration-ollama-native-tools.test.js"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-tests-integration-openai-backend.test.js"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-tests-integration-openai-compatible-server.test.js"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-tests-integration-reflection-loop.test.js"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-tests-integration-resources.test.js"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-tests-integration-resumable-run.test.js"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-tests-integration-run-guardrails.test.js"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-tests-integration-search-incremental.test.js"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-tests-integration-structured-output.test.js"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-tests-integration-tool-repair.test.js"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-tests-integration-vision-input.test.js"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-tests-ui-playwright-smoke.test.js"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-tests-unit-audio-transcription.test.js"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-tests-unit-desktop-distribution.test.js"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-tests-unit-foundation.test.js"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-tests-unit-image-generation.test.js"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-tests-unit-model-registry.test.js"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-tests-unit-pdf-extraction.test.js"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-tests-unit-redact.test.js"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-tests-unit-rerank.test.js"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-tests-unit-runtime-hardware.test.js"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-tests-unit-runtime-loading.test.js"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-tests-unit-search-chunking.test.js"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-tests-unit-supply-chain.test.js"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-workspace-welcome.md"
+    }
+  ]
+}

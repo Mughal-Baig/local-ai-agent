@@ -9,6 +9,10 @@ on:
     tags:
       - "v*"
 
+permissions:
+  contents: read
+  id-token: write
+
 jobs:
   artifacts:
     runs-on: ubuntu-latest
@@ -18,9 +22,25 @@ jobs:
         with:
           node-version: 22
       - run: npm run test:unit
+      - run: npm run test:supply-chain
       - run: npm test
       - run: npm run eval
+      - run: npm run release:sbom
+      - run: npm run release:homebrew
+      - run: mkdir -p dist/npm
+      - run: npm pack --json --pack-destination dist/npm
+      - run: npm run release:reproducible
       - run: npm run release:checksums
+      - run: npm run release:verify-checksums
+      - name: Sign checksums or dry-run signing plan
+        env:
+          AGENTTRAIL_CHECKSUM_SIGNING_PRIVATE_KEY: ${{ secrets.AGENTTRAIL_CHECKSUM_SIGNING_PRIVATE_KEY }}
+        run: |
+          if [ -n "$AGENTTRAIL_CHECKSUM_SIGNING_PRIVATE_KEY" ]; then
+            npm run release:sign-checksums
+          else
+            npm run release:sign-checksums -- --dry-run
+          fi
       - run: npm run package:desktop
       - run: npm run package:mac-app
       - run: npm run package:linux
@@ -31,6 +51,10 @@ jobs:
           name: agenttrail-release-artifacts
           path: |
             docs/checksums/
+            docs/sbom/
+            dist/npm/
+            dist/reproducible/
             dist/mac/
+            Formula/agenttrail.rb
             installers/
             updates/
