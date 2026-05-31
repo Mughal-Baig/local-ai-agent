@@ -89,6 +89,7 @@ async function main() {
   checks.push(await check("Local text-to-speech exists", async () => includes("server.js", ["/api/audio/speak", "runLocalTextToSpeech", "AGENTTRAIL_TTS_COMMAND"]) && includes("public/app.js", ["speakAssistantMessage", "/api/audio/speak"]) && includes("tests/fixtures/mock-tts.js", ["FAKEAIFF"])));
   checks.push(await check("Audio transcription recipe exists", async () => includes("recipes/audio-transcription.json", ["audio-transcription", "audio-transcribe"]) && includes("public/app.js", ["runAudioTranscriptionRecipe"]) && includes("recipe-packs/student.json", ["audio-transcription"])));
   checks.push(await check("Local image generation exists", async () => includes("src/image-generation.js", ["buildImageGenerationPayload", "parseGeneratedImages", "Image Generation Provenance"]) && includes("server.js", ["/api/images/generate", "runLocalImageGeneration", "AGENTTRAIL_IMAGE_HOST"]) && includes("tests/integration/image-generation.test.js", ["sdapi/v1/txt2img", "Image generation integration test passed"])));
+  checks.push(await check("OpenAI-compatible served API exists", async () => includes("server.js", ["/v1/chat/completions", "handleV1ChatCompletions", "writeOpenAIStreamChunk", "AGENTTRAIL_V1_RATE_LIMIT_PER_MINUTE", "V1_REQUEST_QUEUE"]) && includes("docs/openapi/agenttrail-v1-openapi.json", ["/v1/chat/completions", "/v1/embeddings", "bearerAuth"]) && includes("docs/OPENAI_COMPATIBLE_API.md", ["AGENTTRAIL_V1_API_KEY", "Queue And Rate Controls"]) && includes("tests/integration/openai-compatible-server.test.js", ["queue_full", "rate_limit_exceeded", "chat\\.completion\\.chunk"])));
   checks.push(await check("Vision model image input exists", async () => includes("server.js", ["collectVisionImages", "openAIUserMessage", "ollamaUserMessage", "Vision image context"]) && includes("tests/integration/vision-input.test.js", ["image_url", "vision backend saw image"])));
   checks.push(await check("Allowlisted URL ingestion exists", async () => includes("server.js", ["/api/documents/ingest-url", "handleUrlIngest", "normalizeUrlAllowlist", "fetchAllowedDocumentUrl"])));
   checks.push(await check("Ingestion progress receipts exist", async () => includes("server.js", ["writeIngestionReceipt", "AgentTrail Ingestion Receipt", "ingestionProgressStep", "ingestion-receipt"])));
@@ -132,6 +133,10 @@ async function main() {
 
   const passed = checks.filter((item) => item.ok).length;
   const score = Math.round((passed / checks.length) * 100);
+  const failed = checks.filter((item) => !item.ok);
+  if (failed.length) {
+    console.log(`Failed checks: ${failed.map((item) => item.name).join(", ")}`);
+  }
   assert.equal(score >= 90, true);
   console.log(`AgentTrail repo eval score: ${score}/100 (${passed}/${checks.length})`);
 }

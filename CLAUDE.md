@@ -232,4 +232,14 @@ Still open and recommended next: T076 OpenAI-compatible server mode.
 - T075 is done: generated images are saved under the workspace, exposed through `/api/files/raw`, and paired with Markdown provenance containing prompt, backend, endpoint, parameters, seeds, output paths, bytes, and hashes.
 - Tests/evals/docs updated: `npm run test:images`, mock local image backend integration test, route catalog/foundation coverage, README/env/docs/roadmap/eval updates, and CI coverage.
 
-Next open: T076 OpenAI-compatible server mode.
+## Latest Codex Pass - OpenAI-compatible served API
+
+- T076 is done: AgentTrail now exposes its own OpenAI-compatible `/v1/chat/completions` endpoint, so OpenAI-style clients can call the auditable local agent layer directly instead of only using the browser UI.
+- T077 is done: `/v1/models` and `/v1/embeddings` proxy the active local backend and return OpenAI-shaped model/embedding responses.
+- T078 is done: served chat supports OpenAI-style SSE chunks plus optional usage chunks.
+- T079 is done: `/v1/*` supports bearer or `x-api-key` local auth through `AGENTTRAIL_V1_API_KEY(S)` and `AGENTTRAIL_V1_REQUIRE_AUTH`.
+- T080 is done: served endpoints have in-memory per-key rate limiting plus a local request queue with overload headers/responses.
+- T081 is done: `docs/openapi/agenttrail-v1-openapi.json` and `docs/OPENAI_COMPATIBLE_API.md` document the served API.
+- Tests/evals/docs updated: `npm run test:v1`, route catalog/foundation/smoke coverage, repo eval checks, env docs, README/model-backend docs, and roadmap status were updated.
+
+Next open: T082 request queue with configurable concurrency.

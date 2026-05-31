@@ -51,16 +51,17 @@ This section tracks the concrete work shipped after the roadmap was publicly ref
 | Codex continuation | T070 | Added local speech-to-text through `/api/audio/transcribe`, a whisper.cpp-compatible command adapter, audio attachment metadata, searchable transcript sidecars, ingestion receipts, route/eval/CI coverage, and mock-command tests. |
 | Codex continuation | T071-T073 | Added voice prompt recording in the composer, local response text-to-speech through `/api/audio/speak`, raw local audio playback, and an actionable Audio Transcription recipe that transcribes selected audio into searchable transcript sidecars with receipts. |
 | Codex continuation | T074-T075 | Added optional local image generation through `/api/images/generate` for Automatic1111/Forge and OpenAI-compatible SD/Flux servers, workspace image artifact saving, Markdown provenance, route/eval/CI coverage, and mock image-backend tests. |
+| Codex continuation | T076-T081 | Added OpenAI-compatible AgentTrail server mode with `/v1/chat/completions`, `/v1/models`, `/v1/embeddings`, SSE streaming chunks, optional API-key auth, local rate limiting, request queue headers, OpenAPI spec, client docs, and mock-client tests. |
 
 ### Verified After These Passes
 
-- Local suites covered: `npm run test:unit`, `npm run test:documents`, `npm run test:audio`, `npm run test:search`, `npm run test:rerank`, `npm run test:integration`, `npm run test:backend`, `npm run test:models`, `npm run test:embed-cache`, `npm run test:resume`, `npm run test:reindex`, `npm run eval:search`, `npm run bench:search`, `npm run test:tools`, `npm run test:structured`, `npm run test:planner`, `npm run test:guardrails`, `npm run test:reflection`, memory integration suites, `npm run test:ui`, `npm test`, `npm run eval`, `npm run release:checksums`, and `git diff --check`.
+- Local suites covered: `npm run test:unit`, `npm run test:documents`, `npm run test:audio`, `npm run test:search`, `npm run test:rerank`, `npm run test:integration`, `npm run test:backend`, `npm run test:v1`, `npm run test:models`, `npm run test:embed-cache`, `npm run test:resume`, `npm run test:reindex`, `npm run eval:search`, `npm run bench:search`, `npm run test:tools`, `npm run test:structured`, `npm run test:planner`, `npm run test:guardrails`, `npm run test:reflection`, memory integration suites, `npm run test:ui`, `npm test`, `npm run eval`, `npm run release:checksums`, and `git diff --check`.
 - GitHub CI and GitHub Pages passed for the latest roadmap commits.
 - GitHub Actions workflows now use Node-24-ready action majors and keep `FORCE_JAVASCRIPT_ACTIONS_TO_NODE24=true`, addressing the prior Node 20 action-runtime deprecation warning.
 
 ### Best Continuation Points
 
-- T076: OpenAI-compatible server mode.
+- T082: request queue with configurable concurrency.
 
 ---
 
@@ -179,12 +180,12 @@ This section tracks the concrete work shipped after the roadmap was publicly ref
 ## Phase 4 — Serving, API & interoperability
 
 ### Epic K — OpenAI-compatible server mode
-- [ ] T076 Expose AgentTrail's own `/v1/chat/completions` (agent-as-API)
-- [ ] T077 `/v1/models`, `/v1/embeddings` passthrough
-- [ ] T078 Streaming SSE for the served API
-- [ ] T079 API keys / local auth for served endpoints
-- [ ] T080 Rate limiting + request queue
-- [ ] T081 OpenAPI spec + generated client docs
+- [x] T076 Expose AgentTrail's own `/v1/chat/completions` (agent-as-API)
+- [x] T077 `/v1/models`, `/v1/embeddings` passthrough
+- [x] T078 Streaming SSE for the served API
+- [x] T079 API keys / local auth for served endpoints
+- [x] T080 Rate limiting + request queue
+- [x] T081 OpenAPI spec + generated client docs
 
 ### Epic L — Concurrency & throughput
 - [ ] T082 Request queue with configurable concurrency
@@ -384,16 +385,16 @@ This section tracks the concrete work shipped after the roadmap was publicly ref
 4. We expand an epic's tasks into finer sub-tasks (toward 1000) only when we start that epic — so the plan stays honest and current.
 5. We re-mark `[x]` here as we go; this file is the single source of truth for the campaign.
 
-**Next up:** start Epic K OpenAI-compatible server mode.
+**Next up:** start Epic L concurrency and throughput.
 
 ## Status & bug sweep (latest)
 
-- Progress: **77 tasks done**, 120 open (across Phases 1-10). Phase 1 (agent reliability) is complete; Phase 2 Epic E/F search foundation complete (T044-T058 done except T044 remains hardening umbrella), Epic G document ingestion is complete, Phase 3 vision is complete, Phase 3 audio is complete, and Epic J image generation now has a local adapter plus workspace provenance.
+- Progress: **83 tasks done**, 114 open (across Phases 1-10). Phase 1 (agent reliability) is complete; Phase 2 Epic E/F search foundation complete (T044-T058 done except T044 remains hardening umbrella), Epic G document ingestion is complete, Phase 3 vision/audio/image generation are complete, and Epic K now exposes AgentTrail as an OpenAI-compatible local API.
 - Focused test suite green: unit, document extraction, API integration, smoke, repo eval, and release checksums. All touched source files pass `node --check`.
 - **Bug fixed:** `listWorkspaceFiles` only skipped `.DS_Store`, so internal `.agenttrail/*` state (logs, store, search index, pending-run) was being walked, indexed, and returned in search — adding noise and per-request churn to the index. Now excludes `.agenttrail/`. Verified against smoke, api, search-incremental, search-chunking, and eval:search.
 - Known minor item: a couple of integration tests assert relative/invariant counts (not exact) because the workspace can still gain legit files (e.g. `memory/*`) between calls — intentional, not a bug.
 
-Next code target: T076 OpenAI-compatible server mode.
+Next code target: T082 request queue with configurable concurrency.
 
 ---
 

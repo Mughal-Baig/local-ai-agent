@@ -56,6 +56,7 @@
     "test:search": "node tests/unit/search-chunking.test.js",
     "test:integration": "node tests/integration/api.test.js",
     "test:backend": "node tests/integration/openai-backend.test.js",
+    "test:v1": "node tests/integration/openai-compatible-server.test.js",
     "test:models": "node tests/integration/model-management.test.js",
     "test:embed-cache": "node tests/integration/embedding-cache.test.js",
     "eval:search": "node scripts/eval-search.js",

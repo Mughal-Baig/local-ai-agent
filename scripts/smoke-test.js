@@ -58,6 +58,7 @@ async function main() {
     assert.equal(routes.routes.some((route) => route.routes.includes("/api/audio/transcribe")), true);
     assert.equal(routes.routes.some((route) => route.routes.includes("/api/audio/speak")), true);
     assert.equal(routes.routes.some((route) => route.routes.includes("/api/images/generate")), true);
+    assert.equal(routes.routes.some((route) => route.routes.includes("/v1/chat/completions")), true);
 
     const sqlite = await fetchJson(`http://127.0.0.1:${port}/api/sqlite/status`);
     assert.equal(sqlite.available, true);

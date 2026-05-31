@@ -31,5 +31,9 @@ AgentTrail v0.7 expands the foundation API:
 - `/api/releases/signing-plan`
 - `/api/onboarding`
 - `/api/demo/public`
+- `/v1/chat/completions`
+- `/v1/models`
+- `/v1/embeddings`
+- `/v1/openapi.json`
 
 The route catalog is exposed at `/api/routes`.

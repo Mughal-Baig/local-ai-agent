@@ -20,6 +20,8 @@ Current schema families:
 
 The running app exposes schema summaries at `/api/schemas`. Markdown receipts now include a resume prompt section so `/api/receipts/resume` can recreate a pending run without depending on a proprietary container. Extracted PDF/DOCX/PPTX/XLSX/HTML/Markdown/code files, OCR image extracts, audio transcripts, local speech outputs, generated images, and allowlisted URL ingests are stored as plain Markdown sidecars or workspace artifacts with source/provenance metadata, plus ingestion receipts where applicable so search, receipts, and Git diffs can inspect normalized text and the ingestion steps without parsing the source again.
 
+The served OpenAI-compatible API contract is documented separately as OpenAPI 3.1 in `docs/openapi/agenttrail-v1-openapi.json` and is available at `/v1/openapi.json`.
+
 ## Migration Rule
 
 New versions should add fields instead of removing old ones. When old files need repair, add a migration under `src/migrations.js` and keep loading old artifacts. Vector stores also carry `version`, `minReaderVersion`, optional `collection`, and a migration manifest so older `.agenttrail/vector-store.json` files can be normalized without rebuilding the whole workspace.

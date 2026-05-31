@@ -103,6 +103,7 @@ Open `http://127.0.0.1:4173`, build the semantic index, ask for a change, review
 - Model capability scoring for coding, tool use, planning, long context, and vision readiness
 - Workspace-aware tools: list files, search files, read files, preview writes, and write files
 - Native tool calling for Ollama `/api/chat` and OpenAI-compatible local backends, with per-model capability probing, multi-tool batches, schema validation, and repair for malformed arguments
+- OpenAI-compatible server mode: `/v1/chat/completions`, `/v1/models`, `/v1/embeddings`, streaming SSE, API keys, rate limits, request queue, and OpenAPI spec
 - Structured JSON output endpoint for Ollama schema `format` and OpenAI-compatible `response_format.json_schema`, plus typed extraction recipes with readable schema-error reasons
 - Planner approval flow: generate a structured plan, edit it, approve it, then run the agent with that plan in context
 - Run guardrails: choose a step budget, use a deep-run override deliberately, and stop an active run so the backend stream aborts
@@ -259,6 +260,7 @@ When write preview mode is enabled, `write_file` returns a diff preview instead 
 - One-command install surfaces: `bin/agenttrail.js`, [Dockerfile](Dockerfile), [docker-compose.yml](docker-compose.yml), [install.sh](install.sh), [Formula/agenttrail.rb](Formula/agenttrail.rb), [desktop](desktop)
 - Physical Mac app: `npm run package:mac-app` builds `dist/mac/AgentTrail.app`
 - Model scoring and benchmarking: `/api/status`, `/api/models/vision-capability`, `/api/benchmarks`
+- Agent-as-API: `/v1/chat/completions`, `/v1/models`, `/v1/embeddings`, `/v1/openapi.json`, plus [docs/OPENAI_COMPATIBLE_API.md](docs/OPENAI_COMPATIBLE_API.md)
 - Agent eval harness and history: `npm run eval`, `npm run eval:search`, `npm run bench:search`, `/api/evals`, `/api/evals/history`
 - Project memory: `workspace/memory/project-memory.md`, `workspace/memory/project-memory.json`, citations, revision history, plus global memory under local `.local-agent/`
 - Workspace profiles: [profiles](profiles), `/api/profiles/apply`
@@ -341,6 +343,9 @@ Supported variables:
 - `AGENTTRAIL_IMAGE_MODEL`: optional model name for OpenAI-compatible image servers
 - `AGENTTRAIL_IMAGE_FORMAT`: preferred saved output format, default `png`
 - `AGENTTRAIL_IMAGE_ALLOW_REMOTE`: allow non-local image endpoints, default `false`
+- `AGENTTRAIL_V1_API_KEY` / `AGENTTRAIL_V1_API_KEYS`: optional API key(s) for `/v1/*` OpenAI-compatible endpoints
+- `AGENTTRAIL_V1_RATE_LIMIT_PER_MINUTE`: rate limit for `/v1/*`, default `60`
+- `AGENTTRAIL_V1_QUEUE_CONCURRENCY` / `AGENTTRAIL_V1_QUEUE_MAX`: local request queue controls, default `2` / `16`
 - `AGENTTRAIL_MAX_VISION_IMAGES`: max selected images sent to a vision model, default `4`
 - `AGENTTRAIL_MAX_VISION_IMAGE_BYTES`: max bytes per selected vision image, default `2097152`
 - `AGENTTRAIL_MAX_ATTACHMENT_AUDIO_BYTES`: max bytes for saved audio attachments, default `8388608`

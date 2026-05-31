@@ -85,6 +85,8 @@ const RESPONSE_CACHE = new Map();
 const EMBED_CACHE = new Map();
 const EMBED_CACHE_MAX = 2000;
 const TOOL_CAPABILITY_CACHE = new Map();
+const V1_RATE_BUCKETS = new Map();
+const V1_REQUEST_QUEUE = { active: 0, queue: [], sequence: 0 };
 // Prompt budget: cap assembled context so long workspaces stay fast and never overflow.
 const MAX_PROMPT_CHARS = Number(process.env.AGENTTRAIL_MAX_PROMPT_CHARS || 24000);
 const MEMORY_PROMPT_CHARS = clampInt(process.env.AGENTTRAIL_MEMORY_PROMPT_CHARS, 240, Math.max(240, MAX_PROMPT_CHARS), Math.floor(MAX_PROMPT_CHARS * 0.16));
@@ -141,6 +143,11 @@ const IMAGE_GEN_MAX_PROMPT_CHARS = Number(process.env.AGENTTRAIL_IMAGE_MAX_PROMP
 const IMAGE_GEN_MAX_RESPONSE_BYTES = Number(process.env.AGENTTRAIL_IMAGE_MAX_RESPONSE_BYTES || 35 * 1024 * 1024);
 const IMAGE_GEN_MAX_OUTPUT_BYTES = Number(process.env.AGENTTRAIL_IMAGE_MAX_OUTPUT_BYTES || 25 * 1024 * 1024);
 const IMAGE_GEN_MAX_COUNT = Number(process.env.AGENTTRAIL_IMAGE_MAX_COUNT || 4);
+const V1_API_KEYS = parseDelimitedEnv(process.env.AGENTTRAIL_V1_API_KEYS || process.env.AGENTTRAIL_V1_API_KEY || "");
+const V1_REQUIRE_AUTH = String(process.env.AGENTTRAIL_V1_REQUIRE_AUTH || (V1_API_KEYS.length ? "true" : "false")).toLowerCase() === "true";
+const V1_RATE_LIMIT_PER_MINUTE = Number(process.env.AGENTTRAIL_V1_RATE_LIMIT_PER_MINUTE || 60);
+const V1_QUEUE_CONCURRENCY = Math.max(1, Number(process.env.AGENTTRAIL_V1_QUEUE_CONCURRENCY || 2));
+const V1_QUEUE_MAX = Math.max(0, Number(process.env.AGENTTRAIL_V1_QUEUE_MAX || 16));
 const MAX_VISION_IMAGES = Number(process.env.AGENTTRAIL_MAX_VISION_IMAGES || 4);
 const MAX_VISION_IMAGE_BYTES = Number(process.env.AGENTTRAIL_MAX_VISION_IMAGE_BYTES || 2 * 1024 * 1024);
 const MAX_ATTACHMENT_TEXT_BYTES = Number(process.env.AGENTTRAIL_MAX_ATTACHMENT_TEXT_BYTES || MAX_FILE_BYTES);
@@ -180,6 +187,10 @@ if (!CONFIG_STATUS.ok) {
 const server = http.createServer(async (req, res) => {
   try {
     const url = new URL(req.url, `http://${req.headers.host || "127.0.0.1"}`);
+
+    if (url.pathname.startsWith("/v1/")) {
+      return handleV1Route(req, res, url);
+    }
 
     if (url.pathname === "/api/status" && req.method === "GET") {
       return handleStatus(res);
@@ -711,6 +722,530 @@ async function handleDeleteModel(req, res) {
   } catch (error) {
     sendJson(res, 502, { error: error.message || "Delete failed." });
   }
+}
+
+async function handleV1Route(req, res, url) {
+  if (url.pathname === "/v1/openapi.json" && req.method === "GET") {
+    return handleV1OpenApi(res);
+  }
+  if (url.pathname === "/v1/models" && req.method === "GET") {
+    return handleV1Request(req, res, "models", (job) => handleV1Models(req, res, job));
+  }
+  if (url.pathname === "/v1/embeddings" && req.method === "POST") {
+    return handleV1Request(req, res, "embeddings", (job) => handleV1Embeddings(req, res, job));
+  }
+  if (url.pathname === "/v1/chat/completions" && req.method === "POST") {
+    return handleV1Request(req, res, "chat.completions", (job) => handleV1ChatCompletions(req, res, job));
+  }
+  return sendOpenAIError(res, 404, `OpenAI-compatible route not found: ${url.pathname}`, "invalid_request_error", "route_not_found");
+}
+
+async function handleV1OpenApi(res) {
+  try {
+    const raw = await fsp.readFile(path.join(DOCS_DIR, "openapi", "agenttrail-v1-openapi.json"), "utf8");
+    sendJson(res, 200, JSON.parse(raw));
+  } catch (error) {
+    sendOpenAIError(res, 500, `OpenAPI spec is unavailable: ${error.message}`, "server_error", "openapi_unavailable");
+  }
+}
+
+async function handleV1Request(req, res, kind, handler) {
+  if (!authorizeV1Request(req, res)) {
+    return;
+  }
+  if (!consumeV1RateLimit(req, res)) {
+    return;
+  }
+  return enqueueV1Request(req, res, kind, handler);
+}
+
+async function handleV1Models(req, res, job) {
+  setV1QueueHeaders(res, job);
+  const status = await fetchOllamaModels();
+  if (!status.available) {
+    return sendOpenAIError(res, 502, status.error || `${ACTIVE_BACKEND.title} is not reachable.`, "server_error", "backend_unavailable");
+  }
+  await STORE.append("v1-models", { count: status.models.length, backend: ACTIVE_BACKEND.id });
+  sendJson(res, 200, {
+    object: "list",
+    data: status.models.map((model) => ({
+      id: model.name,
+      object: "model",
+      created: model.modifiedAt ? Math.floor(new Date(model.modifiedAt).getTime() / 1000) || 0 : 0,
+      owned_by: "agenttrail",
+      metadata: {
+        backend: ACTIVE_BACKEND.id,
+        size: model.size || 0,
+        recommendation: scoreModel(model).recommendation
+      }
+    }))
+  });
+}
+
+async function handleV1Embeddings(req, res, job) {
+  const body = await readJsonBody(req);
+  const model = String(body.model || OLLAMA_EMBED_MODEL || DEFAULT_MODEL).trim();
+  const inputs = normalizeV1EmbeddingInputs(body.input);
+  if (!inputs.length) {
+    return sendOpenAIError(res, 400, "Embeddings require a non-empty input string or array.", "invalid_request_error", "missing_input");
+  }
+  setV1QueueHeaders(res, job);
+  const data = [];
+  for (const [index, input] of inputs.entries()) {
+    const embedding = await fetchEmbeddingCached(input, model);
+    data.push({
+      object: "embedding",
+      index,
+      embedding
+    });
+  }
+  await STORE.append("v1-embeddings", { model, count: data.length, backend: ACTIVE_BACKEND.id });
+  const promptTokens = approximateTokenCount(inputs.join("\n"));
+  sendJson(res, 200, {
+    object: "list",
+    model,
+    data,
+    usage: {
+      prompt_tokens: promptTokens,
+      total_tokens: promptTokens
+    }
+  });
+}
+
+async function handleV1ChatCompletions(req, res, job) {
+  const body = await readJsonBody(req);
+  const agentBody = normalizeV1ChatRequest(body);
+  if (!agentBody.messages.length) {
+    return sendOpenAIError(res, 400, "Chat completions require at least one user or assistant message.", "invalid_request_error", "missing_messages");
+  }
+  setV1QueueHeaders(res, job);
+  if (body.stream === true) {
+    return handleV1ChatCompletionsStream(req, res, body, agentBody);
+  }
+
+  const runAbort = new AbortController();
+  let completed = false;
+  res.on("close", () => {
+    if (!completed && !runAbort.signal.aborted) {
+      runAbort.abort(makeAbortError("OpenAI-compatible client disconnected."));
+    }
+  });
+
+  try {
+    const result = await runAgentForOpenAI(agentBody, { signal: runAbort.signal });
+    completed = true;
+    await STORE.append("v1-chat-completion", { model: agentBody.model, stream: false, chars: result.text.length });
+    sendJson(res, 200, openAIChatCompletionResponse(agentBody.model, result.text, result.usage));
+  } catch (error) {
+    completed = true;
+    if (isRunAbort(error, runAbort.signal)) {
+      return sendOpenAIError(res, 499, "Client closed the request.", "server_error", "client_closed");
+    }
+    sendOpenAIError(res, error.status || 502, error.message || "AgentTrail chat completion failed.", "server_error", "chat_failed");
+  }
+}
+
+async function handleV1ChatCompletionsStream(req, res, body, agentBody) {
+  const id = openAIObjectId("chatcmpl");
+  const created = unixNow();
+  const runAbort = new AbortController();
+  let completed = false;
+  res.on("close", () => {
+    if (!completed && !runAbort.signal.aborted) {
+      runAbort.abort(makeAbortError("OpenAI-compatible client disconnected."));
+    }
+  });
+
+  res.writeHead(200, {
+    "Content-Type": "text/event-stream; charset=utf-8",
+    "Cache-Control": "no-cache, no-transform",
+    Connection: "keep-alive",
+    "X-Accel-Buffering": "no"
+  });
+  writeOpenAIStreamChunk(res, id, created, agentBody.model, { role: "assistant" }, null);
+
+  try {
+    const result = await runAgentForOpenAI(agentBody, {
+      signal: runAbort.signal,
+      onToken: (token) => writeOpenAIStreamChunk(res, id, created, agentBody.model, { content: token }, null)
+    });
+    await STORE.append("v1-chat-completion", { model: agentBody.model, stream: true, chars: result.text.length });
+    if (body.stream_options && body.stream_options.include_usage) {
+      writeOpenAIStreamUsage(res, id, created, agentBody.model, result.usage);
+    }
+    writeOpenAIStreamChunk(res, id, created, agentBody.model, {}, "stop");
+  } catch (error) {
+    if (!res.destroyed && !res.writableEnded) {
+      writeOpenAIStreamError(res, error.message || "AgentTrail chat completion failed.");
+    }
+  } finally {
+    completed = true;
+    if (!res.destroyed && !res.writableEnded) {
+      res.write("data: [DONE]\n\n");
+      res.end();
+    }
+  }
+}
+
+function normalizeV1ChatRequest(body) {
+  const extension = body && typeof body.agenttrail === "object" && !Array.isArray(body.agenttrail)
+    ? body.agenttrail
+    : {};
+  const metadata = body && typeof body.metadata === "object" && !Array.isArray(body.metadata)
+    ? body.metadata
+    : {};
+  return {
+    model: String(body.model || DEFAULT_MODEL).trim(),
+    messages: normalizeOpenAICompatibleMessages(body.messages),
+    selectedFiles: Array.isArray(extension.selectedFiles)
+      ? extension.selectedFiles
+      : Array.isArray(metadata.selectedFiles)
+        ? metadata.selectedFiles
+        : [],
+    permissions: normalizePermissions(extension.permissions || metadata.permissions || body.permissions || {}),
+    securityMode: extension.securityMode !== undefined ? extension.securityMode : metadata.securityMode !== undefined ? metadata.securityMode : body.securityMode,
+    approvedPlan: extension.approvedPlan || metadata.approvedPlan || body.approvedPlan || null,
+    stepBudget: extension.stepBudget || metadata.stepBudget || body.stepBudget || null,
+    temperature: typeof body.temperature === "number" ? body.temperature : 0.2
+  };
+}
+
+function normalizeOpenAICompatibleMessages(messages) {
+  if (!Array.isArray(messages)) {
+    return [];
+  }
+  const system = [];
+  const normalized = [];
+  for (const message of messages) {
+    if (!message || typeof message !== "object") {
+      continue;
+    }
+    const role = String(message.role || "").trim();
+    const content = openAICompatibleContentToText(message.content);
+    if (!content) {
+      continue;
+    }
+    if (role === "system" || role === "developer") {
+      system.push(content);
+      continue;
+    }
+    if (role === "user" || role === "assistant") {
+      normalized.push({ role, content: truncate(content, 16000) });
+      continue;
+    }
+    if (role === "tool") {
+      normalized.push({ role: "assistant", content: truncate(`Tool result:\n${content}`, 16000) });
+    }
+  }
+  if (system.length) {
+    const systemText = `System instructions from OpenAI-compatible request:\n${system.join("\n\n")}`;
+    const firstUser = normalized.find((message) => message.role === "user");
+    if (firstUser) {
+      firstUser.content = truncate(`${systemText}\n\nUser request:\n${firstUser.content}`, 16000);
+    } else {
+      normalized.unshift({ role: "user", content: truncate(systemText, 16000) });
+    }
+  }
+  return normalized.filter((message) => message.content.trim());
+}
+
+function openAICompatibleContentToText(content) {
+  if (typeof content === "string") {
+    return content.trim();
+  }
+  if (Array.isArray(content)) {
+    return content
+      .map((part) => {
+        if (!part || typeof part !== "object") {
+          return "";
+        }
+        if (part.type === "text") {
+          return String(part.text || "").trim();
+        }
+        if (part.type === "image_url") {
+          const url = part.image_url && (part.image_url.url || part.image_url);
+          return url ? `[Image input was provided to the OpenAI-compatible API: ${String(url).slice(0, 80)}]` : "[Image input was provided.]";
+        }
+        return "";
+      })
+      .filter(Boolean)
+      .join("\n");
+  }
+  if (content && typeof content === "object") {
+    return JSON.stringify(content);
+  }
+  return "";
+}
+
+function normalizeV1EmbeddingInputs(input) {
+  const values = Array.isArray(input) ? input : [input];
+  return values
+    .map((item) => Array.isArray(item) ? item.join(" ") : String(item || ""))
+    .map((item) => item.trim())
+    .filter(Boolean)
+    .slice(0, 32);
+}
+
+async function runAgentForOpenAI(agentBody, options = {}) {
+  const events = [];
+  const tokens = [];
+  const sink = {
+    destroyed: false,
+    writableEnded: false,
+    agentTrailEvent(event, data) {
+      events.push({ event, data });
+      if (event === "token" && data && typeof data.text === "string") {
+        tokens.push(data.text);
+        if (typeof options.onToken === "function") {
+          options.onToken(data.text);
+        }
+      }
+    }
+  };
+  await runAgent(agentBody, sink, { signal: options.signal });
+  const text = cleanAssistantOutput(tokens.join(""));
+  const error = events.find((entry) => entry.event === "error");
+  if (error && !text) {
+    throw httpError(502, error.data && error.data.message ? error.data.message : "AgentTrail run failed.");
+  }
+  return {
+    text,
+    events,
+    usage: openAIUsageFor(agentBody.messages, text)
+  };
+}
+
+function openAIChatCompletionResponse(model, text, usage) {
+  return {
+    id: openAIObjectId("chatcmpl"),
+    object: "chat.completion",
+    created: unixNow(),
+    model,
+    choices: [{
+      index: 0,
+      message: {
+        role: "assistant",
+        content: text
+      },
+      finish_reason: "stop"
+    }],
+    usage
+  };
+}
+
+function writeOpenAIStreamChunk(res, id, created, model, delta, finishReason) {
+  if (res.destroyed || res.writableEnded) {
+    return;
+  }
+  res.write(`data: ${JSON.stringify({
+    id,
+    object: "chat.completion.chunk",
+    created,
+    model,
+    choices: [{
+      index: 0,
+      delta,
+      finish_reason: finishReason
+    }]
+  })}\n\n`);
+}
+
+function writeOpenAIStreamUsage(res, id, created, model, usage) {
+  if (res.destroyed || res.writableEnded) {
+    return;
+  }
+  res.write(`data: ${JSON.stringify({
+    id,
+    object: "chat.completion.chunk",
+    created,
+    model,
+    choices: [],
+    usage
+  })}\n\n`);
+}
+
+function writeOpenAIStreamError(res, message) {
+  if (res.destroyed || res.writableEnded) {
+    return;
+  }
+  res.write(`data: ${JSON.stringify({
+    error: {
+      message,
+      type: "server_error",
+      code: "chat_failed"
+    }
+  })}\n\n`);
+}
+
+function sendOpenAIError(res, status, message, type = "invalid_request_error", code = null) {
+  if (res.headersSent || res.destroyed || res.writableEnded) {
+    return;
+  }
+  res.writeHead(status, {
+    "Content-Type": "application/json; charset=utf-8",
+    ...(status === 401 ? { "WWW-Authenticate": "Bearer realm=\"AgentTrail\"" } : {})
+  });
+  res.end(JSON.stringify({
+    error: {
+      message,
+      type,
+      code
+    }
+  }, null, 2));
+}
+
+function authorizeV1Request(req, res) {
+  if (!V1_REQUIRE_AUTH && !V1_API_KEYS.length) {
+    return true;
+  }
+  if (!V1_API_KEYS.length) {
+    sendOpenAIError(res, 401, "AgentTrail /v1 auth is required but no AGENTTRAIL_V1_API_KEY is configured.", "authentication_error", "api_key_missing");
+    return false;
+  }
+  const token = v1RequestToken(req);
+  if (token && V1_API_KEYS.includes(token)) {
+    return true;
+  }
+  sendOpenAIError(res, 401, "Invalid or missing AgentTrail /v1 API key.", "authentication_error", "invalid_api_key");
+  return false;
+}
+
+function v1RequestToken(req) {
+  const auth = String(req.headers.authorization || "");
+  const bearer = auth.match(/^Bearer\s+(.+)$/i);
+  if (bearer) {
+    return bearer[1].trim();
+  }
+  return String(req.headers["x-api-key"] || "").trim();
+}
+
+function consumeV1RateLimit(req, res) {
+  if (!Number.isFinite(V1_RATE_LIMIT_PER_MINUTE) || V1_RATE_LIMIT_PER_MINUTE <= 0) {
+    return true;
+  }
+  const now = Date.now();
+  const key = v1RequestToken(req) || req.socket.remoteAddress || "local";
+  const bucket = V1_RATE_BUCKETS.get(key) || { count: 0, resetAt: now + 60000 };
+  if (now >= bucket.resetAt) {
+    bucket.count = 0;
+    bucket.resetAt = now + 60000;
+  }
+  if (bucket.count >= V1_RATE_LIMIT_PER_MINUTE) {
+    const retryAfter = Math.max(1, Math.ceil((bucket.resetAt - now) / 1000));
+    res.setHeader("Retry-After", String(retryAfter));
+    res.setHeader("X-RateLimit-Limit", String(V1_RATE_LIMIT_PER_MINUTE));
+    res.setHeader("X-RateLimit-Remaining", "0");
+    res.setHeader("X-RateLimit-Reset", String(Math.ceil(bucket.resetAt / 1000)));
+    sendOpenAIError(res, 429, "AgentTrail /v1 rate limit exceeded.", "rate_limit_error", "rate_limit_exceeded");
+    return false;
+  }
+  bucket.count += 1;
+  V1_RATE_BUCKETS.set(key, bucket);
+  res.setHeader("X-RateLimit-Limit", String(V1_RATE_LIMIT_PER_MINUTE));
+  res.setHeader("X-RateLimit-Remaining", String(Math.max(0, V1_RATE_LIMIT_PER_MINUTE - bucket.count)));
+  res.setHeader("X-RateLimit-Reset", String(Math.ceil(bucket.resetAt / 1000)));
+  return true;
+}
+
+function enqueueV1Request(req, res, kind, handler) {
+  return new Promise((resolve) => {
+    const job = {
+      id: ++V1_REQUEST_QUEUE.sequence,
+      kind,
+      handler,
+      res,
+      enqueuedAt: Date.now(),
+      started: false,
+      cancelled: false,
+      resolve,
+      cleanup: null
+    };
+    const onClose = () => {
+      if (!job.started) {
+        job.cancelled = true;
+        V1_REQUEST_QUEUE.queue = V1_REQUEST_QUEUE.queue.filter((item) => item !== job);
+        resolve();
+      }
+    };
+    res.on("close", onClose);
+    job.cleanup = () => res.off("close", onClose);
+
+    if (V1_REQUEST_QUEUE.active < V1_QUEUE_CONCURRENCY) {
+      runV1QueuedJob(job);
+      return;
+    }
+    if (V1_REQUEST_QUEUE.queue.length >= V1_QUEUE_MAX) {
+      job.cleanup();
+      sendOpenAIError(res, 429, "AgentTrail /v1 request queue is full.", "rate_limit_error", "queue_full");
+      resolve();
+      return;
+    }
+    V1_REQUEST_QUEUE.queue.push(job);
+  });
+}
+
+function runV1QueuedJob(job) {
+  if (job.cancelled) {
+    job.cleanup && job.cleanup();
+    job.resolve();
+    return;
+  }
+  job.started = true;
+  job.waitMs = Date.now() - job.enqueuedAt;
+  V1_REQUEST_QUEUE.active += 1;
+  Promise.resolve()
+    .then(() => job.handler(job))
+    .catch((error) => {
+      if (job.res && !job.res.headersSent && !job.res.destroyed && !job.res.writableEnded) {
+        sendOpenAIError(job.res, error.status || 500, error.message || "AgentTrail /v1 request failed.", "server_error", "request_failed");
+      } else if (job.res && !job.res.destroyed && !job.res.writableEnded) {
+        job.res.end();
+      }
+    })
+    .finally(() => {
+      V1_REQUEST_QUEUE.active = Math.max(0, V1_REQUEST_QUEUE.active - 1);
+      job.cleanup && job.cleanup();
+      job.resolve();
+      drainV1Queue();
+    });
+}
+
+function drainV1Queue() {
+  while (V1_REQUEST_QUEUE.active < V1_QUEUE_CONCURRENCY && V1_REQUEST_QUEUE.queue.length) {
+    const next = V1_REQUEST_QUEUE.queue.shift();
+    runV1QueuedJob(next);
+  }
+}
+
+function setV1QueueHeaders(res, job) {
+  if (!res.headersSent && job) {
+    res.setHeader("X-AgentTrail-Queue-Wait-Ms", String(job.waitMs || 0));
+    res.setHeader("X-AgentTrail-Queue-Active", String(V1_REQUEST_QUEUE.active));
+    res.setHeader("X-AgentTrail-Queue-Pending", String(V1_REQUEST_QUEUE.queue.length));
+  }
+}
+
+function openAIObjectId(prefix) {
+  return `${prefix}-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 10)}`;
+}
+
+function unixNow() {
+  return Math.floor(Date.now() / 1000);
+}
+
+function openAIUsageFor(messages, text) {
+  const prompt = Array.isArray(messages) ? messages.map((message) => message.content).join("\n") : "";
+  const promptTokens = approximateTokenCount(prompt);
+  const completionTokens = approximateTokenCount(text);
+  return {
+    prompt_tokens: promptTokens,
+    completion_tokens: completionTokens,
+    total_tokens: promptTokens + completionTokens
+  };
+}
+
+function approximateTokenCount(text) {
+  return Math.max(1, Math.ceil(String(text || "").length / 4));
 }
 
 // ---- Resumable runs (T038): snapshot a run so an interrupted one can be resumed ----
@@ -7279,6 +7814,10 @@ async function streamText(res, text) {
 }
 
 function sendEvent(res, event, data) {
+  if (res && typeof res.agentTrailEvent === "function") {
+    res.agentTrailEvent(event, data);
+    return;
+  }
   if (res.destroyed || res.writableEnded) {
     return;
   }
@@ -8308,6 +8847,13 @@ function contentType(filePath) {
 
 function trimTrailingSlash(value) {
   return String(value).replace(/\/+$/, "");
+}
+
+function parseDelimitedEnv(value) {
+  return String(value || "")
+    .split(/[,\n]/)
+    .map((item) => item.trim())
+    .filter(Boolean);
 }
 
 function loadDotEnv() {

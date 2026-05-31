@@ -62,6 +62,7 @@ A single dispatcher routes the three model primitives to the active backend:
 - **Vision capability detection** — `/api/status` scores model names for image readiness, and `/api/models/vision-capability?model=...&refresh=1` can probe a backend with a tiny local image payload.
 - **Model listing** — `fetchOllamaModels()` → Ollama `/api/tags` or OpenAI `/v1/models`.
 - **Embeddings** — `fetchOllamaEmbedding()` → Ollama `/api/embed` or OpenAI `/v1/embeddings`, with a local-vector fallback when no embedding model is available.
+- **Agent-as-API** — AgentTrail also serves its own `/v1/chat/completions`, `/v1/models`, and `/v1/embeddings` facade so OpenAI-compatible clients can call the auditable local agent layer directly. The served API has optional API-key auth, local rate limiting, request queue headers, streaming SSE, and `/v1/openapi.json`.
 
 The trust model is identical across backends: the agent still searches before answering, previews writes as diffs, gates every write behind your explicit Apply, and logs each step to a receipt. Switching runtimes does not change the auditability guarantees.
 

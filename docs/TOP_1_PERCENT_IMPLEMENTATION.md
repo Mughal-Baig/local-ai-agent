@@ -13,6 +13,7 @@ This table maps the requested 30-item top-1% and foundation list to the v0.7 imp
 | Vision input | Selected, dragged, or pasted local PNG/JPEG/TIFF/BMP/WebP files flow into Ollama vision models or OpenAI-compatible local servers as image payloads, with path/hash metadata in the prompt; screenshot-to-action turns the image into an editable describe-and-plan run |
 | Local audio layer | `/api/audio/transcribe` runs a configurable whisper.cpp-compatible local command over audio/video files, voice prompt input records/transcribes from the composer, `/api/audio/speak` plays assistant responses with local TTS, and the Audio Transcription recipe saves searchable transcript Markdown plus receipts |
 | Local image generation | `/api/images/generate` calls local Automatic1111/Forge or OpenAI-compatible SD/Flux servers, saves generated image artifacts to the workspace, and writes Markdown provenance with prompt, backend, parameters, seeds, paths, bytes, and hashes |
+| OpenAI-compatible server mode | `/v1/chat/completions`, `/v1/models`, `/v1/embeddings`, streaming SSE, optional API-key auth, local rate limiting, request queue headers, `/v1/openapi.json`, and client docs |
 | Diff-safe file writing | permission engine, preview-first writes, Diff Review center, explicit Apply buttons |
 | Replayable receipts | `/api/sessions`, `/api/sessions/content`, `/api/replay/plan`, `/api/receipts/resume`, `/api/runs/pending/from-receipt`, saved model/prompt/files/diffs/trail |
 | Trust Score | browser Trust Score dashboard plus `/api/foundation` score |
