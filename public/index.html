@@ -107,8 +107,10 @@
           <div id="attachmentQueue" class="attachment-queue" aria-live="polite"></div>
           <div id="dropHint" class="drop-hint" hidden>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14"/><path d="m19 12-7 7-7-7"/></svg>
-            <span>Drop to attach locally</span>
+            <span>Drop onto the chat to attach locally</span>
           </div>
+          <div id="composerAssist" class="composer-assist" hidden></div>
+          <div id="composerMode" class="composer-mode" hidden></div>
 
           <form id="composer" class="composer">
             <input id="attachmentInput" type="file" multiple hidden />
@@ -440,7 +442,7 @@
       </div>
     </aside>
 
-    <script src="/app.js?v=28"></script>
+    <script src="/app.js?v=29"></script>
     <script src="/modules/foundation.js?v=1"></script>
     <script src="/modules/product.js?v=1"></script>
   </body>

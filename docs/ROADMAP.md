@@ -2,7 +2,7 @@
 
 ## Next
 
-- Finish composer editing: edit sent user message, regenerate the last answer, stop-and-continue, copy buttons, slash palette, and @file mentions.
+- Finish look/feel/accessibility: high-contrast theme, adjustable density, stronger keyboard navigation, and screen-reader pass.
 - Build the 60-second proof loop: search -> diff preview -> apply -> receipt -> shareable report.
 - Make the install path undeniable: `npx agenttrail`, Docker persistence, Homebrew publication, setup doctor, and friendly failure states.
 - Add a guided first-run wizard so new users can complete one safe local task before touching their real project.
@@ -18,7 +18,7 @@
 
 - Brutal current product score: **62/100** against the best local/self-hosted agent projects.
 - Strong wedge: auditable local-agent layer with receipts, diff-safe writes, searchable evidence, redaction, replay/export, and local privacy.
-- Main gap: public adoption and instant proof. The next roadmap push is about composer polish, install friction, first-run success, real demos, safety proof, and shareable comparison evidence.
+- Main gap: public adoption and instant proof. The next roadmap push is about accessibility polish, install friction, first-run success, real demos, safety proof, and shareable comparison evidence.
 
 ## Later
 
@@ -63,6 +63,7 @@
 - Model ecosystem layer: LoRA adapter manifests, fine-tuning launcher, quantization wrapper, safetensors-to-GGUF conversion helper, and per-task model evaluation suite.
 - Advanced agent layer: multi-agent orchestration plans, scheduled-run manifests, resumable task journals, budget-isolated sub-agents, and deterministic replay diffs.
 - Conversation export and theme starter: persistent conversation API foundation, redacted Markdown/JSON/HTML export, `/api/redact`, and a local light/dark/system theme toggle.
+- Composer editing layer: edit-and-rerun, regenerate, stop-and-continue, copy message/code, syntax-highlighted code blocks, slash commands, @file mentions, chat drag/drop, and pasted file/image intake.
 - Top 1% expansion added to the long roadmap: Phase 17-22 now covers demo proof, one-command install, first-run retention, safety proof, public comparisons, signed releases, supportability, and durable AgentTrail-specific moat.
 
 ## Not Planned

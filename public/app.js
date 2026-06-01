@@ -14,6 +14,11 @@ const state = {
   activeConversationId: null,
   conversationSearch: "",
   deletedConversation: null,
+  editingMessageIndex: null,
+  composerAssist: {
+    items: [],
+    activeIndex: 0
+  },
   searchResults: [],
   pendingPreviews: [],
   packs: [],
@@ -162,6 +167,8 @@ const els = {
   discardPlan: document.querySelector("#discardPlan"),
   composerWrap: document.querySelector(".composer-wrap"),
   dropHint: document.querySelector("#dropHint"),
+  composerAssist: document.querySelector("#composerAssist"),
+  composerMode: document.querySelector("#composerMode"),
   composer: document.querySelector("#composer"),
   prompt: document.querySelector("#prompt"),
   sendButton: document.querySelector("#sendButton"),
@@ -428,8 +435,14 @@ function bindEvents() {
     });
   });
   els.composer.addEventListener("submit", sendMessage);
-  els.prompt.addEventListener("input", resizePrompt);
+  els.prompt.addEventListener("input", () => {
+    resizePrompt();
+    renderComposerAssist();
+  });
   els.prompt.addEventListener("keydown", (event) => {
+    if (handleComposerAssistKeydown(event)) {
+      return;
+    }
     if (event.key === "Enter" && !event.shiftKey) {
       event.preventDefault();
       els.composer.requestSubmit();
@@ -463,6 +476,227 @@ function bindShortcuts() {
       els.prompt.focus();
     }
   });
+}
+
+function currentComposerToken() {
+  if (!els.prompt) {
+    return null;
+  }
+  const value = els.prompt.value || "";
+  const cursor = typeof els.prompt.selectionStart === "number" ? els.prompt.selectionStart : value.length;
+  const before = value.slice(0, cursor);
+  const slashCommand = before.match(/(?:^|\n)(\/(?:recipe|file|model)\s+[^\n]*)$/i);
+  if (slashCommand) {
+    return {
+      token: slashCommand[1],
+      start: cursor - slashCommand[1].length,
+      end: cursor
+    };
+  }
+  const match = before.match(/(?:^|\s)([/@][^\s]*)$/);
+  if (!match) {
+    return null;
+  }
+  const token = match[1];
+  return {
+    token,
+    start: cursor - token.length,
+    end: cursor
+  };
+}
+
+function renderComposerAssist() {
+  if (!els.composerAssist) {
+    return;
+  }
+  const active = currentComposerToken();
+  if (!active || (!active.token.startsWith("/") && !active.token.startsWith("@"))) {
+    state.composerAssist = { items: [], activeIndex: 0 };
+    els.composerAssist.hidden = true;
+    els.composerAssist.innerHTML = "";
+    return;
+  }
+
+  const items = active.token.startsWith("/")
+    ? slashCommandSuggestions(active.token)
+    : fileMentionSuggestions(active.token.slice(1));
+  const visibleItems = items.slice(0, 8);
+  state.composerAssist = {
+    items: visibleItems,
+    activeIndex: Math.min(state.composerAssist.activeIndex || 0, Math.max(0, visibleItems.length - 1))
+  };
+
+  if (!visibleItems.length) {
+    els.composerAssist.hidden = true;
+    els.composerAssist.innerHTML = "";
+    return;
+  }
+
+  els.composerAssist.hidden = false;
+  els.composerAssist.innerHTML = visibleItems.map((item, index) => `
+    <button type="button" class="${index === state.composerAssist.activeIndex ? "active" : ""}" data-index="${index}">
+      <strong>${escapeHtml(item.label)}</strong>
+      <span>${escapeHtml(item.description || "")}</span>
+    </button>`).join("");
+  els.composerAssist.querySelectorAll("button").forEach((button) => {
+    button.addEventListener("click", () => applyComposerAssistItem(Number(button.dataset.index) || 0));
+  });
+}
+
+function slashCommandSuggestions(token) {
+  const parts = token.slice(1).split(/\s+/);
+  const command = (parts[0] || "").toLowerCase();
+  const query = token.replace(/^\/(recipe|file|model)/i, "").replace(/^\//, "").trim().toLowerCase();
+  const commands = [
+    { kind: "command", command: "recipe", label: "/recipe", description: "Insert a local recipe prompt" },
+    { kind: "command", command: "file", label: "/file", description: "Mention and attach a workspace file" },
+    { kind: "command", command: "model", label: "/model", description: "Switch to an installed local model" }
+  ];
+  if (!command || !["recipe", "file", "model"].includes(command)) {
+    return commands.filter((item) => item.label.includes(command || "/"));
+  }
+  if (command === "recipe") {
+    return state.recipes
+      .filter((recipe) => !query || `${recipe.title || ""} ${recipe.id || ""}`.toLowerCase().includes(query))
+      .slice(0, 8)
+      .map((recipe) => ({ kind: "recipe", label: recipe.title || recipe.id, description: recipe.description || recipe.id, recipe }));
+  }
+  if (command === "file") {
+    return fileMentionSuggestions(query).map((item) => ({ ...item, replaceSlash: true }));
+  }
+  return state.models
+    .filter((model) => !query || String(model.name || model).toLowerCase().includes(query))
+    .slice(0, 8)
+    .map((model) => {
+      const name = typeof model === "string" ? model : model.name;
+      return { kind: "model", label: name, description: "Use this model for the next run", model: name };
+    });
+}
+
+function fileMentionSuggestions(query = "") {
+  const normalized = String(query || "").replace(/^@/, "").toLowerCase();
+  return state.files
+    .filter((file) => file && file.path && (!normalized || file.path.toLowerCase().includes(normalized)))
+    .slice(0, 8)
+    .map((file) => ({ kind: "file", label: `@${file.path}`, description: `${formatBytes(file.size || 0)} · attach as context`, file }));
+}
+
+function handleComposerAssistKeydown(event) {
+  if (!els.composerAssist || els.composerAssist.hidden || !state.composerAssist.items.length) {
+    return false;
+  }
+  if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+    event.preventDefault();
+    const delta = event.key === "ArrowDown" ? 1 : -1;
+    const length = state.composerAssist.items.length;
+    state.composerAssist.activeIndex = (state.composerAssist.activeIndex + delta + length) % length;
+    renderComposerAssist();
+    return true;
+  }
+  if (event.key === "Enter" || event.key === "Tab") {
+    event.preventDefault();
+    applyComposerAssistItem(state.composerAssist.activeIndex || 0);
+    return true;
+  }
+  if (event.key === "Escape") {
+    event.preventDefault();
+    state.composerAssist = { items: [], activeIndex: 0 };
+    els.composerAssist.hidden = true;
+    els.composerAssist.innerHTML = "";
+    return true;
+  }
+  return false;
+}
+
+function applyComposerAssistItem(index) {
+  const item = state.composerAssist.items[index];
+  if (!item) {
+    return;
+  }
+  if (item.kind === "command") {
+    if (item.command === "recipe") {
+      const recipe = state.recipes.find((entry) => entry.id === els.recipeSelect.value) || state.recipes[0];
+      if (recipe && recipe.prompt) {
+        els.prompt.value = recipe.prompt;
+        addTrail("composer", `Inserted recipe ${recipe.title || recipe.id}`);
+      }
+    } else if (item.command === "file") {
+      replaceComposerToken("@");
+      addTrail("composer", "Ready for @file context");
+    } else if (item.command === "model") {
+      els.modelSelect.focus();
+      addTrail("composer", "Model picker focused");
+    }
+  } else if (item.kind === "recipe" && item.recipe) {
+    els.prompt.value = item.recipe.prompt || "";
+    addTrail("composer", `Inserted recipe ${item.recipe.title || item.recipe.id}`);
+  } else if (item.kind === "file" && item.file) {
+    state.selectedFiles.add(item.file.path);
+    replaceComposerToken(`${mentionTokenForFile(item.file.path)} `);
+    renderFiles();
+    renderLocalSignals();
+    addTrail("context", `Mention attached ${item.file.path}`);
+  } else if (item.kind === "model" && item.model) {
+    state.model = item.model;
+    els.modelSelect.value = item.model;
+    replaceComposerToken("");
+    addTrail("model", `Model set to ${item.model}`);
+  }
+  resizePrompt();
+  renderComposerAssist();
+  els.prompt.focus();
+}
+
+function replaceComposerToken(replacement) {
+  const active = currentComposerToken();
+  if (!active) {
+    els.prompt.value = appendPromptText(els.prompt.value, replacement);
+    return;
+  }
+  const value = els.prompt.value || "";
+  els.prompt.value = `${value.slice(0, active.start)}${replacement}${value.slice(active.end)}`;
+  const nextCursor = active.start + replacement.length;
+  els.prompt.setSelectionRange(nextCursor, nextCursor);
+}
+
+function mentionTokenForFile(filePath) {
+  const path = String(filePath || "");
+  return /\s/.test(path) ? `@"${path}"` : `@${path}`;
+}
+
+function selectMentionedFiles(content) {
+  const paths = extractMentionedFilePaths(content);
+  if (!paths.length) {
+    return [];
+  }
+  const known = new Set(state.files.map((file) => file.path));
+  const selected = [];
+  for (const filePath of paths) {
+    if (known.has(filePath)) {
+      state.selectedFiles.add(filePath);
+      selected.push(filePath);
+    }
+  }
+  if (selected.length) {
+    renderFiles();
+    renderLocalSignals();
+    addTrail("context", `Attached ${selected.length} @mentioned file(s)`);
+  }
+  return selected;
+}
+
+function extractMentionedFilePaths(content) {
+  const text = String(content || "");
+  const paths = new Set();
+  text.replace(/@"([^"]+)"/g, (_match, filePath) => {
+    paths.add(filePath);
+    return "";
+  });
+  text.replace(/@([A-Za-z0-9._/\\:-]+)/g, (_match, filePath) => {
+    paths.add(filePath);
+    return "";
+  });
+  return [...paths];
 }
 
 function syncPermissions() {
@@ -606,8 +840,10 @@ async function openConversation(id) {
     const data = await getJson(`/api/conversations/get?id=${encodeURIComponent(id)}`);
     const conversation = data.conversation;
     state.activeConversationId = conversation.id;
+    state.editingMessageIndex = null;
     state.messages = normalizeUiMessages(conversation.messages || []);
     setConversationMetadataInputs(conversation);
+    renderComposerMode();
     renderMessages();
     renderConversations();
     addTrail("conversation", `Opened ${conversation.title || "conversation"}`);
@@ -805,6 +1041,7 @@ async function replaySelectedSession() {
     const file = await getJson(`/api/sessions/content?path=${encodeURIComponent(path)}`);
     const session = JSON.parse(file.content || "{}");
     state.messages = normalizeUiMessages(session.messages || []);
+    state.editingMessageIndex = null;
     state.selectedFiles = new Set((session.selectedFiles || []).filter(Boolean));
     state.pendingPreviews = Array.isArray(session.pendingPreviews) ? session.pendingPreviews : [];
     state.trail = Array.isArray(session.trail) ? session.trail.slice(0, 24) : [];
@@ -826,6 +1063,7 @@ async function replaySelectedSession() {
       resizePrompt();
     }
     addTrail("replay", `Replayed ${path}`);
+    renderComposerMode();
     renderFiles();
     renderMessages();
     renderTrail();
@@ -1703,6 +1941,8 @@ function restorePendingRun(run, options = {}) {
     els.previewWritePermission.checked = state.permissions.previewWrites !== false;
   }
   els.prompt.value = run.prompt || "";
+  state.editingMessageIndex = null;
+  renderComposerMode();
   resizePrompt();
   if (els.resumeBanner) {
     els.resumeBanner.hidden = true;
@@ -1747,7 +1987,10 @@ function startNewChat(options = {}) {
     events: []
   }];
   state.activeConversationId = null;
+  state.editingMessageIndex = null;
   setConversationMetadataInputs(null);
+  renderComposerMode();
+  renderComposerAssist();
   renderConversations();
   renderMessages();
   els.prompt.value = "";
@@ -2165,46 +2408,48 @@ async function createNewNote() {
 }
 
 function bindComposerAttachmentIntake() {
-  const dropTarget = els.composerWrap || els.composer;
-  if (!dropTarget) {
+  const dropTargets = [els.composerWrap, els.messages].filter(Boolean);
+  if (!dropTargets.length) {
     return;
   }
 
-  ["dragenter", "dragover"].forEach((eventName) => {
-    dropTarget.addEventListener(eventName, (event) => {
+  for (const dropTarget of dropTargets) {
+    ["dragenter", "dragover"].forEach((eventName) => {
+      dropTarget.addEventListener(eventName, (event) => {
+        if (!hasTransferFiles(event.dataTransfer)) {
+          return;
+        }
+        event.preventDefault();
+        if (eventName === "dragenter") {
+          state.attachmentDragDepth += 1;
+        }
+        setAttachmentDragActive(true);
+      });
+    });
+
+    dropTarget.addEventListener("dragleave", (event) => {
+      if (!hasTransferFiles(event.dataTransfer)) {
+        return;
+      }
+      state.attachmentDragDepth = Math.max(0, state.attachmentDragDepth - 1);
+      if (!state.attachmentDragDepth) {
+        setAttachmentDragActive(false);
+      }
+    });
+
+    dropTarget.addEventListener("drop", async (event) => {
       if (!hasTransferFiles(event.dataTransfer)) {
         return;
       }
       event.preventDefault();
-      if (eventName === "dragenter") {
-        state.attachmentDragDepth += 1;
-      }
-      setAttachmentDragActive(true);
-    });
-  });
-
-  dropTarget.addEventListener("dragleave", (event) => {
-    if (!hasTransferFiles(event.dataTransfer)) {
-      return;
-    }
-    state.attachmentDragDepth = Math.max(0, state.attachmentDragDepth - 1);
-    if (!state.attachmentDragDepth) {
+      state.attachmentDragDepth = 0;
       setAttachmentDragActive(false);
-    }
-  });
-
-  dropTarget.addEventListener("drop", async (event) => {
-    if (!hasTransferFiles(event.dataTransfer)) {
-      return;
-    }
-    event.preventDefault();
-    state.attachmentDragDepth = 0;
-    setAttachmentDragActive(false);
-    await attachFiles(Array.from(event.dataTransfer.files || []), "drop");
-  });
+      await attachFiles(Array.from(event.dataTransfer.files || []), "drop");
+    });
+  }
 
   els.prompt.addEventListener("paste", async (event) => {
-    const files = Array.from(event.clipboardData?.files || []).filter(isImageAttachment);
+    const files = Array.from(event.clipboardData?.files || []);
     if (!files.length) {
       return;
     }
@@ -2225,7 +2470,7 @@ function setAttachmentDragActive(active) {
     els.dropHint.hidden = !active;
   }
   if (active) {
-    els.workspaceStatus.textContent = "Drop to attach locally";
+    els.workspaceStatus.textContent = "Drop onto chat to attach locally";
   } else if (!state.busy) {
     els.workspaceStatus.textContent = state.selectedFiles.size ? `${state.selectedFiles.size} selected` : `${state.files.length} workspace file(s)`;
   }
@@ -2583,6 +2828,7 @@ async function generatePlan() {
   if (!content) {
     return;
   }
+  selectMentionedFiles(content);
 
   const requestMessages = [...state.messages, { role: "user", content }]
     .filter((message) => message.content && (message.role === "user" || message.role === "assistant"))
@@ -2713,17 +2959,42 @@ async function sendMessage(event) {
     return;
   }
 
+  const editIndex = Number.isInteger(state.editingMessageIndex) ? state.editingMessageIndex : null;
+  await runChatTurn({
+    content,
+    historyMessages: editIndex === null ? state.messages : state.messages.slice(0, editIndex),
+    replaceFromIndex: editIndex,
+    trailLabel: editIndex === null ? null : "Edited message and reran",
+    clearPrompt: true
+  });
+}
+
+async function runChatTurn({ content, historyMessages, replaceFromIndex = null, trailLabel = null, clearPrompt = false, userEvents = [] }) {
+  if (state.busy) {
+    return;
+  }
+
+  selectMentionedFiles(content);
   const userMessage = { role: "user", content, events: [] };
+  if (Array.isArray(userEvents) && userEvents.length) {
+    userMessage.events = userEvents;
+  }
   const assistantMessage = { role: "assistant", content: "", events: [] };
   const approvedPlan = state.approvedPlan;
-  const requestMessages = [...state.messages, userMessage]
+  const requestMessages = [...(historyMessages || []), userMessage]
     .filter((message) => message.content && (message.role === "user" || message.role === "assistant"))
     .map((message) => ({ role: message.role, content: message.content }));
 
-  state.messages.push(userMessage, assistantMessage);
+  if (Number.isInteger(replaceFromIndex) && replaceFromIndex >= 0) {
+    state.messages.splice(replaceFromIndex, state.messages.length - replaceFromIndex, userMessage, assistantMessage);
+  } else {
+    state.messages.push(userMessage, assistantMessage);
+  }
   state.busy = true;
   state.cancelRequested = false;
+  state.editingMessageIndex = null;
   state.chatAbortController = new AbortController();
+  renderComposerMode();
   if (els.resumeBanner) {
     els.resumeBanner.hidden = true;
   }
@@ -2739,9 +3010,12 @@ async function sendMessage(event) {
   if (suspicious.length) {
     addTrail("security", `Suspicious instruction flagged: ${suspicious[0]}`);
   }
-  addTrail("chat", `Sent prompt with ${state.selectedFiles.size} file(s)`);
-  els.prompt.value = "";
+  addTrail("chat", trailLabel || `Sent prompt with ${state.selectedFiles.size} file(s)`);
+  if (clearPrompt) {
+    els.prompt.value = "";
+  }
   resizePrompt();
+  renderComposerAssist();
   renderMessages();
   updateSendState();
 
@@ -2897,6 +3171,7 @@ async function sendMessage(event) {
     renderPlanPanel(null);
     els.workspaceStatus.textContent = `${state.files.length} workspace file(s)`;
     updateSendState();
+    renderMessages();
     if (runCompleted) {
       clearPendingRun();
       state.pendingRun = null;
@@ -2910,6 +3185,94 @@ async function sendMessage(event) {
     await refreshReceipts();
     await refreshObservability();
   }
+}
+
+async function regenerateAssistantResponse(index) {
+  if (state.busy) {
+    return;
+  }
+  const assistantIndex = Number.isInteger(index) ? index : state.messages.length - 1;
+  const userIndex = previousUserMessageIndex(assistantIndex);
+  if (userIndex < 0) {
+    return;
+  }
+  const userMessage = state.messages[userIndex];
+  await runChatTurn({
+    content: userMessage.content,
+    historyMessages: state.messages.slice(0, userIndex),
+    replaceFromIndex: userIndex,
+    trailLabel: "Regenerated assistant response",
+    userEvents: userMessage.events || []
+  });
+}
+
+async function continueStoppedRun(index) {
+  if (state.busy) {
+    return;
+  }
+  const assistantIndex = Number.isInteger(index) ? index : state.messages.length - 1;
+  const assistantMessage = state.messages[assistantIndex];
+  if (!assistantMessage || assistantMessage.role !== "assistant") {
+    return;
+  }
+  const prompt = [
+    "Continue from the partial answer above.",
+    "Do not repeat text that is already present unless needed for continuity.",
+    "If tools or context are needed, continue safely with the same local workspace constraints."
+  ].join(" ");
+  await runChatTurn({
+    content: prompt,
+    historyMessages: state.messages.slice(0, assistantIndex + 1),
+    trailLabel: "Continued stopped generation"
+  });
+}
+
+function editUserMessage(index) {
+  if (state.busy || !state.messages[index] || state.messages[index].role !== "user") {
+    return;
+  }
+  state.editingMessageIndex = index;
+  els.prompt.value = state.messages[index].content || "";
+  resizePrompt();
+  renderComposerMode();
+  els.prompt.focus();
+  addTrail("composer", "Editing previous user message");
+}
+
+function cancelMessageEdit() {
+  state.editingMessageIndex = null;
+  renderComposerMode();
+  addTrail("composer", "Cancelled message edit");
+}
+
+function renderComposerMode() {
+  if (!els.composerMode) {
+    return;
+  }
+  if (!Number.isInteger(state.editingMessageIndex)) {
+    els.composerMode.hidden = true;
+    els.composerMode.innerHTML = "";
+    return;
+  }
+  els.composerMode.hidden = false;
+  els.composerMode.innerHTML = `
+    <span>Editing message ${state.editingMessageIndex + 1}; send will rerun from here.</span>
+    <button type="button" id="cancelMessageEdit">Cancel</button>`;
+  const button = document.querySelector("#cancelMessageEdit");
+  if (button) button.addEventListener("click", cancelMessageEdit);
+}
+
+function previousUserMessageIndex(beforeIndex) {
+  for (let index = Math.min(beforeIndex - 1, state.messages.length - 1); index >= 0; index -= 1) {
+    if (state.messages[index] && state.messages[index].role === "user") {
+      return index;
+    }
+  }
+  return -1;
+}
+
+function isStoppedAssistantMessage(message) {
+  return message && message.role === "assistant" && Array.isArray(message.events) && message.events.some((event) => String(event.label || "").toLowerCase().includes("run stopped"));
 }
 
 function isTextAttachment(file) {
@@ -3451,7 +3814,11 @@ function renderMessages() {
       bubble.appendChild(caret);
     }
 
-    if (message.role === "assistant" && message.content && message.content.trim()) {
+    bubble.querySelectorAll(".code-copy").forEach((button) => {
+      button.addEventListener("click", () => copyCodeBlock(button));
+    });
+
+    if (message.content && message.content.trim()) {
       bubble.appendChild(renderMessageActions(message, index));
     }
 
@@ -3481,13 +3848,46 @@ function renderMessages() {
 function renderMessageActions(message, index) {
   const actions = document.createElement("div");
   actions.className = "message-actions";
-  const speak = document.createElement("button");
-  speak.type = "button";
-  speak.className = "message-action";
-  speak.textContent = state.speakingMessage === index ? "Speaking" : "Speak";
-  speak.disabled = state.speakingMessage === index;
-  speak.addEventListener("click", () => speakAssistantMessage(message, index, speak));
-  actions.appendChild(speak);
+  const copy = document.createElement("button");
+  copy.type = "button";
+  copy.className = "message-action";
+  copy.textContent = "Copy";
+  copy.addEventListener("click", () => copyMessage(message));
+  actions.appendChild(copy);
+  if (message.role === "user") {
+    const edit = document.createElement("button");
+    edit.type = "button";
+    edit.className = "message-action";
+    edit.textContent = "Edit + rerun";
+    edit.disabled = state.busy;
+    edit.addEventListener("click", () => editUserMessage(index));
+    actions.appendChild(edit);
+  }
+  if (message.role === "assistant") {
+    const speak = document.createElement("button");
+    speak.type = "button";
+    speak.className = "message-action";
+    speak.textContent = state.speakingMessage === index ? "Speaking" : "Speak";
+    speak.disabled = state.speakingMessage === index;
+    speak.addEventListener("click", () => speakAssistantMessage(message, index, speak));
+    actions.appendChild(speak);
+    const regenerate = document.createElement("button");
+    regenerate.type = "button";
+    regenerate.className = "message-action";
+    regenerate.textContent = "Regenerate";
+    regenerate.disabled = state.busy || previousUserMessageIndex(index) < 0;
+    regenerate.addEventListener("click", () => regenerateAssistantResponse(index));
+    actions.appendChild(regenerate);
+    if (isStoppedAssistantMessage(message)) {
+      const continueButton = document.createElement("button");
+      continueButton.type = "button";
+      continueButton.className = "message-action";
+      continueButton.textContent = "Continue";
+      continueButton.disabled = state.busy;
+      continueButton.addEventListener("click", () => continueStoppedRun(index));
+      actions.appendChild(continueButton);
+    }
+  }
   const canBranch = state.activeConversationId || state.messages.some((item) => item.role === "user" && String(item.content || "").trim());
   if (canBranch) {
     const branch = document.createElement("button");
@@ -3498,6 +3898,46 @@ function renderMessageActions(message, index) {
     actions.appendChild(branch);
   }
   return actions;
+}
+
+async function copyMessage(message) {
+  const text = String(message && message.content ? message.content : "");
+  if (!text.trim()) {
+    return;
+  }
+  await copyText(text, "Copied message");
+}
+
+async function copyCodeBlock(button) {
+  const code = button && button.dataset ? button.dataset.code || "" : "";
+  if (!code) {
+    return;
+  }
+  await copyText(code, "Copied code block");
+  button.textContent = "Copied";
+  setTimeout(() => {
+    button.textContent = "Copy";
+  }, 1200);
+}
+
+async function copyText(text, label) {
+  try {
+    if (navigator.clipboard && window.isSecureContext) {
+      await navigator.clipboard.writeText(text);
+    } else {
+      const area = document.createElement("textarea");
+      area.value = text;
+      area.style.position = "fixed";
+      area.style.opacity = "0";
+      document.body.appendChild(area);
+      area.select();
+      document.execCommand("copy");
+      area.remove();
+    }
+    addTrail("composer", label);
+  } catch (error) {
+    addTrail("error", `Copy failed: ${error.message}`);
+  }
 }
 
 async function speakAssistantMessage(message, index, button) {
@@ -3639,23 +4079,80 @@ function markPendingPreview(path, status) {
 
 function formatMessage(text) {
   const escaped = escapeHtml(text || "");
+  const codeBlocks = [];
   const withBlocks = escaped.replace(/```([a-zA-Z0-9_-]+)?\n([\s\S]*?)```/g, (_match, lang, code) => {
-    const label = lang ? ` data-lang="${lang}"` : "";
-    return `<pre${label}><code>${code}</code></pre>`;
+    const language = String(lang || "text").toLowerCase();
+    const highlighted = highlightEscapedCode(code, language);
+    const token = `@@AGENTTRAILCODE${indexLetters(codeBlocks.length)}@@`;
+    const html = [
+      `<div class="code-block" data-lang="${escapeHtml(language)}">`,
+      `<div class="code-head"><span>${escapeHtml(language)}</span><button class="code-copy" type="button" data-code="${code}">Copy</button></div>`,
+      `<pre><code>${highlighted}</code></pre>`,
+      "</div>"
+    ].join("");
+    codeBlocks.push([token, html]);
+    return token;
   });
 
   return withBlocks
     .split(/\n{2,}/)
     .map((paragraph) => {
-      if (paragraph.startsWith("<pre")) {
-        return paragraph;
+      const exactBlock = codeBlocks.find(([token]) => paragraph.trim() === token);
+      if (exactBlock) {
+        return exactBlock[1];
       }
-      return `<p>${paragraph
+      let rendered = `<p>${paragraph
         .replace(/`([^`]+)`/g, '<code class="inline-code">$1</code>')
         .replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>")
         .replace(/\n/g, "<br />")}</p>`;
+      for (const [token, html] of codeBlocks) {
+        rendered = rendered.replaceAll(token, html);
+      }
+      return rendered;
     })
     .join("");
+}
+
+function highlightEscapedCode(code, language = "text") {
+  let highlighted = String(code || "");
+  const protectedSegments = [];
+  const protect = (pattern, className) => {
+    highlighted = highlighted.replace(pattern, (match) => {
+      const token = `@@AGENTTRAILHL${indexLetters(protectedSegments.length)}@@`;
+      protectedSegments.push([token, `<span class="${className}">${match}</span>`]);
+      return token;
+    });
+  };
+  if (["js", "jsx", "ts", "tsx", "javascript", "typescript"].includes(language)) {
+    protect(/(\/\/.*)$/gm, "syntax-comment");
+  } else if (["py", "python", "sh", "bash", "zsh"].includes(language)) {
+    protect(/(#.*)$/gm, "syntax-comment");
+  }
+  protect(/(&quot;.*?&quot;|&#039;.*?&#039;|`.*?`)/g, "syntax-string");
+  highlighted = highlighted.replace(/\b(0x[a-fA-F0-9]+|\d+(?:\.\d+)?)\b/g, '<span class="syntax-number">$1</span>');
+  if (["js", "jsx", "ts", "tsx", "javascript", "typescript"].includes(language)) {
+    highlighted = highlighted.replace(/\b(async|await|const|let|var|function|return|if|else|for|while|class|new|try|catch|throw|import|export|from)\b/g, '<span class="syntax-keyword">$1</span>');
+  } else if (["py", "python"].includes(language)) {
+    highlighted = highlighted.replace(/\b(async|await|def|return|if|elif|else|for|while|class|try|except|raise|import|from|with|as|lambda)\b/g, '<span class="syntax-keyword">$1</span>');
+  } else if (["sh", "bash", "zsh"].includes(language)) {
+    highlighted = highlighted.replace(/\b(if|then|else|fi|for|do|done|case|esac|function|export)\b/g, '<span class="syntax-keyword">$1</span>');
+  } else if (["json"].includes(language)) {
+    highlighted = highlighted.replace(/(&quot;[^&]+&quot;)(\s*:)/g, '<span class="syntax-keyword">$1</span>$2');
+  }
+  for (const [token, html] of protectedSegments) {
+    highlighted = highlighted.replaceAll(token, html);
+  }
+  return highlighted;
+}
+
+function indexLetters(index) {
+  let value = Number(index || 0);
+  let label = "";
+  do {
+    label = String.fromCharCode(65 + (value % 26)) + label;
+    value = Math.floor(value / 26) - 1;
+  } while (value >= 0);
+  return label;
 }
 
 function stripMarkdownForSpeech(text) {

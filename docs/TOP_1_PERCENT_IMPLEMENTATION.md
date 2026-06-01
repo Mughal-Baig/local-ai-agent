@@ -17,6 +17,7 @@ This table maps the requested 30-item top-1% and foundation list to the v0.7 imp
 | Diff-safe file writing | permission engine, preview-first writes, Diff Review center, explicit Apply buttons |
 | Replayable receipts | `/api/sessions`, `/api/sessions/content`, `/api/replay/plan`, `/api/receipts/resume`, `/api/runs/pending/from-receipt`, saved model/prompt/files/diffs/trail |
 | Conversation portability | `/api/conversations`, `/api/conversations/get`, `/api/conversations/delete`, `/api/conversations/restore`, `/api/conversations/import`, `/api/conversations/branch`, `/api/conversations/export`, persistent sidebar history, rename/pin/search, folder/tag metadata, undo delete, branch-from-message, redacted Markdown/JSON/HTML chat export, and persisted light/dark/system theme toggle |
+| Composer editing depth | Edit-and-rerun from prior user messages, regenerate assistant responses, continue stopped generations, copy message/code buttons, syntax-highlighted Markdown code blocks, `/recipe` `/file` `/model` slash palette, @file context mentions, chat drag/drop attachments, and pasted file/image intake |
 | Trust Score | browser Trust Score dashboard plus `/api/foundation` score |
 | Run observability | `/api/metrics`, `/api/observability`, `/api/traces`, token/time accounting, error taxonomy, and the in-app trace timeline |
 | Security hardening | `/api/security/scan`, `/api/security/privacy`, prompt injection, exfiltration, path escape, hidden instruction, destructive command, secret-like value detection, egress allowlists, optional encrypted receipts |

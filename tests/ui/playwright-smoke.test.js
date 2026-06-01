@@ -80,6 +80,8 @@ async function runHttpUiContract() {
   assert.match(html, /conversationSearch/);
   assert.match(html, /conversationList/);
   assert.match(html, /conversationImportInput/);
+  assert.match(html, /composerAssist/);
+  assert.match(html, /composerMode/);
   assert.match(html, /teamUserSelect/);
   assert.match(html, /observabilitySummary/);
   assert.match(html, /Diff Review/);
@@ -87,9 +89,17 @@ async function runHttpUiContract() {
   assert.match(app, /refreshConversations/);
   assert.match(app, /branchConversation/);
   assert.match(app, /restoreDeletedConversation/);
+  assert.match(app, /editUserMessage/);
+  assert.match(app, /regenerateAssistantResponse/);
+  assert.match(app, /continueStoppedRun/);
+  assert.match(app, /slashCommandSuggestions/);
+  assert.match(app, /selectMentionedFiles/);
+  assert.match(app, /copyCodeBlock/);
   assert.match(app, /renderPendingChanges/);
   assert.match(app, /bindComposerAttachmentIntake/);
   assert.match(app, /startVoicePromptRecording/);
+  assert.match(styles, /composer-assist/);
+  assert.match(styles, /code-copy/);
   assert.match(styles, /diff-preview/);
   assert.equal(status.app, "ok");
   assert.equal(team.schema, "agenttrail.team-status.v1");
