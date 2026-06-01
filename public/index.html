@@ -3,11 +3,16 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#cc785c" />
     <title>AgentTrail</title>
     <link rel="icon" href="/logo.svg" />
+    <link rel="apple-touch-icon" href="/app-icon.png" />
+    <link rel="manifest" href="/manifest.webmanifest" />
     <link rel="stylesheet" href="/styles.css?v=17" />
   </head>
   <body>
+    <a class="skip-link" href="#messages">Skip to messages</a>
+    <a class="skip-link" href="#prompt">Skip to composer</a>
     <div class="app-shell">
       <!-- Slim sidebar -->
       <aside class="rail" aria-label="Sidebar">
@@ -18,25 +23,25 @@
           </div>
           <button id="newChat" class="new-chat" type="button">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
-            New chat
+            <span data-i18n="newChat">New chat</span>
           </button>
         </div>
 
         <div class="rail-mid">
-          <p class="rail-label">Private &amp; local</p>
-          <p class="rail-hint">Chats, metadata, imports, and branches stay in this workspace by default.</p>
+          <p class="rail-label" data-i18n="privateLocal">Private &amp; local</p>
+          <p class="rail-hint" data-i18n="localHint">Chats, metadata, imports, and branches stay in this workspace by default.</p>
           <div class="conversation-tools" aria-label="Conversation history">
-            <input id="conversationSearch" class="search-input" type="search" placeholder="Search chats..." />
-            <div id="conversationList" class="conversation-list"></div>
+            <input id="conversationSearch" class="search-input" type="search" placeholder="Search chats..." data-i18n-placeholder="searchChats" aria-label="Search conversations" />
+            <div id="conversationList" class="conversation-list" role="list" aria-label="Saved conversations"></div>
             <div id="conversationUndo" class="conversation-undo" hidden></div>
             <div class="conversation-meta">
-              <input id="conversationFolder" class="search-input" type="text" placeholder="Folder" />
-              <input id="conversationTags" class="search-input" type="text" placeholder="Tags, comma-separated" />
-              <button id="saveConversationMeta" class="secondary-button compact-button" type="button">Save chat</button>
+              <input id="conversationFolder" class="search-input" type="text" placeholder="Folder" data-i18n-placeholder="folder" aria-label="Conversation folder" />
+              <input id="conversationTags" class="search-input" type="text" placeholder="Tags, comma-separated" data-i18n-placeholder="tags" aria-label="Conversation tags" />
+              <button id="saveConversationMeta" class="secondary-button compact-button" type="button" data-i18n="saveChat">Save chat</button>
             </div>
             <div class="conversation-actions">
-              <button id="exportConversation" class="secondary-button compact-button" type="button">Export</button>
-              <button id="importConversation" class="secondary-button compact-button" type="button">Import</button>
+              <button id="exportConversation" class="secondary-button compact-button" type="button" data-i18n="export">Export</button>
+              <button id="importConversation" class="secondary-button compact-button" type="button" data-i18n="import">Import</button>
               <input id="conversationImportInput" type="file" accept="application/json,.json" hidden />
             </div>
           </div>
@@ -52,7 +57,7 @@
       </aside>
 
       <!-- Chat -->
-      <main class="chat-area">
+      <main class="chat-area" aria-label="AgentTrail chat workspace">
         <header class="topbar">
           <button id="toolsToggleMobile" class="icon-btn rail-only" type="button" aria-label="Open tools">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
@@ -72,7 +77,7 @@
           </div>
         </header>
 
-        <section id="messages" class="messages" aria-live="polite"></section>
+        <section id="messages" class="messages" role="log" aria-live="polite" aria-relevant="additions text" aria-label="Conversation messages" tabindex="-1"></section>
 
         <section id="planPanel" class="planning-panel" aria-label="Plan review" hidden>
           <div class="planning-panel-header">
@@ -97,7 +102,7 @@
             </div>
           </div>
 
-          <div class="suggestions" aria-label="Starter prompts">
+          <div class="suggestions" aria-label="Starter prompts" role="list">
             <button type="button" data-prompt="Summarize the selected files and list the next useful action.">Summarize</button>
             <button type="button" data-prompt="Create a practical implementation plan using the selected files as context.">Plan</button>
             <button type="button" data-prompt="Find risks, missing pieces, and quick improvements in the selected files.">Review</button>
@@ -109,8 +114,8 @@
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14"/><path d="m19 12-7 7-7-7"/></svg>
             <span>Drop onto the chat to attach locally</span>
           </div>
-          <div id="composerAssist" class="composer-assist" hidden></div>
-          <div id="composerMode" class="composer-mode" hidden></div>
+          <div id="composerAssist" class="composer-assist" role="listbox" aria-label="Composer suggestions" hidden></div>
+          <div id="composerMode" class="composer-mode" role="status" aria-live="polite" hidden></div>
 
           <form id="composer" class="composer">
             <input id="attachmentInput" type="file" multiple hidden />
@@ -120,7 +125,7 @@
             <button id="voicePrompt" class="icon-btn voice-btn" type="button" title="Record voice prompt" aria-label="Record voice prompt">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><path d="M12 19v3"/></svg>
             </button>
-            <textarea id="prompt" rows="1" placeholder="Message AgentTrail..."></textarea>
+            <textarea id="prompt" rows="1" placeholder="Message AgentTrail..." data-i18n-placeholder="messagePlaceholder" aria-label="Message AgentTrail"></textarea>
             <button id="stopButton" class="icon-btn run-stop" type="button" title="Stop" aria-label="Stop current run" disabled><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="7" y="7" width="10" height="10" rx="1.5"/></svg></button>
             <button id="sendButton" class="send-btn" type="submit" aria-label="Send"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg></button>
           </form>
@@ -138,7 +143,7 @@
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg>
               Screenshot action
             </button>
-            <span class="composer-hint">Local · nothing leaves your machine</span>
+            <span class="composer-hint" data-i18n="composerHint">Local · nothing leaves your machine</span>
           </div>
         </div>
       </main>
@@ -152,6 +157,60 @@
         <button id="closeTools" class="icon-btn" type="button" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></button>
       </div>
       <div class="drawer-body">
+        <section class="panel access-panel" aria-label="Appearance and accessibility">
+          <div class="panel-heading"><h2 data-i18n="accessTitle">Access</h2></div>
+          <div class="access-grid">
+            <label class="field-label" for="themeSelect">
+              <span data-i18n="theme">Theme</span>
+              <select id="themeSelect">
+                <option value="system">System</option>
+                <option value="light">Light</option>
+                <option value="dark">Dark</option>
+                <option value="warm">Warm</option>
+                <option value="contrast">High contrast</option>
+              </select>
+            </label>
+            <label class="field-label" for="fontScaleSelect">
+              <span data-i18n="textSize">Text size</span>
+              <select id="fontScaleSelect">
+                <option value="small">Small</option>
+                <option value="default">Default</option>
+                <option value="large">Large</option>
+              </select>
+            </label>
+            <label class="field-label" for="densitySelect">
+              <span data-i18n="density">Density</span>
+              <select id="densitySelect">
+                <option value="compact">Compact</option>
+                <option value="comfortable">Comfortable</option>
+                <option value="spacious">Spacious</option>
+              </select>
+            </label>
+            <label class="field-label" for="motionSelect">
+              <span data-i18n="motion">Motion</span>
+              <select id="motionSelect">
+                <option value="system">System</option>
+                <option value="reduced">Reduced</option>
+                <option value="full">Full</option>
+              </select>
+            </label>
+            <label class="field-label access-full" for="localeSelect">
+              <span data-i18n="language">Language</span>
+              <select id="localeSelect">
+                <option value="en">English</option>
+                <option value="es">Espanol</option>
+              </select>
+            </label>
+          </div>
+          <div class="shortcut-hints" aria-label="Keyboard shortcuts">
+            <span><kbd>/</kbd> search</span>
+            <span><kbd>i</kbd> prompt</span>
+            <span><kbd>g</kbd><kbd>s</kbd> workspace</span>
+            <span><kbd>g</kbd><kbd>c</kbd> chats</span>
+            <span><kbd>g</kbd><kbd>t</kbd> tools</span>
+          </div>
+          <p id="accessStatus" class="hint" role="status" aria-live="polite">Access settings are stored only in this browser.</p>
+        </section>
 
         <section class="panel trust-card-panel" aria-label="Trust signals">
           <div class="panel-heading"><h2>Trust signals</h2></div>
@@ -442,7 +501,7 @@
       </div>
     </aside>
 
-    <script src="/app.js?v=29"></script>
+    <script src="/app.js?v=30"></script>
     <script src="/modules/foundation.js?v=1"></script>
     <script src="/modules/product.js?v=1"></script>
   </body>

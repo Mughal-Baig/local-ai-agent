@@ -1,0 +1,24 @@
+{
+  "name": "AgentTrail",
+  "short_name": "AgentTrail",
+  "description": "Auditable local AI agent with diff previews, receipts, and local-first controls.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#f0eee6",
+  "theme_color": "#cc785c",
+  "icons": [
+    {
+      "src": "/app-icon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/logo.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}

@@ -58,6 +58,8 @@ const state = {
   planning: false,
   cancelRequested: false,
   attachmentDragDepth: 0,
+  keyChord: null,
+  keyChordTimer: null,
   pendingScreenshotAction: false,
   voiceRecording: {
     active: false,
@@ -191,6 +193,12 @@ const els = {
   refreshResources: document.querySelector("#refreshResources"),
   resourcesSummary: document.querySelector("#resourcesSummary"),
   themeToggle: document.querySelector("#themeToggle"),
+  themeSelect: document.querySelector("#themeSelect"),
+  fontScaleSelect: document.querySelector("#fontScaleSelect"),
+  densitySelect: document.querySelector("#densitySelect"),
+  motionSelect: document.querySelector("#motionSelect"),
+  localeSelect: document.querySelector("#localeSelect"),
+  accessStatus: document.querySelector("#accessStatus"),
   refreshObservability: document.querySelector("#refreshObservability"),
   observabilitySummary: document.querySelector("#observabilitySummary"),
   traceTimeline: document.querySelector("#traceTimeline"),
@@ -232,10 +240,67 @@ document.addEventListener("DOMContentLoaded", async () => {
     refreshInstalledModels(),
     checkPendingRun()
   ]);
+  registerServiceWorker();
   els.prompt.focus();
 });
 
 let themePreference = "system";
+let fontScalePreference = "default";
+let densityPreference = "comfortable";
+let motionPreference = "system";
+let localePreference = "en";
+
+const THEME_OPTIONS = ["system", "light", "dark", "warm", "contrast"];
+const THEME_LABELS = {
+  system: "System",
+  light: "Light",
+  dark: "Dark",
+  warm: "Warm",
+  contrast: "High contrast"
+};
+
+const I18N = {
+  en: {
+    accessTitle: "Access",
+    theme: "Theme",
+    textSize: "Text size",
+    density: "Density",
+    motion: "Motion",
+    language: "Language",
+    newChat: "New chat",
+    privateLocal: "Private & local",
+    localHint: "Chats, metadata, imports, and branches stay in this workspace by default.",
+    searchChats: "Search chats...",
+    folder: "Folder",
+    tags: "Tags, comma-separated",
+    saveChat: "Save chat",
+    export: "Export",
+    import: "Import",
+    messagePlaceholder: "Message AgentTrail...",
+    composerHint: "Local · nothing leaves your machine",
+    accessStatus: "Access settings are stored only in this browser."
+  },
+  es: {
+    accessTitle: "Acceso",
+    theme: "Tema",
+    textSize: "Tamano de texto",
+    density: "Densidad",
+    motion: "Movimiento",
+    language: "Idioma",
+    newChat: "Nuevo chat",
+    privateLocal: "Privado y local",
+    localHint: "Chats, metadatos, importaciones y ramas se quedan en este espacio.",
+    searchChats: "Buscar chats...",
+    folder: "Carpeta",
+    tags: "Etiquetas, separadas por coma",
+    saveChat: "Guardar chat",
+    export: "Exportar",
+    import: "Importar",
+    messagePlaceholder: "Mensaje para AgentTrail...",
+    composerHint: "Local · nada sale de tu maquina",
+    accessStatus: "Los ajustes de acceso se guardan solo en este navegador."
+  }
+};
 
 function resolvedTheme(pref) {
   if (pref === "system") {
@@ -246,18 +311,28 @@ function resolvedTheme(pref) {
 
 function applyThemePreference(pref) {
   document.documentElement.dataset.theme = resolvedTheme(pref);
+  const label = THEME_LABELS[pref] || pref;
   if (els.themeToggle) {
-    els.themeToggle.title = `Theme: ${pref}`;
+    els.themeToggle.title = `Theme: ${label}`;
+    els.themeToggle.setAttribute("aria-label", `Theme: ${label}`);
   }
+  if (els.themeSelect) {
+    els.themeSelect.value = pref;
+  }
+  updateAccessStatus();
 }
 
-function initTheme() {
-  try {
-    themePreference = localStorage.getItem("agenttrail-theme") || "system";
-  } catch {
-    themePreference = "system";
-  }
+function initAccessPreferences() {
+  themePreference = loadAccessPreference("agenttrail-theme", "system", THEME_OPTIONS);
+  fontScalePreference = loadAccessPreference("agenttrail-font-scale", "default", ["small", "default", "large"]);
+  densityPreference = loadAccessPreference("agenttrail-density", "comfortable", ["compact", "comfortable", "spacious"]);
+  motionPreference = loadAccessPreference("agenttrail-motion", "system", ["system", "reduced", "full"]);
+  localePreference = loadAccessPreference("agenttrail-locale", "en", Object.keys(I18N));
   applyThemePreference(themePreference);
+  applyFontScalePreference(fontScalePreference);
+  applyDensityPreference(densityPreference);
+  applyMotionPreference(motionPreference);
+  applyLocalePreference(localePreference);
   try {
     window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => {
       if (themePreference === "system") {
@@ -269,15 +344,99 @@ function initTheme() {
   }
 }
 
-function cycleTheme() {
-  themePreference = themePreference === "light" ? "dark" : themePreference === "dark" ? "system" : "light";
+function loadAccessPreference(key, fallback, allowed) {
   try {
-    localStorage.setItem("agenttrail-theme", themePreference);
+    const value = localStorage.getItem(key);
+    return allowed.includes(value) ? value : fallback;
   } catch {
-    // storage unavailable; theme still applies for the session
+    return fallback;
   }
+}
+
+function saveAccessPreference(key, value) {
+  try {
+    localStorage.setItem(key, value);
+  } catch {
+    // storage unavailable; setting still applies for this tab
+  }
+}
+
+function applyFontScalePreference(pref) {
+  document.documentElement.dataset.fontScale = pref;
+  if (els.fontScaleSelect) {
+    els.fontScaleSelect.value = pref;
+  }
+  updateAccessStatus();
+}
+
+function applyDensityPreference(pref) {
+  document.documentElement.dataset.density = pref;
+  if (els.densitySelect) {
+    els.densitySelect.value = pref;
+  }
+  updateAccessStatus();
+}
+
+function applyMotionPreference(pref) {
+  document.documentElement.dataset.motion = pref;
+  if (els.motionSelect) {
+    els.motionSelect.value = pref;
+  }
+  updateAccessStatus();
+}
+
+function applyLocalePreference(pref) {
+  localePreference = I18N[pref] ? pref : "en";
+  document.documentElement.lang = localePreference;
+  if (els.localeSelect) {
+    els.localeSelect.value = localePreference;
+  }
+  document.querySelectorAll("[data-i18n]").forEach((node) => {
+    const key = node.dataset.i18n;
+    const value = translateText(key);
+    if (value) node.textContent = value;
+  });
+  document.querySelectorAll("[data-i18n-placeholder]").forEach((node) => {
+    const key = node.dataset.i18nPlaceholder;
+    const value = translateText(key);
+    if (value) node.setAttribute("placeholder", value);
+  });
+  updateAccessStatus();
+}
+
+function translateText(key) {
+  return (I18N[localePreference] && I18N[localePreference][key]) || I18N.en[key] || "";
+}
+
+function updateAccessStatus(extra) {
+  if (!els.accessStatus) {
+    return;
+  }
+  const base = translateText("accessStatus") || "Access settings are stored only in this browser.";
+  const theme = THEME_LABELS[themePreference] || themePreference;
+  const details = `${theme} theme, ${fontScalePreference} text, ${densityPreference} density, ${motionPreference} motion.`;
+  els.accessStatus.textContent = extra || `${base} ${details}`;
+}
+
+function cycleTheme() {
+  const currentIndex = THEME_OPTIONS.indexOf(themePreference);
+  themePreference = THEME_OPTIONS[(currentIndex + 1) % THEME_OPTIONS.length] || "system";
+  saveAccessPreference("agenttrail-theme", themePreference);
   applyThemePreference(themePreference);
-  addTrail("system", `Theme set to ${themePreference}`);
+  addTrail("system", `Theme set to ${THEME_LABELS[themePreference] || themePreference}`);
+}
+
+async function registerServiceWorker() {
+  if (!("serviceWorker" in navigator) || location.protocol === "file:") {
+    return;
+  }
+  try {
+    await navigator.serviceWorker.register("/sw.js");
+    updateAccessStatus("Offline shell is ready. Access settings are stored only in this browser.");
+    addTrail("system", "Offline shell ready");
+  } catch (error) {
+    updateAccessStatus(`Offline shell unavailable: ${error.message}`);
+  }
 }
 
 function bindEvents() {
@@ -371,10 +530,35 @@ function bindEvents() {
   if (els.refreshResources) {
     els.refreshResources.addEventListener("click", refreshResources);
   }
-  initTheme();
+  initAccessPreferences();
   if (els.themeToggle) {
     els.themeToggle.addEventListener("click", cycleTheme);
   }
+  bindAccessPreference(els.themeSelect, "agenttrail-theme", (value) => {
+    themePreference = value;
+    applyThemePreference(value);
+    addTrail("system", `Theme set to ${THEME_LABELS[value] || value}`);
+  });
+  bindAccessPreference(els.fontScaleSelect, "agenttrail-font-scale", (value) => {
+    fontScalePreference = value;
+    applyFontScalePreference(value);
+    addTrail("access", `Text size set to ${value}`);
+  });
+  bindAccessPreference(els.densitySelect, "agenttrail-density", (value) => {
+    densityPreference = value;
+    applyDensityPreference(value);
+    addTrail("access", `Density set to ${value}`);
+  });
+  bindAccessPreference(els.motionSelect, "agenttrail-motion", (value) => {
+    motionPreference = value;
+    applyMotionPreference(value);
+    addTrail("access", `Motion set to ${value}`);
+  });
+  bindAccessPreference(els.localeSelect, "agenttrail-locale", (value) => {
+    localePreference = value;
+    applyLocalePreference(value);
+    addTrail("access", `Language set to ${value}`);
+  });
   if (els.refreshObservability) {
     els.refreshObservability.addEventListener("click", refreshObservability);
   }
@@ -451,6 +635,17 @@ function bindEvents() {
   bindShortcuts();
 }
 
+function bindAccessPreference(select, storageKey, onChange) {
+  if (!select) {
+    return;
+  }
+  select.addEventListener("change", () => {
+    const value = select.value;
+    saveAccessPreference(storageKey, value);
+    onChange(value);
+  });
+}
+
 function bindShortcuts() {
   document.addEventListener("keydown", (event) => {
     // Cmd/Ctrl+Enter submits from anywhere.
@@ -467,15 +662,65 @@ function bindShortcuts() {
       }
       return;
     }
+    if (state.keyChord === "g") {
+      clearKeyboardChord();
+      const key = event.key.toLowerCase();
+      if (key === "s") {
+        event.preventDefault();
+        openToolsDrawer();
+        focusElement(els.workspaceSearch);
+        updateAccessStatus("Focused workspace search.");
+      } else if (key === "c") {
+        event.preventDefault();
+        focusElement(els.conversationSearch);
+        updateAccessStatus("Focused conversation search.");
+      } else if (key === "t") {
+        event.preventDefault();
+        openToolsDrawer({ focusAccess: true });
+        updateAccessStatus("Opened tools and access settings.");
+      } else if (key === "m") {
+        event.preventDefault();
+        focusElement(els.messages);
+        updateAccessStatus("Focused message history.");
+      }
+      return;
+    }
+    if (event.key.toLowerCase() === "g") {
+      event.preventDefault();
+      state.keyChord = "g";
+      clearTimeout(state.keyChordTimer);
+      state.keyChordTimer = setTimeout(clearKeyboardChord, 1200);
+      updateAccessStatus("Shortcut prefix ready: press s, c, t, or m.");
+      return;
+    }
+    if (event.key === "?") {
+      event.preventDefault();
+      openToolsDrawer({ focusAccess: true });
+      updateAccessStatus("Keyboard help is in the Access panel.");
+      return;
+    }
     // "/" focuses workspace search; "i" focuses the prompt.
     if (event.key === "/") {
       event.preventDefault();
-      els.workspaceSearch.focus();
+      openToolsDrawer();
+      focusElement(els.workspaceSearch);
     } else if (event.key === "i") {
       event.preventDefault();
-      els.prompt.focus();
+      focusElement(els.prompt);
     }
   });
+}
+
+function clearKeyboardChord() {
+  state.keyChord = null;
+  clearTimeout(state.keyChordTimer);
+  state.keyChordTimer = null;
+}
+
+function focusElement(element) {
+  if (element && typeof element.focus === "function") {
+    element.focus({ preventScroll: false });
+  }
 }
 
 function currentComposerToken() {
@@ -534,7 +779,7 @@ function renderComposerAssist() {
 
   els.composerAssist.hidden = false;
   els.composerAssist.innerHTML = visibleItems.map((item, index) => `
-    <button type="button" class="${index === state.composerAssist.activeIndex ? "active" : ""}" data-index="${index}">
+    <button type="button" role="option" aria-selected="${index === state.composerAssist.activeIndex ? "true" : "false"}" class="${index === state.composerAssist.activeIndex ? "active" : ""}" data-index="${index}">
       <strong>${escapeHtml(item.label)}</strong>
       <span>${escapeHtml(item.description || "")}</span>
     </button>`).join("");
@@ -761,7 +1006,7 @@ function renderConversations() {
       conversation.parentId ? "branch" : ""
     ].filter(Boolean);
     return `
-      <div class="conversation-row${conversation.id === state.activeConversationId ? " active" : ""}" data-id="${escapeHtml(conversation.id)}">
+      <div class="conversation-row${conversation.id === state.activeConversationId ? " active" : ""}" role="listitem" data-id="${escapeHtml(conversation.id)}">
         <button class="conversation-main" type="button" data-action="open" title="Open conversation">
           <strong>${conversation.pinned ? "Pinned - " : ""}${escapeHtml(conversation.title || "New conversation")}</strong>
           <span>${escapeHtml(conversation.preview || `${conversation.messageCount || 0} message(s)`)}</span>
@@ -2006,7 +2251,7 @@ function startNewChat(options = {}) {
   }
 }
 
-function openToolsDrawer() {
+function openToolsDrawer(options = {}) {
   if (!els.toolsDrawer) {
     return;
   }
@@ -2017,6 +2262,9 @@ function openToolsDrawer() {
   refreshResources();
   refreshObservability();
   refreshTeam();
+  if (options && options.focusAccess) {
+    setTimeout(() => focusElement(els.themeSelect || els.closeTools), 0);
+  }
 }
 
 function formatGb(bytes) {
@@ -3797,13 +4045,17 @@ function renderMessages() {
   for (const [index, message] of state.messages.entries()) {
     const row = document.createElement("article");
     row.className = `message ${message.role}`;
+    row.setAttribute("aria-label", message.role === "user" ? "User message" : "Assistant message");
+    row.setAttribute("tabindex", "-1");
 
     const avatar = document.createElement("div");
     avatar.className = "avatar";
     avatar.textContent = message.role === "user" ? "YOU" : "AI";
+    avatar.setAttribute("aria-hidden", "true");
 
     const bubble = document.createElement("div");
     bubble.className = "bubble";
+    bubble.setAttribute("role", "group");
     bubble.innerHTML = formatMessage(message.content || " ");
 
     const isLast = message === state.messages[state.messages.length - 1];

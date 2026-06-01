@@ -2,7 +2,7 @@
 
 ## Next
 
-- Finish look/feel/accessibility: high-contrast theme, adjustable density, stronger keyboard navigation, and screen-reader pass.
+- Build portability foundation: export all chats, receipts, memory, profiles, and indexes as one local archive, then restore it on another machine.
 - Build the 60-second proof loop: search -> diff preview -> apply -> receipt -> shareable report.
 - Make the install path undeniable: `npx agenttrail`, Docker persistence, Homebrew publication, setup doctor, and friendly failure states.
 - Add a guided first-run wizard so new users can complete one safe local task before touching their real project.
@@ -64,6 +64,7 @@
 - Advanced agent layer: multi-agent orchestration plans, scheduled-run manifests, resumable task journals, budget-isolated sub-agents, and deterministic replay diffs.
 - Conversation export and theme starter: persistent conversation API foundation, redacted Markdown/JSON/HTML export, `/api/redact`, and a local light/dark/system theme toggle.
 - Composer editing layer: edit-and-rerun, regenerate, stop-and-continue, copy message/code, syntax-highlighted code blocks, slash commands, @file mentions, chat drag/drop, and pasted file/image intake.
+- Look/feel/access layer: warm and high-contrast themes, adjustable text size and density, keyboard shortcut chords, ARIA live/log/listbox labels, visible focus states, reduced-motion support, mobile drawer/composer polish, PWA manifest, offline app shell, and first i18n locale.
 - Top 1% expansion added to the long roadmap: Phase 17-22 now covers demo proof, one-command install, first-run retention, safety proof, public comparisons, signed releases, supportability, and durable AgentTrail-specific moat.
 
 ## Not Planned

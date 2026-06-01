@@ -72,17 +72,18 @@ This section tracks the concrete work shipped after the roadmap was publicly ref
 | Claude pass + Codex hardening | T212, T225, T240; T206-T211 API foundation | Imported Claude's conversation export/theme work, hardened the conversation store API, added `/api/redact`, redacted Markdown/JSON/HTML conversation export, persisted light/dark/system theme toggle, route/API/docs/eval visibility, and CI-backed integration tests. |
 | Codex Epic AE pass | T206-T211, T213-T215 | Finished chat management: persistent sidebar history, open/continue, partial rename/pin/folder/tag updates, confirm delete with undo restore, full-text search across titles/tags/folders/messages, auto-title from first user prompt, JSON import, and branch-from-message support with UI controls and integration/UI coverage. |
 | Codex Epic AF pass | T216-T224 | Added composer editing depth: edit-and-rerun from any user message, regenerate assistant responses, continue stopped generations, copy message/code controls, lightweight syntax-highlighted Markdown code blocks, `/recipe` `/file` `/model` slash palette, @file mention attachment, chat-level drag/drop, and paste file/image intake. |
+| Codex Epic AG pass | T226-T233 | Added the access layer: warm and high-contrast themes, browser-persisted font size/density/motion/language controls, skip links, keyboard shortcut chords, ARIA log/status/listbox labels, visible focus states, reduced-motion handling, mobile drawer/composer polish, installable PWA manifest, and an offline app shell service worker. |
 
 ### Verified After These Passes
 
-- Local suites covered: `npm run test:unit`, `npm run test:desktop`, `npm run test:cli`, `npm run test:supply-chain`, `npm run test:security-privacy`, `npm run test:hardware`, `npm run test:loading`, `npm run test:registry`, `npm run test:redact`, `npm run test:redact-api`, `npm run test:conv-export`, `npm run test:documents`, `npm run test:audio`, `npm run test:search`, `npm run test:rerank`, `npm run test:integration`, `npm run test:backend`, `npm run test:v1`, `npm run test:bundled`, `npm run test:models`, `npm run test:ecosystem`, `npm run test:advanced`, `npm run test:embed-cache`, `npm run test:resume`, `npm run test:reindex`, `npm run test:health`, `npm run test:concurrency`, `npm run test:options`, `npm run test:resources`, `npm run eval:search`, `npm run bench:search`, `npm run test:tools`, `npm run test:structured`, `npm run test:planner`, `npm run test:guardrails`, `npm run test:reflection`, memory integration suites, `npm run test:ui`, `npm run test:quality`, `npm run test:docs`, `npm run test:community`, `npm run coverage`, `npm run bench:quality`, `npm test`, `npm run eval`, `npm run release:sbom`, `npm run release:homebrew`, `npm run release:reproducible`, `npm run release:checksums`, `npm run release:verify-checksums`, GitHub issue cleanup smoke coverage, and `git diff --check`.
+- Local suites covered: `npm run test:unit`, `npm run test:desktop`, `npm run test:cli`, `npm run test:supply-chain`, `npm run test:security-privacy`, `npm run test:hardware`, `npm run test:loading`, `npm run test:registry`, `npm run test:redact`, `npm run test:redact-api`, `npm run test:conv-export`, `npm run test:documents`, `npm run test:audio`, `npm run test:search`, `npm run test:rerank`, `npm run test:integration`, `npm run test:backend`, `npm run test:v1`, `npm run test:bundled`, `npm run test:models`, `npm run test:ecosystem`, `npm run test:advanced`, `npm run test:embed-cache`, `npm run test:resume`, `npm run test:reindex`, `npm run test:health`, `npm run test:concurrency`, `npm run test:options`, `npm run test:resources`, `npm run eval:search`, `npm run bench:search`, `npm run test:tools`, `npm run test:structured`, `npm run test:planner`, `npm run test:guardrails`, `npm run test:reflection`, memory integration suites, `npm run test:ui` including Epic AG access/PWA checks, `npm run test:quality`, `npm run test:docs`, `npm run test:community`, `npm run coverage`, `npm run bench:quality`, `npm test`, `npm run eval`, `npm run release:sbom`, `npm run release:homebrew`, `npm run release:reproducible`, `npm run release:checksums`, `npm run release:verify-checksums`, GitHub issue cleanup smoke coverage, and `git diff --check`.
 - GitHub CI and GitHub Pages passed for the latest roadmap commits.
 - GitHub Actions workflows now use Node-24-ready action majors and keep `FORCE_JAVASCRIPT_ACTIONS_TO_NODE24=true`, addressing the prior Node 20 action-runtime deprecation warning.
 
 ### Best Continuation Points
 
 - T098/T104: add time-to-first-token/tokens-per-second metrics and idle-unload policy UI.
-- T226-T229: move into Epic AG look, feel, and accessibility now that Epic AF composer/editing is complete.
+- T234-T238: move into Epic AH portability now that Epic AG access/PWA polish is complete.
 
 ---
 
@@ -406,16 +407,16 @@ This section tracks the concrete work shipped after the roadmap was publicly ref
 4. We expand an epic's tasks into finer sub-tasks (toward 1000) only when we start that epic — so the plan stays honest and current.
 5. We re-mark `[x]` here as we go; this file is the single source of truth for the campaign.
 
-**Next up:** Phase 11 conversation and UX depth, continuing with Epic AG look, feel, and accessibility. The new Phase 17-22 expansion below adds the public "top 1%" path without replacing any earlier phase.
+**Next up:** Phase 12 portability, starting with Epic AH export/import archives and per-workspace isolation. The new Phase 17-22 expansion below adds the public "top 1%" path without replacing any earlier phase.
 
 ## Status & bug sweep (latest)
 
-- Progress: **Epic AF is complete**. Fully complete tracked items now include T201-T224; remaining Phase 1-10 work is mostly earlier partial/runtime hardening items such as T044, T090/T091, T094/T096/T098/T104, and T107/T109/T110. Phase 1 is complete; Phase 2 Epic E/F search foundation is complete except T044 as a hardening umbrella; Epic G document ingestion is complete; Phase 3 vision/audio/image generation is complete; Epic K is complete; Epic L is complete; Epic M is partially complete; Epic N/O now have cache, option passthrough, resources, and runtime visibility; Phase 6 now has a first-class bundled-runtime adapter seam plus Epic Q/R/S hardware, loading, registry policy, Epic AC model ecosystem helpers, Epic AD advanced-agent manifests, Epic AE chat management, and Epic AF composer editing; Epic T native desktop distribution is complete at the repo/scaffolding level; Epic U CLI parity is complete; Epic V packaging/supply-chain foundation is complete; Epic W security/privacy is complete; Epic X observability is complete; Epic Y team/enterprise is complete; Epic Z quality engineering is complete; Epic AA documentation is complete; Epic AB community/growth is complete; and the public starter issues are cleared with tests/docs.
+- Progress: **Epic AG is complete**. Fully complete tracked items now include T201-T233; remaining Phase 1-10 work is mostly earlier partial/runtime hardening items such as T044, T090/T091, T094/T096/T098/T104, and T107/T109/T110. Phase 1 is complete; Phase 2 Epic E/F search foundation is complete except T044 as a hardening umbrella; Epic G document ingestion is complete; Phase 3 vision/audio/image generation is complete; Epic K is complete; Epic L is complete; Epic M is partially complete; Epic N/O now have cache, option passthrough, resources, and runtime visibility; Phase 6 now has a first-class bundled-runtime adapter seam plus Epic Q/R/S hardware, loading, registry policy, Epic AC model ecosystem helpers, Epic AD advanced-agent manifests, Epic AE chat management, Epic AF composer editing, and Epic AG access/PWA polish; Epic T native desktop distribution is complete at the repo/scaffolding level; Epic U CLI parity is complete; Epic V packaging/supply-chain foundation is complete; Epic W security/privacy is complete; Epic X observability is complete; Epic Y team/enterprise is complete; Epic Z quality engineering is complete; Epic AA documentation is complete; Epic AB community/growth is complete; and the public starter issues are cleared with tests/docs.
 - Focused test suite green: unit, observability, team enterprise, quality engineering, docs generation, community-growth checks, model ecosystem checks, coverage gate, performance regression, UI E2E, desktop distribution, CLI integration, supply-chain, security/privacy threat-model, runtime hardware, runtime loading, model registry, bundled runtime, redaction, document extraction, API integration, v1 API, health, concurrency, model options, resources, smoke, recipe validation, receipt metadata, repo eval, release SBOM, reproducibility, and release checksums. All touched source files pass `node --check`.
 - **Bug fixed:** `listWorkspaceFiles` only skipped `.DS_Store`, so internal `.agenttrail/*` state (logs, store, search index, pending-run) was being walked, indexed, and returned in search — adding noise and per-request churn to the index. Now excludes `.agenttrail/`. Verified against smoke, api, search-incremental, search-chunking, and eval:search.
 - Known minor item: a couple of integration tests assert relative/invariant counts (not exact) because the workspace can still gain legit files (e.g. `memory/*`) between calls — intentional, not a bug.
 
-Next code target: T226 additional warm + high-contrast themes, then T227 adjustable font size/density and T228 full keyboard navigation. After the accessibility pass feels complete, prioritize T281/T288/T295 so the project has a 60-second proof loop, a low-friction install, and a guided first run.
+Next code target: T234 export all data as a single archive, then T235 restore from that archive. After portability feels complete, prioritize T281/T288/T295 so the project has a 60-second proof loop, a low-friction install, and a guided first run.
 
 ---
 
@@ -450,14 +451,14 @@ Open items are still marked `[ ]`; a few Phase 11/12 starter tasks are now `[x]`
 
 ### Epic AG — Look, feel & access
 - [x] T225 Light/dark/system theme toggle in the top bar, persisted in localStorage; dark palette via `[data-theme="dark"]` CSS-variable overrides
-- [ ] T226 Additional warm + high-contrast themes
-- [ ] T227 Adjustable font size / density
-- [ ] T228 Full keyboard navigation + visible focus states
-- [ ] T229 Screen-reader pass (ARIA roles, live regions, labels)
-- [ ] T230 Reduced-motion support
-- [ ] T231 Responsive mobile layout polish
-- [ ] T232 Installable PWA / offline shell
-- [ ] T233 Internationalization (i18n) scaffolding + first locale
+- [x] T226 Additional warm + high-contrast themes
+- [x] T227 Adjustable font size / density
+- [x] T228 Full keyboard navigation + visible focus states
+- [x] T229 Screen-reader pass (ARIA roles, live regions, labels)
+- [x] T230 Reduced-motion support
+- [x] T231 Responsive mobile layout polish
+- [x] T232 Installable PWA / offline shell
+- [x] T233 Internationalization (i18n) scaffolding + first locale
 
 ## Phase 12 — Data, privacy & portability
 

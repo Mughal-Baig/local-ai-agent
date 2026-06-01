@@ -4,6 +4,7 @@
 node_modules/
 coverage/
 dist/
+.playwright-cli/
 installers/linux/staging/
 .local-agent/
 workspace/private/

@@ -50,6 +50,7 @@ Writes are off by default. The agent proposes a unified diff; you click **Apply*
 - **Advanced agent layer**: local multi-agent plans, scheduled run manifests, resumable task journals, budget-isolated sub-agents, and deterministic replay diffs.
 - **Conversation portability**: save/list/search/open/delete/restore/import/branch conversations and export chats as Markdown, JSON, or HTML with secrets redacted.
 - **Composer control loop**: edit and rerun prior prompts, regenerate answers, continue stopped generations, copy messages/code, use slash commands, and attach @mentioned files.
+- **Access-first polish**: warm/high-contrast themes, adjustable text size and density, keyboard shortcut chords, reduced motion, mobile layout polish, PWA install shell, and first i18n locale.
 - **Recipe-driven**: reusable local workflows live in plain JSON files anyone can add.
 - **Demo-first**: the GIF and static demo let visitors understand the project before installing Ollama.
 - **Permission-aware**: file reads are explicit and file writes are off by default.
@@ -112,7 +113,7 @@ Open `http://127.0.0.1:4173`, build the semantic index, ask for a change, review
 - Secret redaction for model context, logs, receipts, sessions, and reports; optional encrypted-at-rest managed artifacts; network egress allowlists for URL/image/model pulls
 - Conversation APIs for persistent chat records plus redacted Markdown/JSON/HTML export: `/api/conversations`, `/api/conversations/get`, `/api/conversations/delete`, `/api/conversations/restore`, `/api/conversations/import`, `/api/conversations/branch`, `/api/conversations/export`, and `/api/redact`
 - Composer editing controls for edit-and-rerun, assistant regeneration, stop-and-continue, copy message/code, slash commands, @file mentions, drag/drop, and pasted file/image intake
-- Light/dark/system theme toggle persisted locally in the browser
+- Local appearance/access controls: light/dark/system/warm/high-contrast themes, adjustable text size and density, reduced-motion preference, keyboard shortcut chords, screen-reader landmarks, mobile polish, PWA install manifest, offline app shell, and first i18n locale
 - Ollama integration for local models
 - Model capability scoring for coding, tool use, planning, long context, and vision readiness
 - Advanced agent APIs: multi-agent orchestration plans, scheduled run manifests, task journals with resume, sub-agent budget isolation, and deterministic replay diffs at `/api/advanced-agent/*`
@@ -281,6 +282,7 @@ When write preview mode is enabled, `write_file` returns a diff preview instead 
 - Receipt timeline and replay: saved Markdown receipts in `workspace/receipts/`, JSON sessions in `workspace/sessions/`, and receipt-derived resume
 - Conversation export: persistent conversation API, redacted Markdown/JSON/HTML export, restore/import/branch, folder/tag metadata, and theme toggle polish
 - Composer editing: edit-and-rerun, regenerate, stop-and-continue, copy controls, syntax-highlighted code blocks, `/recipe` `/file` `/model`, and @file context mentions
+- Look/feel/access layer: warm and high-contrast themes, text size and density controls, reduced-motion support, keyboard shortcut chords, ARIA live regions, mobile drawer/composer polish, installable PWA shell, and first i18n scaffold
 - Diff Review center: pending preview apply/reject UI
 - Local attachments: `/api/attachments` plus browser file picker, chat drag/drop, and pasted file/image intake that saves files into the workspace
 - Document text extraction: `/api/documents/extract`, `/api/documents/ocr`, `/api/documents/ingest-url`, automatic PDF/DOCX/PPTX/XLSX/HTML/Markdown/code/image attachment notes, progress steps, and ingestion receipts for searchable context
