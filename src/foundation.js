@@ -10,6 +10,7 @@ function buildFoundationStatus({ schemas, migrations, plugins, storeStats, adapt
     { id: "adapters", label: "Model adapter layer", ok: Array.isArray(adapters) && adapters.length >= 3 },
     { id: "plugins", label: "Plugin architecture", ok: Array.isArray(plugins) },
     { id: "backups", label: "Portable archives and scheduled backups", ok: true },
+    { id: "privacy-controls", label: "Privacy dashboard, retention, and wipe controls", ok: true },
     { id: "jobs", label: "Background jobs", ok: true },
     { id: "release", label: "Release checksums", ok: true },
     { id: "frontend", label: "Frontend foundation module", ok: true }

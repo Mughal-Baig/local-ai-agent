@@ -19,7 +19,7 @@ const ROUTE_CATALOG = [
   { area: "system", module: "server.js", routes: ["/api/health", "/api/resources", "/api/runtime", "/api/concurrency", "/api/updates/check"] },
   { area: "openai-compatible-api", module: "server.js", routes: ["/v1/chat/completions", "/v1/models", "/v1/embeddings", "/v1/openapi.json"] },
   { area: "structured-output", module: "src/structured-output.js", routes: ["/api/structured-output/schemas", "/api/structured-output", "/api/structured-output/recipe"] },
-  { area: "security", module: "src/features/security.js + src/privacy.js + src/network-policy.js + src/features/redact.js", routes: ["/api/security/scan", "/api/security/privacy", "/api/redact"] },
+  { area: "security", module: "src/features/security.js + src/privacy.js + src/privacy-controls.js + src/network-policy.js + src/features/redact.js", routes: ["/api/security/scan", "/api/security/privacy", "/api/privacy/dashboard", "/api/privacy/settings", "/api/privacy/retention", "/api/privacy/retention/apply", "/api/privacy/wipe", "/api/redact"] },
   { area: "observability", module: "src/observability.js + src/logger.js", routes: ["/api/logs", "/api/metrics", "/api/observability", "/api/traces", "/api/traces/content", "/api/errors/taxonomy"] },
   { area: "team-enterprise", module: "src/team-enterprise.js", routes: ["/api/team/status", "/api/team/users", "/api/team/users/select", "/api/team/rbac", "/api/team/receipts", "/api/team/receipts/content", "/api/team/sync/status", "/api/team/sync/export", "/api/team/audit/export", "/api/team/sso", "/api/team/sso/validate"] },
   { area: "foundation", module: "src/foundation.js", routes: ["/api/foundation", "/api/schemas", "/api/migrations"] },

@@ -27,6 +27,7 @@ const state = {
   marketplace: null,
   searchIndex: null,
   observability: null,
+  privacy: null,
   activeTraceId: null,
   team: null,
   teamUserId: "owner",
@@ -202,6 +203,13 @@ const els = {
   refreshObservability: document.querySelector("#refreshObservability"),
   observabilitySummary: document.querySelector("#observabilitySummary"),
   traceTimeline: document.querySelector("#traceTimeline"),
+  refreshPrivacy: document.querySelector("#refreshPrivacy"),
+  localAnalyticsToggle: document.querySelector("#localAnalyticsToggle"),
+  applyRetention: document.querySelector("#applyRetention"),
+  previewWipe: document.querySelector("#previewWipe"),
+  wipeLocalData: document.querySelector("#wipeLocalData"),
+  privacySummary: document.querySelector("#privacySummary"),
+  privacyArtifacts: document.querySelector("#privacyArtifacts"),
   refreshTeam: document.querySelector("#refreshTeam"),
   teamUserSelect: document.querySelector("#teamUserSelect"),
   exportAuditJson: document.querySelector("#exportAuditJson"),
@@ -235,6 +243,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     refreshMarketplace(),
     refreshSearchIndex(),
     refreshObservability(),
+    refreshPrivacy(),
     refreshTeam(),
     refreshEvalHistory(),
     refreshInstalledModels(),
@@ -561,6 +570,21 @@ function bindEvents() {
   });
   if (els.refreshObservability) {
     els.refreshObservability.addEventListener("click", refreshObservability);
+  }
+  if (els.refreshPrivacy) {
+    els.refreshPrivacy.addEventListener("click", refreshPrivacy);
+  }
+  if (els.localAnalyticsToggle) {
+    els.localAnalyticsToggle.addEventListener("change", updateLocalAnalyticsSetting);
+  }
+  if (els.applyRetention) {
+    els.applyRetention.addEventListener("click", applyPrivacyRetention);
+  }
+  if (els.previewWipe) {
+    els.previewWipe.addEventListener("click", previewPrivacyWipe);
+  }
+  if (els.wipeLocalData) {
+    els.wipeLocalData.addEventListener("click", wipePrivacyData);
   }
   if (els.refreshTeam) {
     els.refreshTeam.addEventListener("click", refreshTeam);
@@ -2261,6 +2285,7 @@ function openToolsDrawer(options = {}) {
   }
   refreshResources();
   refreshObservability();
+  refreshPrivacy();
   refreshTeam();
   if (options && options.focusAccess) {
     setTimeout(() => focusElement(els.themeSelect || els.closeTools), 0);
@@ -2364,6 +2389,106 @@ function renderObservability() {
       </div>
     `;
   }).join("");
+}
+
+async function refreshPrivacy() {
+  if (!els.privacySummary || !els.privacyArtifacts) {
+    return;
+  }
+  try {
+    const data = await getJson("/api/privacy/dashboard");
+    state.privacy = data;
+    renderPrivacy();
+  } catch (error) {
+    els.privacySummary.innerHTML = `<div class="mini-row muted">${escapeHtml(error.message)}</div>`;
+    els.privacyArtifacts.innerHTML = "";
+  }
+}
+
+function renderPrivacy() {
+  if (!els.privacySummary || !els.privacyArtifacts) {
+    return;
+  }
+  const data = state.privacy;
+  if (!data) {
+    els.privacySummary.innerHTML = `<div class="mini-row muted">No privacy data yet.</div>`;
+    els.privacyArtifacts.innerHTML = "";
+    return;
+  }
+  const totals = data.totals || {};
+  const settings = data.settings || {};
+  const analytics = settings.localAnalytics || {};
+  if (els.localAnalyticsToggle) {
+    els.localAnalyticsToggle.checked = analytics.enabled === true;
+  }
+  const rows = [
+    ["Managed files", `${totals.files || 0} file(s)`],
+    ["Storage", formatBytes(totals.sizeBytes || 0)],
+    ["Analytics", analytics.enabled ? "Local-only on" : "Off"],
+    ["Network", "Disabled"]
+  ];
+  els.privacySummary.innerHTML = rows
+    .map(([key, value]) => `<div class="metric-tile"><strong>${escapeHtml(key)}</strong><span>${escapeHtml(value)}</span></div>`)
+    .join("");
+
+  const artifacts = Array.isArray(data.artifacts) ? data.artifacts.slice(0, 8) : [];
+  els.privacyArtifacts.innerHTML = artifacts.length
+    ? artifacts.map((artifact) => `
+      <div class="mini-row">
+        <strong>${escapeHtml(artifact.label)}</strong>
+        <span>${Number(artifact.count || 0)} file(s) · ${formatBytes(artifact.sizeBytes || 0)} · ${Number(artifact.retentionDays || 0) || "keep"} day(s)</span>
+      </div>
+    `).join("")
+    : `<div class="mini-row muted">No AgentTrail-managed local files yet.</div>`;
+}
+
+async function updateLocalAnalyticsSetting() {
+  if (!els.localAnalyticsToggle) {
+    return;
+  }
+  const enabled = els.localAnalyticsToggle.checked;
+  await postJson("/api/privacy/settings", { localAnalytics: { enabled } });
+  addTrail("privacy", `Local analytics ${enabled ? "enabled" : "disabled"}`);
+  await Promise.all([refreshPrivacy(), refreshObservability()]);
+}
+
+async function applyPrivacyRetention() {
+  if (!els.privacyArtifacts) {
+    return;
+  }
+  els.privacyArtifacts.innerHTML = `<div class="mini-row muted">Applying retention policy...</div>`;
+  const result = await postJson("/api/privacy/retention/apply", { dryRun: false });
+  addTrail("privacy", `Retention removed ${result.deleted.length} file(s)`);
+  await refreshPrivacy();
+}
+
+async function previewPrivacyWipe() {
+  const result = await postJson("/api/privacy/wipe", { dryRun: true });
+  addTrail("privacy", `Wipe preview found ${result.fileCount} file(s)`);
+  if (els.privacyArtifacts) {
+    els.privacyArtifacts.innerHTML = `
+      <div class="mini-row">
+        <strong>Wipe preview</strong>
+        <span>${Number(result.fileCount || 0)} file(s) · ${formatBytes(result.bytes || 0)}</span>
+      </div>
+    `;
+  }
+}
+
+async function wipePrivacyData() {
+  if (!window.confirm("Wipe AgentTrail local data for this workspace?")) {
+    return;
+  }
+  const result = await postJson("/api/privacy/wipe", { dryRun: false, confirm: "WIPE LOCAL DATA" });
+  addTrail("privacy", `Wiped ${result.fileCount} local data file(s)`);
+  await Promise.all([
+    refreshPrivacy(),
+    refreshObservability(),
+    refreshConversations(),
+    refreshReceipts(),
+    refreshSessions(),
+    refreshMemory()
+  ]);
 }
 
 async function refreshTeam() {

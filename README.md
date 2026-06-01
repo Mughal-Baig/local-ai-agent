@@ -56,6 +56,7 @@ Writes are off by default. The agent proposes a unified diff; you click **Apply*
 - **Demo-first**: the GIF and static demo let visitors understand the project before installing Ollama.
 - **Permission-aware**: file reads are explicit and file writes are off by default.
 - **Private by design**: the app binds locally, uses local model backends by default, and gates optional network paths with explicit policy.
+- **Privacy control plane**: inspect stored local artifacts, configure retention windows, opt into local-only analytics, preview a wipe, and clear AgentTrail data deliberately.
 - **Safe workspace boundary**: file reads and writes are blocked outside `workspace/`.
 - **Zero runtime npm dependencies**: clone, run `node server.js`, and start building.
 - **Serious foundation**: schemas, migrations, permission engine, background jobs, backups, plugins, SBOM, signed-checksum path, reproducible package checks, and tests keep it from feeling like a toy.
@@ -149,6 +150,7 @@ Open `http://127.0.0.1:4173`, build the semantic index, ask for a change, review
 - Config validation exposed at `/api/config`
 - Structured logs exposed at `/api/logs`
 - Prometheus-style local metrics and aggregate analytics exposed at `/api/metrics` and `/api/observability`
+- Privacy dashboard, retention, settings, and wipe controls exposed at `/api/privacy/dashboard`, `/api/privacy/retention`, `/api/privacy/settings`, and `/api/privacy/wipe`
 - SQLite store exposed at `/api/sqlite/status`
 - File watcher controls exposed at `/api/watch/status`, `/api/watch/start`, and `/api/watch/stop`
 - Append-only local event store exposed at `/api/store/stats`
@@ -312,6 +314,7 @@ When write preview mode is enabled, `write_file` returns a diff preview instead 
 - Trust Score dashboard: browser UI
 - README star engine: demo, comparison, 60-second quick start, roadmap
 - Security hardening engine: prompt flags, path escape checks, exfiltration patterns, secret-like value detection, egress policy, `/api/security/scan`, `/api/security/privacy`
+- Privacy controls: local storage dashboard, artifact retention policy, confirmed wipe, and local-only analytics under `workspace/.agenttrail/`
 - Shareable reports: polished Markdown/HTML exports in `workspace/reports/`
 - Community growth loop: launch response workflow, recipe marketplace curation, good-first issue backlog, labels, governance, changelog discipline, showcase gallery, comparison benchmarks, and plugin SDK examples
 - Guided replay: `/api/replay/plan`

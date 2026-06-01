@@ -7,6 +7,11 @@ AgentTrail v0.7 expands the foundation API:
 - `/api/logs`
 - `/api/metrics`
 - `/api/observability`
+- `/api/privacy/dashboard`
+- `/api/privacy/settings`
+- `/api/privacy/retention`
+- `/api/privacy/retention/apply`
+- `/api/privacy/wipe`
 - `/api/traces`
 - `/api/traces/content`
 - `/api/errors/taxonomy`

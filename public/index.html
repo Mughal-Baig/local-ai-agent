@@ -234,6 +234,21 @@
           <div id="traceTimeline" class="trace-timeline mini-list"></div>
         </section>
 
+        <section class="panel privacy-panel" aria-label="Privacy controls">
+          <div class="panel-heading">
+            <h2>Privacy</h2>
+            <button id="refreshPrivacy" class="icon-button" title="Refresh privacy controls" aria-label="Refresh privacy controls"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg></button>
+          </div>
+          <label class="check-row compact-check"><input id="localAnalyticsToggle" type="checkbox" /> Local analytics</label>
+          <div class="toolkit-grid">
+            <button id="applyRetention" class="secondary-button compact-button" type="button">Apply retention</button>
+            <button id="previewWipe" class="secondary-button compact-button" type="button">Preview wipe</button>
+          </div>
+          <button id="wipeLocalData" class="secondary-button compact-button danger-button" type="button">Wipe local data</button>
+          <div id="privacySummary" class="observability-summary"></div>
+          <div id="privacyArtifacts" class="mini-list"></div>
+        </section>
+
         <section class="panel team-panel" aria-label="Local team controls">
           <div class="panel-heading">
             <h2>Team</h2>

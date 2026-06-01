@@ -53,6 +53,26 @@ const SCHEMAS = {
     required: ["schema", "configured", "provider", "headerName", "allowedDomains", "mode"],
     optional: ["issuer", "audience"]
   },
+  privacySettings: {
+    schema: "agenttrail.privacy-settings.v1",
+    required: ["schema", "updatedAt", "localAnalytics"],
+    optional: ["notes"]
+  },
+  retentionPolicy: {
+    schema: "agenttrail.retention-policy.v1",
+    required: ["schema", "updatedAt", "artifacts"],
+    optional: ["note"]
+  },
+  privacyDashboard: {
+    schema: "agenttrail.privacy-dashboard.v1",
+    required: ["schema", "generatedAt", "workspaceRoot", "localOnly", "settings", "retentionPolicy", "totals", "artifacts"],
+    optional: ["runtimePrivacy", "networkPolicy"]
+  },
+  localDataWipe: {
+    schema: "agenttrail.local-data-wipe.v1",
+    required: ["schema", "dryRun", "confirmation", "fileCount", "bytes", "files"],
+    optional: ["deletedPaths", "skipped", "wipedAt"]
+  },
   memoryRevision: {
     schema: "agenttrail.memory-revision.v1",
     required: ["savedAt", "path", "content"],

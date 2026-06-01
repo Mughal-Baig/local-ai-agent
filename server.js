@@ -53,6 +53,16 @@ const { FileWatcher } = require("./src/file-watcher");
 const { runPluginTool } = require("./src/plugin-sandbox");
 const { routeCatalog } = require("./src/route-catalog");
 const { maybeNotifyLongTask, desktopNotificationsEnabled } = require("./src/desktop-notifications");
+const {
+  analyticsResponse,
+  applyRetentionPolicy,
+  buildPrivacyDashboard,
+  readPrivacySettings,
+  readRetentionPolicy,
+  wipeLocalData,
+  writePrivacySettings,
+  writeRetentionPolicy
+} = require("./src/privacy-controls");
 const { isSupportedDocument, isImageDocument, detectDocumentType, extractDocumentText, buildExtractedDocumentMarkdown } = require("./src/document-ingestion");
 const {
   isAudioDocument,
@@ -827,6 +837,34 @@ const server = http.createServer(async (req, res) => {
       return handleSecurityPrivacy(res);
     }
 
+    if (url.pathname === "/api/privacy/dashboard" && req.method === "GET") {
+      return handlePrivacyDashboard(res);
+    }
+
+    if (url.pathname === "/api/privacy/settings" && req.method === "GET") {
+      return handlePrivacySettings(res);
+    }
+
+    if (url.pathname === "/api/privacy/settings" && req.method === "POST") {
+      return handleUpdatePrivacySettings(req, res);
+    }
+
+    if (url.pathname === "/api/privacy/retention" && req.method === "GET") {
+      return handlePrivacyRetention(res);
+    }
+
+    if (url.pathname === "/api/privacy/retention" && req.method === "POST") {
+      return handleUpdatePrivacyRetention(req, res);
+    }
+
+    if (url.pathname === "/api/privacy/retention/apply" && req.method === "POST") {
+      return handleApplyPrivacyRetention(req, res);
+    }
+
+    if (url.pathname === "/api/privacy/wipe" && req.method === "POST") {
+      return handlePrivacyWipe(req, res);
+    }
+
     if (url.pathname === "/api/onboarding" && req.method === "GET") {
       return handleOnboarding(res);
     }
@@ -1338,12 +1376,14 @@ function handleMetrics(res) {
   res.end(OBSERVABILITY.prometheus());
 }
 
-function handleObservability(res) {
+async function handleObservability(res) {
+  const settings = await readPrivacySettings(WORKSPACE_ROOT);
   sendJson(res, 200, {
     ...OBSERVABILITY.snapshot(),
-    analytics: OBSERVABILITY.analytics(),
+    analytics: await analyticsResponse(WORKSPACE_ROOT, OBSERVABILITY.analytics(), settings),
     metricsEndpoint: "/api/metrics",
     traceEndpoint: "/api/traces",
+    privacyDashboardEndpoint: "/api/privacy/dashboard",
     taxonomyEndpoint: "/api/errors/taxonomy"
   });
 }
@@ -5477,13 +5517,110 @@ async function handleSecurityScan(req, res) {
   sendJson(res, 200, result);
 }
 
-function handleSecurityPrivacy(res) {
+async function handleSecurityPrivacy(res) {
   sendJson(res, 200, {
     schema: "agenttrail.security-privacy.v1",
     privacy: privacyStatus(process.env),
+    settings: await readPrivacySettings(WORKSPACE_ROOT),
+    retentionPolicy: await readRetentionPolicy(WORKSPACE_ROOT),
     network: networkPolicyStatus(process.env),
-    permissions: permissionManifest()
+    permissions: permissionManifest(),
+    controls: {
+      dashboard: "/api/privacy/dashboard",
+      settings: "/api/privacy/settings",
+      retention: "/api/privacy/retention",
+      wipe: "/api/privacy/wipe"
+    }
   });
+}
+
+async function handlePrivacyDashboard(res) {
+  const [settings, retentionPolicy] = await Promise.all([
+    readPrivacySettings(WORKSPACE_ROOT),
+    readRetentionPolicy(WORKSPACE_ROOT)
+  ]);
+  sendJson(res, 200, {
+    ...await buildPrivacyDashboard(WORKSPACE_ROOT, { settings, retentionPolicy }),
+    runtimePrivacy: privacyStatus(process.env),
+    networkPolicy: networkPolicyStatus(process.env)
+  });
+}
+
+async function handlePrivacySettings(res) {
+  sendJson(res, 200, await readPrivacySettings(WORKSPACE_ROOT));
+}
+
+async function handleUpdatePrivacySettings(req, res) {
+  const body = await readJsonBody(req);
+  const settings = await writePrivacySettings(WORKSPACE_ROOT, body);
+  await STORE.append("privacy-settings", settings);
+  SQLITE.insert("privacy-settings", settings);
+  await LOGGER.log("info", "privacy.settings", {
+    localAnalytics: settings.localAnalytics.enabled,
+    network: settings.localAnalytics.network
+  });
+  sendJson(res, 200, settings);
+}
+
+async function handlePrivacyRetention(res) {
+  sendJson(res, 200, await readRetentionPolicy(WORKSPACE_ROOT));
+}
+
+async function handleUpdatePrivacyRetention(req, res) {
+  const body = await readJsonBody(req);
+  const policy = await writeRetentionPolicy(WORKSPACE_ROOT, body);
+  await STORE.append("privacy-retention", policy);
+  SQLITE.insert("privacy-retention", policy);
+  await LOGGER.log("info", "privacy.retention", { artifacts: Object.keys(policy.artifacts).length });
+  sendJson(res, 200, policy);
+}
+
+async function handleApplyPrivacyRetention(req, res) {
+  const body = await readJsonBody(req);
+  const policy = await readRetentionPolicy(WORKSPACE_ROOT);
+  const result = await applyRetentionPolicy(WORKSPACE_ROOT, policy, { dryRun: body.dryRun !== false });
+  await STORE.append("privacy-retention-apply", {
+    dryRun: result.dryRun,
+    deleted: result.deleted.length,
+    bytesDeleted: result.bytesDeleted
+  });
+  SQLITE.insert("privacy-retention-apply", {
+    dryRun: result.dryRun,
+    deleted: result.deleted.length,
+    bytesDeleted: result.bytesDeleted
+  });
+  await LOGGER.log("info", "privacy.retention.apply", {
+    dryRun: result.dryRun,
+    deleted: result.deleted.length,
+    bytesDeleted: result.bytesDeleted
+  });
+  sendJson(res, 200, result);
+}
+
+async function handlePrivacyWipe(req, res) {
+  const body = await readJsonBody(req);
+  const result = await wipeLocalData(WORKSPACE_ROOT, {
+    dryRun: body.dryRun !== false,
+    confirm: body.confirm
+  });
+  if (result.dryRun) {
+    await STORE.append("privacy-wipe", {
+      dryRun: result.dryRun,
+      fileCount: result.fileCount,
+      bytes: result.bytes
+    });
+    SQLITE.insert("privacy-wipe", {
+      dryRun: result.dryRun,
+      fileCount: result.fileCount,
+      bytes: result.bytes
+    });
+    await LOGGER.log("warn", "privacy.wipe", {
+      dryRun: result.dryRun,
+      fileCount: result.fileCount,
+      bytes: result.bytes
+    });
+  }
+  sendJson(res, 200, result);
 }
 
 async function handleReadFile(url, res) {

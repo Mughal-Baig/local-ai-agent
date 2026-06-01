@@ -523,6 +523,23 @@ select:hover, .search-input:hover { border-color: var(--line-strong); }
 
 .compact-button { min-height: 34px; margin-top: 8px; font-size: 0.78rem; }
 
+.danger-button {
+  border-color: rgba(164, 68, 52, 0.45);
+  color: #7b2f24;
+}
+
+.check-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 32px;
+  color: var(--ink-soft);
+  font-size: 0.8rem;
+  font-weight: 650;
+}
+
+.compact-check { margin-top: 6px; }
+
 /* ---------- Resumable run banner ---------- */
 .resume-banner {
   display: flex;

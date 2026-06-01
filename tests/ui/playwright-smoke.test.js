@@ -94,6 +94,8 @@ async function runHttpUiContract() {
   assert.match(html, /composerMode/);
   assert.match(html, /teamUserSelect/);
   assert.match(html, /observabilitySummary/);
+  assert.match(html, /privacySummary/);
+  assert.match(html, /localAnalyticsToggle/);
   assert.match(html, /themeSelect/);
   assert.match(html, /fontScaleSelect/);
   assert.match(html, /densitySelect/);
@@ -103,6 +105,8 @@ async function runHttpUiContract() {
   assert.match(html, /Diff Review/);
   assert.match(html, /role="log"/);
   assert.match(app, /refreshTeam/);
+  assert.match(app, /refreshPrivacy/);
+  assert.match(app, /wipePrivacyData/);
   assert.match(app, /refreshConversations/);
   assert.match(app, /branchConversation/);
   assert.match(app, /restoreDeletedConversation/);

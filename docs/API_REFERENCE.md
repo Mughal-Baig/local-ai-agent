@@ -26,7 +26,7 @@ AgentTrail exposes two API layers: local app endpoints under `/api/*` and an Ope
 | system | server.js | `/api/health`<br>`/api/resources`<br>`/api/runtime`<br>`/api/concurrency`<br>`/api/updates/check` |
 | openai-compatible-api | server.js | `/v1/chat/completions`<br>`/v1/models`<br>`/v1/embeddings`<br>`/v1/openapi.json` |
 | structured-output | src/structured-output.js | `/api/structured-output/schemas`<br>`/api/structured-output`<br>`/api/structured-output/recipe` |
-| security | src/features/security.js + src/privacy.js + src/network-policy.js + src/features/redact.js | `/api/security/scan`<br>`/api/security/privacy`<br>`/api/redact` |
+| security | src/features/security.js + src/privacy.js + src/privacy-controls.js + src/network-policy.js + src/features/redact.js | `/api/security/scan`<br>`/api/security/privacy`<br>`/api/privacy/dashboard`<br>`/api/privacy/settings`<br>`/api/privacy/retention`<br>`/api/privacy/retention/apply`<br>`/api/privacy/wipe`<br>`/api/redact` |
 | observability | src/observability.js + src/logger.js | `/api/logs`<br>`/api/metrics`<br>`/api/observability`<br>`/api/traces`<br>`/api/traces/content`<br>`/api/errors/taxonomy` |
 | team-enterprise | src/team-enterprise.js | `/api/team/status`<br>`/api/team/users`<br>`/api/team/users/select`<br>`/api/team/rbac`<br>`/api/team/receipts`<br>`/api/team/receipts/content`<br>`/api/team/sync/status`<br>`/api/team/sync/export`<br>`/api/team/audit/export`<br>`/api/team/sso`<br>`/api/team/sso/validate` |
 | foundation | src/foundation.js | `/api/foundation`<br>`/api/schemas`<br>`/api/migrations` |

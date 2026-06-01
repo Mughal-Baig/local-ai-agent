@@ -84,6 +84,7 @@
     "test:desktop": "node tests/unit/desktop-distribution.test.js",
     "test:supply-chain": "node tests/unit/supply-chain.test.js",
     "test:security-privacy": "node tests/unit/security-privacy.test.js && node tests/integration/threat-model.test.js",
+    "test:privacy-controls": "node tests/integration/privacy-controls.test.js",
     "test:observability": "node tests/unit/observability.test.js && node tests/integration/observability.test.js",
     "test:team": "node tests/unit/team-enterprise.test.js && node tests/integration/team-enterprise.test.js",
     "test:quality": "node tests/unit/quality-engineering.test.js && node tests/unit/workspace-safety-fuzz.test.js",
