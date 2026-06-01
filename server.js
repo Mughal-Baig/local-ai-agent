@@ -20,7 +20,15 @@ const { loadPlugins } = require("./src/plugin-loader");
 const { generateChecksums } = require("./src/release");
 const { buildFoundationStatus } = require("./src/foundation");
 const { StructuredLogger } = require("./src/logger");
-const { validateConfig } = require("./src/config");
+const { formatConfigWarnings, validateConfig } = require("./src/config");
+const {
+  applyWorkspaceConfigOverridesSync,
+  buildConfigAdmin,
+  buildFirstRunWizard,
+  readFirstRunState,
+  writeFirstRunState,
+  writeWorkspaceConfig
+} = require("./src/config-admin");
 const { hashContent, chunkTextDetailed, rankChunks, scoreBm25Documents, fuseHybridScores, rerankDocuments, bestLateInteractionChunk } = require("./src/features/search");
 const { FlatVectorStore, summarizeVectorStore, vectorMapsFromStore, annCandidatePaths } = require("./src/vector-store");
 const workspaceSafety = require("./src/workspace-safety");
@@ -125,6 +133,12 @@ const {
 } = require("./src/advanced-agent");
 
 loadDotEnv();
+const PROJECT_ROOT = __dirname;
+let WORKSPACE_ROOT = path.resolve(PROJECT_ROOT, process.env.WORKSPACE_ROOT || "workspace");
+const WORKSPACE_CONFIG_BOOT = applyWorkspaceConfigOverridesSync(WORKSPACE_ROOT, process.env);
+if (WORKSPACE_CONFIG_BOOT.appliedKeys && WORKSPACE_CONFIG_BOOT.appliedKeys.includes("WORKSPACE_ROOT")) {
+  WORKSPACE_ROOT = path.resolve(PROJECT_ROOT, process.env.WORKSPACE_ROOT || "workspace");
+}
 const execFileAsync = promisify(execFile);
 
 const PORT = Number(process.env.PORT || 4173);
@@ -176,7 +190,6 @@ const V1_REQUEST_QUEUE = { active: 0, queue: [], sequence: 0 };
 const MAX_PROMPT_CHARS = Number(process.env.AGENTTRAIL_MAX_PROMPT_CHARS || 24000);
 const MEMORY_PROMPT_CHARS = clampInt(process.env.AGENTTRAIL_MEMORY_PROMPT_CHARS, 240, Math.max(240, MAX_PROMPT_CHARS), Math.floor(MAX_PROMPT_CHARS * 0.16));
 const RAW_MEMORY_PROMPT_CHARS = clampInt(process.env.AGENTTRAIL_RAW_MEMORY_PROMPT_CHARS, 240, Math.max(240, MEMORY_PROMPT_CHARS), Math.min(1200, Math.floor(MEMORY_PROMPT_CHARS * 0.5)));
-const PROJECT_ROOT = __dirname;
 const PUBLIC_DIR = path.join(PROJECT_ROOT, "public");
 const DOCS_DIR = path.join(PROJECT_ROOT, "docs");
 const RECIPES_DIR = path.resolve(process.env.AGENTTRAIL_RECIPES_DIR || path.join(PROJECT_ROOT, "recipes"));
@@ -188,7 +201,6 @@ const MARKETPLACE_DIR = path.join(PROJECT_ROOT, "marketplace");
 const UPDATES_DIR = path.join(PROJECT_ROOT, "updates");
 const PLUGINS_DIR = path.join(PROJECT_ROOT, "plugins");
 const MCP_MANIFEST_PATH = path.join(PROJECT_ROOT, "mcp", "agenttrail.mcp.json");
-const WORKSPACE_ROOT = path.resolve(PROJECT_ROOT, process.env.WORKSPACE_ROOT || "workspace");
 const RECEIPTS_DIR = "receipts";
 const REPORTS_DIR = "reports";
 const SESSIONS_DIR = "sessions";
@@ -293,7 +305,10 @@ const OBSERVABILITY = createObservability({
 const WATCHER = new FileWatcher(WORKSPACE_ROOT, (event) => {
   LOGGER.log("info", "workspace.change", event);
 });
-const CONFIG_STATUS = validateConfig(process.env);
+const CONFIG_STATUS = validateConfig(process.env, {
+  workspaceRoot: WORKSPACE_ROOT,
+  appliedWorkspaceKeys: WORKSPACE_CONFIG_BOOT.appliedKeys || []
+});
 const MIGRATIONS_READY = runMigrations(WORKSPACE_ROOT, SCHEMA_VERSION).catch((error) => {
   console.error(`Migration warning: ${error.message}`);
   return null;
@@ -303,7 +318,10 @@ const SQLITE_READY = SQLITE.init().catch((error) => {
   return null;
 });
 if (!CONFIG_STATUS.ok) {
-  console.warn(`Config warning: ${CONFIG_STATUS.checks.filter((check) => !check.ok).map((check) => check.message).join(" ")}`);
+  console.warn(`Config warning:\n${formatConfigWarnings(CONFIG_STATUS)}`);
+}
+if (WORKSPACE_CONFIG_BOOT.error) {
+  console.warn(`Workspace config warning: ${WORKSPACE_CONFIG_BOOT.error}`);
 }
 
 const server = http.createServer(async (req, res) => {
@@ -375,7 +393,15 @@ const server = http.createServer(async (req, res) => {
     }
 
     if (url.pathname === "/api/config" && req.method === "GET") {
-      return sendJson(res, 200, CONFIG_STATUS);
+      return handleConfig(res);
+    }
+
+    if (url.pathname === "/api/config/admin" && req.method === "GET") {
+      return handleConfigAdmin(res);
+    }
+
+    if (url.pathname === "/api/config/workspace" && req.method === "POST") {
+      return handleWorkspaceConfig(req, res);
     }
 
     if (url.pathname === "/api/logs" && req.method === "GET") {
@@ -886,6 +912,10 @@ const server = http.createServer(async (req, res) => {
       return handleOnboarding(res);
     }
 
+    if (url.pathname === "/api/onboarding" && req.method === "POST") {
+      return handleUpdateOnboarding(req, res);
+    }
+
     if (url.pathname === "/api/demo/public" && req.method === "GET") {
       return handlePublicDemo(res);
     }
@@ -1352,6 +1382,55 @@ async function handleResilience(res) {
       guardedStores: ["workspace", "jsonl-store", "structured-logs", "vector-store", "search-index"]
     }
   });
+}
+
+async function handleConfig(res) {
+  const admin = await buildConfigAdmin(process.env, {
+    workspaceRoot: WORKSPACE_ROOT,
+    validation: CONFIG_STATUS,
+    appliedWorkspaceKeys: WORKSPACE_CONFIG_BOOT.appliedKeys || []
+  });
+  sendJson(res, 200, {
+    ...admin.validation,
+    workspaceRoot: admin.workspaceRoot,
+    overrides: admin.overrides,
+    restartRequired: admin.restartRequired,
+    groups: admin.groups
+  });
+}
+
+async function handleConfigAdmin(res) {
+  sendJson(res, 200, await buildConfigAdmin(process.env, {
+    workspaceRoot: WORKSPACE_ROOT,
+    validation: CONFIG_STATUS,
+    appliedWorkspaceKeys: WORKSPACE_CONFIG_BOOT.appliedKeys || []
+  }));
+}
+
+async function handleWorkspaceConfig(req, res) {
+  const body = await readJsonBody(req);
+  try {
+    const saved = await writeWorkspaceConfig(WORKSPACE_ROOT, body.clear === true ? { overrides: {} } : body);
+    await STORE.append("config-workspace-update", {
+      path: saved.path,
+      overrideCount: saved.overrideCount,
+      requiresRestart: saved.requiresRestart
+    });
+    SQLITE.insert("config-workspace-update", { overrideCount: saved.overrideCount, requiresRestart: saved.requiresRestart });
+    await LOGGER.log("info", "config.workspace-update", { overrideCount: saved.overrideCount, requiresRestart: saved.requiresRestart });
+    const admin = await buildConfigAdmin(process.env, {
+      workspaceRoot: WORKSPACE_ROOT,
+      validation: CONFIG_STATUS,
+      appliedWorkspaceKeys: WORKSPACE_CONFIG_BOOT.appliedKeys || []
+    });
+    sendJson(res, 200, { ok: true, saved, admin });
+  } catch (error) {
+    sendJson(res, 400, {
+      ok: false,
+      error: error.message || "Could not save workspace config.",
+      action: "Review the setting name and value, then save again."
+    });
+  }
 }
 
 async function buildRuntimeResilienceStatus(options = {}) {
@@ -3185,7 +3264,7 @@ async function handleReleaseChecksums(res) {
 }
 
 async function handleOnboarding(res) {
-  const [status, files, packs, foundation] = await Promise.all([
+  const [status, files, packs, foundation, savedState, searchIndex] = await Promise.all([
     fetchOllamaModels(),
     listWorkspaceFiles(),
     listRecipePacks(),
@@ -3196,20 +3275,12 @@ async function handleOnboarding(res) {
       storeStats: { path: ".agenttrail/store.jsonl" },
       adapters: listModelAdapters(process.env),
       packageVersion: packageMeta.version
-    }))
+    })),
+    readFirstRunState(WORKSPACE_ROOT),
+    readSearchIndex().catch(() => null)
   ]);
   const desktopMode = process.env.AGENTTRAIL_DESKTOP === "1" || ["desktop", "menubar", "tray"].includes(String(process.env.AGENTTRAIL_APP_MODE || "").toLowerCase());
-  const items = [
-    { id: "desktop-shell", label: "Desktop shell launched", ok: desktopMode, action: "Open AgentTrail.app, AgentTrail-Tray.ps1, or the Linux desktop launcher" },
-    { id: "ollama", label: "Start Ollama", ok: status.available, action: `ollama pull ${DEFAULT_MODEL}` },
-    { id: "workspace", label: "Add or select a workspace file", ok: files.length > 0, action: "Use workspace/welcome.md" },
-    { id: "semantic-index", label: "Build semantic search index", ok: Boolean(await readSearchIndex()), action: "Click Build search index" },
-    { id: "recipe", label: "Load a recipe pack", ok: packs.length >= 5, action: "Choose Coder, Founder, Security, Student, or Writer pack" },
-    { id: "safe-write", label: "Keep preview writes enabled", ok: true, action: "Review diffs before Apply" },
-    { id: "receipt", label: "Export a receipt or report", ok: false, action: "Click E or H after a run" },
-    { id: "foundation", label: "Foundation checks healthy", ok: foundation.score >= 90, action: "Open Foundation panel" }
-  ];
-  sendJson(res, 200, {
+  sendJson(res, 200, buildFirstRunWizard({
     version: packageMeta.version,
     desktop: {
       enabled: desktopMode,
@@ -3217,9 +3288,30 @@ async function handleOnboarding(res) {
       notifications: desktopNotificationsEnabled(process.env),
       updateChannel: process.env.AGENTTRAIL_UPDATE_CHANNEL || "stable"
     },
-    score: Math.round((items.filter((item) => item.ok).length / items.length) * 100),
-    items
+    state: savedState,
+    configStatus: CONFIG_STATUS,
+    modelStatus: status,
+    files,
+    packs,
+    foundation,
+    defaultModel: DEFAULT_MODEL,
+    searchIndexReady: Boolean(searchIndex)
+  }));
+}
+
+async function handleUpdateOnboarding(req, res) {
+  const body = await readJsonBody(req);
+  await writeFirstRunState(WORKSPACE_ROOT, {
+    completed: body.completed === true ? true : (body.completed === false ? false : undefined),
+    dismissed: body.dismissed === true ? true : (body.dismissed === false ? false : undefined)
   });
+  await STORE.append("onboarding-update", {
+    completed: body.completed === true,
+    dismissed: body.dismissed === true
+  });
+  SQLITE.insert("onboarding-update", { completed: body.completed === true, dismissed: body.dismissed === true });
+  await LOGGER.log("info", "onboarding.update", { completed: body.completed === true, dismissed: body.dismissed === true });
+  return handleOnboarding(res);
 }
 
 async function handleUpdateCheck(url, res) {

@@ -42,6 +42,7 @@ async function main() {
       "/api/foundation",
       "/api/routes",
       "/api/config",
+      "/api/config/admin",
       "/api/observability",
       "/api/traces",
       "/api/errors/taxonomy",

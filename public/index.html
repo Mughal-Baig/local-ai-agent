@@ -226,6 +226,20 @@
           <div id="resilienceSummary" class="mini-list"></div>
         </section>
 
+        <section class="panel config-panel" aria-label="Config admin">
+          <div class="panel-heading">
+            <h2>Config</h2>
+            <button id="refreshConfigAdmin" class="icon-button" title="Refresh config settings" aria-label="Refresh config settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg></button>
+          </div>
+          <div id="configValidation" class="mini-list"></div>
+          <div id="configSettings" class="config-settings"></div>
+          <div class="toolkit-grid">
+            <button id="saveWorkspaceConfig" class="secondary-button compact-button" type="button">Save overrides</button>
+            <button id="clearWorkspaceConfig" class="secondary-button compact-button" type="button">Clear overrides</button>
+          </div>
+          <p id="configSaveStatus" class="hint">Workspace overrides apply after restart.</p>
+        </section>
+
         <section class="panel observability-panel" aria-label="Observability dashboard">
           <div class="panel-heading">
             <h2>Observability</h2>
@@ -452,8 +466,11 @@
         <section class="panel setup-panel" aria-label="Setup checklist">
           <div class="panel-heading">
             <h2>Setup</h2>
+            <button id="refreshOnboarding" class="icon-button" title="Refresh setup wizard" aria-label="Refresh setup wizard"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg></button>
           </div>
           <div id="setupChecklist" class="setup-list"></div>
+          <button id="completeFirstRun" class="secondary-button compact-button" type="button">Complete setup</button>
+          <p id="firstRunStatus" class="hint">First-run setup is checked locally.</p>
         </section>
 
           </div>

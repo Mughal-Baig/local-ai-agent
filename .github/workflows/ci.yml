@@ -30,6 +30,8 @@ jobs:
       - run: node --check src/privacy.js
       - run: node --check src/privacy-controls.js
       - run: node --check src/network-policy.js
+      - run: node --check src/config.js
+      - run: node --check src/config-admin.js
       - run: node --check src/resilience.js
       - run: node --check src/observability.js
       - run: node --check src/team-enterprise.js
@@ -70,6 +72,7 @@ jobs:
       - run: node --check tests/unit/supply-chain.test.js
       - run: node --check tests/unit/observability.test.js
       - run: node --check tests/unit/resilience.test.js
+      - run: node --check tests/unit/config-admin.test.js
       - run: node --check tests/unit/team-enterprise.test.js
       - run: node --check tests/unit/quality-engineering.test.js
       - run: node --check tests/unit/workspace-safety-fuzz.test.js
@@ -88,6 +91,7 @@ jobs:
       - run: node --check tests/integration/openai-compatible-server.test.js
       - run: node --check tests/integration/health.test.js
       - run: node --check tests/integration/resilience.test.js
+      - run: node --check tests/integration/config-admin.test.js
       - run: node --check tests/integration/concurrency.test.js
       - run: node --check tests/integration/model-options.test.js
       - run: node --check tests/integration/resources.test.js
@@ -103,6 +107,7 @@ jobs:
       - run: node tests/unit/supply-chain.test.js
       - run: node tests/unit/observability.test.js
       - run: node tests/unit/resilience.test.js
+      - run: node tests/unit/config-admin.test.js
       - run: node tests/unit/team-enterprise.test.js
       - run: node tests/unit/quality-engineering.test.js
       - run: node tests/unit/workspace-safety-fuzz.test.js
@@ -143,6 +148,7 @@ jobs:
       - run: node tests/integration/search-incremental.test.js
       - run: node tests/integration/health.test.js
       - run: node tests/integration/resilience.test.js
+      - run: node tests/integration/config-admin.test.js
       - run: node tests/integration/concurrency.test.js
       - run: node tests/integration/model-options.test.js
       - run: node tests/integration/resources.test.js

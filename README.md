@@ -58,6 +58,7 @@ Writes are off by default. The agent proposes a unified diff; you click **Apply*
 - **Private by design**: the app binds locally, uses local model backends by default, and gates optional network paths with explicit policy.
 - **Privacy control plane**: inspect stored local artifacts, configure retention windows, opt into local-only analytics, preview a wipe, and clear AgentTrail data deliberately.
 - **Resilience layer**: backend-down states degrade cleanly, transient backend calls retry with backoff, search indexes auto-rebuild when corrupt, and local writes use atomic temp-file renames.
+- **Config/admin control plane**: inspect every model/cache/budget/host env setting, save per-workspace overrides, see friendly startup fixes, and finish a local first-run checklist.
 - **Safe workspace boundary**: file reads and writes are blocked outside `workspace/`.
 - **Zero runtime npm dependencies**: clone, run `node server.js`, and start building.
 - **Serious foundation**: schemas, migrations, permission engine, background jobs, backups, plugins, SBOM, signed-checksum path, reproducible package checks, and tests keep it from feeling like a toy.

@@ -70,6 +70,14 @@ async function runPlaywrightE2e(playwright) {
     await page.locator("#teamSummary").waitFor({ timeout: 5000 });
     const teamText = await page.locator("#teamSummary").innerText();
     assert.match(teamText, /Owner|Role/i);
+    await page.locator("#refreshConfigAdmin").click();
+    await page.locator("#configSettings").getByText(/OLLAMA_MODEL|AGENTTRAIL_CACHE/).waitFor({ timeout: 5000 });
+    const configText = await page.locator("#configSettings").innerText();
+    assert.match(configText, /OLLAMA_MODEL|AGENTTRAIL_CACHE/);
+    await page.locator("#refreshOnboarding").click();
+    await page.locator("#setupChecklist").getByText(/Config validated|Model backend/i).waitFor({ timeout: 5000 });
+    const setupText = await page.locator("#setupChecklist").innerText();
+    assert.match(setupText, /Config validated|Model backend/i);
   } finally {
     await browser.close();
   }
@@ -96,6 +104,9 @@ async function runHttpUiContract() {
   assert.match(html, /teamUserSelect/);
   assert.match(html, /observabilitySummary/);
   assert.match(html, /resilienceSummary/);
+  assert.match(html, /configSettings/);
+  assert.match(html, /saveWorkspaceConfig/);
+  assert.match(html, /completeFirstRun/);
   assert.match(html, /privacySummary/);
   assert.match(html, /localAnalyticsToggle/);
   assert.match(html, /themeSelect/);
@@ -109,6 +120,9 @@ async function runHttpUiContract() {
   assert.match(app, /refreshTeam/);
   assert.match(app, /refreshPrivacy/);
   assert.match(app, /renderResilienceSummary/);
+  assert.match(app, /refreshConfigAdmin/);
+  assert.match(app, /saveWorkspaceConfig/);
+  assert.match(app, /completeFirstRun/);
   assert.match(app, /wipePrivacyData/);
   assert.match(app, /refreshConversations/);
   assert.match(app, /branchConversation/);

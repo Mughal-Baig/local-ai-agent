@@ -323,6 +323,14 @@ select:hover, .search-input:hover { border-color: var(--line-strong); }
   font-weight: 700;
 }
 
+.setup-item small {
+  grid-column: 2;
+  color: currentColor;
+  opacity: 0.78;
+  font-size: 0.7rem;
+  line-height: 1.35;
+}
+
 /* ---------- Toggles ---------- */
 .toggle-row {
   display: flex;
@@ -697,6 +705,47 @@ select:hover, .search-input:hover { border-color: var(--line-strong); }
 .mini-row strong { color: var(--clay-deep); font-size: 0.76rem; }
 .mini-row span { color: var(--muted); font-size: 0.72rem; font-weight: 600; }
 .mini-row.muted { color: var(--muted); font-size: 0.78rem; font-weight: 600; }
+.mini-row.warn { border-color: var(--rose); background: var(--rose-soft); }
+
+.config-settings { display: grid; gap: 8px; margin-top: 10px; }
+
+.config-group {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--panel-2);
+  overflow: hidden;
+}
+
+.config-group summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 36px;
+  padding: 8px 10px;
+  cursor: pointer;
+  color: var(--clay-deep);
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.config-group summary small { color: var(--muted); font-size: 0.68rem; }
+.config-group-body { display: grid; gap: 8px; padding: 0 10px 10px; }
+
+.config-setting {
+  display: grid;
+  gap: 6px;
+  padding: 9px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--panel);
+}
+
+.config-setting.invalid { border-color: var(--rose); background: var(--rose-soft); }
+.config-label { display: grid; gap: 2px; min-width: 0; }
+.config-label strong { color: var(--ink); font-size: 0.78rem; }
+.config-label small, .config-help { color: var(--muted); font-size: 0.68rem; line-height: 1.35; }
+.config-input { width: 100%; min-height: 34px; font-size: 0.78rem; }
 
 .observability-summary { grid-template-columns: 1fr 1fr; }
 

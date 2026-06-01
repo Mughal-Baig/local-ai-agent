@@ -103,6 +103,7 @@ async function main() {
   checks.push(await check("SQLite store exists", async () => includes("src/sqlite-store.js", ["node:sqlite", "CREATE TABLE"])));
   checks.push(await check("Structured logging exists", async () => includes("src/logger.js", ["agenttrail.log.v1", "logs.jsonl"])));
   checks.push(await check("Config validation exists", async () => includes("src/config.js", ["validateConfig", "OLLAMA_HOST"])));
+  checks.push(await check("Config admin layer exists", async () => includes("src/config-admin.js", ["agenttrail.config-admin.v1", "workspace-config.json", "agenttrail.first-run.v1"]) && includes("server.js", ["/api/config/admin", "/api/config/workspace"]) && includes("public/app.js", ["refreshConfigAdmin", "completeFirstRun"])));
   checks.push(await check("File watcher exists", async () => includes("src/file-watcher.js", ["fs.watch", "events"])));
   checks.push(await check("Plugin sandbox exists", async () => includes("src/plugin-sandbox.js", ["vm", "example.echo"])));
   checks.push(await check("Backup import endpoint exists", async () => includes("server.js", ["/api/backup/import", "importBackup"])));

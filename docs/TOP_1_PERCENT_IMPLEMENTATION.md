@@ -25,6 +25,7 @@ This table maps the requested 30-item top-1% and foundation list to the v0.7 imp
 | Security hardening | `/api/security/scan`, `/api/security/privacy`, prompt injection, exfiltration, path escape, hidden instruction, destructive command, secret-like value detection, egress allowlists, optional encrypted receipts |
 | Privacy controls | `/api/privacy/dashboard`, `/api/privacy/settings`, `/api/privacy/retention`, `/api/privacy/retention/apply`, `/api/privacy/wipe`, confirmed local-data wipe, artifact retention windows, storage inventory, and opt-in local-only analytics with network disabled |
 | Resilience layer | `/api/resilience`, graceful backend-down health state, retry-with-backoff for transient backend errors, crash-safe atomic writes, corrupt search-index auto-rebuild, disk guards for writes/model pulls, and actionable storage/runtime error codes |
+| Config/admin control plane | `/api/config/admin`, `/api/config/workspace`, schema-backed model/cache/budget/host settings UI, friendly startup validation, per-workspace overrides, and a first-run setup wizard |
 | Redaction API | `/api/redact` exposes the same local secret masking used by conversation exports and audit artifacts |
 | Project memory with citations | `/api/memory/citations`, revision history in `workspace/memory/history/` |
 | Model benchmark dashboard | `/api/benchmarks`, `/api/benchmarks/run`, `/api/models/compare`, `/api/models/vision-capability`, benchmark history, vision-readiness scoring |
@@ -41,7 +42,7 @@ This table maps the requested 30-item top-1% and foundation list to the v0.7 imp
 | Screenshots | `npm run screenshots`, screenshot assets under `docs/screenshots/` |
 | Public demo | `docs/public-demo.html` and `/api/demo/public` |
 | Trust badges | `/api/trust/badge` exports SVG badges |
-| Onboarding checklist | `/api/onboarding` and UI onboarding summary |
+| Onboarding checklist | `/api/onboarding`, persisted `.agenttrail/first-run.json`, Setup panel wizard, and UI onboarding summary |
 | MCP client examples | [mcp/CLIENT_SETUP.md](mcp/CLIENT_SETUP.md) |
 
 ## Foundation Features
@@ -70,7 +71,7 @@ This table maps the requested 30-item top-1% and foundation list to the v0.7 imp
 | Structured logging | `src/logger.js`, `workspace/.agenttrail/logs.jsonl`, `/api/logs` |
 | Observability metrics | `src/observability.js`, Prometheus-style `/api/metrics`, trace records in `workspace/.agenttrail/store.jsonl`, and aggregate local analytics without prompt text |
 | Team foundation | `src/team-enterprise.js`, `team/users.json`, `/api/team/*`, role-capped permissions, read-only shared receipt summaries, audit CSV/JSON, sync package export |
-| Config validation | `src/config.js`, `/api/config` |
+| Config validation | `src/config.js`, `src/config-admin.js`, `/api/config`, `/api/config/admin`, `/api/config/workspace`, friendly startup actions, and `.agenttrail/workspace-config.json` overrides |
 | File watching | `src/file-watcher.js`, `/api/watch/start`, `/api/watch/status`, `/api/watch/stop` |
 | Route catalog | `src/route-catalog.js`, `/api/routes` |
 

@@ -29,6 +29,8 @@ const state = {
   observability: null,
   privacy: null,
   resilience: null,
+  configAdmin: null,
+  onboarding: null,
   activeTraceId: null,
   team: null,
   teamUserId: "owner",
@@ -149,6 +151,7 @@ const els = {
   securityScan: document.querySelector("#securityScan"),
   securitySummary: document.querySelector("#securitySummary"),
   marketplaceSummary: document.querySelector("#marketplaceSummary"),
+  onboardingSummary: document.querySelector("#onboardingSummary"),
   profileSummary: document.querySelector("#profileSummary"),
   trustScore: document.querySelector("#trustScore"),
   trustReasons: document.querySelector("#trustReasons"),
@@ -195,6 +198,15 @@ const els = {
   refreshResources: document.querySelector("#refreshResources"),
   resourcesSummary: document.querySelector("#resourcesSummary"),
   resilienceSummary: document.querySelector("#resilienceSummary"),
+  refreshConfigAdmin: document.querySelector("#refreshConfigAdmin"),
+  configValidation: document.querySelector("#configValidation"),
+  configSettings: document.querySelector("#configSettings"),
+  saveWorkspaceConfig: document.querySelector("#saveWorkspaceConfig"),
+  clearWorkspaceConfig: document.querySelector("#clearWorkspaceConfig"),
+  configSaveStatus: document.querySelector("#configSaveStatus"),
+  refreshOnboarding: document.querySelector("#refreshOnboarding"),
+  completeFirstRun: document.querySelector("#completeFirstRun"),
+  firstRunStatus: document.querySelector("#firstRunStatus"),
   themeToggle: document.querySelector("#themeToggle"),
   themeSelect: document.querySelector("#themeSelect"),
   fontScaleSelect: document.querySelector("#fontScaleSelect"),
@@ -246,6 +258,8 @@ document.addEventListener("DOMContentLoaded", async () => {
     refreshSearchIndex(),
     refreshObservability(),
     refreshPrivacy(),
+    refreshConfigAdmin(),
+    refreshOnboarding(),
     refreshTeam(),
     refreshEvalHistory(),
     refreshInstalledModels(),
@@ -540,6 +554,21 @@ function bindEvents() {
   }
   if (els.refreshResources) {
     els.refreshResources.addEventListener("click", refreshResources);
+  }
+  if (els.refreshConfigAdmin) {
+    els.refreshConfigAdmin.addEventListener("click", refreshConfigAdmin);
+  }
+  if (els.saveWorkspaceConfig) {
+    els.saveWorkspaceConfig.addEventListener("click", saveWorkspaceConfig);
+  }
+  if (els.clearWorkspaceConfig) {
+    els.clearWorkspaceConfig.addEventListener("click", clearWorkspaceConfig);
+  }
+  if (els.refreshOnboarding) {
+    els.refreshOnboarding.addEventListener("click", refreshOnboarding);
+  }
+  if (els.completeFirstRun) {
+    els.completeFirstRun.addEventListener("click", completeFirstRun);
   }
   initAccessPreferences();
   if (els.themeToggle) {
@@ -2293,6 +2322,8 @@ function openToolsDrawer(options = {}) {
     els.toolsBackdrop.hidden = false;
   }
   refreshResources();
+  refreshConfigAdmin();
+  refreshOnboarding();
   refreshObservability();
   refreshPrivacy();
   refreshTeam();
@@ -2377,6 +2408,226 @@ function renderResilienceSummary() {
   els.resilienceSummary.innerHTML = rows
     .map(([k, v]) => `<div class="mini-row ${failed.length && k === "Resilience" ? "warn" : ""}"><strong>${escapeHtml(k)}</strong><span>${escapeHtml(v)}</span></div>`)
     .join("");
+}
+
+async function refreshConfigAdmin() {
+  if (!els.configSettings) {
+    return;
+  }
+  try {
+    const data = await getJson("/api/config/admin");
+    state.configAdmin = data;
+    renderConfigAdmin();
+  } catch (error) {
+    els.configSettings.innerHTML = `<div class="empty-state compact">${escapeHtml(error.message)}</div>`;
+    if (els.configValidation) {
+      els.configValidation.innerHTML = `<div class="mini-row muted"><strong>Config</strong><span>Unavailable</span></div>`;
+    }
+  }
+}
+
+function renderConfigAdmin() {
+  const data = state.configAdmin;
+  if (!data || !els.configSettings) {
+    return;
+  }
+  const validation = data.validation || {};
+  const failed = Array.isArray(validation.failed) ? validation.failed : [];
+  if (els.configValidation) {
+    const rows = [
+      ["Status", validation.ok === false ? "Needs attention" : "Ready"],
+      ["Overrides", `${Object.keys(data.overrides?.values || {}).length} saved · ${data.restartRequired ? "restart pending" : "live/default"}`],
+      ["Workspace", data.workspaceRoot || "workspace"]
+    ];
+    if (failed.length) {
+      rows.push(["Fix", failed[0].action || failed[0].message || "Review config"]);
+    }
+    els.configValidation.innerHTML = rows
+      .map(([key, value]) => `<div class="mini-row ${failed.length && key === "Status" ? "warn" : ""}"><strong>${escapeHtml(key)}</strong><span>${escapeHtml(value)}</span></div>`)
+      .join("");
+  }
+  els.configSettings.innerHTML = "";
+  for (const group of data.groups || []) {
+    const details = document.createElement("details");
+    details.className = "config-group";
+    details.open = group.id === "model" || group.id === "budget";
+    details.innerHTML = `
+      <summary>
+        <span>${escapeHtml(group.label)}</span>
+        <small>${Number(group.overrideCount || 0)} override${Number(group.overrideCount || 0) === 1 ? "" : "s"}</small>
+      </summary>
+      <div class="config-group-body"></div>
+    `;
+    const body = details.querySelector(".config-group-body");
+    for (const setting of (data.settings || []).filter((item) => item.group === group.id)) {
+      body.appendChild(renderConfigSetting(setting));
+    }
+    els.configSettings.appendChild(details);
+  }
+  if (els.configSaveStatus) {
+    els.configSaveStatus.textContent = data.restartRequired
+      ? "Workspace overrides saved for next restart."
+      : "Workspace overrides apply after restart.";
+  }
+}
+
+function renderConfigSetting(setting) {
+  const row = document.createElement("label");
+  row.className = `config-setting${setting.validation && setting.validation.ok === false ? " invalid" : ""}`;
+  const id = `config-${setting.key.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`;
+  const source = configSourceLabel(setting);
+  const value = setting.overrideValue !== null && setting.overrideValue !== undefined ? setting.overrideValue : setting.value;
+  row.innerHTML = `
+    <span class="config-label">
+      <strong>${escapeHtml(setting.label)}</strong>
+      <small>${escapeHtml(setting.key)} · ${escapeHtml(source)}</small>
+    </span>
+    ${configInputHtml(setting, id, value)}
+    <span class="config-help">${escapeHtml(setting.validation && setting.validation.ok === false ? setting.validation.action : setting.description || "Restart required")}</span>
+  `;
+  return row;
+}
+
+function configInputHtml(setting, id, value) {
+  const common = `id="${escapeHtml(id)}" data-config-key="${escapeHtml(setting.key)}"`;
+  if (setting.type === "select") {
+    const selected = String(value || setting.defaultValue || "").toLowerCase();
+    const options = (setting.options || []).map((option) => {
+      const optionValue = String(option);
+      return `<option value="${escapeHtml(optionValue)}" ${optionValue === selected ? "selected" : ""}>${escapeHtml(optionValue)}</option>`;
+    }).join("");
+    return `<select class="config-input" ${common}>${options}</select>`;
+  }
+  const type = setting.type === "number" ? "number" : (setting.type === "url" ? "url" : "text");
+  const min = setting.min !== undefined ? ` min="${escapeHtml(setting.min)}"` : "";
+  const max = setting.max !== undefined ? ` max="${escapeHtml(setting.max)}"` : "";
+  return `<input class="config-input" ${common} type="${type}" value="${escapeHtml(value || "")}" placeholder="${escapeHtml(setting.defaultValue || "")}"${min}${max} />`;
+}
+
+function configSourceLabel(setting) {
+  if (setting.shadowedByEnv) {
+    return "env overrides workspace";
+  }
+  if (setting.source === "workspace-pending") {
+    return "workspace pending";
+  }
+  if (setting.source === "workspace") {
+    return "workspace";
+  }
+  return setting.source || "default";
+}
+
+async function saveWorkspaceConfig() {
+  if (!els.configSettings) {
+    return;
+  }
+  const overrides = {};
+  els.configSettings.querySelectorAll("[data-config-key]").forEach((input) => {
+    const key = input.dataset.configKey;
+    const value = String(input.value || "").trim();
+    if (key && value) {
+      overrides[key] = value;
+    }
+  });
+  if (els.saveWorkspaceConfig) {
+    els.saveWorkspaceConfig.disabled = true;
+  }
+  if (els.configSaveStatus) {
+    els.configSaveStatus.textContent = "Saving workspace overrides...";
+  }
+  try {
+    const result = await postJson("/api/config/workspace", { overrides });
+    state.configAdmin = result.admin;
+    renderConfigAdmin();
+    addTrail("system", `Saved ${Object.keys(overrides).length} config override(s)`);
+  } catch (error) {
+    if (els.configSaveStatus) {
+      els.configSaveStatus.textContent = error.message;
+    }
+    addTrail("error", error.message);
+  } finally {
+    if (els.saveWorkspaceConfig) {
+      els.saveWorkspaceConfig.disabled = false;
+    }
+  }
+}
+
+async function clearWorkspaceConfig() {
+  if (els.clearWorkspaceConfig) {
+    els.clearWorkspaceConfig.disabled = true;
+  }
+  if (els.configSaveStatus) {
+    els.configSaveStatus.textContent = "Clearing workspace overrides...";
+  }
+  try {
+    const result = await postJson("/api/config/workspace", { clear: true });
+    state.configAdmin = result.admin;
+    renderConfigAdmin();
+    addTrail("system", "Cleared workspace config overrides");
+  } catch (error) {
+    if (els.configSaveStatus) {
+      els.configSaveStatus.textContent = error.message;
+    }
+    addTrail("error", error.message);
+  } finally {
+    if (els.clearWorkspaceConfig) {
+      els.clearWorkspaceConfig.disabled = false;
+    }
+  }
+}
+
+async function refreshOnboarding() {
+  try {
+    const data = await getJson("/api/onboarding");
+    state.onboarding = data;
+    renderSetupChecklist();
+    renderOnboardingSummary();
+  } catch (error) {
+    if (els.firstRunStatus) {
+      els.firstRunStatus.textContent = error.message;
+    }
+  }
+}
+
+function renderOnboardingSummary() {
+  if (!els.onboardingSummary) {
+    return;
+  }
+  const wizard = state.onboarding;
+  if (!wizard) {
+    els.onboardingSummary.innerHTML = `<div class="mini-row muted"><strong>Setup</strong><span>Not checked</span></div>`;
+    return;
+  }
+  const next = (wizard.steps || []).find((step) => !step.ok);
+  const rows = [
+    ["First run", `${wizard.status === "complete" ? "Complete" : "Needs setup"} · ${wizard.progress || `${wizard.score || 0}%`}`],
+    ["Next", next ? next.action : "Ready for a safe local run"]
+  ];
+  els.onboardingSummary.innerHTML = rows
+    .map(([key, value]) => `<div class="mini-row"><strong>${escapeHtml(key)}</strong><span>${escapeHtml(value)}</span></div>`)
+    .join("");
+}
+
+async function completeFirstRun() {
+  if (els.completeFirstRun) {
+    els.completeFirstRun.disabled = true;
+  }
+  try {
+    const data = await postJson("/api/onboarding", { completed: true });
+    state.onboarding = data;
+    renderSetupChecklist();
+    renderOnboardingSummary();
+    addTrail("system", "First-run setup completed");
+  } catch (error) {
+    if (els.firstRunStatus) {
+      els.firstRunStatus.textContent = error.message;
+    }
+    addTrail("error", error.message);
+  } finally {
+    if (els.completeFirstRun) {
+      els.completeFirstRun.disabled = false;
+    }
+  }
 }
 
 async function refreshObservability() {
@@ -3818,6 +4069,20 @@ function renderLocalSignals() {
 }
 
 function renderSetupChecklist() {
+  if (!els.setupChecklist) {
+    return;
+  }
+  if (state.onboarding && Array.isArray(state.onboarding.steps)) {
+    els.setupChecklist.innerHTML = state.onboarding.steps
+      .map((item) => `<div class="setup-item ${item.ok ? "ok" : ""}"><span>${item.ok ? "OK" : "TODO"}</span>${escapeHtml(item.label)}${item.ok ? "" : `<small>${escapeHtml(item.action || "")}</small>`}</div>`)
+      .join("");
+    if (els.firstRunStatus) {
+      els.firstRunStatus.textContent = state.onboarding.completed
+        ? "First-run setup is complete."
+        : `First-run setup ${state.onboarding.progress || ""}.`;
+    }
+    return;
+  }
   const items = [
     {
       ok: state.ollamaAvailable,

@@ -2,10 +2,10 @@
 
 ## Next
 
-- Finish request timeout/cancellation polish and startup validation now that the Epic AJ resilience layer is in place.
+- Finish request timeout/cancellation polish now that the Epic AJ/AK operations layers are in place.
 - Build the 60-second proof loop: search -> diff preview -> apply -> receipt -> shareable report.
 - Make the install path undeniable: `npx agenttrail`, Docker persistence, Homebrew publication, setup doctor, and friendly failure states.
-- Add a guided first-run wizard so new users can complete one safe local task before touching their real project.
+- Add deeper evaluation quality: golden task fixtures, citation-faithfulness checks, and unsupported-claim detection.
 - Add public safety proof: prompt-injection demo fixtures, network-path audit, redaction checks, and threat-model page.
 - Publish an honest comparison page against OpenHands, Cline, AnythingLLM, Open Interpreter, Aider, and Continue.
 - Add true local embedding backends behind optional dependencies.
@@ -68,6 +68,7 @@
 - Portability layer: workspace identity, all-in-one archive export/import, safe restore folders, machine migration plan, and scheduled local backups with retention.
 - Privacy controls layer: confirmed local data wipe, artifact retention windows, storage dashboard, and opt-in local-only analytics with network disabled.
 - Resilience layer: `/api/resilience`, graceful backend-down health/UI state, retry-with-backoff, crash-safe atomic writes, corrupt-index rebuild, disk-space guards, and storage/runtime error codes.
+- Config/admin layer: schema-backed settings UI for model/cache/budget/host envs, friendly startup validation, per-workspace overrides, and a persisted first-run setup wizard.
 - Top 1% expansion added to the long roadmap: Phase 17-22 now covers demo proof, one-command install, first-run retention, safety proof, public comparisons, signed releases, supportability, and durable AgentTrail-specific moat.
 
 ## Not Planned
