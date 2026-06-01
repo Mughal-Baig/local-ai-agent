@@ -2,6 +2,7 @@
 
 const fsp = require("node:fs/promises");
 const path = require("node:path");
+const { atomicWriteFile } = require("./resilience");
 
 const PRIVACY_SETTINGS_PATH = ".agenttrail/privacy-settings.json";
 const RETENTION_POLICY_PATH = ".agenttrail/retention-policy.json";
@@ -333,7 +334,7 @@ async function readJson(workspaceRoot, relativePath) {
 async function writeJson(workspaceRoot, relativePath, value) {
   const absolutePath = resolveWorkspacePath(workspaceRoot, relativePath);
   await fsp.mkdir(path.dirname(absolutePath), { recursive: true });
-  await fsp.writeFile(absolutePath, `${JSON.stringify(value, null, 2)}\n`, "utf8");
+  await atomicWriteFile(absolutePath, `${JSON.stringify(value, null, 2)}\n`, "utf8");
 }
 
 function resolveWorkspacePath(workspaceRoot, relativePath) {

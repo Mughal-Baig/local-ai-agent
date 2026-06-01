@@ -3,6 +3,7 @@
 const fsp = require("node:fs/promises");
 const path = require("node:path");
 const { migrateVectorStoreFiles } = require("./vector-store");
+const { atomicWriteFile } = require("./resilience");
 
 const MIGRATIONS = [
   {
@@ -49,7 +50,7 @@ async function runMigrations(workspaceRoot, version) {
       if (path.extname(absolute)) {
         await fsp.mkdir(path.dirname(absolute), { recursive: true });
         if (!(await exists(absolute))) {
-          await fsp.writeFile(absolute, target.endsWith(".json") ? JSON.stringify({ version, createdAt: new Date().toISOString() }, null, 2) : "", "utf8");
+          await atomicWriteFile(absolute, target.endsWith(".json") ? JSON.stringify({ version, createdAt: new Date().toISOString() }, null, 2) : "", "utf8");
         }
       } else {
         await fsp.mkdir(absolute, { recursive: true });
@@ -63,7 +64,7 @@ async function runMigrations(workspaceRoot, version) {
   }
 
   await fsp.mkdir(path.dirname(statePath), { recursive: true });
-  await fsp.writeFile(statePath, JSON.stringify({
+  await atomicWriteFile(statePath, JSON.stringify({
     schema: "agenttrail.migrations.v1",
     version,
     applied: Array.from(applied),

@@ -24,6 +24,7 @@ This table maps the requested 30-item top-1% and foundation list to the v0.7 imp
 | Run observability | `/api/metrics`, `/api/observability`, `/api/traces`, token/time accounting, error taxonomy, and the in-app trace timeline |
 | Security hardening | `/api/security/scan`, `/api/security/privacy`, prompt injection, exfiltration, path escape, hidden instruction, destructive command, secret-like value detection, egress allowlists, optional encrypted receipts |
 | Privacy controls | `/api/privacy/dashboard`, `/api/privacy/settings`, `/api/privacy/retention`, `/api/privacy/retention/apply`, `/api/privacy/wipe`, confirmed local-data wipe, artifact retention windows, storage inventory, and opt-in local-only analytics with network disabled |
+| Resilience layer | `/api/resilience`, graceful backend-down health state, retry-with-backoff for transient backend errors, crash-safe atomic writes, corrupt search-index auto-rebuild, disk guards for writes/model pulls, and actionable storage/runtime error codes |
 | Redaction API | `/api/redact` exposes the same local secret masking used by conversation exports and audit artifacts |
 | Project memory with citations | `/api/memory/citations`, revision history in `workspace/memory/history/` |
 | Model benchmark dashboard | `/api/benchmarks`, `/api/benchmarks/run`, `/api/models/compare`, `/api/models/vision-capability`, benchmark history, vision-readiness scoring |
@@ -60,6 +61,7 @@ This table maps the requested 30-item top-1% and foundation list to the v0.7 imp
 | Stronger vector index | file hashes, chunk metadata, chunk citation search, provider/model/dimensions, status counts |
 | Background jobs | `src/jobs.js`, `/api/jobs`, `/api/jobs/start`, Foundation panel job actions |
 | Better error handling | `src/features/errors.js` adds a structured taxonomy with actionable hints for Ollama, embeddings, large files, permissions, path escapes, egress blocks, encryption, rate limits, and timeouts |
+| Resilience foundation | `src/resilience.js`, `npm run test:resilience`, `/api/resilience`, atomic writes for local stores, disk-space guardrails, retry policy metadata, and corrupt-index repair receipts |
 | Signed-release path | `npm run release:checksums`, `/api/releases/checksums`, `/api/releases/signing-plan`, [docs/RELEASE_SIGNING.md](RELEASE_SIGNING.md), release artifact workflow |
 | Plugin architecture | `plugins/`, `/api/plugins`, `/api/plugins/run`, example plugin manifests, [docs/PLUGIN_SDK.md](PLUGIN_SDK.md), VM sandbox |
 | Import/export backup | `/api/backup/export`, `/api/backup/import`, `/api/backup/schedule`, `/api/backup/schedule/run`, `workspace/backups/agenttrail-archive-*.json` |

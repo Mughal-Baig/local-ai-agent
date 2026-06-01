@@ -43,6 +43,30 @@ const ERROR_TAXONOMY = {
     hint: "Encrypted artifacts need a usable local encryption key.",
     action: "Set AGENTTRAIL_ENCRYPTION_KEY and retry the save/read operation."
   },
+  DISK_SPACE: {
+    category: "storage",
+    severity: "high",
+    hint: "AgentTrail stopped before writing because local disk space is below the safety threshold.",
+    action: "Free disk space, remove old model pulls or exports, then retry the write."
+  },
+  CORRUPT_INDEX: {
+    category: "search",
+    severity: "medium",
+    hint: "The local search index could not be parsed or matched to the expected schema.",
+    action: "Let AgentTrail rebuild the local-vector index, or delete the corrupt backup after reviewing it."
+  },
+  STARTUP_CONFIG: {
+    category: "runtime",
+    severity: "medium",
+    hint: "One or more environment values are invalid or risky.",
+    action: "Open /api/config, fix the named environment value, and restart AgentTrail."
+  },
+  RETRY_EXHAUSTED: {
+    category: "runtime",
+    severity: "medium",
+    hint: "A transient backend request was retried and still failed.",
+    action: "Check the backend status, reduce load, and retry the action once the model server is stable."
+  },
   RATE_LIMITED: {
     category: "runtime",
     severity: "medium",
@@ -116,6 +140,33 @@ function classifyError(error, context = {}) {
     lower.includes("encrypted")
   ) {
     code = "ENCRYPTION_AT_REST";
+  } else if (
+    contextCode === "DISK_SPACE" ||
+    contextCode === "ENOSPC" ||
+    lower.includes("disk space") ||
+    lower.includes("no space left") ||
+    lower.includes("not enough local disk")
+  ) {
+    code = "DISK_SPACE";
+  } else if (
+    contextCode === "CORRUPT_INDEX" ||
+    lower.includes("corrupt index") ||
+    lower.includes("search index could not") ||
+    lower.includes("unexpected token") ||
+    lower.includes("invalid-search-index-schema")
+  ) {
+    code = "CORRUPT_INDEX";
+  } else if (
+    contextCode === "STARTUP_CONFIG" ||
+    lower.includes("startup config") ||
+    lower.includes("config warning")
+  ) {
+    code = "STARTUP_CONFIG";
+  } else if (
+    contextCode === "RETRY_EXHAUSTED" ||
+    lower.includes("retry exhausted")
+  ) {
+    code = "RETRY_EXHAUSTED";
   } else if (
     contextCode === "EMBEDDING_SETUP" ||
     lower.includes("embedding") ||

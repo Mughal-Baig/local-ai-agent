@@ -84,6 +84,7 @@ async function runHttpUiContract() {
   const status = await fetchJson("/api/status");
   const team = await fetchJson("/api/team/status");
   const observability = await fetchJson("/api/observability");
+  const resilience = await fetchJson("/api/resilience");
 
   assert.match(html, /AgentTrail/);
   assert.match(html, /workspaceSearch/);
@@ -94,6 +95,7 @@ async function runHttpUiContract() {
   assert.match(html, /composerMode/);
   assert.match(html, /teamUserSelect/);
   assert.match(html, /observabilitySummary/);
+  assert.match(html, /resilienceSummary/);
   assert.match(html, /privacySummary/);
   assert.match(html, /localAnalyticsToggle/);
   assert.match(html, /themeSelect/);
@@ -106,6 +108,7 @@ async function runHttpUiContract() {
   assert.match(html, /role="log"/);
   assert.match(app, /refreshTeam/);
   assert.match(app, /refreshPrivacy/);
+  assert.match(app, /renderResilienceSummary/);
   assert.match(app, /wipePrivacyData/);
   assert.match(app, /refreshConversations/);
   assert.match(app, /branchConversation/);
@@ -133,6 +136,7 @@ async function runHttpUiContract() {
   assert.match(serviceWorker, /\/api\//);
   assert.equal(status.app, "ok");
   assert.equal(team.schema, "agenttrail.team-status.v1");
+  assert.equal(resilience.schema, "agenttrail.resilience.v1");
   assert.equal(Array.isArray(observability.traces), true);
 }
 

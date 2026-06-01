@@ -3,6 +3,7 @@
 const crypto = require("node:crypto");
 const fsp = require("node:fs/promises");
 const path = require("node:path");
+const { atomicWriteFile } = require("./resilience");
 
 const INDEX_SCHEMA = "agenttrail.advanced-agent.v1";
 const PLAN_SCHEMA = "agenttrail.multi-agent-plan.v1";
@@ -108,7 +109,7 @@ async function writeAdvancedAgentIndex(workspaceRoot, index, env = process.env) 
   await fsp.mkdir(paths.root, { recursive: true });
   const normalized = normalizeIndex(index);
   normalized.updatedAt = new Date().toISOString();
-  await fsp.writeFile(paths.indexPath, `${JSON.stringify(normalized, null, 2)}\n`, "utf8");
+  await atomicWriteFile(paths.indexPath, `${JSON.stringify(normalized, null, 2)}\n`, "utf8");
   return normalized;
 }
 
@@ -642,7 +643,7 @@ function compactJson(value) {
 
 async function writeArtifact(filePath, value) {
   await fsp.mkdir(path.dirname(filePath), { recursive: true });
-  await fsp.writeFile(filePath, `${JSON.stringify(value, null, 2)}\n`, "utf8");
+  await atomicWriteFile(filePath, `${JSON.stringify(value, null, 2)}\n`, "utf8");
 }
 
 async function readArtifactRecords(workspaceRoot, dir, schema, mapRecord) {

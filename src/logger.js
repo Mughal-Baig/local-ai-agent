@@ -3,6 +3,7 @@
 const fsp = require("node:fs/promises");
 const path = require("node:path");
 const { redactValueOnly } = require("./privacy");
+const { appendLineAtomic } = require("./resilience");
 
 class StructuredLogger {
   constructor(root, relativePath = ".agenttrail/logs.jsonl") {
@@ -23,7 +24,7 @@ class StructuredLogger {
     this.recent.unshift(record);
     this.recent = this.recent.slice(0, 100);
     await fsp.mkdir(path.dirname(this.absolutePath), { recursive: true });
-    await fsp.appendFile(this.absolutePath, `${JSON.stringify(record)}\n`, "utf8").catch(() => {});
+    await appendLineAtomic(this.absolutePath, JSON.stringify(record), { encoding: "utf8" }).catch(() => {});
     return record;
   }
 

@@ -2,6 +2,7 @@
 
 const fsp = require("node:fs/promises");
 const path = require("node:path");
+const { atomicWriteFile } = require("./resilience");
 
 const VECTOR_STORE_SCHEMA = "agenttrail.vector-store.v1";
 const VECTOR_STORE_VERSION = 1;
@@ -26,7 +27,7 @@ class FlatVectorStore {
 
   async writeStore(store) {
     await fsp.mkdir(path.dirname(this.absolutePath), { recursive: true });
-    await fsp.writeFile(this.absolutePath, JSON.stringify(store, null, 2), "utf8");
+    await atomicWriteFile(this.absolutePath, JSON.stringify(store, null, 2), "utf8");
   }
 
   async read(options = {}) {
@@ -490,7 +491,7 @@ async function migrateVectorStoreFiles(workspaceRoot, options = {}) {
   };
   const absoluteMigrationPath = path.join(workspaceRoot, migrationPath);
   await fsp.mkdir(path.dirname(absoluteMigrationPath), { recursive: true });
-  await fsp.writeFile(absoluteMigrationPath, JSON.stringify(manifest, null, 2), "utf8");
+  await atomicWriteFile(absoluteMigrationPath, JSON.stringify(manifest, null, 2), "utf8");
   return manifest;
 }
 

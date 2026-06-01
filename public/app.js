@@ -28,6 +28,7 @@ const state = {
   searchIndex: null,
   observability: null,
   privacy: null,
+  resilience: null,
   activeTraceId: null,
   team: null,
   teamUserId: "owner",
@@ -193,6 +194,7 @@ const els = {
   closeTools: document.querySelector("#closeTools"),
   refreshResources: document.querySelector("#refreshResources"),
   resourcesSummary: document.querySelector("#resourcesSummary"),
+  resilienceSummary: document.querySelector("#resilienceSummary"),
   themeToggle: document.querySelector("#themeToggle"),
   themeSelect: document.querySelector("#themeSelect"),
   fontScaleSelect: document.querySelector("#fontScaleSelect"),
@@ -2031,10 +2033,15 @@ function renderSearchResults() {
 async function refreshStatus() {
   setConnection("Checking local model...");
   try {
-    const status = await getJson("/api/status");
+    const [status, resilience] = await Promise.all([
+      getJson("/api/status"),
+      getJson("/api/resilience").catch(() => null)
+    ]);
+    state.resilience = resilience;
     state.models = status.ollama.models || [];
     const available = status.ollama.available;
     state.ollamaAvailable = available;
+    const backendMessage = resilience && resilience.backend && resilience.backend.message;
 
     if (available && state.models.length) {
       setConnection(`${state.models.length} local model(s) found`);
@@ -2042,17 +2049,18 @@ async function refreshStatus() {
       els.modelHint.textContent = `Connected to ${status.ollama.host}`;
       addTrail("model", `${state.models.length} local model(s) available`);
     } else if (available) {
-      setConnection("Ollama is running with no models");
+      setConnection(`${status.backend?.title || "Backend"} is running with no models`);
       renderModels(status.defaults.model);
       els.modelHint.textContent = `Run: ollama pull ${status.defaults.model}`;
       addTrail("model", "Ollama connected without models");
     } else {
-      setConnection("Ollama is not connected");
+      setConnection("Model backend is degraded");
       renderModels(status.defaults.model);
-      els.modelHint.textContent = "Start Ollama and pull a model to chat.";
-      addTrail("warning", "Ollama not connected");
+      els.modelHint.textContent = backendMessage || "Start the local model backend and pull a model to chat.";
+      addTrail("warning", backendMessage || "Model backend not connected");
     }
     renderLocalSignals();
+    renderResilienceSummary();
     renderModelScores();
     renderSetupChecklist();
   } catch (error) {
@@ -2061,6 +2069,7 @@ async function refreshStatus() {
     state.ollamaAvailable = false;
     addTrail("error", error.message);
     renderLocalSignals();
+    renderResilienceSummary();
     renderModelScores();
     renderSetupChecklist();
   }
@@ -2301,7 +2310,12 @@ async function refreshResources() {
     return;
   }
   try {
-    const [r, rt] = await Promise.all([getJson("/api/resources"), getJson("/api/runtime").catch(() => null)]);
+    const [r, rt, resilience] = await Promise.all([
+      getJson("/api/resources"),
+      getJson("/api/runtime").catch(() => null),
+      getJson("/api/resilience").catch(() => null)
+    ]);
+    state.resilience = resilience || state.resilience;
     const rows = [];
     rows.push(["CPU", `${r.cpu.count} cores · load ${(r.cpu.loadAverage[0] || 0).toFixed(2)}`]);
     rows.push(["Memory", `${formatGb(r.memory.used)} / ${formatGb(r.memory.total)} used`]);
@@ -2323,9 +2337,46 @@ async function refreshResources() {
     els.resourcesSummary.innerHTML = rows
       .map(([k, v]) => `<div class="mini-row"><strong>${escapeHtml(k)}</strong><span>${escapeHtml(v)}</span></div>`)
       .join("");
+    renderResilienceSummary();
   } catch (error) {
     els.resourcesSummary.innerHTML = `<div class="mini-row muted">${escapeHtml(error.message)}</div>`;
+    renderResilienceSummary();
   }
+}
+
+function renderResilienceSummary() {
+  if (!els.resilienceSummary) {
+    return;
+  }
+  const resilience = state.resilience;
+  if (!resilience) {
+    els.resilienceSummary.innerHTML = `<div class="mini-row muted"><strong>Resilience</strong><span>Not checked</span></div>`;
+    return;
+  }
+  const checks = Array.isArray(resilience.checks) ? resilience.checks : [];
+  const failed = checks.filter((check) => check.ok === false);
+  const retry = resilience.retryPolicy ? `${resilience.retryPolicy.backendRetries} retry${resilience.retryPolicy.backendRetries === 1 ? "" : "ies"}` : "retry policy";
+  const disk = resilience.disk && Number.isFinite(Number(resilience.disk.freeBytes))
+    ? `${formatGb(resilience.disk.freeBytes)} free`
+    : "disk guard ready";
+  const rows = [
+    ["Resilience", resilience.status === "healthy" ? "Healthy" : "Degraded"],
+    ["Backend", resilience.backend?.message || "Model backend state unknown"],
+    ["Retry", retry],
+    ["Writes", resilience.atomicWrites?.strategy || "atomic writes"],
+    ["Disk guard", disk]
+  ];
+  if (resilience.searchIndex && resilience.searchIndex.rebuilt) {
+    rows.push(["Index repair", "Auto-rebuilt corrupt index"]);
+  } else if (resilience.searchIndex && resilience.searchIndex.corrupt) {
+    rows.push(["Index repair", resilience.searchIndex.reason || "Needs rebuild"]);
+  }
+  if (failed.length) {
+    rows.push(["Action", failed[0].message || "Review degraded check"]);
+  }
+  els.resilienceSummary.innerHTML = rows
+    .map(([k, v]) => `<div class="mini-row ${failed.length && k === "Resilience" ? "warn" : ""}"><strong>${escapeHtml(k)}</strong><span>${escapeHtml(v)}</span></div>`)
+    .join("");
 }
 
 async function refreshObservability() {
@@ -3760,7 +3811,8 @@ function renderTrail() {
 }
 
 function renderLocalSignals() {
-  els.privacySignal.textContent = state.ollamaAvailable ? "Offline-ready" : "Local";
+  const degraded = state.resilience && state.resilience.status === "degraded";
+  els.privacySignal.textContent = state.ollamaAvailable ? "Offline-ready" : (degraded ? "Degraded" : "Local");
   els.selectedSignal.textContent = `${state.selectedFiles.size} file${state.selectedFiles.size === 1 ? "" : "s"}`;
   els.toolSignal.textContent = `${state.toolCount} call${state.toolCount === 1 ? "" : "s"}`;
 }
@@ -3769,7 +3821,7 @@ function renderSetupChecklist() {
   const items = [
     {
       ok: state.ollamaAvailable,
-      text: state.ollamaAvailable ? "Ollama is reachable" : "Start Ollama on 127.0.0.1:11434"
+      text: state.ollamaAvailable ? "Model backend is reachable" : (state.resilience?.backend?.message || "Start Ollama on 127.0.0.1:11434")
     },
     {
       ok: state.models.length > 0,

@@ -57,6 +57,7 @@ Writes are off by default. The agent proposes a unified diff; you click **Apply*
 - **Permission-aware**: file reads are explicit and file writes are off by default.
 - **Private by design**: the app binds locally, uses local model backends by default, and gates optional network paths with explicit policy.
 - **Privacy control plane**: inspect stored local artifacts, configure retention windows, opt into local-only analytics, preview a wipe, and clear AgentTrail data deliberately.
+- **Resilience layer**: backend-down states degrade cleanly, transient backend calls retry with backoff, search indexes auto-rebuild when corrupt, and local writes use atomic temp-file renames.
 - **Safe workspace boundary**: file reads and writes are blocked outside `workspace/`.
 - **Zero runtime npm dependencies**: clone, run `node server.js`, and start building.
 - **Serious foundation**: schemas, migrations, permission engine, background jobs, backups, plugins, SBOM, signed-checksum path, reproducible package checks, and tests keep it from feeling like a toy.
@@ -75,7 +76,7 @@ Popular local AI tools usually optimize for broad chat, model management, or aut
 | Observability | Structured logs, `/api/metrics`, per-run traces, token/time accounting, error taxonomy, and privacy-preserving local analytics |
 | Team/audit | Read-only shared receipts, local multi-user profiles, RBAC tool caps, audit export, opt-in local sync packs, and SSO header/domain hook |
 | Workflow system | Plain JSON recipes, role-based recipe packs, import/export UI, and marketplace manifest |
-| Foundation | Stable schemas, migrations, append-only store, permission engine, plugin manifests, portable archives, scheduled backups, jobs, checksums, advanced-agent manifests |
+| Foundation | Stable schemas, migrations, append-only store, permission engine, plugin manifests, portable archives, scheduled backups, jobs, resilience checks, checksums, advanced-agent manifests |
 | Best use | Auditable local project agent for developers, founders, students, writers, security reviewers, and teams that need proof |
 
 ## 60-second Quick Start
@@ -123,7 +124,8 @@ Open `http://127.0.0.1:4173`, build the semantic index, ask for a change, review
 - Native tool calling for Ollama `/api/chat` and OpenAI-compatible local backends, with per-model capability probing, multi-tool batches, schema validation, and repair for malformed arguments
 - OpenAI-compatible server mode: `/v1/chat/completions`, `/v1/models`, `/v1/embeddings`, streaming SSE, API keys, rate limits, request queue, and OpenAPI spec
 - Bounded model concurrency and graceful overload responses through `AGENTTRAIL_MAX_CONCURRENCY`, `AGENTTRAIL_MAX_QUEUE`, and `/api/concurrency`
-- Health/resources/runtime endpoints for deployment checks and system visibility: `/api/health`, `/api/resources`, `/api/runtime`
+- Health/resources/runtime/resilience endpoints for deployment checks and system visibility: `/api/health`, `/api/resilience`, `/api/resources`, `/api/runtime`
+- Resilience safeguards: graceful backend-down UI state, retry-with-backoff for transient backend calls, crash-safe atomic writes for local stores, corrupt-index auto-rebuild, disk-space guards for writes and model pulls, and actionable error codes
 - Observability endpoints: `/api/metrics`, `/api/observability`, `/api/traces`, `/api/traces/content`, and `/api/errors/taxonomy`
 - Local team endpoints: `/api/team/status`, `/api/team/users`, `/api/team/rbac`, `/api/team/receipts`, `/api/team/audit/export`, `/api/team/sync/export`, and `/api/team/sso/validate`
 - Structured JSON output endpoint for Ollama schema `format` and OpenAI-compatible `response_format.json_schema`, plus typed extraction recipes with readable schema-error reasons
@@ -304,7 +306,7 @@ When write preview mode is enabled, `write_file` returns a diff preview instead 
 - Model scoring and benchmarking: `/api/status`, `/api/models/vision-capability`, `/api/benchmarks`
 - Model ecosystem: LoRA/adapter manifests, fine-tuning launcher, quantization wrapper, safetensors-to-GGUF conversion helpers, and per-task model evals in [docs/MODEL_ECOSYSTEM.md](docs/MODEL_ECOSYSTEM.md)
 - Advanced agent layer: multi-agent plans, scheduled-run manifests, resumable journals, sub-agent budgets, and deterministic replay diffs in [docs/ADVANCED_AGENT.md](docs/ADVANCED_AGENT.md)
-- Throughput and resource visibility: `/api/concurrency`, `/api/health`, `/api/resources`, `/api/runtime`, and `npm run load:test`
+- Throughput, resource, and resilience visibility: `/api/concurrency`, `/api/health`, `/api/resilience`, `/api/resources`, `/api/runtime`, `npm run load:test`, and `npm run test:resilience`
 - Agent-as-API: `/v1/chat/completions`, `/v1/models`, `/v1/embeddings`, `/v1/openapi.json`, plus [docs/OPENAI_COMPATIBLE_API.md](docs/OPENAI_COMPATIBLE_API.md)
 - Agent eval harness and history: `npm run eval`, `npm run eval:search`, `npm run bench:search`, `/api/evals`, `/api/evals/history`
 - Quality proof: `npm run test:quality`, `npm run coverage`, `npm run bench:quality`, UI E2E in CI, cross-platform quality matrix, and eval category scoreboard
@@ -391,6 +393,8 @@ Supported variables:
 - `AGENTTRAIL_BUNDLED_QUANTIZATION`, `AGENTTRAIL_KV_CACHE_TYPE`, `AGENTTRAIL_CONTEXT_SHIFT`, `AGENTTRAIL_BUNDLED_MMAP`, `AGENTTRAIL_TENSOR_SPLIT`: bundled model-loading internals for quantization, KV-cache shifting, mmap, batching, and multi-GPU split policy
 - `AGENTTRAIL_MODEL_REGISTRY_DIR`, `AGENTTRAIL_REGISTRY_TOKEN`, `HUGGINGFACE_TOKEN`: bundled model registry location and optional registry auth for resumable/checksummed GGUF pulls
 - `AGENTTRAIL_TRAINER_COMMAND`, `AGENTTRAIL_QUANTIZE_COMMAND`, `AGENTTRAIL_CONVERT_COMMAND`: explicit no-shell delegate commands for fine-tuning, quantization, and safetensors-to-GGUF conversion
+- `AGENTTRAIL_BACKEND_RETRIES` / `AGENTTRAIL_BACKEND_RETRY_BASE_MS`: transient backend retry count and backoff seed, default `2` / `120`
+- `AGENTTRAIL_MIN_FREE_BYTES` / `AGENTTRAIL_MODEL_PULL_MIN_FREE_BYTES`: disk-space guard thresholds for local writes and model pulls, default `64MB` / `512MB`
 - `AGENTTRAIL_MAX_CONCURRENCY` / `AGENTTRAIL_MAX_QUEUE`: bounded `/api/chat` concurrency and backpressure controls, default `4` / `64`
 - `AGENTTRAIL_CACHE`: set to `off` to disable the in-memory response cache (default on); `AGENTTRAIL_CACHE_TTL_MS` tunes the TTL
 - `AGENTTRAIL_MAX_PROMPT_CHARS`: prompt budget cap for assembled context, default `24000`
@@ -454,6 +458,7 @@ npm run test:backend
 npm run test:models
 npm run test:embed-cache
 npm run test:resume
+npm run test:resilience
 npm run eval:search
 npm run bench:search
 npm run test:guardrails
@@ -482,7 +487,7 @@ npm run package:mac-app
 **What the suite proves.** Three layers run with no cloud and no Ollama required (the smoke test points at a dead Ollama host on purpose):
 
 - **Unit** — foundation modules (schemas, permissions, store, migrations) behave as specified.
-- **Integration** — the API contract holds across endpoints, including observability traces and metrics.
+- **Integration** — the API contract holds across endpoints, including observability traces, metrics, and resilience degradation/recovery.
 - **Search benchmark** — seeds a deterministic local corpus, builds the vector store, then compares AgentTrail semantic recall and latency against a brute-force scanner.
 - **End-to-end smoke** — boots a real server on a temp workspace and asserts the full trust loop: the UI serves, `/api/status` reports `ok` with Ollama correctly detected as unavailable, the foundation score is **≥ 90**, **≥ 10** stable schemas are exposed, `write_file` is a permissioned tool, recipes load (including `code-review`), and a write → read → **preview diff** → search round-trip all succeed. It then shuts the server down.
 

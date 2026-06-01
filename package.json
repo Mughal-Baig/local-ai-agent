@@ -114,6 +114,7 @@
     "test:resume": "node tests/integration/resumable-run.test.js",
     "test:reindex": "node tests/integration/search-incremental.test.js",
     "test:health": "node tests/integration/health.test.js",
+    "test:resilience": "node tests/unit/resilience.test.js && node tests/integration/resilience.test.js",
     "test:concurrency": "node tests/integration/concurrency.test.js",
     "test:options": "node tests/integration/model-options.test.js",
     "test:resources": "node tests/integration/resources.test.js",

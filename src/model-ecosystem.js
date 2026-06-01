@@ -7,6 +7,7 @@ const path = require("node:path");
 const { execFile } = require("node:child_process");
 const { promisify } = require("node:util");
 const { registryPaths, modelSlug, sha256File } = require("./model-registry");
+const { atomicWriteFile } = require("./resilience");
 
 const execFileAsync = promisify(execFile);
 
@@ -121,7 +122,7 @@ async function writeModelEcosystemIndex(workspaceRoot, index, env = process.env)
     conversions: sortByCreated(index.conversions),
     evaluations: sortByCreated(index.evaluations)
   };
-  await fsp.writeFile(paths.indexPath, `${JSON.stringify(next, null, 2)}\n`, "utf8");
+  await atomicWriteFile(paths.indexPath, `${JSON.stringify(next, null, 2)}\n`, "utf8");
   return next;
 }
 
@@ -166,7 +167,7 @@ async function registerLoraAdapter(workspaceRoot, input, env = process.env) {
     createdAt: new Date().toISOString()
   };
   const manifestPath = path.join(adapterDir, "adapter.agenttrail.json");
-  await fsp.writeFile(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`, "utf8");
+  await atomicWriteFile(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`, "utf8");
   return upsertEcosystemRecord(workspaceRoot, "adapters", { ...manifest, manifestPath, relativeManifestPath: path.relative(workspaceRoot, manifestPath) }, env);
 }
 
@@ -191,7 +192,7 @@ async function launchFineTune(workspaceRoot, input, env = process.env) {
     hyperparameters: normalizeHyperparameters(input.hyperparameters || input.params || {}),
     createdAt: new Date().toISOString()
   };
-  await fsp.writeFile(configPath, `${JSON.stringify(config, null, 2)}\n`, "utf8");
+  await atomicWriteFile(configPath, `${JSON.stringify(config, null, 2)}\n`, "utf8");
   const command = await runDelegatedCommand({
     template: input.command || env.AGENTTRAIL_TRAINER_COMMAND,
     placeholders: {
@@ -601,7 +602,7 @@ async function sha256IfExists(filePath) {
 
 async function writeArtifact(filePath, data) {
   await fsp.mkdir(path.dirname(filePath), { recursive: true });
-  await fsp.writeFile(filePath, `${JSON.stringify(data, null, 2)}\n`, "utf8");
+  await atomicWriteFile(filePath, `${JSON.stringify(data, null, 2)}\n`, "utf8");
 }
 
 function hashObject(value) {

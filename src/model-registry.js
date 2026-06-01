@@ -7,6 +7,7 @@ const path = require("node:path");
 const { fileURLToPath, pathToFileURL } = require("node:url");
 const { pipeline } = require("node:stream/promises");
 const { validateNetworkEgress, normalizeNetworkAllowlist } = require("./network-policy");
+const { atomicWriteFile } = require("./resilience");
 
 const REGISTRY_SCHEMA = "agenttrail.model-registry.v1";
 const MODELFILE_SCHEMA = "agenttrail.modelfile.v1";
@@ -54,7 +55,7 @@ async function writeModelIndex(workspaceRoot, index, env = process.env) {
     updatedAt: new Date().toISOString(),
     models: Array.isArray(index.models) ? index.models.sort((a, b) => a.name.localeCompare(b.name)) : []
   };
-  await fsp.writeFile(paths.indexPath, `${JSON.stringify(next, null, 2)}\n`);
+  await atomicWriteFile(paths.indexPath, `${JSON.stringify(next, null, 2)}\n`, "utf8");
   return next;
 }
 
@@ -187,7 +188,7 @@ async function createModelFromSpec(workspaceRoot, input, env = process.env) {
     tags: normalizeTags([...normalizeTags(input.tags), ...spec.tags])
   };
   const manifestPath = path.join(modelDir, "Modelfile.agenttrail.json");
-  await fsp.writeFile(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
+  await atomicWriteFile(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`, "utf8");
   const sha256 = await sha256File(manifestPath);
   return upsertModel(workspaceRoot, {
     name,
@@ -243,7 +244,7 @@ async function shareModel(workspaceRoot, input, env = process.env) {
     ? path.resolve(input.destination)
     : path.join(paths.sharesDir, `${model.slug}.share.json`);
   await fsp.mkdir(path.dirname(destination), { recursive: true });
-  await fsp.writeFile(destination, `${JSON.stringify(manifest, null, 2)}\n`);
+  await atomicWriteFile(destination, `${JSON.stringify(manifest, null, 2)}\n`, "utf8");
   return { ok: true, pushed: false, manifestPath: destination, manifest };
 }
 

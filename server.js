@@ -27,6 +27,15 @@ const workspaceSafety = require("./src/workspace-safety");
 const { scanSecurityText } = require("./src/features/security");
 const { redactSecrets } = require("./src/features/redact");
 const { ERROR_TAXONOMY, friendlyError } = require("./src/features/errors");
+const {
+  atomicWriteFile,
+  assertDiskSpace,
+  buildResilienceStatus,
+  diskSpaceStatus,
+  indexHealthFromParsed,
+  isRetryableStatus,
+  withRetry
+} = require("./src/resilience");
 const { createObservability } = require("./src/observability");
 const {
   applyRbacToPermissions,
@@ -136,6 +145,10 @@ const BACKEND_IS_OPENAI = ACTIVE_BACKEND.api === "openai-compatible";
 const BACKEND_IS_BUNDLED = ACTIVE_BACKEND.api === "bundled";
 const BACKEND_HOST = trimTrailingSlash(ACTIVE_BACKEND.host || OLLAMA_HOST);
 const BACKEND_API_KEY = process.env.OPENAI_API_KEY || process.env.AGENTTRAIL_API_KEY || "";
+const BACKEND_RETRY_ATTEMPTS = clampInt(process.env.AGENTTRAIL_BACKEND_RETRIES, 0, 5, 2);
+const BACKEND_RETRY_BASE_MS = clampInt(process.env.AGENTTRAIL_BACKEND_RETRY_BASE_MS, 10, 2000, 120);
+const WRITE_MIN_FREE_BYTES = Math.max(0, Number(process.env.AGENTTRAIL_MIN_FREE_BYTES || 64 * 1024 * 1024));
+const MODEL_PULL_MIN_FREE_BYTES = Math.max(0, Number(process.env.AGENTTRAIL_MODEL_PULL_MIN_FREE_BYTES || 512 * 1024 * 1024));
 // Keep the model warm between turns to cut cold-start latency (Ollama keep_alive).
 const OLLAMA_KEEP_ALIVE = process.env.OLLAMA_KEEP_ALIVE || "5m";
 // Phase 5 / Epic N — performance passthrough to the runtime (T095).
@@ -303,6 +316,10 @@ const server = http.createServer(async (req, res) => {
 
     if (url.pathname === "/api/health" && req.method === "GET") {
       return handleHealth(res);
+    }
+
+    if (url.pathname === "/api/resilience" && req.method === "GET") {
+      return handleResilience(res);
     }
 
     if (url.pathname === "/api/resources" && req.method === "GET") {
@@ -1305,15 +1322,67 @@ async function handleRuntime(res) {
 }
 
 async function handleHealth(res) {
+  const resilience = await buildRuntimeResilienceStatus({ includeSearchIndex: false });
   sendJson(res, 200, {
     ok: true,
-    status: "healthy",
+    status: resilience.status,
     version: packageMeta.version,
     uptimeSeconds: Math.round((Date.now() - SERVER_START) / 1000),
-    backend: { id: ACTIVE_BACKEND.id, title: ACTIVE_BACKEND.title, api: ACTIVE_BACKEND.api, host: BACKEND_HOST },
+    backend: resilience.backend,
+    checks: resilience.checks,
     pid: process.pid,
     time: new Date().toISOString()
   });
+}
+
+async function handleResilience(res) {
+  const resilience = await buildRuntimeResilienceStatus({ includeSearchIndex: true });
+  sendJson(res, 200, {
+    ...resilience,
+    version: packageMeta.version,
+    uptimeSeconds: Math.round((Date.now() - SERVER_START) / 1000),
+    retryPolicy: {
+      backendRetries: BACKEND_RETRY_ATTEMPTS,
+      baseDelayMs: BACKEND_RETRY_BASE_MS,
+      retryableStatusCodes: [408, 409, 425, 429, 500, 502, 503, 504]
+    },
+    atomicWrites: {
+      enabled: true,
+      strategy: "temp-file-rename",
+      guardedStores: ["workspace", "jsonl-store", "structured-logs", "vector-store", "search-index"]
+    }
+  });
+}
+
+async function buildRuntimeResilienceStatus(options = {}) {
+  const backend = await buildBackendHealth();
+  const disk = await diskSpaceStatus(WORKSPACE_ROOT, 0, { minFreeBytes: WRITE_MIN_FREE_BYTES });
+  const searchIndex = options.includeSearchIndex ? await inspectSearchIndexHealth(DEFAULT_SEARCH_COLLECTION) : { ok: true, corrupt: false, checked: false };
+  return buildResilienceStatus({
+    backend,
+    config: CONFIG_STATUS,
+    disk,
+    searchIndex
+  });
+}
+
+async function buildBackendHealth() {
+  const status = await fetchOllamaModels().catch((error) => ({ available: false, models: [], error: error.message }));
+  const available = status.available !== false;
+  return {
+    id: ACTIVE_BACKEND.id,
+    title: ACTIVE_BACKEND.title,
+    api: ACTIVE_BACKEND.api,
+    host: BACKEND_HOST,
+    available,
+    modelCount: Array.isArray(status.models) ? status.models.length : 0,
+    retry: status.retry || null,
+    error: status.error || null,
+    message: available
+      ? (status.models && status.models.length ? "Model backend is reachable." : "Model backend is reachable but no models are installed.")
+      : backendUnavailableMessage(status),
+    degraded: !available
+  };
 }
 
 function backendUnavailableMessage(status = {}) {
@@ -1330,19 +1399,24 @@ async function handleStatus(res) {
   const models = await fetchOllamaModels();
   const scoredModels = models.models.map(scoreModel);
   const adapter = activeModelAdapter(process.env);
+  const backendAvailable = models.available !== false;
   sendJson(res, 200, {
     app: "ok",
     version: packageMeta.version,
+    status: backendAvailable ? "healthy" : "degraded",
     adapter,
     adapters: listModelAdapters(process.env),
     backend: {
       id: ACTIVE_BACKEND.id,
       title: ACTIVE_BACKEND.title,
       api: ACTIVE_BACKEND.api,
-      host: BACKEND_HOST
+      host: BACKEND_HOST,
+      available: backendAvailable,
+      message: backendAvailable ? "Model backend is reachable." : backendUnavailableMessage(models),
+      retry: models.retry || null
     },
     ollama: {
-      available: models.available,
+      available: backendAvailable,
       host: BACKEND_HOST,
       models: scoredModels,
       error: models.error || null
@@ -1456,6 +1530,13 @@ async function handlePullModel(req, res) {
   if (BACKEND_IS_OPENAI) {
     return sendJson(res, 501, {
       error: `Model pulling is handled by ${ACTIVE_BACKEND.title}, not AgentTrail. Load the model in that app.`
+    });
+  }
+  const disk = await diskSpaceStatus(WORKSPACE_ROOT, MODEL_PULL_MIN_FREE_BYTES, { minFreeBytes: MODEL_PULL_MIN_FREE_BYTES });
+  if (!disk.ok) {
+    return sendJson(res, 507, {
+      ...friendlyError(new Error(disk.message || "Not enough local disk space for a model pull."), { code: "DISK_SPACE" }),
+      disk
     });
   }
 
@@ -3818,6 +3899,16 @@ function searchIndexFeatures(index, vectorStore = null) {
 async function handleGetSearchIndex(url, res) {
   const collection = normalizeSearchCollection(url.searchParams.get("collection"));
   const paths = searchCollectionPaths(collection);
+  let health = await inspectSearchIndexHealth(collection);
+  let repair = null;
+  if (health.corrupt) {
+    repair = await repairCorruptSearchIndex(collection, health).catch((error) => ({
+      rebuilt: false,
+      error: error.message,
+      code: "CORRUPT_INDEX"
+    }));
+    health = await inspectSearchIndexHealth(collection);
+  }
   const index = await readSearchIndex(collection);
   if (!index) {
     const vectorStore = await vectorStoreForCollection(collection).status();
@@ -3825,6 +3916,8 @@ async function handleGetSearchIndex(url, res) {
       exists: false,
       path: paths.searchIndexPath,
       collection,
+      health,
+      repair,
       provider: "none",
       itemCount: 0,
       embedModel: OLLAMA_EMBED_MODEL,
@@ -3849,7 +3942,9 @@ async function handleGetSearchIndex(url, res) {
     features: searchIndexFeatures(index, compatibleVectorStore),
     vectorStore: { ...summarizeVectorStore(vectorStore, paths.vectorStorePath), compatible: Boolean(compatibleVectorStore) },
     fileHashCount: index.fileHashes ? Object.keys(index.fileHashes).length : 0,
-    builtAt: index.builtAt || null
+    builtAt: index.builtAt || null,
+    health,
+    repair
   });
 }
 
@@ -4000,8 +4095,9 @@ async function writeScopedMemoryFile(scope, displayPath, storagePath, content) {
     return writeWorkspaceFile(displayPath, content);
   }
   const absolutePath = resolveGlobalMemoryPath(storagePath);
+  await assertDiskSpace(path.dirname(absolutePath), Buffer.byteLength(content, "utf8"), { minFreeBytes: WRITE_MIN_FREE_BYTES });
   await fsp.mkdir(path.dirname(absolutePath), { recursive: true });
-  await fsp.writeFile(absolutePath, content, "utf8");
+  await atomicWriteFile(absolutePath, content, "utf8");
   const stat = await fsp.stat(absolutePath);
   return {
     path: displayPath,
@@ -5118,7 +5214,8 @@ async function handleImportPack(req, res) {
   }
 
   const packPath = path.join(RECIPE_PACKS_DIR, `${pack.id}.json`);
-  await fsp.writeFile(packPath, JSON.stringify(pack, null, 2), "utf8");
+  await assertDiskSpace(RECIPE_PACKS_DIR, Buffer.byteLength(JSON.stringify(pack, null, 2), "utf8"), { minFreeBytes: WRITE_MIN_FREE_BYTES });
+  await atomicWriteFile(packPath, JSON.stringify(pack, null, 2), "utf8");
   sendJson(res, 200, { ok: true, path: `recipe-packs/${pack.id}.json`, pack });
 }
 
@@ -5143,9 +5240,11 @@ async function handleMarketplaceImportUrl(req, res) {
     return sendJson(res, 400, { error: "Imported URL did not contain a valid recipe pack." });
   }
   const packPath = path.join(RECIPE_PACKS_DIR, `${pack.id}.json`);
-  await fsp.writeFile(packPath, JSON.stringify({ ...pack, source: sourceUrl }, null, 2), "utf8");
+  const importedPack = { ...pack, source: sourceUrl };
+  await assertDiskSpace(RECIPE_PACKS_DIR, Buffer.byteLength(JSON.stringify(importedPack, null, 2), "utf8"), { minFreeBytes: WRITE_MIN_FREE_BYTES });
+  await atomicWriteFile(packPath, JSON.stringify(importedPack, null, 2), "utf8");
   await STORE.append("recipe-pack-import", { id: pack.id, source: sourceUrl });
-  sendJson(res, 200, { ok: true, path: `recipe-packs/${pack.id}.json`, pack: { ...pack, source: sourceUrl } });
+  sendJson(res, 200, { ok: true, path: `recipe-packs/${pack.id}.json`, pack: importedPack });
 }
 
 async function handleMarketplace(res) {
@@ -6576,8 +6675,9 @@ async function runLocalTextToSpeech(text, outputPath, options = {}) {
     });
     const outputExists = await pathExists(outputPath);
     if (!outputExists && result.stdout && result.stdout.length) {
+      await assertDiskSpace(path.dirname(outputPath), result.stdout.length, { minFreeBytes: WRITE_MIN_FREE_BYTES });
       await fsp.mkdir(path.dirname(outputPath), { recursive: true });
-      await fsp.writeFile(outputPath, result.stdout);
+      await atomicWriteFile(outputPath, result.stdout);
     }
     if (!(await pathExists(outputPath))) {
       throw httpError(502, "Local text-to-speech command completed but did not create audio output.");
@@ -6615,7 +6715,8 @@ async function writeTemporarySpeechText(text) {
   const dir = path.join(WORKSPACE_ROOT, ".agenttrail", "tmp");
   await fsp.mkdir(dir, { recursive: true });
   const filePath = path.join(dir, `tts-${Date.now()}-${Math.random().toString(16).slice(2)}.txt`);
-  await fsp.writeFile(filePath, text, "utf8");
+  await assertDiskSpace(dir, Buffer.byteLength(text, "utf8"), { minFreeBytes: WRITE_MIN_FREE_BYTES });
+  await atomicWriteFile(filePath, text, "utf8");
   return filePath;
 }
 
@@ -7975,7 +8076,7 @@ async function probeNativeToolSupport(model, options = {}) {
 }
 
 async function probeOpenAIToolSupport(model) {
-  const response = await fetch(openaiUrl("/chat/completions"), {
+  const { response } = await fetchBackendWithRetry(openaiUrl("/chat/completions"), {
     method: "POST",
     headers: openaiHeaders(),
     body: JSON.stringify({
@@ -7985,9 +8086,8 @@ async function probeOpenAIToolSupport(model) {
       tool_choice: "auto",
       temperature: 0,
       stream: false
-    }),
-    signal: AbortSignal.timeout(8000)
-  });
+    })
+  }, { timeoutMs: 8000, label: `${ACTIVE_BACKEND.title} tool probe` });
   if (!response.ok) {
     const details = await response.text().catch(() => "");
     return capabilityResult(model, false, `${ACTIVE_BACKEND.title} rejected tools with HTTP ${response.status}. ${details}`.trim(), "rejected");
@@ -7996,7 +8096,7 @@ async function probeOpenAIToolSupport(model) {
 }
 
 async function probeOllamaToolSupport(model) {
-  const response = await fetch(`${OLLAMA_HOST}/api/chat`, {
+  const { response } = await fetchBackendWithRetry(`${OLLAMA_HOST}/api/chat`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
@@ -8006,9 +8106,8 @@ async function probeOllamaToolSupport(model) {
       stream: false,
       keep_alive: OLLAMA_KEEP_ALIVE,
       options: { temperature: 0 }
-    }),
-    signal: AbortSignal.timeout(8000)
-  });
+    })
+  }, { timeoutMs: 8000, label: "Ollama tool probe" });
   if (!response.ok) {
     const details = await response.text().catch(() => "");
     return capabilityResult(model, false, `Ollama rejected tools with HTTP ${response.status}. ${details}`.trim(), "rejected");
@@ -8105,7 +8204,7 @@ function structuredOutputResult(model, descriptor, ok, output, raw, validation) 
 async function generateStructuredWithOllama(model, prompt, descriptor, options) {
   let response;
   try {
-    response = await fetch(`${OLLAMA_HOST}/api/generate`, {
+    ({ response } = await fetchBackendWithRetry(`${OLLAMA_HOST}/api/generate`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -8116,9 +8215,8 @@ async function generateStructuredWithOllama(model, prompt, descriptor, options) 
         ...(visionImages(options.images).length ? { images: visionImages(options.images).map((image) => image.base64) } : {}),
         keep_alive: OLLAMA_KEEP_ALIVE,
         options: buildModelOptions(options.temperature)
-      }),
-      signal: AbortSignal.timeout(120000)
-    });
+      })
+    }, { timeoutMs: 120000, label: "Ollama structured output" }));
   } catch (error) {
     throw new Error(`Ollama is not reachable at ${OLLAMA_HOST}. ${error.message}`.trim());
   }
@@ -8135,7 +8233,7 @@ async function generateStructuredWithOllama(model, prompt, descriptor, options) 
 async function generateStructuredWithOpenAI(model, prompt, descriptor, options) {
   let response;
   try {
-    response = await fetch(openaiUrl("/chat/completions"), {
+    ({ response } = await fetchBackendWithRetry(openaiUrl("/chat/completions"), {
       method: "POST",
       headers: openaiHeaders(),
       body: JSON.stringify({
@@ -8154,9 +8252,8 @@ async function generateStructuredWithOpenAI(model, prompt, descriptor, options) 
             schema: descriptor.schema
           }
         }
-      }),
-      signal: AbortSignal.timeout(120000)
-    });
+      })
+    }, { timeoutMs: 120000, label: `${ACTIVE_BACKEND.title} structured output` }));
   } catch (error) {
     throw new Error(`${ACTIVE_BACKEND.title} is not reachable at ${BACKEND_HOST}. ${error.message}`.trim());
   }
@@ -8676,12 +8773,36 @@ function createProseGate(res) {
   };
 }
 
+async function fetchBackendWithRetry(url, options = {}, meta = {}) {
+  const timeoutMs = Number(meta.timeoutMs || 0);
+  const retries = Number.isFinite(Number(meta.retries)) ? Number(meta.retries) : BACKEND_RETRY_ATTEMPTS;
+  const result = await withRetry(async ({ attempt }) => {
+    const requestOptions = { ...options };
+    if (timeoutMs > 0) {
+      requestOptions.signal = AbortSignal.timeout(timeoutMs);
+    }
+    const response = await fetch(url, requestOptions);
+    if (isRetryableStatus(response.status)) {
+      const error = new Error(`${meta.label || "Backend request"} returned retryable HTTP ${response.status}`);
+      error.status = response.status;
+      error.attempt = attempt;
+      throw error;
+    }
+    return { response };
+  }, {
+    retries,
+    baseDelayMs: BACKEND_RETRY_BASE_MS,
+    maxDelayMs: Math.max(BACKEND_RETRY_BASE_MS, BACKEND_RETRY_BASE_MS * 8),
+    jitterMs: 30
+  });
+  return result;
+}
+
 async function fetchOpenAIModels() {
   try {
-    const response = await fetch(openaiUrl("/models"), {
-      headers: openaiHeaders(),
-      signal: AbortSignal.timeout(2500)
-    });
+    const { response, retry } = await fetchBackendWithRetry(openaiUrl("/models"), {
+      headers: openaiHeaders()
+    }, { timeoutMs: 2500, label: `${ACTIVE_BACKEND.title} models` });
     if (!response.ok) {
       throw new Error(`HTTP ${response.status}`);
     }
@@ -8690,20 +8811,19 @@ async function fetchOpenAIModels() {
     const models = list
       .map((item) => ({ name: item.id || item.name, size: 0, modifiedAt: null }))
       .filter((item) => item.name);
-    return { available: true, models };
+    return { available: true, models, retry };
   } catch (error) {
-    return { available: false, models: [], error: error.message };
+    return { available: false, models: [], error: error.message, retry: error.attempts ? { attempts: error.attempts.length, attempted: error.attempts, retried: error.attempts.length > 1 } : null };
   }
 }
 
 async function fetchOpenAIEmbedding(text, model) {
   const input = String(text || "").slice(0, MAX_SEARCH_FILE_BYTES);
-  const response = await fetch(openaiUrl("/embeddings"), {
+  const { response } = await fetchBackendWithRetry(openaiUrl("/embeddings"), {
     method: "POST",
     headers: openaiHeaders(),
-    body: JSON.stringify({ model, input }),
-    signal: AbortSignal.timeout(8000)
-  });
+    body: JSON.stringify({ model, input })
+  }, { timeoutMs: 8000, label: `${ACTIVE_BACKEND.title} embeddings` });
   if (!response.ok) {
     const details = await response.text().catch(() => "");
     throw new Error(`${ACTIVE_BACKEND.title} embeddings returned ${response.status}. ${details}`.trim());
@@ -8717,7 +8837,7 @@ async function fetchOpenAIEmbedding(text, model) {
 }
 
 async function generateWithOllama(model, prompt, options) {
-  const response = await fetch(`${OLLAMA_HOST}/api/generate`, {
+  const { response } = await fetchBackendWithRetry(`${OLLAMA_HOST}/api/generate`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
@@ -8726,9 +8846,8 @@ async function generateWithOllama(model, prompt, options) {
       stream: false,
       keep_alive: OLLAMA_KEEP_ALIVE,
       options: buildModelOptions(options.temperature)
-    }),
-    signal: AbortSignal.timeout(120000)
-  });
+    })
+  }, { timeoutMs: 120000, label: "Ollama generate" });
 
   if (!response.ok) {
     const details = await response.text().catch(() => "");
@@ -8747,9 +8866,7 @@ async function fetchOllamaModels() {
     return fetchOpenAIModels();
   }
   try {
-    const response = await fetch(`${OLLAMA_HOST}/api/tags`, {
-      signal: AbortSignal.timeout(2500)
-    });
+    const { response, retry } = await fetchBackendWithRetry(`${OLLAMA_HOST}/api/tags`, {}, { timeoutMs: 2500, label: "Ollama models" });
     if (!response.ok) {
       throw new Error(`HTTP ${response.status}`);
     }
@@ -8762,9 +8879,9 @@ async function fetchOllamaModels() {
           modifiedAt: model.modified_at || null
         }))
       : [];
-    return { available: true, models };
+    return { available: true, models, retry };
   } catch (error) {
-    return { available: false, models: [], error: error.message };
+    return { available: false, models: [], error: error.message, retry: error.attempts ? { attempts: error.attempts.length, attempted: error.attempts, retried: error.attempts.length > 1 } : null };
   }
 }
 
@@ -8781,12 +8898,11 @@ async function fetchOllamaEmbedding(text, model = OLLAMA_EMBED_MODEL) {
     return fetchOpenAIEmbedding(text, model);
   }
   const input = String(text || "").slice(0, MAX_SEARCH_FILE_BYTES);
-  const embedResponse = await fetch(`${OLLAMA_HOST}/api/embed`, {
+  const embedResponse = await fetchBackendWithRetry(`${OLLAMA_HOST}/api/embed`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ model, input }),
-    signal: AbortSignal.timeout(8000)
-  }).catch(() => null);
+    body: JSON.stringify({ model, input })
+  }, { timeoutMs: 8000, label: "Ollama embeddings" }).then((result) => result.response).catch(() => null);
 
   if (embedResponse && embedResponse.ok) {
     const data = await embedResponse.json();
@@ -8796,12 +8912,11 @@ async function fetchOllamaEmbedding(text, model = OLLAMA_EMBED_MODEL) {
     }
   }
 
-  const legacyResponse = await fetch(`${OLLAMA_HOST}/api/embeddings`, {
+  const { response: legacyResponse } = await fetchBackendWithRetry(`${OLLAMA_HOST}/api/embeddings`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ model, prompt: input }),
-    signal: AbortSignal.timeout(8000)
-  });
+    body: JSON.stringify({ model, prompt: input })
+  }, { timeoutMs: 8000, label: "Ollama legacy embeddings" });
 
   if (!legacyResponse.ok) {
     const details = await legacyResponse.text().catch(() => "");
@@ -9442,6 +9557,79 @@ async function readSearchIndex(collection = DEFAULT_SEARCH_COLLECTION) {
   }
 }
 
+async function inspectSearchIndexHealth(collection = DEFAULT_SEARCH_COLLECTION) {
+  const collectionId = normalizeSearchCollection(collection);
+  const paths = searchCollectionPaths(collectionId);
+  try {
+    const file = await readWorkspaceFile(paths.searchIndexPath, MAX_BODY_BYTES);
+    const index = JSON.parse(file.content);
+    const vectorStore = await readVectorStore(collectionId);
+    const compatibleVectorStore = vectorStoreMatchesIndex(index, vectorStore) ? vectorStore : null;
+    return {
+      ...indexHealthFromParsed(index, compatibleVectorStore),
+      exists: true,
+      checked: true,
+      path: paths.searchIndexPath,
+      collection: collectionId,
+      builtAt: index && index.builtAt || null
+    };
+  } catch (error) {
+    if (error && error.code === "ENOENT") {
+      return {
+        schema: "agenttrail.search-index-health.v1",
+        ok: true,
+        exists: false,
+        checked: true,
+        corrupt: false,
+        path: paths.searchIndexPath,
+        collection: collectionId,
+        reason: "missing",
+        checkedAt: new Date().toISOString()
+      };
+    }
+    return {
+      schema: "agenttrail.search-index-health.v1",
+      ok: false,
+      exists: true,
+      checked: true,
+      corrupt: true,
+      path: paths.searchIndexPath,
+      collection: collectionId,
+      reason: error.message || "Unable to parse search index.",
+      code: "CORRUPT_INDEX",
+      checkedAt: new Date().toISOString()
+    };
+  }
+}
+
+async function repairCorruptSearchIndex(collection = DEFAULT_SEARCH_COLLECTION, health = {}) {
+  const collectionId = normalizeSearchCollection(collection);
+  const paths = searchCollectionPaths(collectionId);
+  const stamp = new Date().toISOString().replace(/[:.]/g, "-");
+  const backupPath = `${paths.searchIndexPath}.corrupt-${stamp}`;
+  await fsp.mkdir(path.dirname(resolveWorkspacePath(backupPath)), { recursive: true });
+  await fsp.rename(resolveWorkspacePath(paths.searchIndexPath), resolveWorkspacePath(backupPath)).catch(() => {});
+  const result = await buildSearchIndex("local-vector", { collection: collectionId });
+  await LOGGER.log("warn", "search-index.rebuilt", {
+    collection: collectionId,
+    path: paths.searchIndexPath,
+    backupPath,
+    reason: health.reason || "corrupt-index",
+    itemCount: result.itemCount,
+    chunkCount: result.chunkCount
+  });
+  return {
+    schema: "agenttrail.search-index-repair.v1",
+    rebuilt: true,
+    provider: result.provider,
+    itemCount: result.itemCount,
+    chunkCount: result.chunkCount,
+    backupPath,
+    reason: health.reason || "corrupt-index",
+    rebuiltAt: new Date().toISOString()
+  };
+}
+
 async function readVectorStore(collection = DEFAULT_SEARCH_COLLECTION) {
   return vectorStoreForCollection(collection).read().catch(() => null);
 }
@@ -9888,8 +10076,10 @@ async function writeWorkspaceFile(relativePath, content) {
 
   const absolutePath = resolveWorkspacePath(relativePath);
   const protectedContent = protectTextForStorage(relativePath, content, process.env);
+  const writeBytes = Buffer.byteLength(protectedContent.content, "utf8");
+  await assertDiskSpace(WORKSPACE_ROOT, writeBytes, { minFreeBytes: WRITE_MIN_FREE_BYTES });
   await fsp.mkdir(path.dirname(absolutePath), { recursive: true });
-  await fsp.writeFile(absolutePath, protectedContent.content, "utf8");
+  await atomicWriteFile(absolutePath, protectedContent.content, "utf8");
   const stat = await fsp.stat(absolutePath);
 
   return {
@@ -9897,6 +10087,7 @@ async function writeWorkspaceFile(relativePath, content) {
     size: stat.size,
     modifiedAt: stat.mtime.toISOString(),
     ok: true,
+    atomic: true,
     redactions: protectedContent.redactions,
     encrypted: protectedContent.encrypted
   };
@@ -9907,14 +10098,16 @@ async function writeWorkspaceBinaryFile(relativePath, data) {
     throw new Error("A file path is required");
   }
   const absolutePath = resolveWorkspacePath(relativePath);
+  await assertDiskSpace(WORKSPACE_ROOT, Buffer.byteLength(data), { minFreeBytes: WRITE_MIN_FREE_BYTES });
   await fsp.mkdir(path.dirname(absolutePath), { recursive: true });
-  await fsp.writeFile(absolutePath, data);
+  await atomicWriteFile(absolutePath, data);
   const stat = await fsp.stat(absolutePath);
   return {
     path: normalizeRelativePath(relativePath),
     size: stat.size,
     modifiedAt: stat.mtime.toISOString(),
-    ok: true
+    ok: true,
+    atomic: true
   };
 }
 

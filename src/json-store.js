@@ -3,6 +3,7 @@
 const fsp = require("node:fs/promises");
 const path = require("node:path");
 const { redactValueOnly } = require("./privacy");
+const { appendLineAtomic } = require("./resilience");
 
 class JsonLineStore {
   constructor(root, relativePath = ".agenttrail/store.jsonl") {
@@ -19,7 +20,7 @@ class JsonLineStore {
       createdAt: new Date().toISOString(),
       payload: redactValueOnly(payload)
     };
-    await fsp.appendFile(this.absolutePath, `${JSON.stringify(record)}\n`, "utf8");
+    await appendLineAtomic(this.absolutePath, JSON.stringify(record), { encoding: "utf8" });
     return record;
   }
 

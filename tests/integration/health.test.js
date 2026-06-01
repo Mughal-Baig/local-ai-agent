@@ -18,10 +18,12 @@ async function main() {
     assert.equal(r.ok, true);
     const h = await r.json();
     assert.equal(h.ok, true, "health ok");
-    assert.equal(h.status, "healthy");
+    assert.equal(h.status, "degraded");
     assert.equal(typeof h.uptimeSeconds, "number");
     assert.equal(typeof h.version, "string");
     assert.equal(typeof h.backend.title, "string");
+    assert.equal(h.backend.available, false);
+    assert.equal(h.checks.some((check) => check.id === "backend" && check.code === "MODEL_BACKEND"), true);
     console.log("Health test passed");
   } finally { child.kill("SIGTERM"); await fsp.rm(ws, { recursive: true, force: true }); }
 }

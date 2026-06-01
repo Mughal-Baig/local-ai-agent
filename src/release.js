@@ -3,6 +3,7 @@
 const crypto = require("node:crypto");
 const fsp = require("node:fs/promises");
 const path = require("node:path");
+const { atomicWriteFile } = require("./resilience");
 
 const RELEASE_ARTIFACTS = [
   "server.js",
@@ -15,6 +16,7 @@ const RELEASE_ARTIFACTS = [
   "src/privacy.js",
   "src/privacy-controls.js",
   "src/network-policy.js",
+  "src/resilience.js",
   "src/observability.js",
   "src/team-enterprise.js",
   "src/workspace-safety.js",
@@ -95,6 +97,8 @@ const RELEASE_ARTIFACTS = [
   "tests/integration/threat-model.test.js",
   "tests/unit/observability.test.js",
   "tests/integration/observability.test.js",
+  "tests/unit/resilience.test.js",
+  "tests/integration/resilience.test.js",
   "tests/unit/team-enterprise.test.js",
   "tests/integration/team-enterprise.test.js",
   "tests/unit/model-ecosystem.test.js",
@@ -124,7 +128,7 @@ async function generateChecksums(projectRoot, version) {
 
   const outputPath = path.join(projectRoot, "docs", "checksums", `SHA256SUMS_${version}.txt`);
   await fsp.mkdir(path.dirname(outputPath), { recursive: true });
-  await fsp.writeFile(outputPath, `${rows.join("\n")}\n`, "utf8");
+  await atomicWriteFile(outputPath, `${rows.join("\n")}\n`, "utf8");
   return {
     version,
     path: path.relative(projectRoot, outputPath),

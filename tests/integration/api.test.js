@@ -38,6 +38,7 @@ async function main() {
 
     const endpoints = [
       "/api/status",
+      "/api/resilience",
       "/api/foundation",
       "/api/routes",
       "/api/config",
