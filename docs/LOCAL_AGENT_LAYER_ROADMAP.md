@@ -77,6 +77,7 @@ This section tracks the concrete work shipped after the roadmap was publicly ref
 | Codex Epic AI pass | T239, T241-T243 | Added the privacy control plane: confirmed local data wipe, dry-run wipe preview, per-artifact retention policy and apply endpoint, storage dashboard showing what is stored where, opt-in local-only analytics, UI panel, route/docs/eval coverage, and integration tests. |
 | Codex Epic AJ pass | T244-T250 | Added the resilience layer: `/api/resilience`, graceful backend-down health/UI state, transient backend retry/backoff, atomic temp-file writes across local stores, corrupt search-index detection plus local-vector auto-rebuild, disk-space guards for writes/model pulls, expanded actionable error taxonomy, route/docs/eval/CI coverage, and unit/integration tests. |
 | Codex Epic AK pass | T252-T255 | Added the config/admin layer: schema-backed model/cache/budget/host settings UI, `/api/config/admin`, `/api/config/workspace`, friendly startup validation actions, per-workspace `.agenttrail/workspace-config.json` overrides, persisted first-run setup state, Setup panel wizard controls, route/docs/eval/CI coverage, and unit/integration tests. |
+| Codex T251 pass | T251 | Completed timeout/cancellation surfacing: run-level timeout controller, `run-control`/`timeout`/`cancelled` SSE events with stable codes, backend stream timeout propagation, UI/CLI timeout handling, config-admin timeout knobs, error taxonomy precedence, guardrail timeout test coverage, and docs/eval updates. |
 
 ### Verified After These Passes
 
@@ -86,8 +87,7 @@ This section tracks the concrete work shipped after the roadmap was publicly ref
 
 ### Best Continuation Points
 
-- T251: surface request timeout/cancellation state consistently across backend/UI paths.
-- T256/T257: move into Epic AL eval quality now that Epic AK config/admin is complete.
+- T256/T257: move into Epic AL eval quality now that Phase 13 reliability/config operations are complete.
 
 ---
 
@@ -411,16 +411,16 @@ This section tracks the concrete work shipped after the roadmap was publicly ref
 4. We expand an epic's tasks into finer sub-tasks (toward 1000) only when we start that epic — so the plan stays honest and current.
 5. We re-mark `[x]` here as we go; this file is the single source of truth for the campaign.
 
-**Next up:** Finish T251 timeout/cancellation surfacing, then move into Epic AL evaluation quality. The new Phase 17-22 expansion below adds the public "top 1%" path without replacing any earlier phase.
+**Next up:** Move into Epic AL evaluation quality. The new Phase 17-22 expansion below adds the public "top 1%" path without replacing any earlier phase.
 
 ## Status & bug sweep (latest)
 
-- Progress: **Epic AK is complete through T255**; T251 timeout/cancellation surfacing remains as the one open Phase 13 task before Epic AL. Fully complete tracked items now include T201-T250 and T252-T255; remaining Phase 1-10 work is mostly earlier partial/runtime hardening items such as T044, T090/T091, T094/T096/T098/T104, and T107/T109/T110. Phase 1 is complete; Phase 2 Epic E/F search foundation is complete except T044 as a hardening umbrella; Epic G document ingestion is complete; Phase 3 vision/audio/image generation is complete; Epic K is complete; Epic L is complete; Epic M is partially complete; Epic N/O now have cache, option passthrough, resources, runtime visibility, the AJ resilience layer, and the AK config/admin layer; Phase 6 now has a first-class bundled-runtime adapter seam plus Epic Q/R/S hardware, loading, registry policy, Epic AC model ecosystem helpers, Epic AD advanced-agent manifests, Epic AE chat management, Epic AF composer editing, Epic AG access/PWA polish, Epic AH portability archives, Epic AI privacy controls, Epic AJ resilience controls, and Epic AK config/admin controls; Epic T native desktop distribution is complete at the repo/scaffolding level; Epic U CLI parity is complete; Epic V packaging/supply-chain foundation is complete; Epic W security/privacy is complete; Epic X observability is complete; Epic Y team/enterprise is complete; Epic Z quality engineering is complete; Epic AA documentation is complete; Epic AB community/growth is complete; and the public starter issues are cleared with tests/docs.
+- Progress: **Phase 13 is complete through T255**. Fully complete tracked items now include T201-T255; remaining Phase 1-10 work is mostly earlier partial/runtime hardening items such as T044, T090/T091, T094/T096/T098/T104, and T107/T109/T110. Phase 1 is complete; Phase 2 Epic E/F search foundation is complete except T044 as a hardening umbrella; Epic G document ingestion is complete; Phase 3 vision/audio/image generation is complete; Epic K is complete; Epic L is complete; Epic M is partially complete; Epic N/O now have cache, option passthrough, resources, runtime visibility, the AJ resilience layer, T251 timeout/cancel surfacing, and the AK config/admin layer; Phase 6 now has a first-class bundled-runtime adapter seam plus Epic Q/R/S hardware, loading, registry policy, Epic AC model ecosystem helpers, Epic AD advanced-agent manifests, Epic AE chat management, Epic AF composer editing, Epic AG access/PWA polish, Epic AH portability archives, Epic AI privacy controls, Epic AJ resilience controls, T251 run-control polish, and Epic AK config/admin controls; Epic T native desktop distribution is complete at the repo/scaffolding level; Epic U CLI parity is complete; Epic V packaging/supply-chain foundation is complete; Epic W security/privacy is complete; Epic X observability is complete; Epic Y team/enterprise is complete; Epic Z quality engineering is complete; Epic AA documentation is complete; Epic AB community/growth is complete; and the public starter issues are cleared with tests/docs.
 - Focused test suite green: unit, resilience, config-admin, observability, team enterprise, quality engineering, docs generation, community-growth checks, model ecosystem checks, coverage gate, performance regression, UI E2E, desktop distribution, CLI integration, supply-chain, security/privacy threat-model, privacy controls, runtime hardware, runtime loading, model registry, bundled runtime, redaction, document extraction, API integration, v1 API, health, concurrency, model options, resources, portability, smoke, recipe validation, receipt metadata, repo eval, release SBOM, reproducibility, and release checksums. All touched source files pass `node --check`.
 - **Bug fixed:** `listWorkspaceFiles` only skipped `.DS_Store`, so internal `.agenttrail/*` state (logs, store, search index, pending-run) was being walked, indexed, and returned in search — adding noise and per-request churn to the index. Now excludes `.agenttrail/`. Verified against smoke, api, search-incremental, search-chunking, and eval:search.
 - Known minor item: a couple of integration tests assert relative/invariant counts (not exact) because the workspace can still gain legit files (e.g. `memory/*`) between calls — intentional, not a bug.
 
-Next code target: T251 request timeout/cancellation surfacing, then Epic AL eval quality. After reliability operations feel complete, prioritize T281/T288/T295 so the project has a 60-second proof loop, a low-friction install, and a guided first run.
+Next code target: Epic AL eval quality. After reliability operations feel complete, prioritize T281/T288/T295 so the project has a 60-second proof loop, a low-friction install, and a guided first run.
 
 ---
 
@@ -490,7 +490,7 @@ Open items are still marked `[ ]`; a few Phase 11/12 starter tasks are now `[x]`
 - [x] T248 Corrupt-index detection + auto-rebuild (`inspectSearchIndexHealth`, corrupt backup, local-vector rebuild, `/api/search-index` repair metadata)
 - [x] T249 Disk-space guard before large writes/pulls (`AGENTTRAIL_MIN_FREE_BYTES`, `AGENTTRAIL_MODEL_PULL_MIN_FREE_BYTES`, 507 response with `DISK_SPACE`)
 - [x] T250 Structured error taxonomy with actionable messages (extended T165 with `DISK_SPACE`, `CORRUPT_INDEX`, `STARTUP_CONFIG`, `RETRY_EXHAUSTED`)
-- [ ] T251 Request timeouts + cancellation surfaced consistently
+- [x] T251 Request timeouts + cancellation surfaced consistently (`run-control`, `timeout`, `cancelled` SSE events, UI/CLI handling, `AGENTTRAIL_RUN_TIMEOUT_MS`, backend stream timeout propagation)
 
 ### Epic AK — Config & admin
 - [x] T252 Settings UI for all env vars (model, cache, budget, host) (`Config` drawer panel renders schema-backed settings from `/api/config/admin`)

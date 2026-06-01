@@ -2,7 +2,7 @@
 
 ## Next
 
-- Finish request timeout/cancellation polish now that the Epic AJ/AK operations layers are in place.
+- Move into Epic AL evaluation quality now that the Phase 13 operations layer is complete.
 - Build the 60-second proof loop: search -> diff preview -> apply -> receipt -> shareable report.
 - Make the install path undeniable: `npx agenttrail`, Docker persistence, Homebrew publication, setup doctor, and friendly failure states.
 - Add deeper evaluation quality: golden task fixtures, citation-faithfulness checks, and unsupported-claim detection.
@@ -67,7 +67,7 @@
 - Look/feel/access layer: warm and high-contrast themes, adjustable text size and density, keyboard shortcut chords, ARIA live/log/listbox labels, visible focus states, reduced-motion support, mobile drawer/composer polish, PWA manifest, offline app shell, and first i18n locale.
 - Portability layer: workspace identity, all-in-one archive export/import, safe restore folders, machine migration plan, and scheduled local backups with retention.
 - Privacy controls layer: confirmed local data wipe, artifact retention windows, storage dashboard, and opt-in local-only analytics with network disabled.
-- Resilience layer: `/api/resilience`, graceful backend-down health/UI state, retry-with-backoff, crash-safe atomic writes, corrupt-index rebuild, disk-space guards, and storage/runtime error codes.
+- Resilience layer: `/api/resilience`, graceful backend-down health/UI state, retry-with-backoff, consistent timeout/cancel run events, crash-safe atomic writes, corrupt-index rebuild, disk-space guards, and storage/runtime error codes.
 - Config/admin layer: schema-backed settings UI for model/cache/budget/host envs, friendly startup validation, per-workspace overrides, and a persisted first-run setup wizard.
 - Top 1% expansion added to the long roadmap: Phase 17-22 now covers demo proof, one-command install, first-run retention, safety proof, public comparisons, signed releases, supportability, and durable AgentTrail-specific moat.
 

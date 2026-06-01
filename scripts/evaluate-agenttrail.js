@@ -172,6 +172,7 @@ async function main() {
   checks.push(await check("Planner tests exist", async () => includes("tests/integration/agent-plan.test.js", ["agent-plan", "approvedPlan", "sawApprovedPlan"])));
   checks.push(await check("Run guardrails exist", async () => includes("server.js", ["normalizeStepBudget", "run-budget", "step-budget-exhausted"])));
   checks.push(await check("Cancellable runs exist", async () => includes("server.js", ["AbortController", "run-cancelled", "abortSignalWithTimeout"])));
+  checks.push(await check("Run timeout surfacing exists", async () => includes("server.js", ["AGENTTRAIL_RUN_TIMEOUT_MS", "run-control", "run-timeout", "timeoutEvent"]) && includes("public/app.js", ["eventName === \"timeout\"", "eventName === \"run-control\""]) && includes("tests/integration/run-guardrails.test.js", ["requestTimeoutMs", "timedOut.data.code"])));
   checks.push(await check("Stop button UI exists", async () => includes("public/index.html", ["stopButton", "stepBudgetSelect", "Deep 4"])));
   checks.push(await check("Run guardrail tests exist", async () => includes("tests/integration/run-guardrails.test.js", ["step-budget-exhausted", "backend stream should close"])));
   checks.push(await check("Reflection self-check exists", async () => includes("server.js", ["buildRunReflection", "run-reflection", "agenttrail.run-reflection.v1"])));

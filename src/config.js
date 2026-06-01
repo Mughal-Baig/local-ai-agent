@@ -183,6 +183,8 @@ function validateConfig(env = process.env, options = {}) {
     numberRangeCheck(env, "AGENTTRAIL_MAX_QUEUE", 64, 0, 1024, "queue depth", "Use AGENTTRAIL_MAX_QUEUE between 0 and 1024."),
     numberRangeCheck(env, "AGENTTRAIL_BACKEND_RETRIES", 2, 0, 5, "retry attempts", "Use AGENTTRAIL_BACKEND_RETRIES between 0 and 5."),
     numberRangeCheck(env, "AGENTTRAIL_BACKEND_RETRY_BASE_MS", 120, 10, 2000, "retry base delay", "Use AGENTTRAIL_BACKEND_RETRY_BASE_MS between 10 and 2000."),
+    numberRangeCheck(env, "AGENTTRAIL_RUN_TIMEOUT_MS", 120000, 100, 1800000, "run timeout", "Use AGENTTRAIL_RUN_TIMEOUT_MS between 100 and 1800000 milliseconds."),
+    numberRangeCheck(env, "AGENTTRAIL_BACKEND_STREAM_TIMEOUT_MS", 120000, 100, 1800000, "backend stream timeout", "Use AGENTTRAIL_BACKEND_STREAM_TIMEOUT_MS between 100 and 1800000 milliseconds."),
     numberRangeCheck(env, "AGENTTRAIL_MIN_FREE_BYTES", 64 * 1024 * 1024, 0, Number.MAX_SAFE_INTEGER, "minimum free bytes", "Use a non-negative disk-space guard.", false),
     numberRangeCheck(env, "AGENTTRAIL_MODEL_PULL_MIN_FREE_BYTES", 512 * 1024 * 1024, 0, Number.MAX_SAFE_INTEGER, "model-pull free bytes", "Use a non-negative model-pull disk guard.", false)
   ];

@@ -68,6 +68,7 @@ async function main() {
   assert.equal(classifyError(new Error("No space left on device")).code, "DISK_SPACE");
   assert.equal(classifyError(new Error("Retry exhausted after 3 attempts")).code, "RETRY_EXHAUSTED");
   assert.equal(classifyError(new Error("Unexpected token in search index")).code, "CORRUPT_INDEX");
+  assert.equal(classifyError(new Error("Ollama is not reachable. Request timed out after 100 ms.")).code, "TIMEOUT");
   assert.equal(friendlyError(new Error("startup config warning"), { code: "STARTUP_CONFIG" }).code, "STARTUP_CONFIG");
 
   console.log("Resilience unit test passed");

@@ -168,6 +168,13 @@ function classifyError(error, context = {}) {
   ) {
     code = "RETRY_EXHAUSTED";
   } else if (
+    contextCode === "TIMEOUT" ||
+    contextCode === "TIMEOUTERROR" ||
+    lower.includes("timeout") ||
+    lower.includes("timed out")
+  ) {
+    code = "TIMEOUT";
+  } else if (
     contextCode === "EMBEDDING_SETUP" ||
     lower.includes("embedding") ||
     lower.includes("embed model")
@@ -194,12 +201,6 @@ function classifyError(error, context = {}) {
     lower.includes("permission")
   ) {
     code = "PERMISSION_DENIED";
-  } else if (
-    contextCode === "TIMEOUT" ||
-    lower.includes("timeout") ||
-    lower.includes("timed out")
-  ) {
-    code = "TIMEOUT";
   } else if (
     contextCode === "RUN_CANCELLED" ||
     lower.includes("cancelled") ||

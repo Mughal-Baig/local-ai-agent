@@ -20,7 +20,9 @@ async function main() {
   const state = {
     sawBudgetPrompt: false,
     longRequestStarted: false,
-    longBackendClosed: false
+    longBackendClosed: false,
+    longRequestCount: 0,
+    longBackendCloseCount: 0
   };
   const mock = startMockOpenAI(mockPort, state);
   const workspaceRoot = await fsp.mkdtemp(path.join(os.tmpdir(), "agenttrail-guardrails-"));
@@ -75,8 +77,26 @@ async function main() {
     });
     assert.equal(response.ok, true, "chat response should open");
     await waitUntil(() => state.longRequestStarted, "mock backend did not receive the long run");
+    const closeCountBeforeCancel = state.longBackendCloseCount;
     controller.abort();
-    await waitUntil(() => state.longBackendClosed, "backend stream should close when the user stops the run");
+    await waitUntil(() => state.longBackendCloseCount > closeCountBeforeCancel, "backend stream should close when the user stops the run");
+
+    const closeCountBeforeTimeout = state.longBackendCloseCount;
+    const timeoutEvents = await streamChat({
+      model: "mock-model",
+      requestTimeoutMs: 180,
+      messages: [{ role: "user", content: "Start a long answer so request timeout can stop it." }],
+      permissions: { readFiles: true, writeFiles: false, previewWrites: true },
+      securityMode: true,
+      stepBudget: { maxSteps: 2, override: true }
+    });
+    const runControl = timeoutEvents.find((item) => item.event === "run-control");
+    assert.equal(runControl.data.timeoutMs, 180);
+    const timedOut = timeoutEvents.find((item) => item.event === "timeout");
+    assert.equal(timedOut.data.code, "TIMEOUT");
+    assert.equal(timedOut.data.reason, "run-timeout");
+    assert.match(timedOut.data.message, /timed out/i);
+    await waitUntil(() => state.longBackendCloseCount > closeCountBeforeTimeout, "backend stream should close when the run times out");
 
     console.log("Run guardrails integration test passed");
   } finally {
@@ -104,11 +124,20 @@ function startMockOpenAI(port, state) {
 
       if (messages.includes("long answer")) {
         state.longRequestStarted = true;
+        state.longRequestCount += 1;
+        let closed = false;
+        const markClosed = () => {
+          if (!closed) {
+            closed = true;
+            state.longBackendClosed = true;
+            state.longBackendCloseCount += 1;
+          }
+        };
         req.on("close", () => {
-          state.longBackendClosed = true;
+          markClosed();
         });
         res.on("close", () => {
-          state.longBackendClosed = true;
+          markClosed();
         });
         let sent = 0;
         const timer = setInterval(() => {

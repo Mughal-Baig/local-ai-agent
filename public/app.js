@@ -3725,6 +3725,14 @@ async function runChatTurn({ content, historyMessages, replaceFromIndex = null, 
         });
         addTrail("trace", label);
       }
+      if (eventName === "run-control") {
+        const label = `Cancellable · timeout ${formatDuration(data.timeoutMs || 0)}`;
+        assistantMessage.events.push({
+          type: "trace",
+          label
+        });
+        addTrail("run", label);
+      }
       if (eventName === "token") {
         assistantMessage.content += data.text || "";
       }
@@ -3806,6 +3814,14 @@ async function runChatTurn({ content, historyMessages, replaceFromIndex = null, 
           label: data.message || "Run stopped"
         });
         addTrail("run", data.message || "Run stopped");
+      }
+      if (eventName === "timeout") {
+        const label = data.action ? `${data.code || "TIMEOUT"}: ${data.action}` : (data.message || "Run timed out");
+        assistantMessage.events.push({
+          type: "error",
+          label
+        });
+        addTrail("error", label);
       }
       if (eventName === "error") {
         const detail = data.code && data.action ? `${data.code}: ${data.action}` : data.message || "The agent hit an error";

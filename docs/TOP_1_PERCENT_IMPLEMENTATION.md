@@ -24,7 +24,7 @@ This table maps the requested 30-item top-1% and foundation list to the v0.7 imp
 | Run observability | `/api/metrics`, `/api/observability`, `/api/traces`, token/time accounting, error taxonomy, and the in-app trace timeline |
 | Security hardening | `/api/security/scan`, `/api/security/privacy`, prompt injection, exfiltration, path escape, hidden instruction, destructive command, secret-like value detection, egress allowlists, optional encrypted receipts |
 | Privacy controls | `/api/privacy/dashboard`, `/api/privacy/settings`, `/api/privacy/retention`, `/api/privacy/retention/apply`, `/api/privacy/wipe`, confirmed local-data wipe, artifact retention windows, storage inventory, and opt-in local-only analytics with network disabled |
-| Resilience layer | `/api/resilience`, graceful backend-down health state, retry-with-backoff for transient backend errors, crash-safe atomic writes, corrupt search-index auto-rebuild, disk guards for writes/model pulls, and actionable storage/runtime error codes |
+| Resilience layer | `/api/resilience`, graceful backend-down health state, retry-with-backoff for transient backend errors, consistent run timeout/cancel events, crash-safe atomic writes, corrupt search-index auto-rebuild, disk guards for writes/model pulls, and actionable storage/runtime error codes |
 | Config/admin control plane | `/api/config/admin`, `/api/config/workspace`, schema-backed model/cache/budget/host settings UI, friendly startup validation, per-workspace overrides, and a first-run setup wizard |
 | Redaction API | `/api/redact` exposes the same local secret masking used by conversation exports and audit artifacts |
 | Project memory with citations | `/api/memory/citations`, revision history in `workspace/memory/history/` |

@@ -224,7 +224,7 @@ async function sendChatPrompt(baseUrl, payload, options, io) {
       const chunk = String(data.text || "");
       text += chunk;
       if (!options.json) io.stdout.write(chunk);
-    } else if (event === "error" || event === "cancelled") {
+    } else if (event === "error" || event === "cancelled" || event === "timeout") {
       ok = false;
       if (!options.json) io.stderr.write(`${data.message || "Run failed."}\n`);
     } else if (event === "done" && data.ok === false) {

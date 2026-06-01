@@ -42,6 +42,7 @@ const {
   diskSpaceStatus,
   indexHealthFromParsed,
   isRetryableStatus,
+  isTransientError,
   withRetry
 } = require("./src/resilience");
 const { createObservability } = require("./src/observability");
@@ -273,6 +274,8 @@ const IMAGE_GEN_MAX_PROMPT_CHARS = Number(process.env.AGENTTRAIL_IMAGE_MAX_PROMP
 const IMAGE_GEN_MAX_RESPONSE_BYTES = Number(process.env.AGENTTRAIL_IMAGE_MAX_RESPONSE_BYTES || 35 * 1024 * 1024);
 const IMAGE_GEN_MAX_OUTPUT_BYTES = Number(process.env.AGENTTRAIL_IMAGE_MAX_OUTPUT_BYTES || 25 * 1024 * 1024);
 const IMAGE_GEN_MAX_COUNT = Number(process.env.AGENTTRAIL_IMAGE_MAX_COUNT || 4);
+const RUN_TIMEOUT_MS = clampInt(process.env.AGENTTRAIL_RUN_TIMEOUT_MS, 100, 30 * 60 * 1000, 120000);
+const BACKEND_STREAM_TIMEOUT_MS = clampInt(process.env.AGENTTRAIL_BACKEND_STREAM_TIMEOUT_MS, 100, 30 * 60 * 1000, 120000);
 const V1_API_KEYS = parseDelimitedEnv(process.env.AGENTTRAIL_V1_API_KEYS || process.env.AGENTTRAIL_V1_API_KEY || "");
 const V1_REQUIRE_AUTH = String(process.env.AGENTTRAIL_V1_REQUIRE_AUTH || (V1_API_KEYS.length ? "true" : "false")).toLowerCase() === "true";
 const V1_RATE_LIMIT_PER_MINUTE = Number(process.env.AGENTTRAIL_V1_RATE_LIMIT_PER_MINUTE || 60);
@@ -7230,11 +7233,21 @@ async function handleChat(req, res) {
   const runAbort = new AbortController();
   let completed = false;
   const startedAt = Date.now();
+  const runTimeoutMs = normalizeRequestTimeoutMs(body.requestTimeoutMs || body.timeoutMs, RUN_TIMEOUT_MS);
+  const timeoutTimer = setTimeout(() => {
+    if (!completed && !runAbort.signal.aborted) {
+      runAbort.abort(makeTimeoutError("Agent run", runTimeoutMs, "run-timeout"));
+    }
+  }, runTimeoutMs);
+  if (typeof timeoutTimer.unref === "function") timeoutTimer.unref();
   let notificationMessage = "Agent run completed.";
 
   res.on("close", () => {
     if (!completed && !runAbort.signal.aborted) {
-      runAbort.abort(makeAbortError("Run cancelled by the user."));
+      runAbort.abort(makeAbortError("Client disconnected before the run finished.", {
+        code: "RUN_CANCELLED",
+        reason: "client-disconnected"
+      }));
     }
   });
 
@@ -7246,15 +7259,50 @@ async function handleChat(req, res) {
   });
 
   try {
-    await runAgent(body, res, { signal: runAbort.signal });
+    await runAgent(body, res, { signal: runAbort.signal, runTimeoutMs });
   } catch (error) {
-    if (isRunAbort(error, runAbort.signal)) {
-      await STORE.append("run-cancelled", { reason: error.message || "Run cancelled by the user." });
-      await LOGGER.log("info", "agent.cancelled", { reason: error.message || "cancelled" });
-      OBSERVABILITY.recordError(error, { code: "RUN_CANCELLED", traceId: res.agentTrailTrace?.id }, res.agentTrailTrace);
-      sendEvent(res, "cancelled", { message: "Run stopped by user." });
-      await finishResponseTrace(res, "cancelled", { reason: "user-cancelled" });
-      notificationMessage = "Agent run was stopped.";
+    if (isRunTimeout(error, runAbort.signal)) {
+      const payload = friendlyError(error, {
+        code: "TIMEOUT",
+        traceId: res.agentTrailTrace?.id,
+        ollamaHost: OLLAMA_HOST,
+        defaultModel: DEFAULT_MODEL,
+        embeddingModel: OLLAMA_EMBED_MODEL
+      });
+      await STORE.append("run-timeout", {
+        reason: runControlReason(error, runAbort.signal),
+        timeoutMs: runTimeoutMs,
+        traceId: res.agentTrailTrace?.id || null
+      });
+      await LOGGER.log("warn", "agent.timeout", { timeoutMs: runTimeoutMs, traceId: res.agentTrailTrace?.id || null });
+      OBSERVABILITY.recordError(error, { code: "TIMEOUT", traceId: res.agentTrailTrace?.id, timeoutMs: runTimeoutMs }, res.agentTrailTrace);
+      sendEvent(res, "timeout", {
+        schema: "agenttrail.run-control.v1",
+        message: payload.error,
+        code: "TIMEOUT",
+        reason: runControlReason(error, runAbort.signal),
+        timeoutMs: runTimeoutMs,
+        hint: payload.hint,
+        action: payload.action,
+        observed: true
+      });
+      await finishResponseTrace(res, "failed", { reason: "timeout", timeoutMs: runTimeoutMs });
+      notificationMessage = "Agent run timed out.";
+    } else if (isRunAbort(error, runAbort.signal)) {
+      const reason = runControlReason(error, runAbort.signal);
+      const message = reason === "client-disconnected" ? "Client disconnected before the run finished." : "Run stopped by user.";
+      await STORE.append("run-cancelled", { reason, message, traceId: res.agentTrailTrace?.id || null });
+      await LOGGER.log("info", "agent.cancelled", { reason, traceId: res.agentTrailTrace?.id || null });
+      OBSERVABILITY.recordError(error, { code: "RUN_CANCELLED", traceId: res.agentTrailTrace?.id, reason }, res.agentTrailTrace);
+      sendEvent(res, "cancelled", {
+        schema: "agenttrail.run-control.v1",
+        message,
+        code: "RUN_CANCELLED",
+        reason,
+        observed: true
+      });
+      await finishResponseTrace(res, "cancelled", { reason });
+      notificationMessage = reason === "client-disconnected" ? "Agent run was disconnected." : "Agent run was stopped.";
     } else {
       const payload = friendlyError(error, {
         traceId: res.agentTrailTrace?.id,
@@ -7275,6 +7323,7 @@ async function handleChat(req, res) {
     }
   } finally {
     completed = true;
+    clearTimeout(timeoutTimer);
     res.end();
     void maybeNotifyLongTask({
       startedAt,
@@ -7313,6 +7362,15 @@ async function runAgent(body, res, context = {}) {
     kind: trace.kind,
     startedAt: trace.startedAt,
     status: trace.status
+  });
+  sendEvent(res, "run-control", {
+    schema: "agenttrail.run-control.v1",
+    traceId: trace.id,
+    cancellable: true,
+    timeoutMs: context.runTimeoutMs || RUN_TIMEOUT_MS,
+    backendStreamTimeoutMs: BACKEND_STREAM_TIMEOUT_MS,
+    cancelEvent: "cancelled",
+    timeoutEvent: "timeout"
   });
   const status = await fetchOllamaModels();
 
@@ -7389,7 +7447,8 @@ async function runAgent(body, res, context = {}) {
     const prompt = await buildAgentPrompt(messages, selectedFiles, toolHistory, permissions, securityMode, approvedPlan, stepBudget, visionContext);
     const gate = createProseGate(res);
     const cacheKey = `${model}::${hashPrompt(`${prompt}\n${visionContext.images.map((image) => image.hash).join("\n")}`)}`;
-    const nativeCapability = await probeNativeToolSupport(model);
+    const nativeCapability = await probeNativeToolSupport(model, { signal });
+    throwIfAborted(signal);
     const nativeTools = nativeToolDefinitions(nativeCapability);
     if (step === 0) {
       sendEvent(res, "status", {
@@ -8154,12 +8213,15 @@ async function probeNativeToolSupport(model, options = {}) {
 
   try {
     const result = BACKEND_IS_OPENAI
-      ? await probeOpenAIToolSupport(model)
-      : await probeOllamaToolSupport(model);
+      ? await probeOpenAIToolSupport(model, options)
+      : await probeOllamaToolSupport(model, options);
     TOOL_CAPABILITY_CACHE.set(key, result);
     await STORE.append("tool-capability", { model, backend: ACTIVE_BACKEND.api, supported: result.supported, reason: result.reason });
     return result;
   } catch (error) {
+    if (isRunTimeout(error, options.signal) || isRunAbort(error, options.signal)) {
+      throw error;
+    }
     const result = capabilityResult(model, false, error.message || "Native tool probe failed.", "probe-error");
     TOOL_CAPABILITY_CACHE.set(key, result);
     await STORE.append("tool-capability", { model, backend: ACTIVE_BACKEND.api, supported: false, reason: result.reason });
@@ -8167,10 +8229,11 @@ async function probeNativeToolSupport(model, options = {}) {
   }
 }
 
-async function probeOpenAIToolSupport(model) {
+async function probeOpenAIToolSupport(model, options = {}) {
   const { response } = await fetchBackendWithRetry(openaiUrl("/chat/completions"), {
     method: "POST",
     headers: openaiHeaders(),
+    signal: options.signal,
     body: JSON.stringify({
       model,
       messages: [{ role: "user", content: "Capability probe. Reply OK." }],
@@ -8187,10 +8250,11 @@ async function probeOpenAIToolSupport(model) {
   return capabilityResult(model, true, `${ACTIVE_BACKEND.title} accepted OpenAI-compatible tool definitions.`, "accepted");
 }
 
-async function probeOllamaToolSupport(model) {
+async function probeOllamaToolSupport(model, options = {}) {
   const { response } = await fetchBackendWithRetry(`${OLLAMA_HOST}/api/chat`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
+    signal: options.signal,
     body: JSON.stringify({
       model,
       messages: [{ role: "user", content: "Capability probe. Reply OK." }],
@@ -8386,9 +8450,15 @@ async function generateWithOpenAI(model, prompt, options) {
         temperature: options.temperature,
         stream: false
       }),
-      signal: AbortSignal.timeout(120000)
+      signal: abortSignalWithTimeout(options.signal, BACKEND_STREAM_TIMEOUT_MS, `${ACTIVE_BACKEND.title} completion`)
     });
   } catch (error) {
+    if (isRunTimeout(error, options.signal)) {
+      throw error;
+    }
+    if (isRunAbort(error, options.signal)) {
+      throw makeAbortError("Run cancelled by the user.");
+    }
     throw new Error(`${ACTIVE_BACKEND.title} is not reachable at ${BACKEND_HOST}. ${error.message}`.trim());
   }
 
@@ -8523,9 +8593,12 @@ async function generateOllamaStream(model, prompt, options, onToken) {
         keep_alive: OLLAMA_KEEP_ALIVE,
         options: buildModelOptions(options.temperature)
       }),
-      signal: abortSignalWithTimeout(options.signal, 120000)
+      signal: abortSignalWithTimeout(options.signal, BACKEND_STREAM_TIMEOUT_MS, "Ollama generate")
     });
   } catch (error) {
+    if (isRunTimeout(error, options.signal)) {
+      throw error;
+    }
     if (isRunAbort(error, options.signal)) {
       throw makeAbortError("Run cancelled by the user.");
     }
@@ -8578,9 +8651,12 @@ async function generateOllamaChatStream(model, prompt, options, onToken) {
         keep_alive: OLLAMA_KEEP_ALIVE,
         options: buildModelOptions(options.temperature)
       }),
-      signal: abortSignalWithTimeout(options.signal, 120000)
+      signal: abortSignalWithTimeout(options.signal, BACKEND_STREAM_TIMEOUT_MS, "Ollama chat")
     });
   } catch (error) {
+    if (isRunTimeout(error, options.signal)) {
+      throw error;
+    }
     if (isRunAbort(error, options.signal)) {
       throw makeAbortError("Run cancelled by the user.");
     }
@@ -8656,9 +8732,12 @@ async function generateOpenAIStream(model, prompt, options, onToken) {
         temperature: options.temperature,
         stream: true
       }),
-      signal: abortSignalWithTimeout(options.signal, 120000)
+      signal: abortSignalWithTimeout(options.signal, BACKEND_STREAM_TIMEOUT_MS, `${ACTIVE_BACKEND.title} chat`)
     });
   } catch (error) {
+    if (isRunTimeout(error, options.signal)) {
+      throw error;
+    }
     if (isRunAbort(error, options.signal)) {
       throw makeAbortError("Run cancelled by the user.");
     }
@@ -8715,9 +8794,12 @@ async function generateOpenAIChatStream(model, prompt, options, onToken) {
         temperature: options.temperature,
         stream: true
       }),
-      signal: abortSignalWithTimeout(options.signal, 120000)
+      signal: abortSignalWithTimeout(options.signal, BACKEND_STREAM_TIMEOUT_MS, `${ACTIVE_BACKEND.title} tool chat`)
     });
   } catch (error) {
+    if (isRunTimeout(error, options.signal)) {
+      throw error;
+    }
     if (isRunAbort(error, options.signal)) {
       throw makeAbortError("Run cancelled by the user.");
     }
@@ -8871,7 +8953,7 @@ async function fetchBackendWithRetry(url, options = {}, meta = {}) {
   const result = await withRetry(async ({ attempt }) => {
     const requestOptions = { ...options };
     if (timeoutMs > 0) {
-      requestOptions.signal = AbortSignal.timeout(timeoutMs);
+      requestOptions.signal = abortSignalWithTimeout(options.signal, timeoutMs, meta.label || "Backend request");
     }
     const response = await fetch(url, requestOptions);
     if (isRetryableStatus(response.status)) {
@@ -8883,6 +8965,7 @@ async function fetchBackendWithRetry(url, options = {}, meta = {}) {
     return { response };
   }, {
     retries,
+    shouldRetry: (error) => options.signal && options.signal.aborted ? false : isTransientError(error),
     baseDelayMs: BACKEND_RETRY_BASE_MS,
     maxDelayMs: Math.max(BACKEND_RETRY_BASE_MS, BACKEND_RETRY_BASE_MS * 8),
     jitterMs: 30
@@ -10479,44 +10562,98 @@ function sendJson(res, status, data) {
   res.end(JSON.stringify(data, null, 2));
 }
 
-function abortSignalWithTimeout(parentSignal, timeoutMs) {
-  const timeoutSignal = AbortSignal.timeout(timeoutMs);
-  if (!parentSignal) {
-    return timeoutSignal;
+function normalizeRequestTimeoutMs(value, fallback = RUN_TIMEOUT_MS) {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed) || parsed <= 0) {
+    return fallback;
   }
-  if (parentSignal.aborted) {
+  return Math.max(100, Math.min(30 * 60 * 1000, Math.round(parsed)));
+}
+
+function abortSignalWithTimeout(parentSignal, timeoutMs, label = "Request") {
+  const timeout = Number(timeoutMs || 0);
+  if ((!timeout || timeout <= 0) && !parentSignal) {
+    return undefined;
+  }
+  if (parentSignal && parentSignal.aborted) {
     return parentSignal;
   }
-  if (typeof AbortSignal.any === "function") {
-    return AbortSignal.any([parentSignal, timeoutSignal]);
-  }
   const controller = new AbortController();
-  const abort = (event) => {
-    const source = event && event.target;
-    controller.abort(source && source.reason ? source.reason : makeAbortError("Run cancelled."));
+  let timer = null;
+  const abort = (reason) => {
+    if (!controller.signal.aborted) {
+      controller.abort(reason);
+    }
+    if (timer) {
+      clearTimeout(timer);
+      timer = null;
+    }
   };
-  parentSignal.addEventListener("abort", abort, { once: true });
-  timeoutSignal.addEventListener("abort", abort, { once: true });
+  if (parentSignal) {
+    parentSignal.addEventListener("abort", () => abort(parentSignal.reason || makeAbortError("Run cancelled.", { reason: "parent-abort" })), { once: true });
+  }
+  if (timeout > 0) {
+    timer = setTimeout(() => abort(makeTimeoutError(label, timeout, "backend-timeout")), timeout);
+    if (typeof timer.unref === "function") timer.unref();
+  }
   return controller.signal;
 }
 
-function makeAbortError(message) {
+function makeAbortError(message, meta = {}) {
   const error = new Error(message || "Run cancelled.");
   error.name = "AbortError";
-  error.code = "ABORT_ERR";
+  error.code = meta.code || "ABORT_ERR";
+  error.reason = meta.reason || "user-cancelled";
+  if (meta.timeoutMs) error.timeoutMs = meta.timeoutMs;
+  return error;
+}
+
+function makeTimeoutError(label, timeoutMs, reason = "timeout") {
+  const error = new Error(`${label || "Request"} timed out after ${timeoutMs} ms.`);
+  error.name = "TimeoutError";
+  error.code = "TIMEOUT";
+  error.reason = reason;
+  error.timeoutMs = timeoutMs;
   return error;
 }
 
 function isRunAbort(error, signal) {
+  if (isRunTimeout(error, signal)) {
+    return false;
+  }
   if (signal && signal.aborted) {
     return true;
   }
-  return Boolean(error && (error.name === "AbortError" || error.code === "ABORT_ERR"));
+  return Boolean(error && (error.name === "AbortError" || error.code === "ABORT_ERR" || error.code === "RUN_CANCELLED"));
+}
+
+function isRunTimeout(error, signal) {
+  const reason = signal && signal.aborted ? signal.reason : null;
+  const candidates = [error, reason, error && error.cause].filter(Boolean);
+  return candidates.some((candidate) => {
+    const code = String(candidate.code || candidate.name || "").toUpperCase();
+    const message = String(candidate.message || "").toLowerCase();
+    return code === "TIMEOUT" || code === "TIMEOUTERROR" || message.includes("timed out") || message.includes("timeout");
+  });
+}
+
+function runControlReason(error, signal) {
+  const reason = signal && signal.aborted ? signal.reason : error;
+  if (reason && typeof reason === "object" && reason.reason) {
+    return String(reason.reason);
+  }
+  if (isRunTimeout(error, signal)) {
+    return "timeout";
+  }
+  return "user-cancelled";
 }
 
 function throwIfAborted(signal) {
   if (signal && signal.aborted) {
-    throw makeAbortError("Run cancelled by the user.");
+    if (isRunTimeout(signal.reason, signal)) {
+      throw signal.reason || makeTimeoutError("Agent run", RUN_TIMEOUT_MS, "run-timeout");
+    }
+    throw signal.reason || makeAbortError("Run cancelled by the user.");
   }
 }
 

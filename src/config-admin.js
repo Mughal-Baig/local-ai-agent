@@ -48,6 +48,8 @@ const CONFIG_SETTINGS = [
   { key: "AGENTTRAIL_MAX_QUEUE", group: "host", label: "Max queue", type: "number", defaultValue: "64", min: 0, max: 1024 },
   { key: "AGENTTRAIL_BACKEND_RETRIES", group: "host", label: "Backend retries", type: "number", defaultValue: "2", min: 0, max: 5 },
   { key: "AGENTTRAIL_BACKEND_RETRY_BASE_MS", group: "host", label: "Retry base ms", type: "number", defaultValue: "120", min: 10, max: 2000 },
+  { key: "AGENTTRAIL_RUN_TIMEOUT_MS", group: "host", label: "Run timeout ms", type: "number", defaultValue: "120000", min: 100, max: 1800000 },
+  { key: "AGENTTRAIL_BACKEND_STREAM_TIMEOUT_MS", group: "host", label: "Backend stream timeout ms", type: "number", defaultValue: "120000", min: 100, max: 1800000 },
   { key: "AGENTTRAIL_MIN_FREE_BYTES", group: "host", label: "Write free bytes guard", type: "number", defaultValue: String(64 * 1024 * 1024), min: 0, max: Number.MAX_SAFE_INTEGER },
   { key: "AGENTTRAIL_MODEL_PULL_MIN_FREE_BYTES", group: "host", label: "Model pull free bytes guard", type: "number", defaultValue: String(512 * 1024 * 1024), min: 0, max: Number.MAX_SAFE_INTEGER }
 ].map((setting) => ({
