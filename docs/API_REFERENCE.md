@@ -15,7 +15,7 @@ AgentTrail exposes two API layers: local app endpoints under `/api/*` and an Ope
 | image-generation | server.js + src/image-generation.js | `/api/images/generate`<br>`/api/files/raw` |
 | memory | server.js | `/api/memory`<br>`/api/memory/scopes`<br>`/api/memory/structured`<br>`/api/memory/retrieve`<br>`/api/memory/history`<br>`/api/memory/history/diff`<br>`/api/memory/history/revert`<br>`/api/memory/suggestions`<br>`/api/memory/suggestions/apply`<br>`/api/memory/citations` |
 | reports | server.js | `/api/reports`<br>`/api/trust/badge` |
-| conversations | server.js | `/api/conversations`<br>`/api/conversations/get`<br>`/api/conversations/delete`<br>`/api/conversations/export` |
+| conversations | server.js | `/api/conversations`<br>`/api/conversations/get`<br>`/api/conversations/delete`<br>`/api/conversations/restore`<br>`/api/conversations/import`<br>`/api/conversations/branch`<br>`/api/conversations/export` |
 | sessions | server.js | `/api/sessions`<br>`/api/replay/plan`<br>`/api/runs/pending`<br>`/api/runs/pending/from-receipt`<br>`/api/receipts/resume` |
 | planner | server.js + src/structured-output.js | `/api/agent/plan`<br>`/api/chat` |
 | tools | src/permissions.js + src/tool-schemas.js | `/api/permissions`<br>`/api/tools/schemas`<br>`/api/tools/capability`<br>`/api/mcp` |

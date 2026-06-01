@@ -1198,6 +1198,72 @@ textarea:focus, select:focus, input:focus, button:focus-visible {
 .rail-mid { flex: 1; padding: 10px 8px; }
 .rail-label { font-size: 0.64rem; font-weight: 700; letter-spacing: 0.09em; text-transform: uppercase; color: var(--muted); margin: 0 0 6px; }
 .rail-hint { font-size: 0.8rem; color: var(--muted); line-height: 1.55; margin: 0; }
+.conversation-tools { display: grid; gap: 8px; margin-top: 14px; }
+.conversation-list { display: grid; gap: 7px; max-height: 42vh; overflow: auto; padding-right: 2px; }
+.conversation-row {
+  display: grid;
+  gap: 6px;
+  padding: 8px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--panel);
+}
+.conversation-row.active { border-color: var(--clay); background: var(--clay-faint); }
+.conversation-main {
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+  text-align: left;
+  cursor: pointer;
+}
+.conversation-main strong, .conversation-main span {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.conversation-main strong { font-size: 0.82rem; }
+.conversation-main span { margin-top: 3px; color: var(--muted); font-size: 0.72rem; }
+.conversation-tags { display: flex; flex-wrap: wrap; gap: 4px; min-height: 18px; }
+.conversation-tags span {
+  padding: 2px 6px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: var(--muted);
+  background: var(--panel-2);
+  font-size: 0.64rem;
+  font-weight: 700;
+}
+.conversation-actions-inline { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 4px; }
+.conversation-actions-inline button {
+  min-height: 26px;
+  padding: 0 5px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 0.68rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+.conversation-actions-inline button:hover { color: var(--clay-deep); border-color: var(--clay); }
+.conversation-meta { display: grid; gap: 6px; padding-top: 4px; }
+.conversation-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.conversation-undo {
+  display: grid;
+  gap: 6px;
+  padding: 8px;
+  border: 1px solid var(--amber);
+  border-radius: 10px;
+  background: var(--amber-soft);
+  color: #6b4f17;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+.conversation-undo[hidden] { display: none; }
+.conversation-undo button { margin-top: 0; }
 .rail-bottom { display: grid; gap: 8px; }
 .rail-status { margin: 0; padding: 0 6px; font-size: 0.72rem; color: var(--faint); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .tools-toggle {

@@ -24,7 +24,22 @@
 
         <div class="rail-mid">
           <p class="rail-label">Private &amp; local</p>
-          <p class="rail-hint">Your chats and files stay on this machine. Nothing leaves.</p>
+          <p class="rail-hint">Chats, metadata, imports, and branches stay in this workspace by default.</p>
+          <div class="conversation-tools" aria-label="Conversation history">
+            <input id="conversationSearch" class="search-input" type="search" placeholder="Search chats..." />
+            <div id="conversationList" class="conversation-list"></div>
+            <div id="conversationUndo" class="conversation-undo" hidden></div>
+            <div class="conversation-meta">
+              <input id="conversationFolder" class="search-input" type="text" placeholder="Folder" />
+              <input id="conversationTags" class="search-input" type="text" placeholder="Tags, comma-separated" />
+              <button id="saveConversationMeta" class="secondary-button compact-button" type="button">Save chat</button>
+            </div>
+            <div class="conversation-actions">
+              <button id="exportConversation" class="secondary-button compact-button" type="button">Export</button>
+              <button id="importConversation" class="secondary-button compact-button" type="button">Import</button>
+              <input id="conversationImportInput" type="file" accept="application/json,.json" hidden />
+            </div>
+          </div>
         </div>
 
         <div class="rail-bottom">
@@ -425,7 +440,7 @@
       </div>
     </aside>
 
-    <script src="/app.js?v=27"></script>
+    <script src="/app.js?v=28"></script>
     <script src="/modules/foundation.js?v=1"></script>
     <script src="/modules/product.js?v=1"></script>
   </body>

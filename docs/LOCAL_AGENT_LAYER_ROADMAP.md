@@ -70,6 +70,7 @@ This section tracks the concrete work shipped after the roadmap was publicly ref
 | Codex Epic AC pass | T196-T200 | Added the model ecosystem layer: LoRA adapter manifests/runtime hints, fine-tuning launch delegation, quantization command wrapper, safetensors-to-GGUF conversion helper, per-task model evaluation suite, API routes, docs, eval checks, and unit/integration coverage. |
 | Codex Epic AD pass | T201-T205 | Added the advanced agent layer: multi-agent orchestration manifests, scheduled-run records with local background journal checkpoints, long-running task journals with resume-to-pending support, budget-isolated sub-agent manifests, deterministic replay diffs, API routes, docs, eval checks, and unit/integration coverage. |
 | Claude pass + Codex hardening | T212, T225, T240; T206-T211 API foundation | Imported Claude's conversation export/theme work, hardened the conversation store API, added `/api/redact`, redacted Markdown/JSON/HTML conversation export, persisted light/dark/system theme toggle, route/API/docs/eval visibility, and CI-backed integration tests. |
+| Codex Epic AE pass | T206-T211, T213-T215 | Finished chat management: persistent sidebar history, open/continue, partial rename/pin/folder/tag updates, confirm delete with undo restore, full-text search across titles/tags/folders/messages, auto-title from first user prompt, JSON import, and branch-from-message support with UI controls and integration/UI coverage. |
 
 ### Verified After These Passes
 
@@ -80,7 +81,7 @@ This section tracks the concrete work shipped after the roadmap was publicly ref
 ### Best Continuation Points
 
 - T098/T104: add time-to-first-token/tokens-per-second metrics and idle-unload policy UI.
-- T206-T211: wire the conversation store APIs into the UI for full persistent chat history, rename, pin, delete, search, and auto-title.
+- T216-T222: move into Epic AF composer/editing depth now that Epic AE chat management is complete.
 
 ---
 
@@ -404,16 +405,16 @@ This section tracks the concrete work shipped after the roadmap was publicly ref
 4. We expand an epic's tasks into finer sub-tasks (toward 1000) only when we start that epic — so the plan stays honest and current.
 5. We re-mark `[x]` here as we go; this file is the single source of truth for the campaign.
 
-**Next up:** Phase 11 conversation and UX depth, starting with Epic AE chat management. The new Phase 17-22 expansion below adds the public "top 1%" path without replacing any earlier phase.
+**Next up:** Phase 11 conversation and UX depth, continuing with Epic AF composer/editing. The new Phase 17-22 expansion below adds the public "top 1%" path without replacing any earlier phase.
 
 ## Status & bug sweep (latest)
 
-- Progress: **Epic AD is complete**. Fully complete tracked items now include T201-T205; remaining Phase 1-10 work is mostly earlier partial/runtime hardening items such as T044, T090/T091, T094/T096/T098/T104, and T107/T109/T110. Phase 1 is complete; Phase 2 Epic E/F search foundation is complete except T044 as a hardening umbrella; Epic G document ingestion is complete; Phase 3 vision/audio/image generation is complete; Epic K is complete; Epic L is complete; Epic M is partially complete; Epic N/O now have cache, option passthrough, resources, and runtime visibility; Phase 6 now has a first-class bundled-runtime adapter seam plus Epic Q/R/S hardware, loading, registry policy, Epic AC model ecosystem helpers, and Epic AD advanced-agent manifests; Epic T native desktop distribution is complete at the repo/scaffolding level; Epic U CLI parity is complete; Epic V packaging/supply-chain foundation is complete; Epic W security/privacy is complete; Epic X observability is complete; Epic Y team/enterprise is complete; Epic Z quality engineering is complete; Epic AA documentation is complete; Epic AB community/growth is complete; and the public starter issues are cleared with tests/docs.
+- Progress: **Epic AE is complete**. Fully complete tracked items now include T201-T215; remaining Phase 1-10 work is mostly earlier partial/runtime hardening items such as T044, T090/T091, T094/T096/T098/T104, and T107/T109/T110. Phase 1 is complete; Phase 2 Epic E/F search foundation is complete except T044 as a hardening umbrella; Epic G document ingestion is complete; Phase 3 vision/audio/image generation is complete; Epic K is complete; Epic L is complete; Epic M is partially complete; Epic N/O now have cache, option passthrough, resources, and runtime visibility; Phase 6 now has a first-class bundled-runtime adapter seam plus Epic Q/R/S hardware, loading, registry policy, Epic AC model ecosystem helpers, Epic AD advanced-agent manifests, and Epic AE chat management; Epic T native desktop distribution is complete at the repo/scaffolding level; Epic U CLI parity is complete; Epic V packaging/supply-chain foundation is complete; Epic W security/privacy is complete; Epic X observability is complete; Epic Y team/enterprise is complete; Epic Z quality engineering is complete; Epic AA documentation is complete; Epic AB community/growth is complete; and the public starter issues are cleared with tests/docs.
 - Focused test suite green: unit, observability, team enterprise, quality engineering, docs generation, community-growth checks, model ecosystem checks, coverage gate, performance regression, UI E2E, desktop distribution, CLI integration, supply-chain, security/privacy threat-model, runtime hardware, runtime loading, model registry, bundled runtime, redaction, document extraction, API integration, v1 API, health, concurrency, model options, resources, smoke, recipe validation, receipt metadata, repo eval, release SBOM, reproducibility, and release checksums. All touched source files pass `node --check`.
 - **Bug fixed:** `listWorkspaceFiles` only skipped `.DS_Store`, so internal `.agenttrail/*` state (logs, store, search index, pending-run) was being walked, indexed, and returned in search — adding noise and per-request churn to the index. Now excludes `.agenttrail/`. Verified against smoke, api, search-incremental, search-chunking, and eval:search.
 - Known minor item: a couple of integration tests assert relative/invariant counts (not exact) because the workspace can still gain legit files (e.g. `memory/*`) between calls — intentional, not a bug.
 
-Next code target: T206 persistent conversation history, then T207 rename a conversation. After the conversation UI feels complete, prioritize T281/T288/T295 so the project has a 60-second proof loop, a low-friction install, and a guided first run.
+Next code target: T216 edit a sent user message and re-run, then T217 regenerate the last assistant response. After the composer editing loop feels complete, prioritize T281/T288/T295 so the project has a 60-second proof loop, a low-friction install, and a guided first run.
 
 ---
 
@@ -424,16 +425,16 @@ Open items are still marked `[ ]`; a few Phase 11/12 starter tasks are now `[x]`
 ## Phase 11 — Conversation & UX depth
 
 ### Epic AE — Chat management
-- [ ] T206 Persistent conversation history (list, open, continue past chats)
-- [ ] T207 Rename a conversation
-- [ ] T208 Pin / favorite conversations
-- [ ] T209 Delete a conversation (with confirm + undo)
-- [ ] T210 Full-text search across past conversations
-- [ ] T211 Auto-title a chat from its first message
+- [x] T206 Persistent conversation history (list, open, continue past chats)
+- [x] T207 Rename a conversation
+- [x] T208 Pin / favorite conversations
+- [x] T209 Delete a conversation (with confirm + undo)
+- [x] T210 Full-text search across past conversations
+- [x] T211 Auto-title a chat from its first message
 - [x] T212 Export a single conversation as Markdown / JSON / HTML (`POST /api/conversations/export`, secrets redacted; test: `npm run test:conv-export`)
-- [ ] T213 Import a conversation
-- [ ] T214 Folders / tags for conversations
-- [ ] T215 Branch a conversation from any message
+- [x] T213 Import a conversation
+- [x] T214 Folders / tags for conversations
+- [x] T215 Branch a conversation from any message
 
 ### Epic AF — Composer & editing
 - [ ] T216 Edit a sent user message and re-run

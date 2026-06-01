@@ -10,6 +10,10 @@ const state = {
   files: [],
   recipes: [],
   receipts: [],
+  conversations: [],
+  activeConversationId: null,
+  conversationSearch: "",
+  deletedConversation: null,
   searchResults: [],
   pendingPreviews: [],
   packs: [],
@@ -162,6 +166,15 @@ const els = {
   prompt: document.querySelector("#prompt"),
   sendButton: document.querySelector("#sendButton"),
   newChat: document.querySelector("#newChat"),
+  conversationSearch: document.querySelector("#conversationSearch"),
+  conversationList: document.querySelector("#conversationList"),
+  conversationUndo: document.querySelector("#conversationUndo"),
+  conversationFolder: document.querySelector("#conversationFolder"),
+  conversationTags: document.querySelector("#conversationTags"),
+  saveConversationMeta: document.querySelector("#saveConversationMeta"),
+  exportConversation: document.querySelector("#exportConversation"),
+  importConversation: document.querySelector("#importConversation"),
+  conversationImportInput: document.querySelector("#conversationImportInput"),
   toolsDrawer: document.querySelector("#toolsDrawer"),
   toolsBackdrop: document.querySelector("#toolsBackdrop"),
   toolsToggle: document.querySelector("#toolsToggle"),
@@ -196,6 +209,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     refreshStatus(),
     refreshFiles(),
     refreshRecipes(),
+    refreshConversations(),
     refreshReceipts(),
     refreshSessions(),
     refreshMemory(),
@@ -322,6 +336,24 @@ function bindEvents() {
   }
   if (els.newChat) {
     els.newChat.addEventListener("click", startNewChat);
+  }
+  if (els.conversationSearch) {
+    els.conversationSearch.addEventListener("input", () => {
+      state.conversationSearch = els.conversationSearch.value.trim();
+      refreshConversations();
+    });
+  }
+  if (els.saveConversationMeta) {
+    els.saveConversationMeta.addEventListener("click", () => saveCurrentConversation({ force: true }));
+  }
+  if (els.exportConversation) {
+    els.exportConversation.addEventListener("click", exportCurrentConversation);
+  }
+  if (els.importConversation) {
+    els.importConversation.addEventListener("click", () => els.conversationImportInput && els.conversationImportInput.click());
+  }
+  if (els.conversationImportInput) {
+    els.conversationImportInput.addEventListener("change", importConversationFile);
   }
   [els.toolsToggle, els.toolsToggleTop, els.toolsToggleMobile].forEach((button) => {
     if (button) button.addEventListener("click", openToolsDrawer);
@@ -461,6 +493,258 @@ async function refreshRecipes() {
     renderSetupChecklist();
     els.recipeHint.textContent = "Recipes could not be loaded.";
     addTrail("error", error.message);
+  }
+}
+
+async function refreshConversations() {
+  if (!els.conversationList) {
+    return;
+  }
+  try {
+    const query = state.conversationSearch ? `?q=${encodeURIComponent(state.conversationSearch)}` : "";
+    const data = await getJson(`/api/conversations${query}`);
+    state.conversations = data.conversations || [];
+  } catch (error) {
+    state.conversations = [];
+    addTrail("error", `Could not load conversations: ${error.message}`);
+  }
+  renderConversations();
+}
+
+function renderConversations() {
+  if (!els.conversationList) {
+    return;
+  }
+  if (!state.conversations.length) {
+    els.conversationList.innerHTML = `<div class="mini-row muted">${state.conversationSearch ? "No chats match this search." : "No saved chats yet."}</div>`;
+    return;
+  }
+
+  els.conversationList.innerHTML = state.conversations.slice(0, 50).map((conversation) => {
+    const tags = [
+      conversation.folder ? `Folder: ${conversation.folder}` : "",
+      ...(conversation.tags || []).map((tag) => `#${tag}`),
+      conversation.parentId ? "branch" : ""
+    ].filter(Boolean);
+    return `
+      <div class="conversation-row${conversation.id === state.activeConversationId ? " active" : ""}" data-id="${escapeHtml(conversation.id)}">
+        <button class="conversation-main" type="button" data-action="open" title="Open conversation">
+          <strong>${conversation.pinned ? "Pinned - " : ""}${escapeHtml(conversation.title || "New conversation")}</strong>
+          <span>${escapeHtml(conversation.preview || `${conversation.messageCount || 0} message(s)`)}</span>
+        </button>
+        <div class="conversation-tags">${tags.map((tag) => `<span>${escapeHtml(tag)}</span>`).join("")}</div>
+        <div class="conversation-actions-inline">
+          <button type="button" data-action="rename">Rename</button>
+          <button type="button" data-action="pin">${conversation.pinned ? "Unpin" : "Pin"}</button>
+          <button type="button" data-action="branch">Branch</button>
+          <button type="button" data-action="delete">Delete</button>
+        </div>
+      </div>`;
+  }).join("");
+
+  els.conversationList.querySelectorAll("[data-action]").forEach((button) => {
+    button.addEventListener("click", async () => {
+      const row = button.closest(".conversation-row");
+      const id = row ? row.dataset.id : "";
+      const action = button.dataset.action;
+      if (action === "open") return openConversation(id);
+      if (action === "rename") return renameConversation(id);
+      if (action === "pin") return toggleConversationPin(id);
+      if (action === "branch") return branchConversation(id);
+      if (action === "delete") return deleteConversation(id);
+    });
+  });
+}
+
+function activeConversationSummary() {
+  return state.conversations.find((conversation) => conversation.id === state.activeConversationId) || null;
+}
+
+function conversationMetadataFromInputs() {
+  return {
+    folder: els.conversationFolder ? els.conversationFolder.value.trim() : "",
+    tags: els.conversationTags ? els.conversationTags.value.split(",").map((tag) => tag.trim()).filter(Boolean) : []
+  };
+}
+
+function setConversationMetadataInputs(conversation) {
+  if (els.conversationFolder) {
+    els.conversationFolder.value = conversation && conversation.folder ? conversation.folder : "";
+  }
+  if (els.conversationTags) {
+    els.conversationTags.value = conversation && Array.isArray(conversation.tags) ? conversation.tags.join(", ") : "";
+  }
+}
+
+async function saveCurrentConversation(options = {}) {
+  const messages = state.messages.filter((message) => message.role === "user" || message.role === "assistant");
+  const hasUserMessage = messages.some((message) => message.role === "user" && String(message.content || "").trim());
+  if (!options.force && !hasUserMessage) {
+    return null;
+  }
+  const current = activeConversationSummary();
+  const payload = {
+    id: state.activeConversationId || undefined,
+    messages,
+    title: options.title || (current && current.title) || "",
+    pinned: current ? current.pinned : false,
+    ...conversationMetadataFromInputs()
+  };
+  const saved = await postJson("/api/conversations", payload);
+  state.activeConversationId = saved.id;
+  await refreshConversations();
+  setConversationMetadataInputs(saved);
+  if (!options.silent) {
+    addTrail("conversation", `Saved chat ${saved.title}`);
+  }
+  return saved;
+}
+
+async function openConversation(id) {
+  if (!id) return;
+  try {
+    const data = await getJson(`/api/conversations/get?id=${encodeURIComponent(id)}`);
+    const conversation = data.conversation;
+    state.activeConversationId = conversation.id;
+    state.messages = normalizeUiMessages(conversation.messages || []);
+    setConversationMetadataInputs(conversation);
+    renderMessages();
+    renderConversations();
+    addTrail("conversation", `Opened ${conversation.title || "conversation"}`);
+    els.prompt.focus();
+  } catch (error) {
+    addTrail("error", `Could not open chat: ${error.message}`);
+  }
+}
+
+async function renameConversation(id) {
+  const conversation = state.conversations.find((item) => item.id === id);
+  if (!conversation) return;
+  const title = prompt("Rename conversation", conversation.title || "New conversation");
+  if (!title || !title.trim()) return;
+  try {
+    await postJson("/api/conversations", { id, title: title.trim() });
+    await refreshConversations();
+    addTrail("conversation", `Renamed chat to ${title.trim()}`);
+  } catch (error) {
+    addTrail("error", `Could not rename chat: ${error.message}`);
+  }
+}
+
+async function toggleConversationPin(id) {
+  const conversation = state.conversations.find((item) => item.id === id);
+  if (!conversation) return;
+  try {
+    await postJson("/api/conversations", { id, pinned: !conversation.pinned });
+    await refreshConversations();
+    addTrail("conversation", `${conversation.pinned ? "Unpinned" : "Pinned"} ${conversation.title}`);
+  } catch (error) {
+    addTrail("error", `Could not pin chat: ${error.message}`);
+  }
+}
+
+async function deleteConversation(id) {
+  const conversation = state.conversations.find((item) => item.id === id);
+  if (!conversation) return;
+  if (!confirm(`Delete "${conversation.title}"? You can undo this immediately.`)) return;
+  try {
+    const result = await postJson("/api/conversations/delete", { id });
+    state.deletedConversation = { id, title: conversation.title, undoToken: result.undoToken };
+    if (state.activeConversationId === id) {
+      startNewChat({ silent: true });
+    }
+    await refreshConversations();
+    renderConversationUndo();
+    addTrail("conversation", `Deleted chat ${conversation.title}`);
+  } catch (error) {
+    addTrail("error", `Could not delete chat: ${error.message}`);
+  }
+}
+
+function renderConversationUndo() {
+  if (!els.conversationUndo) return;
+  if (!state.deletedConversation) {
+    els.conversationUndo.hidden = true;
+    els.conversationUndo.innerHTML = "";
+    return;
+  }
+  els.conversationUndo.hidden = false;
+  els.conversationUndo.innerHTML = `
+    <span>Deleted ${escapeHtml(state.deletedConversation.title || "conversation")}</span>
+    <button id="undoConversationDelete" class="secondary-button compact-button" type="button">Undo delete</button>`;
+  const button = document.querySelector("#undoConversationDelete");
+  if (button) button.addEventListener("click", restoreDeletedConversation);
+}
+
+async function restoreDeletedConversation() {
+  if (!state.deletedConversation) return;
+  try {
+    const restored = await postJson("/api/conversations/restore", { undoToken: state.deletedConversation.undoToken });
+    state.deletedConversation = null;
+    await refreshConversations();
+    renderConversationUndo();
+    if (restored.conversation && restored.conversation.id) {
+      await openConversation(restored.conversation.id);
+    }
+    addTrail("conversation", "Restored deleted chat");
+  } catch (error) {
+    addTrail("error", `Could not restore chat: ${error.message}`);
+  }
+}
+
+async function exportCurrentConversation() {
+  const messages = state.messages.filter((message) => message.role === "user" || message.role === "assistant");
+  if (!messages.length) return;
+  try {
+    const current = activeConversationSummary();
+    const exported = await postJson("/api/conversations/export", {
+      title: current ? current.title : "AgentTrail conversation",
+      messages,
+      format: "markdown"
+    });
+    downloadText(exported.filename || "conversation.md", exported.content, exported.contentType || "text/markdown");
+    addTrail("conversation", "Exported current chat");
+  } catch (error) {
+    addTrail("error", `Could not export chat: ${error.message}`);
+  }
+}
+
+async function importConversationFile() {
+  const file = els.conversationImportInput && els.conversationImportInput.files && els.conversationImportInput.files[0];
+  if (!file) return;
+  try {
+    const content = await file.text();
+    const result = await postJson("/api/conversations/import", { content });
+    await refreshConversations();
+    if (result.conversation && result.conversation.id) {
+      await openConversation(result.conversation.id);
+    }
+    addTrail("conversation", `Imported ${file.name}`);
+  } catch (error) {
+    addTrail("error", `Could not import chat: ${error.message}`);
+  } finally {
+    els.conversationImportInput.value = "";
+  }
+}
+
+async function branchConversation(id, messageIndex) {
+  if (!id && state.activeConversationId) {
+    id = state.activeConversationId;
+  }
+  if (!id) {
+    const saved = await saveCurrentConversation({ force: true, silent: true });
+    id = saved && saved.id;
+  }
+  if (!id) return;
+  try {
+    const result = await postJson("/api/conversations/branch", { id, messageIndex });
+    await refreshConversations();
+    if (result.conversation && result.conversation.id) {
+      await openConversation(result.conversation.id);
+    }
+    addTrail("conversation", "Created chat branch");
+  } catch (error) {
+    addTrail("error", `Could not branch chat: ${error.message}`);
   }
 }
 
@@ -1456,12 +1740,15 @@ function dismissPendingRun() {
   clearPendingRun();
 }
 
-function startNewChat() {
+function startNewChat(options = {}) {
   state.messages = [{
     role: "assistant",
     content: "New chat - ask me anything, or attach files to work on locally.",
     events: []
   }];
+  state.activeConversationId = null;
+  setConversationMetadataInputs(null);
+  renderConversations();
   renderMessages();
   els.prompt.value = "";
   resizePrompt();
@@ -1471,7 +1758,9 @@ function startNewChat() {
   if (els.resumeBanner) {
     els.resumeBanner.hidden = true;
   }
-  addTrail("system", "Started a new chat");
+  if (!options.silent) {
+    addTrail("system", "Started a new chat");
+  }
 }
 
 function openToolsDrawer() {
@@ -2612,6 +2901,11 @@ async function sendMessage(event) {
       clearPendingRun();
       state.pendingRun = null;
     }
+    try {
+      await saveCurrentConversation({ silent: true });
+    } catch (error) {
+      addTrail("error", `Could not save chat: ${error.message}`);
+    }
     await refreshFiles();
     await refreshReceipts();
     await refreshObservability();
@@ -3194,6 +3488,15 @@ function renderMessageActions(message, index) {
   speak.disabled = state.speakingMessage === index;
   speak.addEventListener("click", () => speakAssistantMessage(message, index, speak));
   actions.appendChild(speak);
+  const canBranch = state.activeConversationId || state.messages.some((item) => item.role === "user" && String(item.content || "").trim());
+  if (canBranch) {
+    const branch = document.createElement("button");
+    branch.type = "button";
+    branch.className = "message-action";
+    branch.textContent = "Branch";
+    branch.addEventListener("click", () => branchConversation(state.activeConversationId, index));
+    actions.appendChild(branch);
+  }
   return actions;
 }
 

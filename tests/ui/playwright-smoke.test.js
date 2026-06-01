@@ -77,10 +77,16 @@ async function runHttpUiContract() {
 
   assert.match(html, /AgentTrail/);
   assert.match(html, /workspaceSearch/);
+  assert.match(html, /conversationSearch/);
+  assert.match(html, /conversationList/);
+  assert.match(html, /conversationImportInput/);
   assert.match(html, /teamUserSelect/);
   assert.match(html, /observabilitySummary/);
   assert.match(html, /Diff Review/);
   assert.match(app, /refreshTeam/);
+  assert.match(app, /refreshConversations/);
+  assert.match(app, /branchConversation/);
+  assert.match(app, /restoreDeletedConversation/);
   assert.match(app, /renderPendingChanges/);
   assert.match(app, /bindComposerAttachmentIntake/);
   assert.match(app, /startVoicePromptRecording/);

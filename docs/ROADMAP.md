@@ -2,7 +2,7 @@
 
 ## Next
 
-- Finish the conversation-management UI: persistent chat list, rename, pin, delete, search, import/export, and branching.
+- Finish composer editing: edit sent user message, regenerate the last answer, stop-and-continue, copy buttons, slash palette, and @file mentions.
 - Build the 60-second proof loop: search -> diff preview -> apply -> receipt -> shareable report.
 - Make the install path undeniable: `npx agenttrail`, Docker persistence, Homebrew publication, setup doctor, and friendly failure states.
 - Add a guided first-run wizard so new users can complete one safe local task before touching their real project.
@@ -18,7 +18,7 @@
 
 - Brutal current product score: **62/100** against the best local/self-hosted agent projects.
 - Strong wedge: auditable local-agent layer with receipts, diff-safe writes, searchable evidence, redaction, replay/export, and local privacy.
-- Main gap: public adoption and instant proof. The next roadmap push is about install friction, first-run success, real demos, safety proof, and shareable comparison evidence.
+- Main gap: public adoption and instant proof. The next roadmap push is about composer polish, install friction, first-run success, real demos, safety proof, and shareable comparison evidence.
 
 ## Later
 
@@ -29,6 +29,7 @@
 ## Shipped
 
 - GitHub Pages static demo.
+- Persistent conversation history with rename, pin, search, import/export, folder/tag metadata, delete undo, and branching.
 - Public recipe/safety/receipt demo page.
 - Local workspace search tool.
 - Saved receipt history.

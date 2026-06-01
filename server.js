@@ -319,6 +319,18 @@ const server = http.createServer(async (req, res) => {
       return handleDeleteConversation(req, res);
     }
 
+    if (url.pathname === "/api/conversations/restore" && req.method === "POST") {
+      return handleRestoreConversation(req, res);
+    }
+
+    if (url.pathname === "/api/conversations/import" && req.method === "POST") {
+      return handleImportConversation(req, res);
+    }
+
+    if (url.pathname === "/api/conversations/branch" && req.method === "POST") {
+      return handleBranchConversation(req, res);
+    }
+
     if (url.pathname === "/api/runtime" && req.method === "GET") {
       return handleRuntime(res);
     }
@@ -897,39 +909,94 @@ server.listen(PORT, HOST, () => {
   console.log(`Model backend: ${ACTIVE_BACKEND.title} (${ACTIVE_BACKEND.api}) at ${BACKEND_HOST}`);
 });
 
-// Epic AE - conversation store API foundation (T206-T211): persist, list, search, open, rename, pin, delete.
+// Epic AE - conversation store: persist, list/search, rename, pin, delete/undo,
+// import, folders/tags, and branchable chats.
 const CONVERSATIONS_DIR = ".agenttrail/conversations";
+const CONVERSATION_TRASH_DIR = ".agenttrail/conversations-trash";
 const MAX_CONVERSATION_BYTES = 1024 * 1024;
 function conversationPath(id) { return `${CONVERSATIONS_DIR}/${id}.json`; }
+function trashedConversationPath(id) { return `${CONVERSATION_TRASH_DIR}/${id}.json`; }
 function safeConversationId(id) { return /^[A-Za-z0-9_-]{1,64}$/.test(String(id || "")) ? String(id) : null; }
+function normalizeConversationTags(tags) {
+  const source = Array.isArray(tags) ? tags : String(tags || "").split(",");
+  return [...new Set(source
+    .map((tag) => String(tag || "").trim().replace(/\s+/g, "-").replace(/[^A-Za-z0-9._-]+/g, "").slice(0, 32))
+    .filter(Boolean))]
+    .slice(0, 12);
+}
+function normalizeConversationFolder(folder) {
+  return String(folder || "").trim().replace(/\s+/g, " ").slice(0, 80);
+}
+function normalizeConversationMessages(messages) {
+  return (Array.isArray(messages) ? messages : [])
+    .filter((m) => m && (m.role === "user" || m.role === "assistant") && typeof m.content === "string")
+    .slice(0, 2000)
+    .map((m) => ({
+      role: m.role,
+      content: m.content,
+      events: Array.isArray(m.events)
+        ? m.events.slice(0, 40).map((event) => ({
+            type: String(event.type || "event").slice(0, 40),
+            label: String(event.label || "").slice(0, 240)
+          })).filter((event) => event.label)
+        : []
+    }));
+}
+function conversationAutoTitle(messages) {
+  const firstUser = messages.find((m) => m.role === "user");
+  return firstUser ? firstUser.content.replace(/\s+/g, " ").trim().slice(0, 60) : "";
+}
+function conversationSummary(rec) {
+  const messages = Array.isArray(rec.messages) ? rec.messages : [];
+  const last = messages.slice().reverse().find((m) => String(m.content || "").trim());
+  return {
+    id: rec.id,
+    title: rec.title || "New conversation",
+    pinned: Boolean(rec.pinned),
+    folder: rec.folder || "",
+    tags: Array.isArray(rec.tags) ? rec.tags : [],
+    parentId: rec.parentId || null,
+    branchedFrom: rec.branchedFrom || null,
+    importedAt: rec.importedAt || null,
+    createdAt: rec.createdAt,
+    updatedAt: rec.updatedAt,
+    messageCount: messages.length,
+    preview: last ? String(last.content || "").replace(/\s+/g, " ").trim().slice(0, 140) : ""
+  };
+}
 
 async function handleSaveConversation(req, res) {
   const body = await readJsonBody(req);
   const id = safeConversationId(body.id) || `c-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`;
-  const messages = (Array.isArray(body.messages) ? body.messages : [])
-    .filter((m) => m && (m.role === "user" || m.role === "assistant") && typeof m.content === "string")
-    .slice(0, 2000)
-    .map((m) => ({ role: m.role, content: m.content }));
   let existing = null;
   try { existing = JSON.parse((await readWorkspaceFile(conversationPath(id), MAX_CONVERSATION_BYTES)).content); } catch { existing = null; }
-  const firstUser = messages.find((m) => m.role === "user");
-  const autoTitle = firstUser ? firstUser.content.replace(/\s+/g, " ").trim().slice(0, 60) : "";
+  const messages = Array.isArray(body.messages)
+    ? normalizeConversationMessages(body.messages)
+    : normalizeConversationMessages(existing && existing.messages);
+  const autoTitle = conversationAutoTitle(messages);
   const title = String(body.title || (existing && existing.title) || autoTitle || "New conversation").slice(0, 120);
   const now = new Date().toISOString();
   const record = {
     id,
     title,
     pinned: body.pinned !== undefined ? Boolean(body.pinned) : (existing ? Boolean(existing.pinned) : false),
+    folder: body.folder !== undefined ? normalizeConversationFolder(body.folder) : (existing ? existing.folder || "" : ""),
+    tags: body.tags !== undefined ? normalizeConversationTags(body.tags) : (existing && Array.isArray(existing.tags) ? existing.tags : []),
+    parentId: safeConversationId(body.parentId) || (existing ? existing.parentId || null : null),
+    branchedFrom: body.branchedFrom && typeof body.branchedFrom === "object" ? body.branchedFrom : (existing ? existing.branchedFrom || null : null),
+    importedAt: existing ? existing.importedAt || null : (body.importedAt || null),
     createdAt: existing ? existing.createdAt : now,
     updatedAt: now,
     messages
   };
   await writeWorkspaceFile(conversationPath(id), JSON.stringify(record, null, 2));
-  sendJson(res, 200, { ok: true, id, title: record.title, pinned: record.pinned, updatedAt: record.updatedAt, messageCount: messages.length });
+  sendJson(res, 200, { ok: true, ...conversationSummary(record) });
 }
 
 async function handleListConversations(url, res) {
   const q = String(url.searchParams.get("q") || "").trim().toLowerCase();
+  const folder = normalizeConversationFolder(url.searchParams.get("folder") || "").toLowerCase();
+  const tag = String(url.searchParams.get("tag") || "").trim().toLowerCase();
   const dir = resolveWorkspacePath(CONVERSATIONS_DIR);
   let files = [];
   try { files = (await fsp.readdir(dir)).filter((f) => f.endsWith(".json")); } catch { files = []; }
@@ -937,11 +1004,14 @@ async function handleListConversations(url, res) {
   for (const f of files) {
     try {
       const rec = JSON.parse(await fsp.readFile(path.join(dir, f), "utf8"));
+      const tags = normalizeConversationTags(rec.tags || []);
+      if (folder && normalizeConversationFolder(rec.folder || "").toLowerCase() !== folder) continue;
+      if (tag && !tags.some((value) => value.toLowerCase() === tag)) continue;
       if (q) {
-        const hay = `${rec.title || ""} ${(rec.messages || []).map((m) => m.content).join(" ")}`.toLowerCase();
+        const hay = `${rec.title || ""} ${rec.folder || ""} ${tags.join(" ")} ${(rec.messages || []).map((m) => m.content).join(" ")}`.toLowerCase();
         if (!hay.includes(q)) continue;
       }
-      items.push({ id: rec.id, title: rec.title, pinned: Boolean(rec.pinned), updatedAt: rec.updatedAt, messageCount: (rec.messages || []).length });
+      items.push(conversationSummary({ ...rec, tags }));
     } catch {
       // skip unreadable conversation files
     }
@@ -965,8 +1035,100 @@ async function handleDeleteConversation(req, res) {
   const body = await readJsonBody(req);
   const id = safeConversationId(body.id);
   if (!id) return sendJson(res, 400, { error: "A valid conversation id is required." });
+  let record = null;
+  try { record = JSON.parse((await readWorkspaceFile(conversationPath(id), MAX_CONVERSATION_BYTES)).content); } catch { record = null; }
+  if (record) {
+    const deleted = { ...record, deletedAt: new Date().toISOString() };
+    await writeWorkspaceFile(trashedConversationPath(id), JSON.stringify(deleted, null, 2));
+  }
   try { await fsp.unlink(resolveWorkspacePath(conversationPath(id))); } catch { /* already gone */ }
-  sendJson(res, 200, { ok: true, id });
+  sendJson(res, 200, { ok: true, id, undoToken: id, conversation: record ? conversationSummary(record) : null });
+}
+
+async function handleRestoreConversation(req, res) {
+  const body = await readJsonBody(req);
+  const id = safeConversationId(body.id || body.undoToken || (body.conversation && body.conversation.id));
+  if (!id) return sendJson(res, 400, { error: "A valid conversation id is required." });
+  let record = null;
+  try { record = JSON.parse((await readWorkspaceFile(trashedConversationPath(id), MAX_CONVERSATION_BYTES)).content); } catch { record = null; }
+  if (!record && body.conversation && typeof body.conversation === "object") {
+    record = body.conversation;
+  }
+  if (!record) return sendJson(res, 404, { error: "Deleted conversation was not found." });
+  delete record.deletedAt;
+  record.id = id;
+  record.updatedAt = new Date().toISOString();
+  await writeWorkspaceFile(conversationPath(id), JSON.stringify(record, null, 2));
+  try { await fsp.unlink(resolveWorkspacePath(trashedConversationPath(id))); } catch { /* already restored */ }
+  sendJson(res, 200, { ok: true, conversation: conversationSummary(record) });
+}
+
+async function handleImportConversation(req, res) {
+  const body = await readJsonBody(req);
+  let input = body.conversation || body.content || body;
+  if (typeof input === "string") {
+    if (Buffer.byteLength(input, "utf8") > MAX_CONVERSATION_BYTES) {
+      return sendJson(res, 400, { error: "Imported conversation is too large." });
+    }
+    try { input = JSON.parse(input); } catch {
+      return sendJson(res, 400, { error: "Imported conversation must be JSON." });
+    }
+  }
+  const messages = normalizeConversationMessages(input.messages || body.messages);
+  if (!messages.length) return sendJson(res, 400, { error: "Imported conversation needs at least one user or assistant message." });
+  const now = new Date().toISOString();
+  const id = safeConversationId(body.id || input.id) || `import-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`;
+  const record = {
+    id,
+    title: String(body.title || input.title || conversationAutoTitle(messages) || "Imported conversation").slice(0, 120),
+    pinned: Boolean(body.pinned ?? input.pinned),
+    folder: normalizeConversationFolder(body.folder ?? input.folder ?? "Imported"),
+    tags: normalizeConversationTags(body.tags ?? input.tags ?? ["imported"]),
+    parentId: safeConversationId(body.parentId || input.parentId) || null,
+    branchedFrom: input.branchedFrom || null,
+    importedAt: now,
+    createdAt: input.createdAt || now,
+    updatedAt: now,
+    messages
+  };
+  await writeWorkspaceFile(conversationPath(id), JSON.stringify(record, null, 2));
+  sendJson(res, 200, { ok: true, conversation: conversationSummary(record) });
+}
+
+async function handleBranchConversation(req, res) {
+  const body = await readJsonBody(req);
+  const id = safeConversationId(body.id);
+  if (!id) return sendJson(res, 400, { error: "A valid conversation id is required." });
+  let source;
+  try { source = JSON.parse((await readWorkspaceFile(conversationPath(id), MAX_CONVERSATION_BYTES)).content); } catch {
+    return sendJson(res, 404, { error: "Conversation not found." });
+  }
+  const sourceMessages = normalizeConversationMessages(source.messages);
+  if (!sourceMessages.length) return sendJson(res, 400, { error: "Conversation has no messages to branch." });
+  const rawIndex = Number.isFinite(Number(body.messageIndex)) ? Math.floor(Number(body.messageIndex)) : sourceMessages.length - 1;
+  const messageIndex = Math.max(0, Math.min(sourceMessages.length - 1, rawIndex));
+  const messages = sourceMessages.slice(0, messageIndex + 1);
+  const now = new Date().toISOString();
+  const branchId = `branch-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`;
+  const record = {
+    id: branchId,
+    title: String(body.title || `Branch: ${source.title || "Conversation"}`).slice(0, 120),
+    pinned: false,
+    folder: normalizeConversationFolder(body.folder !== undefined ? body.folder : source.folder),
+    tags: normalizeConversationTags(body.tags !== undefined ? body.tags : [...(source.tags || []), "branch"]),
+    parentId: source.id,
+    branchedFrom: {
+      id: source.id,
+      title: source.title || "Conversation",
+      messageIndex
+    },
+    importedAt: null,
+    createdAt: now,
+    updatedAt: now,
+    messages
+  };
+  await writeWorkspaceFile(conversationPath(branchId), JSON.stringify(record, null, 2));
+  sendJson(res, 200, { ok: true, conversation: conversationSummary(record) });
 }
 
 // T212 - export a single conversation as Markdown / JSON / HTML (secrets redacted).
