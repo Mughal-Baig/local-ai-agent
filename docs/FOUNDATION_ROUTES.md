@@ -50,7 +50,12 @@ AgentTrail v0.7 expands the foundation API:
 - `/api/runtime`
 - `/api/concurrency`
 - `/api/plugins/run`
+- `/api/workspace/portability`
+- `/api/workspace/migration-plan`
+- `/api/backup/export`
 - `/api/backup/import`
+- `/api/backup/schedule`
+- `/api/backup/schedule/run`
 - `/api/releases/signing-plan`
 - `/api/updates/check`
 - `/api/onboarding`

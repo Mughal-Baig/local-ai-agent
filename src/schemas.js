@@ -93,10 +93,20 @@ const SCHEMAS = {
     required: ["id", "type", "status", "createdAt"],
     optional: ["startedAt", "finishedAt", "progress", "result", "error"]
   },
+  workspaceProfile: {
+    schema: "agenttrail.workspace-profile.v1",
+    required: ["schema", "id", "name", "workspaceRoot", "dataRoot", "createdAt", "isolation", "portablePaths"],
+    optional: ["backupRoot", "updatedAt"]
+  },
+  backupSchedule: {
+    schema: "agenttrail.backup-schedule.v1",
+    required: ["schema", "enabled", "intervalHours", "retentionCount", "includeWorkspaceFiles", "nextRunAt"],
+    optional: ["lastRunAt", "updatedAt"]
+  },
   backup: {
     schema: "agenttrail.backup.v1",
     required: ["createdAt", "paths", "items"],
-    optional: ["profiles", "sessions", "receipts", "memory", "recipes"]
+    optional: ["archiveVersion", "archiveId", "manifest", "profiles", "sessions", "receipts", "memory", "recipes", "includeWorkspaceFiles"]
   }
 };
 

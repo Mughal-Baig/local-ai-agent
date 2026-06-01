@@ -214,6 +214,10 @@ const MODEL_GATE = {
   }
 };
 const BACKUPS_DIR = "backups";
+const WORKSPACE_PROFILE_PATH = ".agenttrail/workspace-profile.json";
+const BACKUP_SCHEDULE_PATH = ".agenttrail/backup-schedule.json";
+const BACKUP_ARCHIVE_VERSION = 2;
+const BACKUP_MAX_ITEMS = Number(process.env.AGENTTRAIL_BACKUP_MAX_ITEMS || 1200);
 const MAX_BODY_BYTES = 1024 * 1024;
 const MAX_FILE_BYTES = 80 * 1024;
 const MAX_PROMPT_FILE_BYTES = 28 * 1024;
@@ -455,12 +459,32 @@ const server = http.createServer(async (req, res) => {
       return handleRunPlugin(req, res);
     }
 
+    if (url.pathname === "/api/workspace/portability" && req.method === "GET") {
+      return handleWorkspacePortability(res);
+    }
+
+    if (url.pathname === "/api/workspace/migration-plan" && req.method === "GET") {
+      return handleWorkspaceMigrationPlan(res);
+    }
+
     if (url.pathname === "/api/backup/export" && req.method === "POST") {
       return handleExportBackup(req, res);
     }
 
     if (url.pathname === "/api/backup/import" && req.method === "POST") {
       return handleImportBackup(req, res);
+    }
+
+    if (url.pathname === "/api/backup/schedule" && req.method === "GET") {
+      return handleBackupSchedule(res);
+    }
+
+    if (url.pathname === "/api/backup/schedule" && req.method === "POST") {
+      return handleUpdateBackupSchedule(req, res);
+    }
+
+    if (url.pathname === "/api/backup/schedule/run" && req.method === "POST") {
+      return handleRunScheduledBackup(req, res);
     }
 
     if (url.pathname === "/api/releases/checksums" && req.method === "POST") {
@@ -2901,7 +2925,10 @@ async function handleStartJob(req, res) {
     }
     if (type === "backup") {
       update(40, "Exporting backup");
-      return exportBackup({ includeWorkspaceFiles: body.includeWorkspaceFiles === true });
+      if (body.scheduled === true) {
+        return runScheduledBackup({ force: body.force === true, includeWorkspaceFiles: body.includeWorkspaceFiles });
+      }
+      return exportBackup({ includeWorkspaceFiles: body.includeWorkspaceFiles === true, reason: "manual-job" });
     }
     if (type === "release-checksums") {
       update(45, "Generating release checksums");
@@ -2984,6 +3011,47 @@ async function handleImportBackup(req, res) {
   await STORE.append("backup-import", result);
   SQLITE.insert("backup-import", result);
   await LOGGER.log("info", "backup.import", { restored: result.restored.length, skipped: result.skipped.length });
+  sendJson(res, 200, result);
+}
+
+async function handleWorkspacePortability(res) {
+  sendJson(res, 200, await workspacePortabilityStatus());
+}
+
+async function handleWorkspaceMigrationPlan(res) {
+  sendJson(res, 200, await workspaceMigrationPlan());
+}
+
+async function handleBackupSchedule(res) {
+  sendJson(res, 200, await backupScheduleStatus());
+}
+
+async function handleUpdateBackupSchedule(req, res) {
+  const body = await readJsonBody(req);
+  const result = await writeBackupSchedule(body);
+  await STORE.append("backup-schedule", result.schedule);
+  SQLITE.insert("backup-schedule", result.schedule);
+  await LOGGER.log("info", "backup.schedule", {
+    enabled: result.schedule.enabled,
+    intervalHours: result.schedule.intervalHours,
+    retentionCount: result.schedule.retentionCount
+  });
+  sendJson(res, 200, result);
+}
+
+async function handleRunScheduledBackup(req, res) {
+  const body = await readJsonBody(req);
+  const result = await runScheduledBackup({
+    force: body.force === true,
+    includeWorkspaceFiles: body.includeWorkspaceFiles
+  });
+  await STORE.append("backup-scheduled-run", result);
+  SQLITE.insert("backup-scheduled-run", result);
+  await LOGGER.log("info", "backup.scheduled-run", {
+    ran: result.ran,
+    path: result.backup && result.backup.path,
+    pruned: result.pruned ? result.pruned.length : 0
+  });
   sendJson(res, 200, result);
 }
 
@@ -3123,59 +3191,61 @@ async function handleSigningPlan(res) {
 }
 
 async function exportBackup(options = {}) {
-  const files = await listWorkspaceFiles();
-  const workspaceItems = [];
   const includeWorkspaceFiles = options.includeWorkspaceFiles === true;
-  const allowedPrefixes = [`${RECEIPTS_DIR}/`, `${SESSIONS_DIR}/`, `${REPORTS_DIR}/`, "memory/", `${EVALS_DIR}/`, ".agenttrail/"];
-
-  for (const file of files) {
-    if (file.path.startsWith(`${BACKUPS_DIR}/`)) {
-      continue;
-    }
-    if (!includeWorkspaceFiles && !allowedPrefixes.some((prefix) => file.path.startsWith(prefix))) {
-      continue;
-    }
-    if (file.size > MAX_FILE_BYTES) {
-      continue;
-    }
-    try {
-      const content = await readWorkspaceFile(file.path, MAX_FILE_BYTES);
-      workspaceItems.push({
-        path: content.path,
-        size: content.size,
-        modifiedAt: content.modifiedAt,
-        content: content.content
-      });
-    } catch {
-      // Skip unreadable files.
-    }
-  }
-
-  const projectItems = await collectProjectBackupItems([
-    RECIPES_DIR,
-    RECIPE_PACKS_DIR,
-    PROFILES_DIR,
-    TEAM_DIR,
-    MARKETPLACE_DIR,
-    PLUGINS_DIR
+  const createdAt = new Date().toISOString();
+  const workspace = await ensureWorkspaceProfile();
+  const [projectItems, workspaceItems] = await Promise.all([
+    collectProjectBackupItems([
+      RECIPES_DIR,
+      RECIPE_PACKS_DIR,
+      PROFILES_DIR,
+      TEAM_DIR,
+      MARKETPLACE_DIR,
+      PLUGINS_DIR
+    ]),
+    collectWorkspaceBackupItems({ includeWorkspaceFiles })
   ]);
+  const items = [...projectItems, ...workspaceItems].slice(0, BACKUP_MAX_ITEMS);
+  const archiveId = `archive_${createdAt.replace(/[:.]/g, "-")}_${hashContent(`${workspace.id}:${createdAt}:${items.length}`).slice(0, 10)}`;
+  const manifest = buildBackupManifest({
+    archiveId,
+    createdAt,
+    workspace,
+    includeWorkspaceFiles,
+    items,
+    reason: options.reason || (options.scheduled ? "scheduled" : "manual")
+  });
   const backup = withSchema("backup", {
-    createdAt: new Date().toISOString(),
+    archiveVersion: BACKUP_ARCHIVE_VERSION,
+    archiveId,
+    createdAt,
     appVersion: packageMeta.version,
     paths: {
       workspaceRoot: WORKSPACE_ROOT,
+      workspaceProfile: WORKSPACE_PROFILE_PATH,
+      backupSchedule: BACKUP_SCHEDULE_PATH,
       recipes: "recipes",
       packs: "recipe-packs",
       profiles: "profiles",
       marketplace: "marketplace",
       plugins: "plugins"
     },
-    items: [...projectItems, ...workspaceItems.map((item) => ({ area: "workspace", ...item }))],
+    manifest,
+    items,
     includeWorkspaceFiles
   });
-  const stamp = new Date().toISOString().replace(/[:.]/g, "-");
-  const result = await writeWorkspaceFile(`${BACKUPS_DIR}/agenttrail-backup-${stamp}.json`, JSON.stringify(backup, null, 2));
-  return { ...result, itemCount: backup.items.length, includeWorkspaceFiles };
+  const stamp = createdAt.replace(/[:.]/g, "-");
+  const result = await writeWorkspaceFile(`${BACKUPS_DIR}/agenttrail-archive-${stamp}.json`, JSON.stringify(backup, null, 2));
+  return {
+    ...result,
+    archiveId,
+    archiveVersion: BACKUP_ARCHIVE_VERSION,
+    itemCount: backup.items.length,
+    areas: manifest.areas,
+    includeWorkspaceFiles,
+    workspaceId: workspace.id,
+    manifest
+  };
 }
 
 async function importBackup(body) {
@@ -3183,28 +3253,66 @@ async function importBackup(body) {
   if (!backup || backup.schema !== "agenttrail.backup.v1" || !Array.isArray(backup.items)) {
     throw new Error("Backup must use agenttrail.backup.v1 with an items array.");
   }
+  const targetWorkspace = await ensureWorkspaceProfile();
+  const sourceWorkspace = backup.manifest && backup.manifest.sourceWorkspace ? backup.manifest.sourceWorkspace : {};
+  const sourceWorkspaceId = sourceWorkspace.id || backup.workspaceId || null;
+  const archiveId = safeBackupSegment(backup.archiveId || (backup.manifest && backup.manifest.archiveId) || `import-${Date.now()}`);
+  const mode = String(body.mode || "restore").trim().toLowerCase();
+  const allowOverwrite = body.allowOverwrite === true;
+  const restoreManagedData = body.restoreManagedData === true;
+  const restoreProjectFiles = body.restoreProjectFiles === true;
   const restored = [];
+  const restoredItems = [];
   const skipped = [];
-  for (const item of backup.items.slice(0, 500)) {
+  for (const item of backup.items.slice(0, BACKUP_MAX_ITEMS)) {
     const itemPath = normalizeRelativePath(item.path || "");
     if (!itemPath || typeof item.content !== "string") {
       skipped.push({ path: item.path || "unknown", reason: "Missing path or content" });
       continue;
     }
+    if (item.checksum && item.checksum !== hashContent(item.content)) {
+      skipped.push({ path: itemPath, reason: "Checksum mismatch" });
+      continue;
+    }
     if (item.area === "workspace") {
       try {
-        const result = await writeWorkspaceFile(`restored/${itemPath}`, item.content);
+        if (mode === "in-place" && isManagedWorkspaceBackupPath(itemPath) && !restoreManagedData) {
+          skipped.push({ path: itemPath, reason: "Managed .agenttrail data needs restoreManagedData=true for in-place restore." });
+          continue;
+        }
+        const targetPath = mode === "in-place" && allowOverwrite
+          ? itemPath
+          : `restored/${archiveId}/workspace/${itemPath}`;
+        const result = await writeWorkspaceFile(targetPath, item.content);
         restored.push(result.path);
+        restoredItems.push({ area: "workspace", sourcePath: itemPath, targetPath: result.path });
       } catch (error) {
         skipped.push({ path: itemPath, reason: error.message });
       }
       continue;
     }
-    skipped.push({ path: itemPath, reason: "Project file imports are review-only; workspace files restore under restored/." });
+    if (mode === "in-place" && restoreProjectFiles) {
+      skipped.push({ path: itemPath, reason: "Project file imports stay review-only; restore into workspace/restored first." });
+      continue;
+    }
+    try {
+      const targetPath = `restored/${archiveId}/project/${itemPath}`;
+      const result = await writeWorkspaceFile(targetPath, item.content);
+      restored.push(result.path);
+      restoredItems.push({ area: item.area || "project", sourcePath: itemPath, targetPath: result.path });
+    } catch (error) {
+      skipped.push({ path: itemPath, reason: error.message });
+    }
   }
   return {
     ok: true,
+    archiveId,
+    mode,
+    sourceWorkspaceId,
+    targetWorkspaceId: targetWorkspace.id,
+    workspaceMismatch: Boolean(sourceWorkspaceId && sourceWorkspaceId !== targetWorkspace.id),
     restored,
+    restoredItems,
     skipped,
     importedAt: new Date().toISOString()
   };
@@ -3236,12 +3344,352 @@ async function collectProjectBackupItems(directories) {
           modifiedAt: stat.mtime.toISOString(),
           content: await fsp.readFile(absolutePath, "utf8")
         });
+        const last = items[items.length - 1];
+        last.checksum = hashContent(last.content);
       } catch {
         // Skip unreadable project files.
       }
     }
   }
   return items;
+}
+
+async function collectWorkspaceBackupItems(options = {}) {
+  const items = [];
+  const includeWorkspaceFiles = options.includeWorkspaceFiles === true;
+
+  async function walk(currentDir, relativeDir) {
+    if (items.length >= BACKUP_MAX_ITEMS) {
+      return;
+    }
+    const entries = await fsp.readdir(currentDir, { withFileTypes: true }).catch(() => []);
+    entries.sort((a, b) => a.name.localeCompare(b.name));
+
+    for (const entry of entries) {
+      if (items.length >= BACKUP_MAX_ITEMS) {
+        return;
+      }
+      if (entry.name === ".DS_Store") {
+        continue;
+      }
+      const relativePath = relativeDir ? `${relativeDir}/${entry.name}` : entry.name;
+      const normalized = normalizeRelativePath(relativePath);
+      if (normalized === BACKUPS_DIR || normalized.startsWith(`${BACKUPS_DIR}/`) || normalized === "restored" || normalized.startsWith("restored/")) {
+        continue;
+      }
+      const absolutePath = path.join(currentDir, entry.name);
+      if (entry.isDirectory()) {
+        await walk(absolutePath, normalized);
+        continue;
+      }
+      if (!entry.isFile()) {
+        continue;
+      }
+      if (!includeWorkspaceFiles && !isManagedWorkspaceBackupPath(normalized)) {
+        continue;
+      }
+      try {
+        const stat = await fsp.stat(absolutePath);
+        if (stat.size > MAX_FILE_BYTES) {
+          continue;
+        }
+        const file = await readWorkspaceFile(normalized, MAX_FILE_BYTES);
+        if (file.content.includes("\u0000")) {
+          continue;
+        }
+        items.push({
+          area: "workspace",
+          path: file.path,
+          size: file.size,
+          modifiedAt: file.modifiedAt,
+          content: file.content,
+          checksum: hashContent(file.content)
+        });
+      } catch {
+        // Skip unreadable or unsafe workspace files.
+      }
+    }
+  }
+
+  await walk(WORKSPACE_ROOT, "");
+  return items;
+}
+
+function isManagedWorkspaceBackupPath(relativePath) {
+  const normalized = normalizeRelativePath(relativePath || "");
+  const prefixes = [
+    `${RECEIPTS_DIR}/`,
+    `${SESSIONS_DIR}/`,
+    `${REPORTS_DIR}/`,
+    "memory/",
+    `${EVALS_DIR}/`,
+    ".agenttrail/"
+  ];
+  return prefixes.some((prefix) => normalized === prefix.slice(0, -1) || normalized.startsWith(prefix));
+}
+
+function buildBackupManifest({ archiveId, createdAt, workspace, includeWorkspaceFiles, items, reason }) {
+  return {
+    schema: "agenttrail.backup-manifest.v1",
+    archiveVersion: BACKUP_ARCHIVE_VERSION,
+    archiveId,
+    createdAt,
+    reason,
+    appVersion: packageMeta.version,
+    sourceWorkspace: workspace,
+    includeWorkspaceFiles,
+    itemCount: items.length,
+    areas: countBackupAreas(items),
+    checksums: {
+      algorithm: "sha256",
+      itemCount: items.filter((item) => item.checksum).length
+    },
+    migration: buildWorkspaceMigrationSteps(workspace)
+  };
+}
+
+function countBackupAreas(items) {
+  return items.reduce((counts, item) => {
+    const area = item.area || "project";
+    counts[area] = (counts[area] || 0) + 1;
+    return counts;
+  }, {});
+}
+
+async function ensureWorkspaceProfile() {
+  let current = null;
+  try {
+    current = JSON.parse((await readWorkspaceFile(WORKSPACE_PROFILE_PATH, MAX_FILE_BYTES)).content);
+  } catch {
+    current = null;
+  }
+  const now = new Date().toISOString();
+  const id = current && typeof current.id === "string" && current.id.trim()
+    ? current.id.trim()
+    : workspaceIdForRoot(WORKSPACE_ROOT);
+  const profile = {
+    schema: "agenttrail.workspace-profile.v1",
+    id,
+    name: current && current.name ? String(current.name) : path.basename(WORKSPACE_ROOT) || "workspace",
+    workspaceRoot: WORKSPACE_ROOT,
+    dataRoot: ".agenttrail",
+    backupRoot: BACKUPS_DIR,
+    createdAt: current && current.createdAt ? String(current.createdAt) : now,
+    updatedAt: now,
+    isolation: {
+      workspaceScoped: true,
+      managedDataRoot: ".agenttrail",
+      profilePath: WORKSPACE_PROFILE_PATH,
+      schedulePath: BACKUP_SCHEDULE_PATH,
+      globalMemoryRoot: GLOBAL_MEMORY_ROOT
+    },
+    portablePaths: {
+      conversations: CONVERSATIONS_DIR,
+      receipts: RECEIPTS_DIR,
+      sessions: SESSIONS_DIR,
+      reports: REPORTS_DIR,
+      memory: "memory",
+      searchIndex: SEARCH_INDEX_PATH,
+      vectorStore: VECTOR_STORE_PATH,
+      searchCollections: SEARCH_COLLECTIONS_DIR,
+      backups: BACKUPS_DIR
+    }
+  };
+  const shouldWrite = !current
+    || current.schema !== profile.schema
+    || current.id !== profile.id
+    || current.workspaceRoot !== profile.workspaceRoot
+    || current.dataRoot !== profile.dataRoot;
+  if (shouldWrite) {
+    await writeWorkspaceFile(WORKSPACE_PROFILE_PATH, JSON.stringify(profile, null, 2));
+  }
+  return profile;
+}
+
+function workspaceIdForRoot(root) {
+  return `ws_${hashContent(path.resolve(root || WORKSPACE_ROOT)).slice(0, 16)}`;
+}
+
+async function workspacePortabilityStatus() {
+  const [workspace, schedule] = await Promise.all([
+    ensureWorkspaceProfile(),
+    readBackupSchedule()
+  ]);
+  return {
+    schema: "agenttrail.workspace-portability.v1",
+    workspace,
+    isolation: workspace.isolation,
+    backup: {
+      schedule,
+      exportEndpoint: "/api/backup/export",
+      importEndpoint: "/api/backup/import",
+      scheduleEndpoint: "/api/backup/schedule",
+      runScheduleEndpoint: "/api/backup/schedule/run",
+      managedPrefixes: [`${RECEIPTS_DIR}/`, `${SESSIONS_DIR}/`, `${REPORTS_DIR}/`, "memory/", `${EVALS_DIR}/`, ".agenttrail/"],
+      maxItemBytes: MAX_FILE_BYTES,
+      maxItems: BACKUP_MAX_ITEMS
+    },
+    migration: buildWorkspaceMigrationSteps(workspace)
+  };
+}
+
+async function workspaceMigrationPlan() {
+  const status = await workspacePortabilityStatus();
+  return {
+    schema: "agenttrail.workspace-migration-plan.v1",
+    workspaceId: status.workspace.id,
+    workspaceName: status.workspace.name,
+    sourceRoot: status.workspace.workspaceRoot,
+    archiveFormat: "agenttrail.backup.v1",
+    steps: status.migration.steps,
+    endpoints: {
+      export: "/api/backup/export",
+      import: "/api/backup/import",
+      verify: "/api/workspace/portability"
+    },
+    restoreModes: [
+      { mode: "restore", safeDefault: true, detail: "Restores everything under workspace/restored/<archive>/ for review." },
+      { mode: "in-place", safeDefault: false, detail: "Requires allowOverwrite=true and restoreManagedData=true for .agenttrail files." }
+    ]
+  };
+}
+
+function buildWorkspaceMigrationSteps(workspace) {
+  return {
+    canMigrateBetweenMachines: true,
+    steps: [
+      "POST /api/backup/export with includeWorkspaceFiles=false for AgentTrail data only, or true for a full workspace archive.",
+      `Copy workspace/${BACKUPS_DIR}/agenttrail-archive-*.json to the new machine.`,
+      "Start AgentTrail pointed at the destination workspace.",
+      "POST /api/backup/import with the archive content; review restored files under workspace/restored/<archive>/ before in-place overwrite.",
+      "GET /api/workspace/portability to verify the destination workspace id, schedule, and managed data paths."
+    ],
+    sourceWorkspaceId: workspace.id,
+    portableRoots: workspace.portablePaths
+  };
+}
+
+async function backupScheduleStatus(schedule) {
+  const resolved = schedule || await readBackupSchedule();
+  return {
+    schema: "agenttrail.backup-schedule-status.v1",
+    schedule: resolved,
+    due: backupScheduleDue(resolved),
+    destination: `${BACKUPS_DIR}/agenttrail-archive-*.json`
+  };
+}
+
+async function readBackupSchedule() {
+  try {
+    return normalizeBackupSchedule(JSON.parse((await readWorkspaceFile(BACKUP_SCHEDULE_PATH, MAX_FILE_BYTES)).content));
+  } catch {
+    return normalizeBackupSchedule({});
+  }
+}
+
+async function writeBackupSchedule(input = {}) {
+  const current = await readBackupSchedule();
+  const schedule = normalizeBackupSchedule({
+    ...current,
+    ...input,
+    updatedAt: new Date().toISOString()
+  });
+  await writeWorkspaceFile(BACKUP_SCHEDULE_PATH, JSON.stringify(schedule, null, 2));
+  return backupScheduleStatus(schedule);
+}
+
+function normalizeBackupSchedule(input = {}) {
+  const intervalHours = clampInt(input.intervalHours, 1, 24 * 30, 24);
+  const retentionCount = clampInt(input.retentionCount, 1, 90, 7);
+  const lastRunAt = validIsoDate(input.lastRunAt) ? new Date(input.lastRunAt).toISOString() : null;
+  const nextRunAt = validIsoDate(input.nextRunAt)
+    ? new Date(input.nextRunAt).toISOString()
+    : computeNextBackupRun(lastRunAt, intervalHours);
+  return {
+    schema: "agenttrail.backup-schedule.v1",
+    enabled: input.enabled === true,
+    intervalHours,
+    retentionCount,
+    includeWorkspaceFiles: input.includeWorkspaceFiles === true,
+    lastRunAt,
+    nextRunAt,
+    updatedAt: validIsoDate(input.updatedAt) ? new Date(input.updatedAt).toISOString() : new Date().toISOString()
+  };
+}
+
+function computeNextBackupRun(lastRunAt, intervalHours) {
+  const base = lastRunAt && validIsoDate(lastRunAt) ? Date.parse(lastRunAt) : Date.now();
+  return new Date(base + intervalHours * 60 * 60 * 1000).toISOString();
+}
+
+function validIsoDate(value) {
+  return typeof value === "string" && Number.isFinite(Date.parse(value));
+}
+
+function backupScheduleDue(schedule) {
+  return Boolean(schedule && schedule.enabled && (!schedule.nextRunAt || Date.parse(schedule.nextRunAt) <= Date.now()));
+}
+
+async function runScheduledBackup(options = {}) {
+  const schedule = await readBackupSchedule();
+  const force = options.force === true;
+  if (!schedule.enabled && !force) {
+    return { ok: true, ran: false, reason: "Scheduled backups are disabled.", schedule };
+  }
+  if (!force && !backupScheduleDue(schedule)) {
+    return { ok: true, ran: false, reason: "Scheduled backup is not due yet.", schedule };
+  }
+  const includeWorkspaceFiles = typeof options.includeWorkspaceFiles === "boolean"
+    ? options.includeWorkspaceFiles
+    : schedule.includeWorkspaceFiles;
+  const backup = await exportBackup({ includeWorkspaceFiles, scheduled: true, reason: "scheduled-backup" });
+  const now = new Date().toISOString();
+  const updated = normalizeBackupSchedule({
+    ...schedule,
+    lastRunAt: now,
+    nextRunAt: computeNextBackupRun(now, schedule.intervalHours),
+    updatedAt: now
+  });
+  await writeWorkspaceFile(BACKUP_SCHEDULE_PATH, JSON.stringify(updated, null, 2));
+  const pruned = await pruneBackups(updated.retentionCount);
+  return { ok: true, ran: true, backup, schedule: updated, pruned };
+}
+
+async function pruneBackups(retentionCount) {
+  const keep = clampInt(retentionCount, 1, 90, 7);
+  const backupRoot = resolveWorkspacePath(BACKUPS_DIR);
+  const entries = await fsp.readdir(backupRoot, { withFileTypes: true }).catch(() => []);
+  const archives = [];
+  for (const entry of entries) {
+    if (!entry.isFile() || !/^agenttrail-(archive|backup)-.*\.json$/.test(entry.name)) {
+      continue;
+    }
+    const absolutePath = path.join(backupRoot, entry.name);
+    const stat = await fsp.stat(absolutePath).catch(() => null);
+    if (stat) {
+      archives.push({
+        path: `${BACKUPS_DIR}/${entry.name}`,
+        absolutePath,
+        modifiedAt: stat.mtimeMs
+      });
+    }
+  }
+  archives.sort((a, b) => b.modifiedAt - a.modifiedAt);
+  const removed = [];
+  for (const archive of archives.slice(keep)) {
+    await fsp.unlink(archive.absolutePath).catch(() => {});
+    removed.push(archive.path);
+  }
+  return removed;
+}
+
+function safeBackupSegment(value) {
+  const cleaned = String(value || "archive")
+    .replace(/[^a-zA-Z0-9._-]+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^\.+/, "")
+    .slice(0, 120);
+  return cleaned || "archive";
 }
 
 async function handleListFiles(res) {

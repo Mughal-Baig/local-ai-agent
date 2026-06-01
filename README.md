@@ -49,6 +49,7 @@ Writes are off by default. The agent proposes a unified diff; you click **Apply*
 - **Receipt timeline, replay, and reports**: reopen a saved run, restore prompt/files/model/diffs, and export Markdown/HTML reports.
 - **Advanced agent layer**: local multi-agent plans, scheduled run manifests, resumable task journals, budget-isolated sub-agents, and deterministic replay diffs.
 - **Conversation portability**: save/list/search/open/delete/restore/import/branch conversations and export chats as Markdown, JSON, or HTML with secrets redacted.
+- **Workspace portability**: export chats, receipts, memory, indexes, recipes, profiles, plugins, and optional workspace files as one local archive, then restore or migrate it on another machine.
 - **Composer control loop**: edit and rerun prior prompts, regenerate answers, continue stopped generations, copy messages/code, use slash commands, and attach @mentioned files.
 - **Access-first polish**: warm/high-contrast themes, adjustable text size and density, keyboard shortcut chords, reduced motion, mobile layout polish, PWA install shell, and first i18n locale.
 - **Recipe-driven**: reusable local workflows live in plain JSON files anyone can add.
@@ -73,7 +74,7 @@ Popular local AI tools usually optimize for broad chat, model management, or aut
 | Observability | Structured logs, `/api/metrics`, per-run traces, token/time accounting, error taxonomy, and privacy-preserving local analytics |
 | Team/audit | Read-only shared receipts, local multi-user profiles, RBAC tool caps, audit export, opt-in local sync packs, and SSO header/domain hook |
 | Workflow system | Plain JSON recipes, role-based recipe packs, import/export UI, and marketplace manifest |
-| Foundation | Stable schemas, migrations, append-only store, permission engine, plugin manifests, backups, jobs, checksums, advanced-agent manifests |
+| Foundation | Stable schemas, migrations, append-only store, permission engine, plugin manifests, portable archives, scheduled backups, jobs, checksums, advanced-agent manifests |
 | Best use | Auditable local project agent for developers, founders, students, writers, security reviewers, and teams that need proof |
 
 ## 60-second Quick Start
@@ -155,8 +156,9 @@ Open `http://127.0.0.1:4173`, build the semantic index, ask for a change, review
 - Background jobs exposed at `/api/jobs`
 - Plugin manifests exposed at `/api/plugins`
 - Plugin sandbox execution exposed at `/api/plugins/run`
-- Backup export exposed at `/api/backup/export`
-- Backup import exposed at `/api/backup/import`
+- Workspace portability exposed at `/api/workspace/portability` and `/api/workspace/migration-plan`
+- Backup archive export/import exposed at `/api/backup/export` and `/api/backup/import`
+- Scheduled local backups exposed at `/api/backup/schedule` and `/api/backup/schedule/run`
 - Release checksums exposed at `/api/releases/checksums`
 - Release signing plan exposed at `/api/releases/signing-plan`, update checks at `/api/updates/check`, and native desktop notifications for long local runs/pulls
 - Supply-chain release docs: [docs/SUPPLY_CHAIN.md](docs/SUPPLY_CHAIN.md)
@@ -341,7 +343,7 @@ When write preview mode is enabled, `write_file` returns a diff preview instead 
 - Workspace safety and diff helpers: [src/workspace-safety.js](src/workspace-safety.js)
 - Quality engineering: [docs/QUALITY_ENGINEERING.md](docs/QUALITY_ENGINEERING.md), [docs/quality](docs/quality)
 - Release checksums: [docs/RELEASE_SIGNING.md](docs/RELEASE_SIGNING.md)
-- Backup export: `workspace/backups/`
+- Portable archives and scheduled backups: `workspace/backups/`, `workspace/.agenttrail/workspace-profile.json`, `workspace/.agenttrail/backup-schedule.json`
 - SQLite store: `workspace/.agenttrail/agenttrail.db`
 - Structured logs: `workspace/.agenttrail/logs.jsonl`
 - Run accounting and trace records: `workspace/.agenttrail/store.jsonl`

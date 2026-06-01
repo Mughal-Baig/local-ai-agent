@@ -3,7 +3,7 @@
   "dataLicense": "CC0-1.0",
   "SPDXID": "SPDXRef-DOCUMENT",
   "name": "AgentTrail 0.7.0",
-  "documentNamespace": "https://github.com/Mughal-Baig/local-ai-agent/sbom/v0.7.0/fbb376096121dcdc",
+  "documentNamespace": "https://github.com/Mughal-Baig/local-ai-agent/sbom/v0.7.0/b84d69866061ca2f",
   "creationInfo": {
     "created": "2026-05-31T00:00:00Z",
     "creators": [
@@ -23,11 +23,11 @@
       "checksums": [
         {
           "algorithm": "SHA256",
-          "checksumValue": "fbb376096121dcdcc1b05ca3b947953118fd14cf4fc4e4c272abe958a4efd097"
+          "checksumValue": "b84d69866061ca2f2941d424e3c946d39ca9c35ead722fc5032b6eb7ab6be360"
         }
       ],
       "packageVerificationCode": {
-        "packageVerificationCodeValue": "5c0363ad29d145ddb91f862e2c00005275091d4272ef9677f60886d550e89c47"
+        "packageVerificationCodeValue": "7ea4cbc85205ad89a5d8a87982722f7232df71dad832b4e730438d8e8ff9f03e"
       }
     }
   ],
@@ -98,7 +98,7 @@
       "checksums": [
         {
           "algorithm": "SHA256",
-          "checksumValue": "ef1e5a764b733e9cf116e8e1606ac69e9d9238cdef9ec6c5c98f7e99fd0bea36"
+          "checksumValue": "980cd33347965d06c74ff1b9577f96aa5b49986082941d2682193cab635fbcac"
         }
       ],
       "licenseConcluded": "NOASSERTION",
@@ -230,7 +230,7 @@
       "checksums": [
         {
           "algorithm": "SHA256",
-          "checksumValue": "42d2fedf8c5bf50451695244d900b60c92c46ecef021feb8f685a3f66b5096ef"
+          "checksumValue": "60b252aec3018be2da1916e6a95b4e88e4cc7b8ea872ae50b72b5dcd603a0db3"
         }
       ],
       "licenseConcluded": "NOASSERTION",
@@ -326,7 +326,7 @@
       "checksums": [
         {
           "algorithm": "SHA256",
-          "checksumValue": "742fbc5b6f42b003fed18b1900218d3f5d7734242cdb3b43c9c2c164e39d458e"
+          "checksumValue": "a6eb5cf3a8b485728ffa984bd07e9b62781c5de3a4b86fbfb6b13a3ede6204ff"
         }
       ],
       "licenseConcluded": "NOASSERTION",
@@ -434,7 +434,7 @@
       "checksums": [
         {
           "algorithm": "SHA256",
-          "checksumValue": "3b30b24dfb66345f39845783540333d8035dccf12eba0c3b263f7c84a97ef4ea"
+          "checksumValue": "23e3da45a5c175ef4197c3e06980ea798219918054f649c3b8d0acbc75e7d8b6"
         }
       ],
       "licenseConcluded": "NOASSERTION",
@@ -722,7 +722,7 @@
       "checksums": [
         {
           "algorithm": "SHA256",
-          "checksumValue": "17c7e8023bc9bf52bb4104522643ee113821bb9e1552ba048bed5f5f017a3f16"
+          "checksumValue": "0923172877ee95fba0844f62f657d0b2116256e1c6bd219200fc797b1badfd70"
         }
       ],
       "licenseConcluded": "NOASSERTION",
@@ -818,7 +818,7 @@
       "checksums": [
         {
           "algorithm": "SHA256",
-          "checksumValue": "d7a4ce980705f60f713366382d8bd9a32dd69d63859a909bce8b10449b1f47bf"
+          "checksumValue": "341e1043f83dffd6c5ea70a99b839058c91135400979d7812cb2b1510313d76a"
         }
       ],
       "licenseConcluded": "NOASSERTION",
@@ -1106,7 +1106,7 @@
       "checksums": [
         {
           "algorithm": "SHA256",
-          "checksumValue": "f6d283a14923e0656d58dfb1d3545ddd4610abb06840d216f1f792e9a9172483"
+          "checksumValue": "6cb533a67a19a74ab7af29f78a10a5f5286ff2eb256aa4ea70abed4ea16e9063"
         }
       ],
       "licenseConcluded": "NOASSERTION",
@@ -1394,7 +1394,7 @@
       "checksums": [
         {
           "algorithm": "SHA256",
-          "checksumValue": "894d2fb89fa6a0dd9aa6c3957f8711e007cc530f2c3793fa37a6861c8db1511f"
+          "checksumValue": "6a462691010e3da6addfd4c51c1dd596c18e83cbda00ddaad94b106d5f7528e0"
         }
       ],
       "licenseConcluded": "NOASSERTION",
@@ -1550,7 +1550,7 @@
       "checksums": [
         {
           "algorithm": "SHA256",
-          "checksumValue": "a018f1dd30b49d61951e8268bd813808a187f781815798daca3689212dae24df"
+          "checksumValue": "97a938ae2bc1d96f9df638b3a2ca9e450e83bf1a0feb51cf1125509d1f48faa7"
         }
       ],
       "licenseConcluded": "NOASSERTION",
@@ -2030,7 +2030,7 @@
       "checksums": [
         {
           "algorithm": "SHA256",
-          "checksumValue": "8923b086b519968ebf12bd857665eee3fdb45f299d80d7844f0ae69affffc4c6"
+          "checksumValue": "e97550175e5c4be038c1d8e4c3bea4b69a89e47ba9dcdf1b248945f74fb77e93"
         }
       ],
       "licenseConcluded": "NOASSERTION",
@@ -2270,7 +2270,7 @@
       "checksums": [
         {
           "algorithm": "SHA256",
-          "checksumValue": "7d70fe4ab83b6378305f4880b32dd615d22b25e14623431a8f9de43c88833465"
+          "checksumValue": "7d2eac379b6843419d3fc244cbc4b6091998930c9072be00eca8ec3f87136d67"
         }
       ],
       "licenseConcluded": "NOASSERTION",
@@ -2426,7 +2426,7 @@
       "checksums": [
         {
           "algorithm": "SHA256",
-          "checksumValue": "f595b77e0e9cdcc41977e19069470a288b0352036cd8ee5c3f972eba65b7ba65"
+          "checksumValue": "e0d3ab65b7d9d61954a6d6420f2a257060889a8bc4e1e87bcceee02d386ffdeb"
         }
       ],
       "licenseConcluded": "NOASSERTION",
@@ -2618,7 +2618,7 @@
       "checksums": [
         {
           "algorithm": "SHA256",
-          "checksumValue": "58f7e85a17da773dd27aaaa230aa3611f60a22b13e4b6f318e195ea83ce0a755"
+          "checksumValue": "65612f63969ef40d5f68362c630ccbcac768f1599d254e89a82235568080a675"
         }
       ],
       "licenseConcluded": "NOASSERTION",
@@ -2654,7 +2654,7 @@
       "checksums": [
         {
           "algorithm": "SHA256",
-          "checksumValue": "bf8d00874c52b0aafd58b080a2efe9b5f60b3210a1eb3ed0c3ea529543192f00"
+          "checksumValue": "08f32290c974c5e284d98e6d7ec9d435f752567087a45056e4f6a36a80e174e8"
         }
       ],
       "licenseConcluded": "NOASSERTION",
@@ -3111,6 +3111,18 @@
         {
           "algorithm": "SHA256",
           "checksumValue": "4005002326dc149aa8db9290a8cccfb4fd729d82d9c22787bd8d23a9c6aacea8"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
+      "fileName": "./tests/integration/portability.test.js",
+      "SPDXID": "SPDXRef-File-tests-integration-portability.test.js",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "37dbb37b5087664be132b6008b3f1b61327b2e1da3f5a19f97011b813a70dfcb"
         }
       ],
       "licenseConcluded": "NOASSERTION",
@@ -4815,6 +4827,11 @@
       "spdxElementId": "SPDXRef-Package-AgentTrail",
       "relationshipType": "CONTAINS",
       "relatedSpdxElement": "SPDXRef-File-tests-integration-openai-compatible-server.test.js"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-tests-integration-portability.test.js"
     },
     {
       "spdxElementId": "SPDXRef-Package-AgentTrail",

@@ -24,14 +24,15 @@
   async function refreshFoundation() {
     els.summary.innerHTML = `<div class="empty-state compact">Checking foundation...</div>`;
     try {
-      const [foundation, schemas, permissions, plugins, store, migrations, jobs] = await Promise.all([
+      const [foundation, schemas, permissions, plugins, store, migrations, jobs, portability] = await Promise.all([
         getJson("/api/foundation"),
         getJson("/api/schemas"),
         getJson("/api/permissions"),
         getJson("/api/plugins"),
         getJson("/api/store/stats"),
         getJson("/api/migrations"),
-        getJson("/api/jobs")
+        getJson("/api/jobs"),
+        getJson("/api/workspace/portability")
       ]);
       els.summary.innerHTML = `
         <div class="eval-score">${Number(foundation.score || 0)}/100</div>
@@ -43,7 +44,9 @@
         [`Plugins`, `${plugins.plugins.length} installed`],
         [`Store`, `${store.count} event(s)`],
         [`Migrations`, `${migrations.pending.length} pending`],
-        [`Jobs`, `${jobs.jobs.length} run(s)`]
+        [`Jobs`, `${jobs.jobs.length} run(s)`],
+        [`Workspace`, `${portability.workspace.id} isolated`],
+        [`Backups`, portability.backup.schedule.enabled ? `Every ${portability.backup.schedule.intervalHours}h · keep ${portability.backup.schedule.retentionCount}` : "Manual archive mode"]
       ];
       els.details.innerHTML = rows
         .map((row) => `<div class="mini-row"><strong>${escapeHtml(row[0])}</strong><span>${escapeHtml(row[1])}</span></div>`)
@@ -62,7 +65,7 @@
   async function exportBackup() {
     els.details.innerHTML = `<div class="mini-row muted">Exporting local backup...</div>`;
     const result = await postJson("/api/backup/export", { includeWorkspaceFiles: false });
-    els.details.innerHTML = `<div class="mini-row"><strong>Backup exported</strong><span>${escapeHtml(result.path)} · ${Number(result.itemCount || 0)} item(s)</span></div>`;
+    els.details.innerHTML = `<div class="mini-row"><strong>Archive exported</strong><span>${escapeHtml(result.path)} · ${Number(result.itemCount || 0)} item(s)</span></div>`;
   }
 
   async function runMigrations() {

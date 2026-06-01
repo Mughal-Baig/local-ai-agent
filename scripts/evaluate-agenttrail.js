@@ -26,6 +26,7 @@ async function main() {
   checks.push(await check("Migration system exists", async () => includes("src/migrations.js", ["MIGRATIONS", "runMigrations"])));
   checks.push(await check("Plugin architecture exists", async () => includes("plugins/example-tool/plugin.json", ["agenttrail.plugin.v1", "permissions"])));
   checks.push(await check("Backup endpoint exists", async () => includes("server.js", ["/api/backup/export", "exportBackup"])));
+  checks.push(await check("Epic AH portability exists", async () => includes("server.js", ["/api/workspace/portability", "/api/workspace/migration-plan", "/api/backup/schedule", "agenttrail.backup-schedule.v1", "workspace-profile.json", "collectWorkspaceBackupItems"]) && includes("src/schemas.js", ["agenttrail.workspace-profile.v1", "agenttrail.backup-schedule.v1"]) && includes("src/route-catalog.js", ["/api/workspace/portability", "/api/backup/schedule/run"]) && includes("tests/integration/portability.test.js", ["Portability integration test passed", ".agenttrail/conversations"])));
   checks.push(await check("Background jobs endpoint exists", async () => includes("server.js", ["/api/jobs/start", "JobManager"])));
   checks.push(await check("Dockerfile exists", async () => includes("Dockerfile", ["node", "server.js"])));
   checks.push(await check("Docker compose exists", async () => includes("docker-compose.yml", ["agenttrail", "OLLAMA_HOST"])));
@@ -262,7 +263,7 @@ function categoryFor(name) {
   if (/desktop|supply|docker|homebrew|npm|release|checksum|signing|sbom|cli|vscode|distribution/.test(text)) return "distribution";
   if (/tool|mcp|planner|structured|guardrail|reflection|memory|recipe|replay|run/.test(text)) return "agent";
   if (/demo|readme|report|frontend|ui|attachment|image|audio|vision|document|pdf|office|html/.test(text)) return "ux-proof";
-  if (/foundation|schema|migration|plugin|backup|sqlite|config|watcher|logging/.test(text)) return "foundation";
+  if (/foundation|schema|migration|portability|archive|workspace isolation|plugin|backup|sqlite|config|watcher|logging/.test(text)) return "foundation";
   return "foundation";
 }
 

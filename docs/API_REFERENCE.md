@@ -32,7 +32,7 @@ AgentTrail exposes two API layers: local app endpoints under `/api/*` and an Ope
 | foundation | src/foundation.js | `/api/foundation`<br>`/api/schemas`<br>`/api/migrations` |
 | plugins | src/plugin-loader.js + src/plugin-sandbox.js | `/api/plugins`<br>`/api/plugins/run` |
 | jobs | src/jobs.js | `/api/jobs`<br>`/api/jobs/start` |
-| backup | server.js | `/api/backup/export`<br>`/api/backup/import` |
+| backup | server.js | `/api/workspace/portability`<br>`/api/workspace/migration-plan`<br>`/api/backup/export`<br>`/api/backup/import`<br>`/api/backup/schedule`<br>`/api/backup/schedule/run` |
 
 ## OpenAI-Compatible Routes
 

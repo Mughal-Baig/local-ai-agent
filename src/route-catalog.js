@@ -25,7 +25,7 @@ const ROUTE_CATALOG = [
   { area: "foundation", module: "src/foundation.js", routes: ["/api/foundation", "/api/schemas", "/api/migrations"] },
   { area: "plugins", module: "src/plugin-loader.js + src/plugin-sandbox.js", routes: ["/api/plugins", "/api/plugins/run"] },
   { area: "jobs", module: "src/jobs.js", routes: ["/api/jobs", "/api/jobs/start"] },
-  { area: "backup", module: "server.js", routes: ["/api/backup/export", "/api/backup/import"] }
+  { area: "backup", module: "server.js", routes: ["/api/workspace/portability", "/api/workspace/migration-plan", "/api/backup/export", "/api/backup/import", "/api/backup/schedule", "/api/backup/schedule/run"] }
 ];
 
 function routeCatalog() {

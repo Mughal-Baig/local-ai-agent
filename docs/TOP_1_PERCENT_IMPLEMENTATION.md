@@ -17,6 +17,7 @@ This table maps the requested 30-item top-1% and foundation list to the v0.7 imp
 | Diff-safe file writing | permission engine, preview-first writes, Diff Review center, explicit Apply buttons |
 | Replayable receipts | `/api/sessions`, `/api/sessions/content`, `/api/replay/plan`, `/api/receipts/resume`, `/api/runs/pending/from-receipt`, saved model/prompt/files/diffs/trail |
 | Conversation portability | `/api/conversations`, `/api/conversations/get`, `/api/conversations/delete`, `/api/conversations/restore`, `/api/conversations/import`, `/api/conversations/branch`, `/api/conversations/export`, persistent sidebar history, rename/pin/search, folder/tag metadata, undo delete, branch-from-message, redacted Markdown/JSON/HTML chat export, and persisted light/dark/system theme toggle |
+| Workspace portability | `/api/workspace/portability`, `/api/workspace/migration-plan`, archive manifests, checksums, workspace identity, managed `.agenttrail` data export, safe restore folders, optional full-workspace export, and scheduled local backups with retention |
 | Composer editing depth | Edit-and-rerun from prior user messages, regenerate assistant responses, continue stopped generations, copy message/code buttons, syntax-highlighted Markdown code blocks, `/recipe` `/file` `/model` slash palette, @file context mentions, chat drag/drop attachments, and pasted file/image intake |
 | Look, feel, and access | Warm and high-contrast themes, adjustable text size and density, keyboard shortcut chords, ARIA log/status/listbox labels, visible focus states, reduced-motion support, responsive mobile drawer/composer polish, PWA install manifest, offline app shell, and first i18n scaffold |
 | Trust Score | browser Trust Score dashboard plus `/api/foundation` score |
@@ -60,7 +61,7 @@ This table maps the requested 30-item top-1% and foundation list to the v0.7 imp
 | Better error handling | `src/features/errors.js` adds a structured taxonomy with actionable hints for Ollama, embeddings, large files, permissions, path escapes, egress blocks, encryption, rate limits, and timeouts |
 | Signed-release path | `npm run release:checksums`, `/api/releases/checksums`, `/api/releases/signing-plan`, [docs/RELEASE_SIGNING.md](RELEASE_SIGNING.md), release artifact workflow |
 | Plugin architecture | `plugins/`, `/api/plugins`, `/api/plugins/run`, example plugin manifests, [docs/PLUGIN_SDK.md](PLUGIN_SDK.md), VM sandbox |
-| Import/export backup | `/api/backup/export`, `/api/backup/import`, `workspace/backups/agenttrail-backup-*.json` |
+| Import/export backup | `/api/backup/export`, `/api/backup/import`, `/api/backup/schedule`, `/api/backup/schedule/run`, `workspace/backups/agenttrail-archive-*.json` |
 | Frontend structure | `public/modules/foundation.js` and `public/modules/product.js` own panels outside `app.js` |
 | Structured logging | `src/logger.js`, `workspace/.agenttrail/logs.jsonl`, `/api/logs` |
 | Observability metrics | `src/observability.js`, Prometheus-style `/api/metrics`, trace records in `workspace/.agenttrail/store.jsonl`, and aggregate local analytics without prompt text |
