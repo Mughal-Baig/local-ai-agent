@@ -27,7 +27,7 @@
         }
       ],
       "packageVerificationCode": {
-        "packageVerificationCodeValue": "e5edbf8ec751129fda8fc12300667454b08aa1d313ad3ca74eb1eb2ace53c499"
+        "packageVerificationCodeValue": "d9a7b9122db90375875d9390a1e56f5c66b3e8d28abcac4b12dddf2a71171817"
       }
     }
   ],
@@ -2930,7 +2930,7 @@
       "checksums": [
         {
           "algorithm": "SHA256",
-          "checksumValue": "2526a023542a1f0996894cedc77e860b789fd0eb33e0ccb5b0e8feaced22385f"
+          "checksumValue": "4ff8b1ce8dbded420feb85caa621f6192156de3dd6154bf8295aa26e93962741"
         }
       ],
       "licenseConcluded": "NOASSERTION",

@@ -11,6 +11,7 @@ const path = require("node:path");
 const projectRoot = path.resolve(__dirname, "../..");
 const port = 6500 + Math.floor(Math.random() * 250);
 let output = "";
+let childExit = null;
 
 main().catch((error) => {
   console.error(error);
@@ -31,6 +32,9 @@ async function main() {
   });
   child.stdout.on("data", (chunk) => { output += chunk; });
   child.stderr.on("data", (chunk) => { output += chunk; });
+  child.once("exit", (code, signal) => {
+    childExit = { code, signal };
+  });
 
   try {
     await waitForServer();
@@ -82,14 +86,18 @@ async function main() {
 }
 
 async function waitForServer() {
-  for (let i = 0; i < 80; i += 1) {
+  const deadline = Date.now() + 20000;
+  while (Date.now() < deadline) {
+    if (childExit) {
+      throw new Error(`Server exited before startup: ${JSON.stringify(childExit)}\n${output}`);
+    }
     try {
       const response = await fetch(`http://127.0.0.1:${port}/api/health`);
       if (response.ok) return;
     } catch {
       // keep waiting
     }
-    await new Promise((resolve) => setTimeout(resolve, 100));
+    await new Promise((resolve) => setTimeout(resolve, 150));
   }
   throw new Error(`Server did not start.\n${output}`);
 }
