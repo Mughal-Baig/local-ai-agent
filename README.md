@@ -34,7 +34,7 @@ Writes are off by default. The agent proposes a unified diff; you click **Apply*
 - UI preview: [`docs/preview-app.png`](docs/preview-app.png)
 - Diff preview: [`docs/preview-diff.png`](docs/preview-diff.png)
 - Social preview upload asset: [`docs/social-preview.png`](docs/social-preview.png)
-- Public demo page: [`docs/public-demo.html`](docs/public-demo.html)
+- Public demo page: [`docs/public-demo.html`](docs/public-demo.html), deployed at [mughal-baig.github.io/local-ai-agent/public-demo.html](https://mughal-baig.github.io/local-ai-agent/public-demo.html)
 - Roadmap to top 1% local-agent polish: [`docs/LOCAL_AGENT_LAYER_ROADMAP.md`](docs/LOCAL_AGENT_LAYER_ROADMAP.md)
 
 ## Why Star This
@@ -395,6 +395,8 @@ Supported variables:
 - `AGENTTRAIL_MODEL_REGISTRY_DIR`, `AGENTTRAIL_REGISTRY_TOKEN`, `HUGGINGFACE_TOKEN`: bundled model registry location and optional registry auth for resumable/checksummed GGUF pulls
 - `AGENTTRAIL_TRAINER_COMMAND`, `AGENTTRAIL_QUANTIZE_COMMAND`, `AGENTTRAIL_CONVERT_COMMAND`: explicit no-shell delegate commands for fine-tuning, quantization, and safetensors-to-GGUF conversion
 - `AGENTTRAIL_BACKEND_RETRIES` / `AGENTTRAIL_BACKEND_RETRY_BASE_MS`: transient backend retry count and backoff seed, default `2` / `120`
+- `AGENTTRAIL_RUN_TIMEOUT_MS`: max wall-clock time for a chat run before AgentTrail emits a structured `timeout` event, default `120000`
+- `AGENTTRAIL_BACKEND_STREAM_TIMEOUT_MS`: max backend stream wait before AgentTrail classifies the backend call as `TIMEOUT`, default `120000`
 - `AGENTTRAIL_MIN_FREE_BYTES` / `AGENTTRAIL_MODEL_PULL_MIN_FREE_BYTES`: disk-space guard thresholds for local writes and model pulls, default `64MB` / `512MB`
 - `AGENTTRAIL_MAX_CONCURRENCY` / `AGENTTRAIL_MAX_QUEUE`: bounded `/api/chat` concurrency and backpressure controls, default `4` / `64`
 - `AGENTTRAIL_CACHE`: set to `off` to disable the in-memory response cache (default on); `AGENTTRAIL_CACHE_TTL_MS` tunes the TTL
@@ -510,25 +512,13 @@ The v0.7 implementation map is in [docs/TOP_1_PERCENT_IMPLEMENTATION.md](docs/TO
 
 Small, focused contributions are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md), [GOVERNANCE.md](GOVERNANCE.md), and [CHANGELOG.md](CHANGELOG.md).
 
-## Upload To GitHub
+## GitHub Repository Status
 
-If GitHub CLI is installed and authenticated:
-
-```bash
-git add .
-git commit -m "Create local AI agent"
-gh repo create local-ai-agent --private --source=. --remote=origin --push
-```
-
-Use `--public` instead of `--private` if you want the repository to be visible to everyone.
-
-If you already created a GitHub repo:
-
-```bash
-git remote add origin https://github.com/YOUR_USERNAME/local-ai-agent.git
-git branch -M main
-git push -u origin main
-```
+- Public repo: [github.com/Mughal-Baig/local-ai-agent](https://github.com/Mughal-Baig/local-ai-agent)
+- About homepage: [public recipe/safety/receipt demo](https://mughal-baig.github.io/local-ai-agent/public-demo.html)
+- Core topics include: `local-ai`, `local-first`, `ollama`, `local-llm`, `ai-agent`, `ai-agents`, `coding-agent`, `mcp`, `semantic-search`, `diff-preview`, `diff-safe`, `audit-trail`, `privacy`, `self-hosted`, `openai-compatible`
+- Community sections: Issues, Discussions, Projects, templates, MIT license, security policy, contribution guide, roadmap, and good-first-issue backlog are present.
+- Visual proof assets: hero GIF, app screenshot, diff screenshot, social preview image, public demo page, and docs site are checked into the repo and referenced above.
 
 ## Notes
 

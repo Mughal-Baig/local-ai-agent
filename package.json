@@ -1,13 +1,13 @@
 {
   "name": "agenttrail",
   "version": "0.7.0",
-  "description": "AgentTrail: an auditable local AI agent layer for Ollama and local models, with search, diff-safe edits, receipts, replay, memory, MCP, and reports.",
+  "description": "AgentTrail is a local-first AI agent layer for Ollama and local models that shows its work: semantic search, diff-safe edits, receipts, replay, memory, MCP, reports, and trust controls.",
   "main": "server.js",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/Mughal-Baig/local-ai-agent.git"
   },
-  "homepage": "https://github.com/Mughal-Baig/local-ai-agent#readme",
+  "homepage": "https://mughal-baig.github.io/local-ai-agent/public-demo.html",
   "bugs": {
     "url": "https://github.com/Mughal-Baig/local-ai-agent/issues"
   },

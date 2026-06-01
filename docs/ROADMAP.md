@@ -9,16 +9,16 @@
 - Add public safety proof: prompt-injection demo fixtures, network-path audit, redaction checks, and threat-model page.
 - Publish an honest comparison page against OpenHands, Cline, AnythingLLM, Open Interpreter, Aider, and Continue.
 - Add true local embedding backends behind optional dependencies.
-- Add a recorded GIF/video in addition to the animated SVG proof.
+- Record a short narrated video in addition to the existing GIF, screenshots, and static demo proof.
 - Add real signed native desktop binaries after certificate setup.
 - Turn the community launch kit into real public posts, pinned discussions, and curated user showcases.
 - Validate model ecosystem delegates against real LLaMA-Factory/Axolotl/llama.cpp toolchains on a hardware box.
 
 ## Current Standing Snapshot
 
-- Brutal current product score: **62/100** against the best local/self-hosted agent projects.
-- Strong wedge: auditable local-agent layer with receipts, diff-safe writes, searchable evidence, redaction, replay/export, and local privacy.
-- Main gap: public adoption and instant proof. The next roadmap push is about accessibility polish, install friction, first-run success, real demos, safety proof, and shareable comparison evidence.
+- Verified repo eval score: **100/100** local checks after the T251 timeout/cancellation pass.
+- Strong wedge: auditable local-agent layer with receipts, diff-safe writes, searchable evidence, redaction, replay/export, local privacy, run-control events, and visible config/admin controls.
+- Honest public-market standing: strong technical foundation, but not yet top-1% public adoption until one-command distribution, signed releases, independent demos, and comparison evidence are proven in public.
 
 ## Later
 
