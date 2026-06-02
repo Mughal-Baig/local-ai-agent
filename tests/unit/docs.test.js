@@ -21,6 +21,7 @@ async function main() {
   const backends = await read("docs/BACKEND_SETUP.md");
   const modelEcosystem = await read("docs/MODEL_ECOSYSTEM.md");
   const advancedAgent = await read("docs/ADVANCED_AGENT.md");
+  const accountingRouting = await read("docs/ACCOUNTING_ROUTING.md");
   const architecture = await read("docs/ARCHITECTURE.md");
   const troubleshooting = await read("docs/TROUBLESHOOTING.md");
   const videos = await read("docs/VIDEO_WALKTHROUGHS.md");
@@ -44,6 +45,8 @@ async function main() {
   assert.match(apiReference, /\/api\/team\/status/);
   assert.match(apiReference, /\/api\/model-ecosystem\/evaluate/);
   assert.match(apiReference, /\/api\/advanced-agent\/replay-diff/);
+  assert.match(apiReference, /\/api\/accounting\/usage/);
+  assert.match(apiReference, /\/api\/accounting\/routing/);
   assert.match(apiReference, /\/api\/conversations\/export/);
   assert.match(apiReference, /\/api\/redact/);
   assert.match(apiReference, /\/v1\/chat\/completions/);
@@ -61,6 +64,9 @@ async function main() {
   assert.match(advancedAgent, /Multi-Agent Orchestration/);
   assert.match(advancedAgent, /Deterministic replay diffing/);
   assert.equal(searchIndex.docs.some((doc) => doc.file === "ADVANCED_AGENT.md"), true);
+  assert.match(accountingRouting, /Budget profiles/);
+  assert.match(accountingRouting, /Automatic/);
+  assert.equal(searchIndex.docs.some((doc) => doc.file === "ACCOUNTING_ROUTING.md"), true);
   assert.match(architecture, /System Map/);
   assert.match(architecture, /workspace-safety/);
   assert.match(troubleshooting, /FAQ/);

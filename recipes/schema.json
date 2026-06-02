@@ -36,6 +36,11 @@
       "type": "string",
       "pattern": "^[a-z0-9_-]+$"
     },
+    "defaultModel": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 120
+    },
     "outputTitle": {
       "type": "string",
       "maxLength": 80

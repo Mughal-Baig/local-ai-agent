@@ -18,8 +18,10 @@ AgentTrail exposes two API layers: local app endpoints under `/api/*` and an Ope
 | conversations | server.js | `/api/conversations`<br>`/api/conversations/get`<br>`/api/conversations/delete`<br>`/api/conversations/restore`<br>`/api/conversations/import`<br>`/api/conversations/branch`<br>`/api/conversations/export` |
 | sessions | server.js | `/api/sessions`<br>`/api/replay/plan`<br>`/api/runs/pending`<br>`/api/runs/pending/from-receipt`<br>`/api/receipts/resume` |
 | planner | server.js + src/structured-output.js | `/api/agent/plan`<br>`/api/chat` |
+| automation | server.js | `/api/webhooks/run` |
 | tools | src/permissions.js + src/tool-schemas.js | `/api/permissions`<br>`/api/tools/schemas`<br>`/api/tools/capability`<br>`/api/mcp` |
 | models | server.js | `/api/models`<br>`/api/models/pull`<br>`/api/models/delete`<br>`/api/models/vision-capability` |
+| accounting-routing | server.js + src/accounting-routing.js | `/api/accounting/usage`<br>`/api/accounting/routing` |
 | eval-quality | server.js + src/eval-quality.js | `/api/evals/agent-quality`<br>`/api/evals/agent-quality/history`<br>`/api/evals/agent-quality/compare`<br>`/api/benchmarks/models` |
 | model-registry | server.js + src/model-registry.js | `/api/model-registry`<br>`/api/model-registry/show`<br>`/api/model-registry/pull`<br>`/api/model-registry/import`<br>`/api/model-registry/create`<br>`/api/model-registry/cp`<br>`/api/model-registry/share` |
 | model-ecosystem | server.js + src/model-ecosystem.js | `/api/model-ecosystem`<br>`/api/model-ecosystem/adapters`<br>`/api/model-ecosystem/fine-tune`<br>`/api/model-ecosystem/quantize`<br>`/api/model-ecosystem/convert`<br>`/api/model-ecosystem/evaluate` |

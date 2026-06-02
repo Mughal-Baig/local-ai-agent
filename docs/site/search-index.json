@@ -249,6 +249,39 @@
       ]
     },
     {
+      "file": "ACCOUNTING_ROUTING.md",
+      "title": "Accounting and routing",
+      "description": "Local token/time accounting, budget caps, automatic model routing, and draft-then-verify flows.",
+      "tags": [
+        "usage",
+        "budget",
+        "routing"
+      ],
+      "href": "../ACCOUNTING_ROUTING.md",
+      "sections": [
+        {
+          "title": "What It Tracks",
+          "anchor": "what-it-tracks",
+          "snippet": "Per-chat input tokens, output tokens, total tokens, duration, time-to-first-token, tokens/sec, model, task type, recipe, selected file count, and tool count. Usage dashboard totals grouped by model, recipe, task type,..."
+        },
+        {
+          "title": "API",
+          "anchor": "api",
+          "snippet": "`GET /api/accounting/usage` returns `agenttrail.usage-dashboard.v1`. `GET /api/accounting/routing?prompt=...&model=__auto__` previews a route. `POST /api/accounting/routing` previews a route from messages, selected fi..."
+        },
+        {
+          "title": "Budget profiles",
+          "anchor": "budget-profiles",
+          "snippet": "`tight`: small local runs with strict hard stops. `standard`: default balanced limits. `deep`: larger context and longer local runs. Environment overrides are supported through `AGENTTRAIL_INPUT_SOFT_TOKENS`, `AGENTTR..."
+        },
+        {
+          "title": "Routing modes",
+          "anchor": "routing-modes",
+          "snippet": "`Auto`: choose the installed model that best matches code, chat, planning, security, vision, or long-context work. `Manual`: use the selected model. `Verify`: draft with the cheapest installed model and verify with th..."
+        }
+      ]
+    },
+    {
       "file": "ARCHITECTURE.md",
       "title": "Architecture",
       "description": "How the local agent layer, tools, memory, receipts, and security fit together.",
@@ -755,7 +788,7 @@
         {
           "title": "Commands",
           "anchor": "commands",
-          "snippet": "npm run test:quality npm run coverage npm run bench:quality npm run eval:agent npm run bench:models npm run test:eval-quality npm run test:ui npm run eval"
+          "snippet": "npm run test:quality npm run coverage npm run bench:quality npm run eval:agent npm run bench:models npm run test:eval-quality npm run test:accounting-routing npm run test:ui npm run eval"
         },
         {
           "title": "Coverage gate",
@@ -781,6 +814,11 @@
           "title": "Agent eval quality",
           "anchor": "agent-eval-quality",
           "snippet": "`npm run eval:agent` runs the Epic AL golden task harness for agent behavior: citation faithfulness, unsupported-claim detection, correct tool selection/arguments, and regression gating with trend history in `docs/qua..."
+        },
+        {
+          "title": "Accounting and routing",
+          "anchor": "accounting-and-routing",
+          "snippet": "`npm run test:accounting-routing` covers the Epic AM usage layer: token/time accounting records, aggregate usage dashboards, soft/hard budget caps, automatic task-based model routing, speculative draft-then-verify rou..."
         },
         {
           "title": "Cross-platform matrix",
@@ -1475,6 +1513,66 @@
     },
     {
       "type": "doc",
+      "title": "Accounting and routing",
+      "description": "Local token/time accounting, budget caps, automatic model routing, and draft-then-verify flows.",
+      "href": "../ACCOUNTING_ROUTING.md",
+      "tags": [
+        "usage",
+        "budget",
+        "routing"
+      ],
+      "text": "Accounting and routing Epic AM adds a local cost/usage and smart-routing layer. It does not send usage analytics anywhere; records stay in the workspace JSONL store. What It Tracks - Per-chat input tokens, output tokens, total tokens, duration, time-to-first-token, tokens/sec, model, task type, recipe, selected file count, and tool count. - Usage dashboard totals grouped by model, recipe, task type, and day. - Budget checks for input, output, and run duration. - Routing decisions for manual, automatic, recipe-default, and speculative draft-then-verify runs. API - GET /api/accounting/usage returns agenttrail.usage-dashboard.v1 . - GET /api/accounting/routing?prompt=...&model=__auto__ previews a route. - POST /api/accounting/routing previews a route from messages, selected files, recipe, budget, and routing options. - /api/chat emits routing , budget , verification , and accounting SSE events. Budget profiles - tight : small local runs with strict hard stops. - standard : default balanced limits. - deep : larger context and longer local runs. Environment overrides are supported through AGENTTRAIL_INPUT_SOFT_TOKENS , AGENTTRAIL_INPUT_HARD_TOKENS , AGENTTRAIL_OUTPUT_SOFT_TOKENS , AGENTTRAIL_OUTPUT_HARD_TOKENS , AGENTTRAIL_DURATION_SOFT_MS , and AGENTTRAIL_DURATION_HARD_MS . Routing modes - Auto : choose the installed model that best matches code, chat, planning, security, vision, or long-context work. - Manual : use the selected model. - Verify : draft with the cheapest installed model and verify with the strongest model for the task. Automatic routing is local and explainable: the route preview returns the task type, candidate models, selected strategy, and why the model was chosen. Recipes can declare defaultModel ; AgentTrail uses it only when that model is installed."
+    },
+    {
+      "type": "section",
+      "title": "Accounting and routing - What It Tracks",
+      "description": "Per-chat input tokens, output tokens, total tokens, duration, time-to-first-token, tokens/sec, model, task type, recipe, selected file count, and tool count. Usage dashboard totals grouped by model, recipe, task type,...",
+      "href": "../ACCOUNTING_ROUTING.md#what-it-tracks",
+      "tags": [
+        "usage",
+        "budget",
+        "routing"
+      ],
+      "text": "What It Tracks Per-chat input tokens, output tokens, total tokens, duration, time-to-first-token, tokens/sec, model, task type, recipe, selected file count, and tool count. Usage dashboard totals grouped by model, recipe, task type,..."
+    },
+    {
+      "type": "section",
+      "title": "Accounting and routing - API",
+      "description": "`GET /api/accounting/usage` returns `agenttrail.usage-dashboard.v1`. `GET /api/accounting/routing?prompt=...&model=__auto__` previews a route. `POST /api/accounting/routing` previews a route from messages, selected fi...",
+      "href": "../ACCOUNTING_ROUTING.md#api",
+      "tags": [
+        "usage",
+        "budget",
+        "routing"
+      ],
+      "text": "API `GET /api/accounting/usage` returns `agenttrail.usage-dashboard.v1`. `GET /api/accounting/routing?prompt=...&model=__auto__` previews a route. `POST /api/accounting/routing` previews a route from messages, selected fi..."
+    },
+    {
+      "type": "section",
+      "title": "Accounting and routing - Budget profiles",
+      "description": "`tight`: small local runs with strict hard stops. `standard`: default balanced limits. `deep`: larger context and longer local runs. Environment overrides are supported through `AGENTTRAIL_INPUT_SOFT_TOKENS`, `AGENTTR...",
+      "href": "../ACCOUNTING_ROUTING.md#budget-profiles",
+      "tags": [
+        "usage",
+        "budget",
+        "routing"
+      ],
+      "text": "Budget profiles `tight`: small local runs with strict hard stops. `standard`: default balanced limits. `deep`: larger context and longer local runs. Environment overrides are supported through `AGENTTRAIL_INPUT_SOFT_TOKENS`, `AGENTTR..."
+    },
+    {
+      "type": "section",
+      "title": "Accounting and routing - Routing modes",
+      "description": "`Auto`: choose the installed model that best matches code, chat, planning, security, vision, or long-context work. `Manual`: use the selected model. `Verify`: draft with the cheapest installed model and verify with th...",
+      "href": "../ACCOUNTING_ROUTING.md#routing-modes",
+      "tags": [
+        "usage",
+        "budget",
+        "routing"
+      ],
+      "text": "Routing modes `Auto`: choose the installed model that best matches code, chat, planning, security, vision, or long-context work. `Manual`: use the selected model. `Verify`: draft with the cheapest installed model and verify with th..."
+    },
+    {
+      "type": "doc",
       "title": "Architecture",
       "description": "How the local agent layer, tools, memory, receipts, and security fit together.",
       "href": "../ARCHITECTURE.md",
@@ -1567,7 +1665,7 @@
         "routes",
         "openapi"
       ],
-      "text": "API Reference Generated from src/route-catalog.js and docs/openapi/agenttrail-v1-openapi.json . Do not edit route tables by hand; run npm run docs:api . AgentTrail exposes two API layers: local app endpoints under /api/ and an OpenAI-compatible facade under /v1/ . By default the server binds to 127.0.0.1 and keeps data inside the configured workspace. Local App Routes Area Module Routes --- --- --- search server.js + src/features/search.js /api/search <br /api/search-index <br /api/search/chunks attachments server.js /api/attachments <br /api/files/content documents server.js + src/document-ingestion.js /api/documents/extract <br /api/documents/ocr <br /api/documents/ingest-url audio server.js + src/audio-transcription.js /api/audio/transcribe <br /api/audio/speak <br /api/files/raw image-generation server.js + src/image-generation.js /api/images/generate <br /api/files/raw memory server.js /api/memory <br /api/memory/scopes <br /api/memory/structured <br /api/memory/retrieve <br /api/memory/history <br /api/memory/history/diff <br /api/memory/history/revert <br /api/memory/suggestions <br /api/memory/suggestions/apply <br /api/memory/citations reports server.js /api/reports <br /api/trust/badge conversations server.js /api/conversations <br /api/conversations/get <br /api/conversations/delete <br /api/conversations/restore <br /api/conversations/import <br /api/conversations/branch <br /api/conversations/export sessions server.js /api/sessions <br /api/replay/plan <br /api/runs/pending <br /api/runs/pending/from-receipt <br /api/receipts/resume planner server.js + src/structured-output.js /api/agent/plan <br /api/chat tools src/permissions.js + src/tool-schemas.js /api/permissions <br /api/tools/schemas <br /api/tools/capability <br /api/mcp models server.js /api/models <br /api/models/pull <br /api/models/delete <br /api/models/vision-capability eval-quality server.js + src/eval-quality.js /api/evals/agent-quality <br /api/evals/agent-quality/history <br /api/evals/agent-quality/compare <br /api/benchmarks/models model-registry server.js + src/model-registry.js /api/model-registry <br /api/model-registry/show <br /api/model-registry/pull <br /api/model-registry/import <br /api/model-registry/create <br /api/model-registry/cp <br /api/model-registry/share model-ecosystem server.js + src/model-ecosystem.js /api/model-ecosystem <br /api/model-ecosystem/adapters <br /api/model-ecosystem/fine-tune <br /api/model-ecosystem/quantize <br /api/model-ecosystem/convert <br /api/model-ecosystem/evaluate advanced-agent server.js + src/advanced-agent.js /api/advanced-agent <br /api/advanced-agent/orchestrate <br /api/advanced-agent/schedule <br /api/advanced-agent/journal <br /api/advanced-agent/journal/append <br /api/advanced-agent/journal/resume <br /api/advanced-agent/sub-agent <br /api/advanced-agent/replay-diff system server.js + src/resilience.js + src/config-admin.js /api/health <br /api/resilience <br /api/resources <br /api/runtime <br /api/concurrency <br /api/config <br /api/config/admin <br /api/config/workspace <br /api/onboarding <br /api/updates/check openai-compatible-api server.js /v1/chat/completions <br /v1/models <br /v1/embeddings <br /v1/openapi.json structured-output src/structured-output.js /api/structured-output/schemas <br /api/structured-output <br /api/structured-output/recipe security src/features/security.js + src/privacy.js + src/privacy-controls.js + src/network-policy.js + src/features/redact.js /api/security/scan <br /api/security/privacy <br /api/privacy/dashboard <br /api/privacy/settings <br /api/privacy/retention <br /api/privacy/retention/apply <br /api/privacy/wipe <br /api/redact observability src/observability.js + src/logger.js /api/logs <br /api/metrics <br /api/observability <br /api/traces <br /api/traces/content <br /api/errors/taxonomy team-enterprise src/team-enterprise.js /api/team/status <br /api/team/users <br /api/team/users/select <br /api/team/rbac <br /api/team/receipts <br /api/team/receipts/content <br /api/team/sync/status <br /api/team/sync/export <br /api/team/audit/export <br /api/team/sso <br /api/team/sso/validate foundation src/foundation.js /api/foundation <br /api/schemas <br /api/migrations plugins src/plugin-loader.js + src/plugin-sandbox.js /api/plugins <br /api/plugins/run jobs src/jobs.js /api/jobs <br /api/jobs/start backup server.js /api/workspace/portability <br /api/workspace/migration-plan <br /api/backup/export <br /api/backup/import <br /api/backup/schedule <br /api/backup/schedule/run OpenAI-Compatible Routes Spec: docs/openapi/agenttrail-v1-openapi.json Method Path Operation Summary --- --- --- --- POST /v1/chat/completions createChatCompletion Run AgentTrail through an OpenAI-compatible chat-completions interface GET /v1/models listModels List models from the active local backend POST /v1/embeddings createEmbedding Create embeddings through the active local backend GET /v1/openapi.json getOpenApiSpec Return this OpenAPI document Auth And Rate Controls - /api/ is intended for the local browser app and local CLI. - /v1/ can require AGENTTRAIL_V1_API_KEY or AGENTTRAIL_V1_API_KEYS . - /v1/ uses AGENTTRAIL_V1_RATE_LIMIT_PER_MINUTE , AGENTTRAIL_V1_QUEUE_CONCURRENCY , and AGENTTRAIL_V1_QUEUE_MAX for local rate limiting and backpressure. - Network egress remains governed by AGENTTRAIL_EGRESS_ALLOWLIST and related privacy settings. Examples Route Ownership Use the module column to find the implementation owner before changing behavior. New endpoints should be added to src/route-catalog.js , covered in tests, and regenerated here."
+      "text": "API Reference Generated from src/route-catalog.js and docs/openapi/agenttrail-v1-openapi.json . Do not edit route tables by hand; run npm run docs:api . AgentTrail exposes two API layers: local app endpoints under /api/ and an OpenAI-compatible facade under /v1/ . By default the server binds to 127.0.0.1 and keeps data inside the configured workspace. Local App Routes Area Module Routes --- --- --- search server.js + src/features/search.js /api/search <br /api/search-index <br /api/search/chunks attachments server.js /api/attachments <br /api/files/content documents server.js + src/document-ingestion.js /api/documents/extract <br /api/documents/ocr <br /api/documents/ingest-url audio server.js + src/audio-transcription.js /api/audio/transcribe <br /api/audio/speak <br /api/files/raw image-generation server.js + src/image-generation.js /api/images/generate <br /api/files/raw memory server.js /api/memory <br /api/memory/scopes <br /api/memory/structured <br /api/memory/retrieve <br /api/memory/history <br /api/memory/history/diff <br /api/memory/history/revert <br /api/memory/suggestions <br /api/memory/suggestions/apply <br /api/memory/citations reports server.js /api/reports <br /api/trust/badge conversations server.js /api/conversations <br /api/conversations/get <br /api/conversations/delete <br /api/conversations/restore <br /api/conversations/import <br /api/conversations/branch <br /api/conversations/export sessions server.js /api/sessions <br /api/replay/plan <br /api/runs/pending <br /api/runs/pending/from-receipt <br /api/receipts/resume planner server.js + src/structured-output.js /api/agent/plan <br /api/chat automation server.js /api/webhooks/run tools src/permissions.js + src/tool-schemas.js /api/permissions <br /api/tools/schemas <br /api/tools/capability <br /api/mcp models server.js /api/models <br /api/models/pull <br /api/models/delete <br /api/models/vision-capability accounting-routing server.js + src/accounting-routing.js /api/accounting/usage <br /api/accounting/routing eval-quality server.js + src/eval-quality.js /api/evals/agent-quality <br /api/evals/agent-quality/history <br /api/evals/agent-quality/compare <br /api/benchmarks/models model-registry server.js + src/model-registry.js /api/model-registry <br /api/model-registry/show <br /api/model-registry/pull <br /api/model-registry/import <br /api/model-registry/create <br /api/model-registry/cp <br /api/model-registry/share model-ecosystem server.js + src/model-ecosystem.js /api/model-ecosystem <br /api/model-ecosystem/adapters <br /api/model-ecosystem/fine-tune <br /api/model-ecosystem/quantize <br /api/model-ecosystem/convert <br /api/model-ecosystem/evaluate advanced-agent server.js + src/advanced-agent.js /api/advanced-agent <br /api/advanced-agent/orchestrate <br /api/advanced-agent/schedule <br /api/advanced-agent/journal <br /api/advanced-agent/journal/append <br /api/advanced-agent/journal/resume <br /api/advanced-agent/sub-agent <br /api/advanced-agent/replay-diff system server.js + src/resilience.js + src/config-admin.js /api/health <br /api/resilience <br /api/resources <br /api/runtime <br /api/concurrency <br /api/config <br /api/config/admin <br /api/config/workspace <br /api/onboarding <br /api/updates/check openai-compatible-api server.js /v1/chat/completions <br /v1/models <br /v1/embeddings <br /v1/openapi.json structured-output src/structured-output.js /api/structured-output/schemas <br /api/structured-output <br /api/structured-output/recipe security src/features/security.js + src/privacy.js + src/privacy-controls.js + src/network-policy.js + src/features/redact.js /api/security/scan <br /api/security/privacy <br /api/privacy/dashboard <br /api/privacy/settings <br /api/privacy/retention <br /api/privacy/retention/apply <br /api/privacy/wipe <br /api/redact observability src/observability.js + src/logger.js /api/logs <br /api/metrics <br /api/observability <br /api/traces <br /api/traces/content <br /api/errors/taxonomy team-enterprise src/team-enterprise.js /api/team/status <br /api/team/users <br /api/team/users/select <br /api/team/rbac <br /api/team/receipts <br /api/team/receipts/content <br /api/team/sync/status <br /api/team/sync/export <br /api/team/audit/export <br /api/team/sso <br /api/team/sso/validate foundation src/foundation.js /api/foundation <br /api/schemas <br /api/migrations plugins src/plugin-loader.js + src/plugin-sandbox.js /api/plugins <br /api/plugins/run jobs src/jobs.js /api/jobs <br /api/jobs/start backup server.js /api/workspace/portability <br /api/workspace/migration-plan <br /api/backup/export <br /api/backup/import <br /api/backup/schedule <br /api/backup/schedule/run OpenAI-Compatible Routes Spec: docs/openapi/agenttrail-v1-openapi.json Method Path Operation Summary --- --- --- --- POST /v1/chat/completions createChatCompletion Run AgentTrail through an OpenAI-compatible chat-completions interface GET /v1/models listModels List models from the active local backend POST /v1/embeddings createEmbedding Create embeddings through the active local backend GET /v1/openapi.json getOpenApiSpec Return this OpenAPI document Auth And Rate Controls - /api/ is intended for the local browser app and local CLI. - /v1/ can require AGENTTRAIL_V1_API_KEY or AGENTTRAIL_V1_API_KEYS . - /v1/ uses AGENTTRAIL_V1_RATE_LIMIT_PER_MINUTE , AGENTTRAIL_V1_QUEUE_CONCURRENCY , and AGENTTRAIL_V1_QUEUE_MAX for local rate limiting and backpressure. - Network egress remains governed by AGENTTRAIL_EGRESS_ALLOWLIST and related privacy settings. Examples Route Ownership Use the module column to find the implementation owner before changing behavior. New endpoints should be added to src/route-catalog.js , covered in tests, and regenerated here."
     },
     {
       "type": "section",
@@ -2323,19 +2421,19 @@
         "ci",
         "tests"
       ],
-      "text": "Quality Engineering Epic Z turns the existing smoke-heavy test setup into a visible quality system. Commands Coverage gate npm run coverage uses V8 coverage through NODE_V8_COVERAGE , runs the focused quality/security/runtime/team suites, and fails below COVERAGE_THRESHOLD default 60 . It reports per-file line coverage for the most risk-sensitive local-agent modules. UI E2E npm run test:ui starts a real local AgentTrail server and validates the browser contract. If Playwright is installed, it drives Chromium through the app shell; otherwise it runs a dependency-free HTTP UI contract so CI stays zero-install. Fuzz tests npm run test:quality includes property-style fuzzing for workspace path resolution and unified diff generation. The same src/workspace-safety.js helpers are used by the server and the tests. Performance regression npm run bench:quality runs deterministic micro-benchmarks for chunking, ranking, ANN-index building, path safety, and diff generation. Budgets live in docs/quality/performance-baseline.json and can be tightened after collecting public CI history. Agent eval quality npm run eval:agent runs the Epic AL golden task harness for agent behavior: citation faithfulness, unsupported-claim detection, correct tool selection/arguments, and regression gating with trend history in docs/quality/agent-eval-trend.json . npm run bench:models writes docs/quality/agent-model-benchmark.json with deterministic latency and tokens/sec estimates across the same task set. See Eval Quality EVAL_QUALITY.md . Cross-platform matrix .github/workflows/quality-matrix.yml runs the quality suite on macOS, Windows, and Linux across Node LTS/current lines. The main CI remains the full Ubuntu gate; the matrix catches platform-specific path and runtime regressions early. Eval scoreboard npm run eval now prints a category scoreboard in addition to the total repo score. The scoreboard groups checks by foundation, agent reliability, search, runtime, distribution, security, observability, team, quality, and UX proof."
+      "text": "Quality Engineering Epic Z turns the existing smoke-heavy test setup into a visible quality system. Commands Coverage gate npm run coverage uses V8 coverage through NODE_V8_COVERAGE , runs the focused quality/security/runtime/team suites, and fails below COVERAGE_THRESHOLD default 60 . It reports per-file line coverage for the most risk-sensitive local-agent modules. UI E2E npm run test:ui starts a real local AgentTrail server and validates the browser contract. If Playwright is installed, it drives Chromium through the app shell; otherwise it runs a dependency-free HTTP UI contract so CI stays zero-install. Fuzz tests npm run test:quality includes property-style fuzzing for workspace path resolution and unified diff generation. The same src/workspace-safety.js helpers are used by the server and the tests. Performance regression npm run bench:quality runs deterministic micro-benchmarks for chunking, ranking, ANN-index building, path safety, and diff generation. Budgets live in docs/quality/performance-baseline.json and can be tightened after collecting public CI history. Agent eval quality npm run eval:agent runs the Epic AL golden task harness for agent behavior: citation faithfulness, unsupported-claim detection, correct tool selection/arguments, and regression gating with trend history in docs/quality/agent-eval-trend.json . npm run bench:models writes docs/quality/agent-model-benchmark.json with deterministic latency and tokens/sec estimates across the same task set. See Eval Quality EVAL_QUALITY.md . Accounting and routing npm run test:accounting-routing covers the Epic AM usage layer: token/time accounting records, aggregate usage dashboards, soft/hard budget caps, automatic task-based model routing, speculative draft-then-verify routing, and per-recipe default model hints. Cross-platform matrix .github/workflows/quality-matrix.yml runs the quality suite on macOS, Windows, and Linux across Node LTS/current lines. The main CI remains the full Ubuntu gate; the matrix catches platform-specific path and runtime regressions early. Eval scoreboard npm run eval now prints a category scoreboard in addition to the total repo score. The scoreboard groups checks by foundation, agent reliability, search, runtime, distribution, security, observability, team, quality, and UX proof."
     },
     {
       "type": "section",
       "title": "Quality Engineering - Commands",
-      "description": "npm run test:quality npm run coverage npm run bench:quality npm run eval:agent npm run bench:models npm run test:eval-quality npm run test:ui npm run eval",
+      "description": "npm run test:quality npm run coverage npm run bench:quality npm run eval:agent npm run bench:models npm run test:eval-quality npm run test:accounting-routing npm run test:ui npm run eval",
       "href": "../QUALITY_ENGINEERING.md#commands",
       "tags": [
         "quality",
         "ci",
         "tests"
       ],
-      "text": "Commands npm run test:quality npm run coverage npm run bench:quality npm run eval:agent npm run bench:models npm run test:eval-quality npm run test:ui npm run eval"
+      "text": "Commands npm run test:quality npm run coverage npm run bench:quality npm run eval:agent npm run bench:models npm run test:eval-quality npm run test:accounting-routing npm run test:ui npm run eval"
     },
     {
       "type": "section",
@@ -2399,6 +2497,18 @@
     },
     {
       "type": "section",
+      "title": "Quality Engineering - Accounting and routing",
+      "description": "`npm run test:accounting-routing` covers the Epic AM usage layer: token/time accounting records, aggregate usage dashboards, soft/hard budget caps, automatic task-based model routing, speculative draft-then-verify rou...",
+      "href": "../QUALITY_ENGINEERING.md#accounting-and-routing",
+      "tags": [
+        "quality",
+        "ci",
+        "tests"
+      ],
+      "text": "Accounting and routing `npm run test:accounting-routing` covers the Epic AM usage layer: token/time accounting records, aggregate usage dashboards, soft/hard budget caps, automatic task-based model routing, speculative draft-then-verify rou..."
+    },
+    {
+      "type": "section",
       "title": "Quality Engineering - Cross-platform matrix",
       "description": "`.github/workflows/quality-matrix.yml` runs the quality suite on macOS, Windows, and Linux across Node LTS/current lines. The main CI remains the full Ubuntu gate; the matrix catches platform-specific path and runtime...",
       "href": "../QUALITY_ENGINEERING.md#cross-platform-matrix",
@@ -2408,18 +2518,6 @@
         "tests"
       ],
       "text": "Cross-platform matrix `.github/workflows/quality-matrix.yml` runs the quality suite on macOS, Windows, and Linux across Node LTS/current lines. The main CI remains the full Ubuntu gate; the matrix catches platform-specific path and runtime..."
-    },
-    {
-      "type": "section",
-      "title": "Quality Engineering - Eval scoreboard",
-      "description": "`npm run eval` now prints a category scoreboard in addition to the total repo score. The scoreboard groups checks by foundation, agent reliability, search, runtime, distribution, security, observability, team, quality...",
-      "href": "../QUALITY_ENGINEERING.md#eval-scoreboard",
-      "tags": [
-        "quality",
-        "ci",
-        "tests"
-      ],
-      "text": "Eval scoreboard `npm run eval` now prints a category scoreboard in addition to the total repo score. The scoreboard groups checks by foundation, agent reliability, search, runtime, distribution, security, observability, team, quality..."
     },
     {
       "type": "doc",

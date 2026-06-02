@@ -11,6 +11,7 @@ npm run bench:quality
 npm run eval:agent
 npm run bench:models
 npm run test:eval-quality
+npm run test:accounting-routing
 npm run test:ui
 npm run eval
 ```
@@ -36,6 +37,10 @@ npm run eval
 `npm run eval:agent` runs the Epic AL golden task harness for agent behavior: citation faithfulness, unsupported-claim detection, correct tool selection/arguments, and regression gating with trend history in `docs/quality/agent-eval-trend.json`.
 
 `npm run bench:models` writes `docs/quality/agent-model-benchmark.json` with deterministic latency and tokens/sec estimates across the same task set. See [Eval Quality](EVAL_QUALITY.md).
+
+## Accounting and routing
+
+`npm run test:accounting-routing` covers the Epic AM usage layer: token/time accounting records, aggregate usage dashboards, soft/hard budget caps, automatic task-based model routing, speculative draft-then-verify routing, and per-recipe default model hints.
 
 ## Cross-platform matrix
 

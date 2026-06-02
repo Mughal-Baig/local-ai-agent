@@ -22,6 +22,7 @@ This table maps the requested 30-item top-1% and foundation list to the v0.7 imp
 | Look, feel, and access | Warm and high-contrast themes, adjustable text size and density, keyboard shortcut chords, ARIA log/status/listbox labels, visible focus states, reduced-motion support, responsive mobile drawer/composer polish, PWA install manifest, offline app shell, and first i18n scaffold |
 | Trust Score | browser Trust Score dashboard plus `/api/foundation` score |
 | Run observability | `/api/metrics`, `/api/observability`, `/api/traces`, token/time accounting, error taxonomy, and the in-app trace timeline |
+| Smart accounting/routing | `/api/accounting/usage`, `/api/accounting/routing`, per-chat token/time receipts, aggregate usage dashboard, budget profiles, automatic task routing, per-recipe default model hints, and cheap-draft/strong-verify mode |
 | Security hardening | `/api/security/scan`, `/api/security/privacy`, prompt injection, exfiltration, path escape, hidden instruction, destructive command, secret-like value detection, egress allowlists, optional encrypted receipts |
 | Privacy controls | `/api/privacy/dashboard`, `/api/privacy/settings`, `/api/privacy/retention`, `/api/privacy/retention/apply`, `/api/privacy/wipe`, confirmed local-data wipe, artifact retention windows, storage inventory, and opt-in local-only analytics with network disabled |
 | Resilience layer | `/api/resilience`, graceful backend-down health state, retry-with-backoff for transient backend errors, consistent run timeout/cancel events, crash-safe atomic writes, corrupt search-index auto-rebuild, disk guards for writes/model pulls, and actionable storage/runtime error codes |
@@ -59,6 +60,7 @@ This table maps the requested 30-item top-1% and foundation list to the v0.7 imp
 | Documentation foundation | searchable static docs site, 60-second guide, recipe authoring guide, backend setup guides, architecture deep dive, generated API reference, FAQ, and video walkthrough plans |
 | Migration system | `src/migrations.js`, `migrations/*.json`, `/api/migrations`, migration state in `workspace/.agenttrail/migrations.json` |
 | Model adapter layer | `src/model-adapters.js`, status exposes Ollama plus planned LM Studio, llama.cpp, OpenAI-compatible adapters; `src/model-ecosystem.js` adds trainer/adapter/quantize/convert/eval helpers |
+| Accounting/routing foundation | `src/accounting-routing.js`, `usage-accounting` store records, budget prompts in agent guardrails, route previews, UI controls, and focused unit/integration coverage |
 | Stronger vector index | file hashes, chunk metadata, chunk citation search, provider/model/dimensions, status counts |
 | Background jobs | `src/jobs.js`, `/api/jobs`, `/api/jobs/start`, Foundation panel job actions |
 | Better error handling | `src/features/errors.js` adds a structured taxonomy with actionable hints for Ollama, embeddings, large files, permissions, path escapes, egress blocks, encryption, rate limits, and timeouts |

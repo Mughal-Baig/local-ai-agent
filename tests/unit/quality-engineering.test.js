@@ -30,11 +30,13 @@ async function main() {
   assert.equal(pkg.scripts["eval:agent"], "node scripts/eval-agent-tasks.js");
   assert.equal(pkg.scripts["bench:models"], "node scripts/benchmark-agent-models.js");
   assert.equal(pkg.scripts["test:eval-quality"], "node tests/unit/eval-quality.test.js && node tests/integration/eval-quality.test.js");
+  assert.equal(pkg.scripts["test:accounting-routing"], "node tests/unit/accounting-routing.test.js && node tests/integration/accounting-routing.test.js");
   assert.match(ci, /node scripts\/coverage-report\.js/);
   assert.match(ci, /node scripts\/performance-regression\.js/);
   assert.match(ci, /node scripts\/eval-agent-tasks\.js/);
   assert.match(ci, /node scripts\/benchmark-agent-models\.js/);
   assert.match(ci, /node tests\/integration\/eval-quality\.test\.js/);
+  assert.match(ci, /node tests\/integration\/accounting-routing\.test\.js/);
   assert.match(ci, /node tests\/ui\/playwright-smoke\.test\.js/);
   assert.match(matrix, /ubuntu-latest/);
   assert.match(matrix, /macos-latest/);
@@ -56,6 +58,7 @@ async function main() {
   assert.match(docs, /Coverage gate/);
   assert.match(docs, /Performance regression/);
   assert.match(docs, /Cross-platform matrix/);
+  assert.match(docs, /Accounting and routing/);
 
   console.log("Quality engineering unit tests passed");
 }

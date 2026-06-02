@@ -42,6 +42,7 @@ jobs:
       - run: node --check src/model-ecosystem.js
       - run: node --check src/advanced-agent.js
       - run: node --check src/eval-quality.js
+      - run: node --check src/accounting-routing.js
       - run: node --check src/desktop-notifications.js
       - run: node --check src/bundled-runtime.js
       - run: node --check scripts/load-test.js
@@ -79,6 +80,7 @@ jobs:
       - run: node --check tests/unit/team-enterprise.test.js
       - run: node --check tests/unit/quality-engineering.test.js
       - run: node --check tests/unit/eval-quality.test.js
+      - run: node --check tests/unit/accounting-routing.test.js
       - run: node --check tests/unit/workspace-safety-fuzz.test.js
       - run: node --check tests/unit/docs.test.js
       - run: node --check tests/unit/community-growth.test.js
@@ -97,6 +99,7 @@ jobs:
       - run: node --check tests/integration/resilience.test.js
       - run: node --check tests/integration/config-admin.test.js
       - run: node --check tests/integration/eval-quality.test.js
+      - run: node --check tests/integration/accounting-routing.test.js
       - run: node --check tests/integration/concurrency.test.js
       - run: node --check tests/integration/model-options.test.js
       - run: node --check tests/integration/resources.test.js
@@ -157,6 +160,8 @@ jobs:
       - run: node tests/integration/resilience.test.js
       - run: node tests/integration/config-admin.test.js
       - run: node tests/integration/eval-quality.test.js
+      - run: node tests/unit/accounting-routing.test.js
+      - run: node tests/integration/accounting-routing.test.js
       - run: node tests/integration/concurrency.test.js
       - run: node tests/integration/model-options.test.js
       - run: node tests/integration/resources.test.js

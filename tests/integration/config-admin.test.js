@@ -47,12 +47,14 @@ async function main() {
     const admin = await get("/api/config/admin");
     assert.equal(admin.schema, "agenttrail.config-admin.v1");
     assert.equal(admin.settings.some((setting) => setting.key === "OLLAMA_MODEL"), true);
+    assert.equal(admin.settings.some((setting) => setting.key === "OLLAMA_KEEP_ALIVE" && /unload/i.test(setting.description)), true);
     assert.equal(admin.settings.some((setting) => setting.key === "AGENTTRAIL_CACHE"), true);
     assert.equal(admin.overrides.path, ".agenttrail/workspace-config.json");
 
     const saved = await post("/api/config/workspace", {
       overrides: {
         OLLAMA_MODEL: "llama3.2:latest",
+        OLLAMA_KEEP_ALIVE: "0",
         AGENTTRAIL_CACHE: "off",
         AGENTTRAIL_DEFAULT_STEP_BUDGET: "2"
       }
@@ -60,6 +62,7 @@ async function main() {
     assert.equal(saved.ok, true);
     assert.equal(saved.saved.requiresRestart, true);
     assert.equal(saved.admin.overrides.values.OLLAMA_MODEL, "llama3.2:latest");
+    assert.equal(saved.admin.overrides.values.OLLAMA_KEEP_ALIVE, "0");
     assert.equal(saved.admin.restartRequired, true);
     assert.match(await fsp.readFile(path.join(workspaceRoot, ".agenttrail", "workspace-config.json"), "utf8"), /llama3\.2:latest/);
 

@@ -49,7 +49,15 @@ node bin/agenttrail-chat.js "write release notes"
 `editor/vscode-agenttrail/` — open in VS Code, press F5, run "AgentTrail: Ask about selection". Talks to your local server.
 
 ## Automation triggers (T090)
-Use scheduled runs + receipts: drive `bin/agenttrail-chat.js` from cron/launchd, or POST to `/api/chat` from any webhook handler. Every run leaves an auditable receipt.
+Use scheduled runs + receipts: drive `bin/agenttrail-chat.js` from cron/launchd, stream directly through `/api/chat`, or POST to the dedicated webhook endpoint:
+
+```bash
+curl -X POST http://127.0.0.1:4173/api/webhooks/run \
+  -H 'Content-Type: application/json' \
+  -d '{"source":"launchd","prompt":"Review today'\''s selected notes and draft follow-ups."}'
+```
+
+`/api/webhooks/run` writes `receipts/webhooks/*.md` and saves a pending run under `.agenttrail/pending-run.json` for explicit local review before execution. If `AGENTTRAIL_WEBHOOK_TOKEN` is set, pass it as `Authorization: Bearer ...` or `X-AgentTrail-Webhook-Token`.
 
 ## MCP (T091)
-`mcp/server.js` exposes workspace tools over MCP (`list_files`, `search_workspace`, `read_file`, and the diff-preview/write tools) for other MCP clients to consume.
+`mcp/server.js` exposes the core workspace tool registry over MCP: `list_files`, `search_workspace`, `read_file`, `preview_write_file`, and `write_file`. Medium/high-risk tools require explicit approval and every tool call writes an MCP receipt under `workspace/receipts/mcp/`.

@@ -137,6 +137,18 @@ const {
   compareModels: compareAgentModels,
   runAgentQualitySuite
 } = require("./src/eval-quality");
+const {
+  AUTO_MODEL_VALUE,
+  aggregateUsage,
+  buildUsageRecord,
+  chooseModelRoute,
+  classifyTaskType,
+  estimateMessageTokens,
+  estimateTokens,
+  evaluateBudgetCaps,
+  normalizeBudgetCaps,
+  routingPrompt
+} = require("./src/accounting-routing");
 
 loadDotEnv();
 const PROJECT_ROOT = __dirname;
@@ -286,6 +298,7 @@ const V1_REQUIRE_AUTH = String(process.env.AGENTTRAIL_V1_REQUIRE_AUTH || (V1_API
 const V1_RATE_LIMIT_PER_MINUTE = Number(process.env.AGENTTRAIL_V1_RATE_LIMIT_PER_MINUTE || 60);
 const V1_QUEUE_CONCURRENCY = Math.max(1, Number(process.env.AGENTTRAIL_V1_QUEUE_CONCURRENCY || 2));
 const V1_QUEUE_MAX = Math.max(0, Number(process.env.AGENTTRAIL_V1_QUEUE_MAX || 16));
+const WEBHOOK_TOKEN = String(process.env.AGENTTRAIL_WEBHOOK_TOKEN || "").trim();
 const MAX_VISION_IMAGES = Number(process.env.AGENTTRAIL_MAX_VISION_IMAGES || 4);
 const MAX_VISION_IMAGE_BYTES = Number(process.env.AGENTTRAIL_MAX_VISION_IMAGE_BYTES || 2 * 1024 * 1024);
 const MAX_ATTACHMENT_TEXT_BYTES = Number(process.env.AGENTTRAIL_MAX_ATTACHMENT_TEXT_BYTES || MAX_FILE_BYTES);
@@ -398,6 +411,22 @@ const server = http.createServer(async (req, res) => {
 
     if (url.pathname === "/api/routes" && req.method === "GET") {
       return sendJson(res, 200, { routes: routeCatalog() });
+    }
+
+    if (url.pathname === "/api/accounting/usage" && req.method === "GET") {
+      return handleUsageDashboard(url, res);
+    }
+
+    if (url.pathname === "/api/accounting/routing" && req.method === "GET") {
+      return handleRoutingPreview(url, res);
+    }
+
+    if (url.pathname === "/api/accounting/routing" && req.method === "POST") {
+      return handleRoutingPreviewPost(req, res);
+    }
+
+    if (url.pathname === "/api/webhooks/run" && req.method === "POST") {
+      return handleWebhookRun(req, res);
     }
 
     if (url.pathname === "/api/config" && req.method === "GET") {
@@ -1373,6 +1402,157 @@ async function handleRuntime(res) {
     },
     moonshot: "GPU acceleration, quantization, KV-cache, and model registry are tracked in Phase 6 (Epics P–S)."
   });
+}
+
+async function handleUsageDashboard(url, res) {
+  const limit = clampInt(url.searchParams.get("limit"), 1, 200, 50);
+  const records = await usageRecords(Math.max(200, limit * 4));
+  sendJson(res, 200, aggregateUsage(records, { limit }));
+}
+
+async function handleRoutingPreview(url, res) {
+  const recipeId = String(url.searchParams.get("recipeId") || "").trim();
+  const prompt = String(url.searchParams.get("prompt") || "").trim();
+  const model = String(url.searchParams.get("model") || "").trim();
+  const strategy = String(url.searchParams.get("strategy") || "").trim();
+  const recipes = recipeId ? await listRecipes() : [];
+  const recipe = recipes.find((item) => item.id === recipeId) || null;
+  const status = await fetchOllamaModels().catch(() => ({ models: [] }));
+  const scoredModels = (status.models || []).map(scoreModel);
+  const messages = prompt ? [{ role: "user", content: prompt }] : [];
+  const taskType = classifyTaskType({ messages, selectedFiles: [], recipe });
+  const route = chooseModelRoute({
+    requestedModel: model,
+    availableModels: scoredModels,
+    defaultModel: DEFAULT_MODEL,
+    taskType,
+    recipe,
+    routing: { auto: model === AUTO_MODEL_VALUE || !model, strategy }
+  });
+  sendJson(res, 200, {
+    ok: true,
+    route,
+    budgetCaps: normalizeBudgetCaps(),
+    prompt: routingPrompt(route)
+  });
+}
+
+async function handleRoutingPreviewPost(req, res) {
+  const body = await readJsonBody(req);
+  const recipes = body.recipeId ? await listRecipes() : [];
+  const recipe = recipes.find((item) => item.id === body.recipeId) || null;
+  const status = await fetchOllamaModels().catch(() => ({ models: [] }));
+  const scoredModels = (status.models || []).map(scoreModel);
+  const messages = normalizeMessages(body.messages || (body.prompt ? [{ role: "user", content: body.prompt }] : []));
+  const selectedFiles = Array.isArray(body.selectedFiles) ? body.selectedFiles : [];
+  const taskType = classifyTaskType({ messages, selectedFiles, recipe });
+  const route = chooseModelRoute({
+    requestedModel: body.model,
+    availableModels: scoredModels,
+    defaultModel: DEFAULT_MODEL,
+    taskType,
+    recipe,
+    routing: body.routing || { auto: true }
+  });
+  sendJson(res, 200, {
+    ok: true,
+    route,
+    budgetCaps: normalizeBudgetCaps(body.budgetCaps),
+    prompt: routingPrompt(route)
+  });
+}
+
+async function usageRecords(limit = 1000) {
+  const records = await STORE.list(Math.max(1, Math.min(Number(limit || 1000), 5000)));
+  return records.filter((record) => record.type === "usage-accounting");
+}
+
+async function handleWebhookRun(req, res) {
+  if (!webhookAuthorized(req)) {
+    return sendJson(res, 401, { error: "Webhook token required." });
+  }
+  const body = await readJsonBody(req);
+  const record = normalizePendingRunRecord({
+    prompt: body.prompt || body.message || body.text,
+    model: body.model,
+    selectedFiles: body.selectedFiles,
+    permissions: body.permissions,
+    securityMode: body.securityMode,
+    source: "webhook",
+    trail: [{
+      time: new Date().toISOString(),
+      type: "webhook",
+      label: truncate(String(body.source || body.event || "automation trigger"), 160)
+    }]
+  });
+  if (!record.prompt) {
+    return sendJson(res, 400, { error: "Webhook prompt is required." });
+  }
+
+  const stamp = new Date().toISOString().replace(/[:.]/g, "-");
+  const receipt = await writeWorkspaceFile(`${RECEIPTS_DIR}/webhooks/webhook-${stamp}.md`, buildWebhookReceiptMarkdown(record, body));
+  const pending = { ...record, receiptPath: receipt.path };
+  await persistPendingRun(pending);
+  await STORE.append("webhook-run", {
+    path: receipt.path,
+    model: pending.model || null,
+    selectedFiles: pending.selectedFiles.length,
+    source: truncate(String(body.source || body.event || "webhook"), 120)
+  });
+  SQLITE.insert("webhook-run", {
+    model: pending.model || "",
+    selectedFiles: pending.selectedFiles.length,
+    receiptPath: receipt.path
+  });
+  sendJson(res, 202, {
+    ok: true,
+    queued: true,
+    pending,
+    receipt,
+    reviewEndpoint: "/api/runs/pending",
+    note: "Webhook triggers create a local pending run for explicit review before execution."
+  });
+}
+
+function webhookAuthorized(req) {
+  if (!WEBHOOK_TOKEN) {
+    return true;
+  }
+  const headerToken = String(req.headers["x-agenttrail-webhook-token"] || "").trim();
+  const auth = String(req.headers.authorization || "").trim();
+  const bearer = auth.match(/^Bearer\s+(.+)$/i);
+  return headerToken === WEBHOOK_TOKEN || (bearer && bearer[1] === WEBHOOK_TOKEN);
+}
+
+function buildWebhookReceiptMarkdown(record, body = {}) {
+  const permissions = normalizePermissions(record.permissions || {});
+  return [
+    "# AgentTrail Webhook Receipt",
+    "",
+    `Time: ${new Date().toISOString()}`,
+    `Source: ${truncate(String(body.source || body.event || "webhook"), 160)}`,
+    `Model: ${record.model || "auto"}`,
+    `Selected files: ${record.selectedFiles.length ? record.selectedFiles.join(", ") : "none"}`,
+    `Permissions: reads ${permissions.readFiles ? "on" : "off"}, writes ${permissions.writeFiles ? "on" : "off"}, previews ${permissions.previewWrites ? "on" : "off"}`,
+    "",
+    "## Resume Prompt",
+    "",
+    record.prompt,
+    "",
+    "## Payload Summary",
+    "",
+    "```json",
+    JSON.stringify(redactValueOnly({
+      source: body.source || body.event || "webhook",
+      selectedFiles: record.selectedFiles,
+      securityMode: record.securityMode
+    }), null, 2),
+    "```",
+    "",
+    "## Events",
+    "",
+    `- ${new Date().toISOString()} [webhook] Pending run created for explicit local review.`
+  ].join("\n");
 }
 
 async function handleHealth(res) {
@@ -7427,6 +7607,7 @@ async function handleChat(req, res) {
 async function runAgent(body, res, context = {}) {
   const messages = normalizeMessages(body.messages);
   const selectedFiles = Array.isArray(body.selectedFiles) ? body.selectedFiles.slice(0, 8) : [];
+  const recipe = await recipeForRun(body.recipeId);
   const teamUser = selectTeamUser(await listTeamUsers(), body.teamUserId || body.userId);
   const permissions = applyRbacToPermissions(normalizePermissions(body.permissions), teamUser);
   const securityMode = body.securityMode !== false;
@@ -7434,11 +7615,23 @@ async function runAgent(body, res, context = {}) {
   const stepBudget = normalizeStepBudget(body.stepBudget);
   const signal = context.signal;
   const requestedModel = String(body.model || "").trim();
+  const taskType = classifyTaskType({ messages, selectedFiles, recipe });
+  const budgetCaps = normalizeBudgetCaps(body.budgetCaps);
+  const runAccounting = {
+    startedAt: new Date().toISOString(),
+    startedAtMs: Date.now(),
+    inputTokens: estimateMessageTokens(messages),
+    outputTokens: 0,
+    verificationTokens: 0,
+    firstTokenAtMs: null
+  };
   const trace = OBSERVABILITY.startTrace("chat", {
     requestedModel: requestedModel || null,
     selectedFiles: selectedFiles.length,
     securityMode,
     stepBudget: stepBudget.maxSteps,
+    recipeId: recipe ? recipe.id : null,
+    taskType,
     teamUser: permissions.teamUser,
     permissions: {
       readFiles: permissions.readFiles,
@@ -7466,6 +7659,17 @@ async function runAgent(body, res, context = {}) {
   const status = await fetchOllamaModels();
 
   throwIfAborted(signal);
+  const scoredModels = status.models.map(scoreModel);
+  const route = chooseModelRoute({
+    requestedModel,
+    availableModels: scoredModels,
+    defaultModel: DEFAULT_MODEL,
+    taskType,
+    recipe,
+    routing: body.routing || {}
+  });
+  sendEvent(res, "routing", route);
+
   if (!status.available) {
     const message = backendUnavailableMessage(status);
     OBSERVABILITY.recordError(new Error(message), {
@@ -7475,22 +7679,73 @@ async function runAgent(body, res, context = {}) {
       defaultModel: DEFAULT_MODEL
     }, trace);
     sendEvent(res, "error", { message, code: "MODEL_BACKEND", observed: true });
+    const usage = await saveUsageAccounting({
+      trace,
+      route,
+      recipe,
+      taskType,
+      requestedModel,
+      model: route.model || requestedModel || DEFAULT_MODEL,
+      status: "backend-unavailable",
+      startedAt: runAccounting.startedAt,
+      startedAtMs: runAccounting.startedAtMs,
+      inputTokens: runAccounting.inputTokens,
+      outputTokens: 0,
+      budgetCaps,
+      toolCalls: 0,
+      selectedFiles
+    });
+    sendEvent(res, "accounting", usage);
     await finishResponseTrace(res, "failed", { reason: "backend-unavailable" });
     return;
   }
 
-  const model = requestedModel || status.models[0]?.name || DEFAULT_MODEL;
-  OBSERVABILITY.updateTrace(trace, { model });
+  const model = route.model || requestedModel || status.models[0]?.name || DEFAULT_MODEL;
+  OBSERVABILITY.updateTrace(trace, { model, taskType, route: route.strategy });
   const toolHistory = [];
   const loopGuard = createLoopGuard();
   const visionContext = await collectVisionImages(selectedFiles);
-  const selectedModelMeta = status.models.find((item) => item.name === model) || { name: model, size: 0 };
+  const selectedModelMeta = scoredModels.find((item) => item.name === model) || { name: model, size: 0 };
   const selectedVisionCapability = visionModelCapability(selectedModelMeta);
   if (visionContext.images.length && selectedVisionCapability.supported === false && selectedVisionCapability.confidence >= 0.7) {
     visionContext.warnings.push(`Selected model "${model}" does not look vision-capable: ${selectedVisionCapability.reason}`);
   }
 
-  sendEvent(res, "status", { message: `Using ${model}` });
+  const preflightBudget = evaluateBudgetCaps({ inputTokens: runAccounting.inputTokens }, budgetCaps, "preflight");
+  sendEvent(res, "budget", {
+    ...preflightBudget,
+    caps: budgetCaps,
+    taskType,
+    routing: route.strategy,
+    model
+  });
+  if (!preflightBudget.ok) {
+    const message = preflightBudget.prompt;
+    await streamText(res, message);
+    const usage = await saveUsageAccounting({
+      trace,
+      route,
+      recipe,
+      taskType,
+      requestedModel,
+      model,
+      status: "budget-blocked",
+      startedAt: runAccounting.startedAt,
+      startedAtMs: runAccounting.startedAtMs,
+      inputTokens: runAccounting.inputTokens,
+      outputTokens: estimateTokens(message),
+      budgetCaps,
+      budgetCheck: preflightBudget,
+      toolCalls: 0,
+      selectedFiles
+    });
+    sendEvent(res, "accounting", usage);
+    sendEvent(res, "done", { ok: false, reason: "budget-hard-limit", accounting: usage });
+    await finishResponseTrace(res, "failed", { reason: "budget-hard-limit" });
+    return;
+  }
+
+  sendEvent(res, "status", { message: `Using ${model}${route.automatic ? ` for ${taskType}` : ""}` });
   if (visionContext.images.length || visionContext.warnings.length) {
     sendEvent(res, "vision", {
       count: visionContext.images.length,
@@ -7535,8 +7790,47 @@ async function runAgent(body, res, context = {}) {
         : `Reviewing tool result · step ${step + 1}/${stepBudget.maxSteps}`
     });
 
-    const prompt = await buildAgentPrompt(messages, selectedFiles, toolHistory, permissions, securityMode, approvedPlan, stepBudget, visionContext);
-    const gate = createProseGate(res);
+    const prompt = await buildAgentPrompt(messages, selectedFiles, toolHistory, permissions, securityMode, approvedPlan, stepBudget, visionContext, {
+      route,
+      budgetCaps,
+      budgetCheck: preflightBudget
+    });
+    runAccounting.inputTokens = Math.max(runAccounting.inputTokens, estimateTokens(prompt));
+    const promptBudget = evaluateBudgetCaps({ inputTokens: runAccounting.inputTokens }, budgetCaps, "prompt");
+    if (promptBudget.checks.length) {
+      sendEvent(res, "budget", { ...promptBudget, caps: budgetCaps, taskType, routing: route.strategy, model });
+    }
+    if (!promptBudget.ok) {
+      const message = promptBudget.prompt;
+      await streamText(res, message);
+      const usage = await saveUsageAccounting({
+        trace,
+        route,
+        recipe,
+        taskType,
+        requestedModel,
+        model,
+        status: "budget-blocked",
+        startedAt: runAccounting.startedAt,
+        startedAtMs: runAccounting.startedAtMs,
+        inputTokens: runAccounting.inputTokens,
+        outputTokens: estimateTokens(message),
+        budgetCaps,
+        budgetCheck: promptBudget,
+        toolCalls: toolHistory.length,
+        selectedFiles
+      });
+      sendEvent(res, "accounting", usage);
+      sendEvent(res, "done", { ok: false, reason: "budget-hard-limit", accounting: usage });
+      await finishResponseTrace(res, "failed", { reason: "budget-hard-limit" });
+      return;
+    }
+    const markFirstToken = () => {
+      if (!runAccounting.firstTokenAtMs) {
+        runAccounting.firstTokenAtMs = Date.now();
+      }
+    };
+    const gate = createProseGate(res, markFirstToken);
     const cacheKey = `${model}::${hashPrompt(`${prompt}\n${visionContext.images.map((image) => image.hash).join("\n")}`)}`;
     const nativeCapability = await probeNativeToolSupport(model, { signal });
     throwIfAborted(signal);
@@ -7610,8 +7904,36 @@ async function runAgent(body, res, context = {}) {
 
     // Final answer. Prose was already streamed live; otherwise emit the cleaned text.
     const finalText = cleanAssistantOutput(output) || "I did not get a usable response from the model.";
+    runAccounting.outputTokens = estimateTokens(finalText);
     if (!gate.emitted) {
+      markFirstToken();
       await streamText(res, finalText);
+    }
+    const verification = await maybeRunSpeculativeVerification({
+      route,
+      finalText,
+      messages,
+      selectedFiles,
+      signal
+    });
+    if (verification) {
+      runAccounting.verificationTokens = estimateTokens(verification.output || "");
+      sendEvent(res, "verification", verification);
+      await STORE.append("speculative-verification", {
+        traceId: trace.id,
+        draftModel: route.draftModel,
+        verifyModel: route.verifyModel,
+        verdict: verification.verdict,
+        ok: verification.ok
+      });
+    }
+    const outputBudget = evaluateBudgetCaps({
+      inputTokens: runAccounting.inputTokens,
+      outputTokens: runAccounting.outputTokens + runAccounting.verificationTokens,
+      durationMs: Date.now() - runAccounting.startedAtMs
+    }, budgetCaps, "completion");
+    if (outputBudget.checks.length) {
+      sendEvent(res, "budget", { ...outputBudget, caps: budgetCaps, taskType, routing: route.strategy, model });
     }
     const reflection = buildRunReflection({
       messages,
@@ -7639,7 +7961,27 @@ async function runAgent(body, res, context = {}) {
     if (memorySuggestions.suggestions.length) {
       sendEvent(res, "memory-suggestions", memorySuggestions);
     }
-    sendEvent(res, "done", { ok: true });
+    const usage = await saveUsageAccounting({
+      trace,
+      route,
+      recipe,
+      taskType,
+      requestedModel,
+      model,
+      status: outputBudget.ok ? "completed" : "budget-soft-warning",
+      startedAt: runAccounting.startedAt,
+      startedAtMs: runAccounting.startedAtMs,
+      inputTokens: runAccounting.inputTokens,
+      outputTokens: runAccounting.outputTokens + runAccounting.verificationTokens,
+      budgetCaps,
+      budgetCheck: outputBudget,
+      toolCalls: toolHistory.length,
+      selectedFiles,
+      firstTokenAtMs: runAccounting.firstTokenAtMs,
+      verification
+    });
+    sendEvent(res, "accounting", usage);
+    sendEvent(res, "done", { ok: true, accounting: usage, routing: route });
     await finishResponseTrace(res, "ok", { reason: "completed" });
     return;
   }
@@ -7653,9 +7995,134 @@ async function runAgent(body, res, context = {}) {
     truncate(JSON.stringify(toolHistory, null, 2), 1600)
   ].join("\n\n");
   sendEvent(res, "budget", { ...stepBudget, exhausted: true, stepsUsed: stepBudget.maxSteps });
+  if (!runAccounting.firstTokenAtMs) {
+    runAccounting.firstTokenAtMs = Date.now();
+  }
   await streamText(res, fallback);
-  sendEvent(res, "done", { ok: false, reason: "step-budget-exhausted", budget: stepBudget });
+  const usage = await saveUsageAccounting({
+    trace,
+    route,
+    recipe,
+    taskType,
+    requestedModel,
+    model,
+    status: "step-budget-exhausted",
+    startedAt: runAccounting.startedAt,
+    startedAtMs: runAccounting.startedAtMs,
+    inputTokens: runAccounting.inputTokens,
+    outputTokens: estimateTokens(fallback),
+    budgetCaps,
+    budgetCheck: evaluateBudgetCaps({
+      inputTokens: runAccounting.inputTokens,
+      outputTokens: estimateTokens(fallback),
+      durationMs: Date.now() - runAccounting.startedAtMs
+    }, budgetCaps, "completion"),
+    toolCalls: toolHistory.length,
+    selectedFiles,
+    firstTokenAtMs: runAccounting.firstTokenAtMs
+  });
+  sendEvent(res, "accounting", usage);
+  sendEvent(res, "done", { ok: false, reason: "step-budget-exhausted", budget: stepBudget, accounting: usage });
   await finishResponseTrace(res, "failed", { reason: "step-budget-exhausted" });
+}
+
+async function recipeForRun(recipeId) {
+  const id = String(recipeId || "").trim();
+  if (!id) return null;
+  const recipes = await listRecipes().catch(() => []);
+  return recipes.find((recipe) => recipe.id === id) || null;
+}
+
+async function saveUsageAccounting(options = {}) {
+  const usage = buildUsageRecord({
+    runId: options.trace && options.trace.id,
+    recipeId: options.recipe ? options.recipe.id : null,
+    taskType: options.taskType,
+    status: options.status,
+    startedAt: options.startedAt,
+    endedAt: new Date().toISOString(),
+    durationMs: Date.now() - Number(options.startedAtMs || Date.now()),
+    model: options.model,
+    requestedModel: options.requestedModel || null,
+    routing: options.route || null,
+    budget: {
+      caps: options.budgetCaps || null,
+      check: options.budgetCheck || null
+    },
+    inputTokens: options.inputTokens,
+    outputTokens: options.outputTokens,
+    timeToFirstTokenMs: options.firstTokenAtMs ? Number(options.firstTokenAtMs) - Number(options.startedAtMs || options.firstTokenAtMs) : null,
+    toolCalls: options.toolCalls,
+    selectedFiles: Array.isArray(options.selectedFiles) ? options.selectedFiles.length : Number(options.selectedFiles || 0)
+  });
+  usage.verification = options.verification || null;
+  await STORE.append("usage-accounting", usage);
+  SQLITE.insert("usage-accounting", {
+    model: usage.model,
+    recipeId: usage.recipeId,
+    taskType: usage.taskType,
+    status: usage.status,
+    totalTokens: usage.totalTokens,
+    durationMs: usage.durationMs
+  });
+  await LOGGER.log("info", "usage.accounting", {
+    runId: usage.runId,
+    model: usage.model,
+    taskType: usage.taskType,
+    status: usage.status,
+    totalTokens: usage.totalTokens,
+    durationMs: usage.durationMs
+  });
+  return usage;
+}
+
+async function maybeRunSpeculativeVerification(options = {}) {
+  const route = options.route || {};
+  if (!route.speculative || !route.verifyModel || !route.draftModel) {
+    return null;
+  }
+  const prompt = [
+    "Verify this local agent draft for unsupported claims, missing safety notes, and obvious mistakes.",
+    "Return one concise paragraph starting with PASS or REVIEW.",
+    "",
+    "User context:",
+    normalizeMessages(options.messages).slice(-4).map((message) => `${message.role}: ${message.content}`).join("\n"),
+    "",
+    `Selected files: ${(options.selectedFiles || []).join(", ") || "none"}`,
+    "",
+    "Draft answer:",
+    truncate(options.finalText || "", 6000)
+  ].join("\n");
+  try {
+    const started = Date.now();
+    let output = "";
+    output = await generateStream(route.verifyModel, prompt, {
+      temperature: 0,
+      tools: [],
+      images: [],
+      signal: options.signal
+    }, () => {});
+    const cleaned = cleanAssistantOutput(output);
+    const verdict = /^pass\b/i.test(cleaned) ? "pass" : "review";
+    return {
+      schema: "agenttrail.speculative-verification.v1",
+      ok: verdict === "pass",
+      verdict,
+      draftModel: route.draftModel,
+      verifyModel: route.verifyModel,
+      durationMs: Date.now() - started,
+      output: truncate(cleaned, 1200)
+    };
+  } catch (error) {
+    return {
+      schema: "agenttrail.speculative-verification.v1",
+      ok: false,
+      verdict: "error",
+      draftModel: route.draftModel,
+      verifyModel: route.verifyModel,
+      error: error.message || "Verification failed."
+    };
+  }
 }
 
 async function collectVisionImages(selectedFiles) {
@@ -7742,7 +8209,7 @@ function formatVisionContextBlock(visionContext) {
   ].join("\n");
 }
 
-async function buildAgentPrompt(messages, selectedFiles, toolHistory, permissions, securityMode, approvedPlan = null, stepBudget = null, visionContext = null) {
+async function buildAgentPrompt(messages, selectedFiles, toolHistory, permissions, securityMode, approvedPlan = null, stepBudget = null, visionContext = null, accountingContext = null) {
   const selectedFileBlocks = [];
   const memoryScopes = await Promise.all(["global", "project"].map(async (scope) => {
     try {
@@ -7814,6 +8281,8 @@ async function buildAgentPrompt(messages, selectedFiles, toolHistory, permission
   const globalStructuredMemoryBlock = formatStructuredMemoryForPrompt(globalMemory.structured, memoryQuery, globalMemoryBudget);
   const projectStructuredMemoryBlock = formatStructuredMemoryForPrompt(projectMemory.structured, memoryQuery, projectMemoryBudget);
   const visionBlock = formatVisionContextBlock(visionContext);
+  const routeBlock = accountingContext && accountingContext.route ? routingPrompt(accountingContext.route) : "No model routing decision was provided.";
+  const budgetBlock = accountingContext && accountingContext.budgetCheck ? accountingContext.budgetCheck.prompt : "Budget is within configured limits.";
 
   return redactTextOnly([
     "You are AgentTrail, a private AI assistant running on the user's computer.",
@@ -7869,6 +8338,8 @@ async function buildAgentPrompt(messages, selectedFiles, toolHistory, permission
     stepBudget
       ? `Tool step budget: ${stepBudget.maxSteps} model/tool loop step(s). Finish early when possible. Ask for a higher budget instead of looping.`
       : "Use the smallest number of tool steps needed.",
+    routeBlock,
+    budgetBlock,
     "",
     "Approved user plan:",
     planNotes,
@@ -9000,10 +9471,18 @@ function isNativeToolUnsupported(error) {
 }
 
 // Gates streamed tokens: suppresses tool-call JSON, forwards prose live.
-function createProseGate(res) {
+function createProseGate(res, onFirstToken = null) {
   let decision = "pending"; // pending | prose | tool
   let lead = "";
   let emitted = false;
+
+  function emitToken(text) {
+    if (typeof onFirstToken === "function" && !emitted) {
+      onFirstToken();
+    }
+    sendEvent(res, "token", { text });
+    emitted = true;
+  }
 
   function classify() {
     let s = lead.replace(/^\s+/, "").replace(/^```(?:json)?\s*/i, "").replace(/^\s+/, "");
@@ -9017,8 +9496,7 @@ function createProseGate(res) {
       .replace(/^["“]/, "")
       .replace(/^(Assistant|AgentTrail|Local Agent|AI):\s*/i, "");
     if (display) {
-      sendEvent(res, "token", { text: display });
-      emitted = true;
+      emitToken(display);
     }
   }
 
@@ -9026,8 +9504,7 @@ function createProseGate(res) {
     push(chunk) {
       if (decision === "tool") return;
       if (decision === "prose") {
-        sendEvent(res, "token", { text: chunk });
-        emitted = true;
+        emitToken(chunk);
         return;
       }
       lead += chunk;
@@ -10013,6 +10490,12 @@ function validateRecipeShape(recipe, fileName = "recipe.json") {
   if (recipe.outputSchemaId !== undefined && !/^[a-z0-9_-]+$/.test(String(recipe.outputSchemaId))) {
     errors.push("outputSchemaId must use lowercase letters, numbers, underscores, or hyphens");
   }
+  if (recipe.defaultModel !== undefined) {
+    const value = String(recipe.defaultModel || "").trim();
+    if (!value || value.length > 120) {
+      errors.push("defaultModel must be 1-120 characters when present");
+    }
+  }
 
   return { ok: errors.length === 0, file: fileName, errors };
 }
@@ -10264,6 +10747,7 @@ function normalizeRecipe(recipe, fileName) {
     description: truncate(description, 180),
     prompt: truncate(prompt, 2400),
     tags: Array.isArray(recipe.tags) ? recipe.tags.map((tag) => String(tag).trim()).filter(Boolean).slice(0, 8) : [],
+    ...(recipe.defaultModel ? { defaultModel: truncate(String(recipe.defaultModel).trim(), 120) } : {}),
     ...(structuredOutput ? { structuredOutput } : {}),
     ...(action ? { action } : {})
   };

@@ -42,6 +42,7 @@ async function main() {
     const saved = await writeWorkspaceConfig(workspaceRoot, {
       overrides: {
         OLLAMA_MODEL: "llama3.2:latest",
+        OLLAMA_KEEP_ALIVE: "0",
         AGENTTRAIL_CACHE: "off",
         MAX_TOOL_ITERATIONS: 6,
         PORT: "4188"
@@ -49,7 +50,7 @@ async function main() {
     });
     assert.equal(saved.schema, WORKSPACE_CONFIG_SCHEMA);
     assert.equal(saved.requiresRestart, true);
-    assert.equal(saved.overrideCount, 4);
+    assert.equal(saved.overrideCount, 5);
 
     const config = await readWorkspaceConfig(workspaceRoot);
     assert.equal(config.overrides.OLLAMA_MODEL, "llama3.2:latest");
@@ -57,8 +58,9 @@ async function main() {
 
     const env = {};
     const boot = applyWorkspaceConfigOverridesSync(workspaceRoot, env);
-    assert.deepEqual(boot.appliedKeys.sort(), ["AGENTTRAIL_CACHE", "MAX_TOOL_ITERATIONS", "OLLAMA_MODEL", "PORT"].sort());
+    assert.deepEqual(boot.appliedKeys.sort(), ["AGENTTRAIL_CACHE", "MAX_TOOL_ITERATIONS", "OLLAMA_KEEP_ALIVE", "OLLAMA_MODEL", "PORT"].sort());
     assert.equal(env.OLLAMA_MODEL, "llama3.2:latest");
+    assert.equal(env.OLLAMA_KEEP_ALIVE, "0");
     assert.equal(env.PORT, "4188");
 
     const envWins = { PORT: "9999" };
@@ -74,6 +76,7 @@ async function main() {
     assert.equal(admin.schema, CONFIG_ADMIN_SCHEMA);
     assert.equal(admin.groups.some((group) => group.id === "model"), true);
     assert.equal(admin.settings.some((setting) => setting.key === "OLLAMA_MODEL" && setting.source === "workspace"), true);
+    assert.equal(admin.settings.some((setting) => setting.key === "OLLAMA_KEEP_ALIVE" && /unload/i.test(setting.description)), true);
     assert.equal(admin.validation.ok, true);
 
     await assert.rejects(

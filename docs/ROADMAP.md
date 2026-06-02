@@ -2,10 +2,11 @@
 
 ## Next
 
-- Move into Epic AM accounting and routing now that Epic AL evaluation quality is complete.
+- Move into Epic AN plugin/SDK hardening now that Epic AM accounting and routing is complete.
 - Build the 60-second proof loop: search -> diff preview -> apply -> receipt -> shareable report.
 - Make the install path undeniable: `npx agenttrail`, Docker persistence, Homebrew publication, setup doctor, and friendly failure states.
 - Use the new Epic AL eval quality layer to keep golden task fixtures, citation-faithfulness checks, unsupported-claim detection, and model benchmarks regression-gated.
+- Use the Epic AM accounting layer to show per-chat token/time receipts, usage dashboards, budget caps, auto routing, and draft-verify proof in public demos.
 - Add public safety proof: prompt-injection demo fixtures, network-path audit, redaction checks, and threat-model page.
 - Publish an honest comparison page against OpenHands, Cline, AnythingLLM, Open Interpreter, Aider, and Continue.
 - Add true local embedding backends behind optional dependencies.
@@ -17,7 +18,7 @@
 ## Current Standing Snapshot
 
 - Verified repo eval score: **100/100** local checks after the T251 timeout/cancellation pass.
-- Strong wedge: auditable local-agent layer with receipts, diff-safe writes, searchable evidence, redaction, replay/export, local privacy, run-control events, and visible config/admin controls.
+- Strong wedge: auditable local-agent layer with receipts, diff-safe writes, searchable evidence, redaction, replay/export, local privacy, run-control events, visible config/admin controls, and transparent model-routing budgets.
 - Honest public-market standing: strong technical foundation, but not yet top-1% public adoption until one-command distribution, signed releases, independent demos, and comparison evidence are proven in public.
 
 ## Later
@@ -70,6 +71,7 @@
 - Resilience layer: `/api/resilience`, graceful backend-down health/UI state, retry-with-backoff, consistent timeout/cancel run events, crash-safe atomic writes, corrupt-index rebuild, disk-space guards, and storage/runtime error codes.
 - Config/admin layer: schema-backed settings UI for model/cache/budget/host envs, friendly startup validation, per-workspace overrides, and a persisted first-run setup wizard.
 - Eval quality layer: golden agent task dataset, citation-faithfulness checks, unsupported-claim detector, CI regression trend gate, A/B model comparison, tool-use correctness eval, and latency/tokens benchmarks.
+- Accounting and routing layer: per-chat token/time usage receipts, aggregate model/recipe/time dashboards, soft/hard budget caps, automatic task-based routing, speculative draft-then-verify, and per-recipe default model hints.
 - Top 1% expansion added to the long roadmap: Phase 17-22 now covers demo proof, one-command install, first-run retention, safety proof, public comparisons, signed releases, supportability, and durable AgentTrail-specific moat.
 
 ## Not Planned

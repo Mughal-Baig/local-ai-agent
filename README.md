@@ -44,6 +44,7 @@ Writes are off by default. The agent proposes a unified diff; you click **Apply*
 - **Diff-safe writes**: preview mode shows a unified diff in chat and lets the user apply it deliberately.
 - **Trust Score dashboard**: each run shows evidence, preview, receipt, memory, hardening, and eval signals.
 - **Local observability**: Prometheus-style metrics, run traces, token/time accounting, and aggregate analytics stay on the machine.
+- **Smart routing and budgets**: automatic task-based model routing, per-recipe model hints, soft/hard budget caps, and optional cheap-draft/strong-verify runs are visible before and after each chat.
 - **Local team mode**: read-only shared receipts, local users, RBAC caps, sync exports, audit exports, and an SSO identity hook.
 - **Budgeted project memory**: structured memory is ranked by the current prompt/files/tools before it enters the model context.
 - **Receipt timeline, replay, and reports**: reopen a saved run, restore prompt/files/model/diffs, and export Markdown/HTML reports.
@@ -76,6 +77,7 @@ Popular local AI tools usually optimize for broad chat, model management, or aut
 | File access | Sandboxed workspace tools plus keyword search, versioned local vector store, and Ollama embedding index |
 | Trust UX | Trust Score, local signals, security scan, reviewable diff previews, explicit apply buttons, exportable reports, replay sessions, receipts, and tool history |
 | Observability | Structured logs, `/api/metrics`, per-run traces, token/time accounting, error taxonomy, and privacy-preserving local analytics |
+| Accounting/routing | `/api/accounting/usage`, `/api/accounting/routing`, per-chat token/time receipts, budget profiles, automatic task routing, recipe defaults, and speculative draft-then-verify |
 | Team/audit | Read-only shared receipts, local multi-user profiles, RBAC tool caps, audit export, opt-in local sync packs, and SSO header/domain hook |
 | Workflow system | Plain JSON recipes, role-based recipe packs, import/export UI, and marketplace manifest |
 | Foundation | Stable schemas, migrations, append-only store, permission engine, plugin manifests, portable archives, scheduled backups, jobs, resilience checks, checksums, advanced-agent manifests |
@@ -103,6 +105,7 @@ Open `http://127.0.0.1:4173`, build the semantic index, ask for a change, review
 ## Features
 
 - Chat UI with model picker and **true token streaming** (tokens stream from the backend as generated; models kept warm via keep-alive)
+- Per-chat usage accounting with token/time receipts, aggregate usage dashboard, budget profiles, automatic model routing, and speculative cheap-draft/strong-verify mode
 - **In-app model management**: pull (with live progress), list, and remove local models without leaving the app
 - **Response cache** so repeated recipe runs return instantly, plus prompt and step-budget guards that keep long workspaces fast
 - Starter prompts for summarize, plan, review, and save-note workflows
@@ -340,6 +343,7 @@ When write preview mode is enabled, `write_file` returns a diff preview instead 
 - Model adapters: [src/model-adapters.js](src/model-adapters.js)
 - Model ecosystem: [src/model-ecosystem.js](src/model-ecosystem.js), [docs/MODEL_ECOSYSTEM.md](docs/MODEL_ECOSYSTEM.md)
 - Advanced agent manifests: [src/advanced-agent.js](src/advanced-agent.js), [docs/ADVANCED_AGENT.md](docs/ADVANCED_AGENT.md)
+- Accounting and routing: [src/accounting-routing.js](src/accounting-routing.js), [docs/ACCOUNTING_ROUTING.md](docs/ACCOUNTING_ROUTING.md)
 - Migration system: [src/migrations.js](src/migrations.js)
 - Vector-store migrations: [src/vector-store.js](src/vector-store.js)
 - Append-only store: [src/json-store.js](src/json-store.js)

@@ -28,6 +28,7 @@ const CONFIG_SETTINGS = [
   { key: "OPENAI_COMPATIBLE_HOST", group: "model", label: "OpenAI-compatible host", type: "url", defaultValue: "http://127.0.0.1:8000/v1" },
   { key: "OLLAMA_MODEL", group: "model", label: "Default model", type: "text", defaultValue: "llama3.2" },
   { key: "OLLAMA_EMBED_MODEL", group: "model", label: "Embedding model", type: "text", defaultValue: "nomic-embed-text" },
+  { key: "OLLAMA_KEEP_ALIVE", group: "model", label: "Idle unload policy", type: "text", defaultValue: "5m", description: "Ollama keep_alive value; use 0 for unload after each request or a duration like 5m to keep models warm." },
   { key: "AGENTTRAIL_NATIVE_TOOLS", group: "model", label: "Native tool calls", type: "select", defaultValue: "on", options: ["on", "off"] },
 
   { key: "AGENTTRAIL_CACHE", group: "cache", label: "Response cache", type: "select", defaultValue: "on", options: ["on", "off"] },

@@ -68,6 +68,8 @@ async function main() {
       "/api/demo/public",
       "/api/models/compare",
       "/api/model-ecosystem",
+      "/api/accounting/usage",
+      "/api/accounting/routing?prompt=fix%20a%20javascript%20test&model=__auto__",
       "/api/benchmarks/history",
       "/api/releases/signing-plan"
     ];
@@ -281,6 +283,17 @@ async function main() {
       input: { text: "hello" }
     });
     assert.equal(plugin.output, "hello");
+
+    const webhook = await post("/api/webhooks/run", {
+      source: "integration-test",
+      prompt: "Review the API fixture and create a concise follow-up plan.",
+      selectedFiles: ["notes/api.md"]
+    });
+    assert.equal(webhook.ok, true);
+    assert.match(webhook.receipt.path, /^receipts\/webhooks\/webhook-/);
+    const pendingRun = await get("/api/runs/pending");
+    assert.equal(pendingRun.pending.source, "webhook");
+    assert.equal(pendingRun.pending.receiptPath, webhook.receipt.path);
 
     console.log("API integration tests passed");
   } finally {

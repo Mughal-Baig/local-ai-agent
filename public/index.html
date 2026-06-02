@@ -138,6 +138,20 @@
                 <option value="override:4">Deep 4</option>
               </select>
             </label>
+            <label class="ct-item"><span>Budget</span>
+              <select id="budgetProfileSelect" class="step-budget-select" aria-label="Budget profile">
+                <option value="tight">Tight</option>
+                <option value="standard" selected>Standard</option>
+                <option value="deep">Deep</option>
+              </select>
+            </label>
+            <label class="ct-item"><span>Route</span>
+              <select id="routingModeSelect" class="step-budget-select" aria-label="Model routing">
+                <option value="auto" selected>Auto</option>
+                <option value="manual">Manual</option>
+                <option value="speculative">Verify</option>
+              </select>
+            </label>
             <button id="planButton" class="ghost-btn" type="button">Plan first</button>
             <button id="screenshotAction" class="ghost-btn icon-ghost" type="button" title="Turn an attached screenshot into an action plan" aria-label="Screenshot to action plan">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg>
@@ -247,6 +261,14 @@
           </div>
           <div id="observabilitySummary" class="observability-summary"></div>
           <div id="traceTimeline" class="trace-timeline mini-list"></div>
+        </section>
+
+        <section class="panel usage-panel" aria-label="Usage accounting">
+          <div class="panel-heading">
+            <h2>Usage</h2>
+            <button id="refreshUsage" class="icon-button" title="Refresh usage accounting" aria-label="Refresh usage accounting"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg></button>
+          </div>
+          <div id="usageSummary" class="mini-list"></div>
         </section>
 
         <section class="panel privacy-panel" aria-label="Privacy controls">

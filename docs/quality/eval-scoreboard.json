@@ -1,10 +1,17 @@
 {
   "schema": "agenttrail.eval-scoreboard.v1",
   "total": {
-    "passed": 187,
-    "checks": 187
+    "passed": 195,
+    "checks": 195
   },
   "categories": [
+    {
+      "category": "accounting-routing",
+      "passed": 7,
+      "total": 7,
+      "failed": [],
+      "score": 100
+    },
     {
       "category": "advanced-agent",
       "passed": 5,
@@ -56,8 +63,8 @@
     },
     {
       "category": "foundation",
-      "passed": 28,
-      "total": 28,
+      "passed": 29,
+      "total": 29,
       "failed": [],
       "score": 100
     },

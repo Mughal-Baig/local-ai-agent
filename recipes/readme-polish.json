@@ -3,5 +3,6 @@
   "title": "README Polish",
   "description": "Improve selected README content for clarity, first-run success, and GitHub conversion.",
   "tags": ["readme", "growth", "docs"],
+  "defaultModel": "mistral",
   "prompt": "Improve the selected README content. Focus on the first 30 seconds: value proposition, screenshot/demo, quick start, trust signals, comparison, and contribution path. Return a revised outline and exact copy improvements."
 }

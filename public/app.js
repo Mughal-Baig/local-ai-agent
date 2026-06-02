@@ -27,6 +27,7 @@ const state = {
   marketplace: null,
   searchIndex: null,
   observability: null,
+  usageDashboard: null,
   privacy: null,
   resilience: null,
   configAdmin: null,
@@ -55,6 +56,9 @@ const state = {
   securityMode: true,
   models: [],
   model: "",
+  activeRecipeId: null,
+  budgetProfile: "standard",
+  routingMode: "auto",
   trail: [],
   toolCount: 0,
   ollamaAvailable: false,
@@ -87,6 +91,7 @@ const MAX_ATTACHMENT_COUNT = 12;
 const TEXT_ATTACHMENT_MAX_BYTES = 76 * 1024;
 const IMAGE_ATTACHMENT_MAX_BYTES = 2 * 1024 * 1024;
 const AUDIO_ATTACHMENT_MAX_BYTES = 8 * 1024 * 1024;
+const AUTO_MODEL_VALUE = "__auto__";
 
 const els = {
   connectionStatus: document.querySelector("#connectionStatus"),
@@ -163,6 +168,8 @@ const els = {
   planPanel: document.querySelector("#planPanel"),
   planText: document.querySelector("#planText"),
   stepBudgetSelect: document.querySelector("#stepBudgetSelect"),
+  budgetProfileSelect: document.querySelector("#budgetProfileSelect"),
+  routingModeSelect: document.querySelector("#routingModeSelect"),
   planButton: document.querySelector("#planButton"),
   screenshotAction: document.querySelector("#screenshotAction"),
   stopButton: document.querySelector("#stopButton"),
@@ -217,6 +224,8 @@ const els = {
   refreshObservability: document.querySelector("#refreshObservability"),
   observabilitySummary: document.querySelector("#observabilitySummary"),
   traceTimeline: document.querySelector("#traceTimeline"),
+  refreshUsage: document.querySelector("#refreshUsage"),
+  usageSummary: document.querySelector("#usageSummary"),
   refreshPrivacy: document.querySelector("#refreshPrivacy"),
   localAnalyticsToggle: document.querySelector("#localAnalyticsToggle"),
   applyRetention: document.querySelector("#applyRetention"),
@@ -257,6 +266,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     refreshMarketplace(),
     refreshSearchIndex(),
     refreshObservability(),
+    refreshUsage(),
     refreshPrivacy(),
     refreshConfigAdmin(),
     refreshOnboarding(),
@@ -514,6 +524,12 @@ function bindEvents() {
   els.useRecipe.addEventListener("click", applySelectedRecipe);
   els.recipeSelect.addEventListener("change", updateRecipeHint);
   els.stepBudgetSelect.addEventListener("change", updateStepBudget);
+  if (els.budgetProfileSelect) {
+    els.budgetProfileSelect.addEventListener("change", updateBudgetProfile);
+  }
+  if (els.routingModeSelect) {
+    els.routingModeSelect.addEventListener("change", updateRoutingMode);
+  }
   els.planButton.addEventListener("click", generatePlan);
   if (els.screenshotAction) {
     els.screenshotAction.addEventListener("click", () => generateScreenshotActionPlan());
@@ -601,6 +617,9 @@ function bindEvents() {
   });
   if (els.refreshObservability) {
     els.refreshObservability.addEventListener("click", refreshObservability);
+  }
+  if (els.refreshUsage) {
+    els.refreshUsage.addEventListener("click", refreshUsage);
   }
   if (els.refreshPrivacy) {
     els.refreshPrivacy.addEventListener("click", refreshPrivacy);
@@ -1935,7 +1954,8 @@ function updateRecipeHint() {
 
   const tags = recipe.tags && recipe.tags.length ? ` Tags: ${recipe.tags.join(", ")}.` : "";
   const typed = recipe.structuredOutput ? ` Typed JSON: ${recipe.structuredOutput.schemaId || "custom schema"}.` : "";
-  els.recipeHint.textContent = `${recipe.description}${typed}${tags}`;
+  const model = recipe.defaultModel ? ` Model hint: ${recipe.defaultModel}.` : "";
+  els.recipeHint.textContent = `${recipe.description}${typed}${tags}${model}`;
 }
 
 async function applySelectedRecipe() {
@@ -1949,6 +1969,24 @@ async function applySelectedRecipe() {
   }
 
   els.prompt.value = recipe.prompt;
+  state.activeRecipeId = recipe.id;
+  const modelOptions = [...els.modelSelect.options].map((option) => option.value);
+  if (recipe.defaultModel && modelOptions.includes(recipe.defaultModel)) {
+    state.model = recipe.defaultModel;
+    els.modelSelect.value = recipe.defaultModel;
+    addTrail("model", `Recipe default model ${recipe.defaultModel}`);
+  } else if (recipe.defaultModel) {
+    state.model = AUTO_MODEL_VALUE;
+    els.modelSelect.value = AUTO_MODEL_VALUE;
+    if (els.routingModeSelect) {
+      state.routingMode = "auto";
+      els.routingModeSelect.value = "auto";
+    }
+    addTrail("model", `${recipe.defaultModel} unavailable; using Auto route`);
+  } else if (els.modelSelect.value === "") {
+    state.model = AUTO_MODEL_VALUE;
+    els.modelSelect.value = AUTO_MODEL_VALUE;
+  }
   resizePrompt();
   els.prompt.focus();
   addTrail("recipe", recipe.structuredOutput ? `Loaded typed recipe ${recipe.title}` : `Loaded ${recipe.title}`);
@@ -2106,17 +2144,18 @@ async function refreshStatus() {
 
 function renderModels(defaultModel) {
   const models = state.models.length ? state.models.map((model) => model.name) : [defaultModel || "llama3.2"];
+  const modelOptions = [AUTO_MODEL_VALUE, ...models];
   els.modelSelect.innerHTML = "";
 
-  for (const model of models) {
+  for (const model of modelOptions) {
     const option = document.createElement("option");
     option.value = model;
-    option.textContent = model;
+    option.textContent = model === AUTO_MODEL_VALUE ? "Auto route" : model;
     els.modelSelect.appendChild(option);
   }
 
-  if (!state.model || !models.includes(state.model)) {
-    state.model = pickRecommendedModel(models);
+  if (!state.model || !modelOptions.includes(state.model)) {
+    state.model = AUTO_MODEL_VALUE;
     const meta = state.models.find((model) => model.name === state.model);
     if (meta && meta.scores) {
       addTrail("model", `Auto-selected ${state.model} (best for ${meta.recommendation || "general use"})`);
@@ -2294,6 +2333,7 @@ function startNewChat(options = {}) {
     events: []
   }];
   state.activeConversationId = null;
+  state.activeRecipeId = null;
   state.editingMessageIndex = null;
   setConversationMetadataInputs(null);
   renderComposerMode();
@@ -2325,6 +2365,7 @@ function openToolsDrawer(options = {}) {
   refreshConfigAdmin();
   refreshOnboarding();
   refreshObservability();
+  refreshUsage();
   refreshPrivacy();
   refreshTeam();
   if (options && options.focusAccess) {
@@ -2691,6 +2732,45 @@ function renderObservability() {
       </div>
     `;
   }).join("");
+}
+
+async function refreshUsage() {
+  if (!els.usageSummary) {
+    return;
+  }
+  try {
+    const data = await getJson("/api/accounting/usage?limit=12");
+    state.usageDashboard = data;
+    renderUsageDashboard();
+  } catch (error) {
+    els.usageSummary.innerHTML = `<div class="mini-row muted">${escapeHtml(error.message)}</div>`;
+  }
+}
+
+function renderUsageDashboard() {
+  if (!els.usageSummary) {
+    return;
+  }
+  const data = state.usageDashboard;
+  if (!data || !data.totals || !data.totals.count) {
+    els.usageSummary.innerHTML = `<div class="mini-row muted">Usage appears after the first chat run.</div>`;
+    return;
+  }
+  const totals = data.totals || {};
+  const topModel = (data.byModel || [])[0];
+  const topRecipe = (data.byRecipe || []).find((item) => item.key !== "none") || (data.byRecipe || [])[0];
+  const recent = (data.recent || [])[0];
+  const rows = [
+    ["Runs", `${totals.count} run(s) · ${totals.totalTokens} tokens`],
+    ["Speed", `${totals.avgTokensPerSecond || 0} tok/s avg · ${formatDuration(totals.avgDurationMs || 0)} avg`],
+    ["First token", totals.avgTimeToFirstTokenMs === null || totals.avgTimeToFirstTokenMs === undefined ? "No streamed tokens yet" : `${formatDuration(totals.avgTimeToFirstTokenMs)} avg`],
+    ["Top model", topModel ? `${topModel.key} · ${topModel.totalTokens} tokens` : "No model data"],
+    ["Top recipe", topRecipe ? `${topRecipe.key} · ${topRecipe.count} run(s)` : "No recipe data"],
+    ["Latest", recent ? `${recent.taskType || "chat"} · ${recent.status || "done"} · ${formatDuration(recent.durationMs || 0)} · ${recent.timeToFirstTokenMs === null || recent.timeToFirstTokenMs === undefined ? "no TTFT" : `${formatDuration(recent.timeToFirstTokenMs)} TTFT`}` : "No recent run"]
+  ];
+  els.usageSummary.innerHTML = rows
+    .map(([key, value]) => `<div class="mini-row"><strong>${escapeHtml(key)}</strong><span>${escapeHtml(value)}</span></div>`)
+    .join("");
 }
 
 async function refreshPrivacy() {
@@ -3484,6 +3564,16 @@ function updateStepBudget() {
   addTrail("budget", `${override ? "Deep override" : "Step budget"} set to ${maxSteps}`);
 }
 
+function updateBudgetProfile() {
+  state.budgetProfile = els.budgetProfileSelect ? els.budgetProfileSelect.value || "standard" : "standard";
+  addTrail("budget", `Budget profile ${state.budgetProfile}`);
+}
+
+function updateRoutingMode() {
+  state.routingMode = els.routingModeSelect ? els.routingModeSelect.value || "auto" : "auto";
+  addTrail("model", `Routing mode ${state.routingMode}`);
+}
+
 function stopCurrentRun() {
   if (!state.busy || !state.chatAbortController || state.cancelRequested) {
     return;
@@ -3705,8 +3795,14 @@ async function runChatTurn({ content, historyMessages, replaceFromIndex = null, 
         permissions: state.permissions,
         securityMode: state.securityMode,
         teamUserId: state.teamUserId,
+        recipeId: state.activeRecipeId,
         approvedPlan,
-        stepBudget: state.stepBudget
+        stepBudget: state.stepBudget,
+        budgetCaps: { profile: state.budgetProfile },
+        routing: {
+          auto: state.model === AUTO_MODEL_VALUE || state.routingMode !== "manual",
+          strategy: state.routingMode === "speculative" ? "speculative" : "auto"
+        }
       }),
       signal: state.chatAbortController.signal
     });
@@ -3732,6 +3828,14 @@ async function runChatTurn({ content, historyMessages, replaceFromIndex = null, 
           label
         });
         addTrail("run", label);
+      }
+      if (eventName === "routing") {
+        const label = `${data.strategy || "auto"} · ${data.taskType || "chat"} · ${data.model || "model"}`;
+        assistantMessage.events.push({
+          type: "trace",
+          label: `Route ${label}`
+        });
+        addTrail("model", `Route ${label}`);
       }
       if (eventName === "token") {
         assistantMessage.content += data.text || "";
@@ -3767,8 +3871,17 @@ async function runChatTurn({ content, historyMessages, replaceFromIndex = null, 
             label: `Step budget reached (${data.maxSteps})`
           });
           addTrail("budget", `Step budget reached (${data.maxSteps})`);
-        } else {
+        } else if (data.severity && data.severity !== "ok") {
+          const label = `${data.severity === "hard" ? "Hard" : "Soft"} budget: ${data.prompt || "limit reached"}`;
+          assistantMessage.events.push({
+            type: data.severity === "hard" ? "error" : "trace",
+            label
+          });
+          addTrail("budget", label);
+        } else if (data.maxSteps) {
           addTrail("budget", `Run budget ${data.maxSteps} step(s)${data.override ? " with override" : ""}`);
+        } else if (data.caps) {
+          addTrail("budget", `${data.caps.profile || "standard"} budget ok`);
         }
       }
       if (eventName === "vision") {
@@ -3790,6 +3903,24 @@ async function runChatTurn({ content, historyMessages, replaceFromIndex = null, 
           label
         });
         addTrail("reflection", label);
+      }
+      if (eventName === "verification") {
+        const label = `Verify ${data.verdict || "review"} · ${data.verifyModel || "model"}`;
+        assistantMessage.events.push({
+          type: data.ok ? "reflection" : "error",
+          label
+        });
+        addTrail("reflection", label);
+      }
+      if (eventName === "accounting") {
+        const ttft = data.timeToFirstTokenMs === null || data.timeToFirstTokenMs === undefined ? "" : ` · ${formatDuration(data.timeToFirstTokenMs)} TTFT`;
+        const label = `${Number(data.totalTokens || 0)} tokens · ${formatDuration(data.durationMs || 0)}${ttft} · ${data.model || "model"}`;
+        assistantMessage.events.push({
+          type: "trace",
+          label: `Usage ${label}`
+        });
+        state.usageDashboard = null;
+        addTrail("usage", label);
       }
       if (eventName === "guardrail") {
         assistantMessage.events.push({
@@ -3875,6 +4006,7 @@ async function runChatTurn({ content, historyMessages, replaceFromIndex = null, 
     await refreshFiles();
     await refreshReceipts();
     await refreshObservability();
+    await refreshUsage();
   }
 }
 
@@ -4892,6 +5024,12 @@ function updateSendState() {
     els.voicePrompt.disabled = (state.busy || state.planning) && !state.voiceRecording.active;
   }
   els.stepBudgetSelect.disabled = state.busy || state.planning;
+  if (els.budgetProfileSelect) {
+    els.budgetProfileSelect.disabled = state.busy || state.planning;
+  }
+  if (els.routingModeSelect) {
+    els.routingModeSelect.disabled = state.busy || state.planning;
+  }
   els.stopButton.disabled = !state.busy || state.cancelRequested;
   els.approvePlan.disabled = state.busy || state.planning || !els.planText.value.trim();
 }

@@ -13,6 +13,7 @@ const SITE_DOCS = [
   ["BACKEND_SETUP.md", "Backend Setup", "Configure Ollama, LM Studio, llama.cpp, vLLM, and OpenAI-compatible local servers.", ["models", "backend", "runtime"]],
   ["MODEL_ECOSYSTEM.md", "Model Ecosystem", "LoRA adapters, fine-tuning launchers, quantization, GGUF conversion, and per-task evals.", ["models", "lora", "evaluation"]],
   ["ADVANCED_AGENT.md", "Advanced Agent", "Multi-agent plans, scheduled runs, journals, sub-agent budgets, and deterministic replay diffs.", ["agents", "schedules", "replay"]],
+  ["ACCOUNTING_ROUTING.md", "Accounting and routing", "Local token/time accounting, budget caps, automatic model routing, and draft-then-verify flows.", ["usage", "budget", "routing"]],
   ["ARCHITECTURE.md", "Architecture", "How the local agent layer, tools, memory, receipts, and security fit together.", ["architecture", "security", "local-first"]],
   ["API_REFERENCE.md", "API Reference", "Generated route and OpenAI-compatible API reference.", ["api", "routes", "openapi"]],
   ["TROUBLESHOOTING.md", "Troubleshooting And FAQ", "Fix Ollama, model, file, receipt, performance, and CI issues.", ["faq", "help", "debugging"]],
