@@ -3,7 +3,7 @@
   "dataLicense": "CC0-1.0",
   "SPDXID": "SPDXRef-DOCUMENT",
   "name": "AgentTrail 0.7.0",
-  "documentNamespace": "https://github.com/Mughal-Baig/local-ai-agent/sbom/v0.7.0/d3f8e8246c9e2cd7",
+  "documentNamespace": "https://github.com/Mughal-Baig/local-ai-agent/sbom/v0.7.0/73dcb6285d3b7743",
   "creationInfo": {
     "created": "2026-05-31T00:00:00Z",
     "creators": [
@@ -23,11 +23,11 @@
       "checksums": [
         {
           "algorithm": "SHA256",
-          "checksumValue": "d3f8e8246c9e2cd7aca8356b2e063b0422e0f601ef23abac6d9528a9431e74c3"
+          "checksumValue": "73dcb6285d3b7743383c0ce519ceaa91e205aa8d338eeb17031f3b91efa87a62"
         }
       ],
       "packageVerificationCode": {
-        "packageVerificationCodeValue": "a61242f8fb8a0c5e1b423d58ea1cb67fe0340342d6a53353c4f3202f198c1609"
+        "packageVerificationCodeValue": "c2086726756a2a04a51c3a063651bff629f5d15af2f20835ba3f4a6ba46f7fe4"
       }
     }
   ],
@@ -266,7 +266,7 @@
       "checksums": [
         {
           "algorithm": "SHA256",
-          "checksumValue": "a50846a9dcf979a72ef56f026ff3e8e07661eee6e7327797ff475901e36e3749"
+          "checksumValue": "485927be830cb7e901fe11948776207a8e1fb96338e29706acb05dfbdf598759"
         }
       ],
       "licenseConcluded": "NOASSERTION",
@@ -458,7 +458,7 @@
       "checksums": [
         {
           "algorithm": "SHA256",
-          "checksumValue": "8a92acce896757701d901242a013d1e892abbb6b1dae9fd63a6bc63aa715eb19"
+          "checksumValue": "e2ecfee0c1615459e51f67a493d3baa86c72ec56c174e98a40d200ca43de82be"
         }
       ],
       "licenseConcluded": "NOASSERTION",
@@ -494,7 +494,7 @@
       "checksums": [
         {
           "algorithm": "SHA256",
-          "checksumValue": "c2ae757360ca49eab7166cceb9a771bcec7bf28fd4824b08bfc5f63627e6d67d"
+          "checksumValue": "29ec8567f8451bb2022bf23682e89835de3de3a4f32fcae7b2213358ea8081e3"
         }
       ],
       "licenseConcluded": "NOASSERTION",
@@ -758,7 +758,7 @@
       "checksums": [
         {
           "algorithm": "SHA256",
-          "checksumValue": "dd682ff4c57fdbaa6e474ac8dff8bc2a7f0265b1b103a0f5faf7ecfeaa6abc3a"
+          "checksumValue": "2003676842a9b5119acb85983398a9ba7a35c5f1e0f916e17eb939bfc19b762f"
         }
       ],
       "licenseConcluded": "NOASSERTION",
@@ -1166,7 +1166,7 @@
       "checksums": [
         {
           "algorithm": "SHA256",
-          "checksumValue": "b8d4efd2420d3cc342fcde7f98c4f39f07c24e53d7360ba3b6a6d7f0205b9bd7"
+          "checksumValue": "644a99c3bd953050fe408d139ce077d8aff68e7364fa4b6365574019b3f5e209"
         }
       ],
       "licenseConcluded": "NOASSERTION",
@@ -1454,7 +1454,7 @@
       "checksums": [
         {
           "algorithm": "SHA256",
-          "checksumValue": "4d90d46cca094e6e4c4cd570737c42b74785ddc6e1b1544874e8cf5cd56cb14c"
+          "checksumValue": "dfb53345ff25ea23c1e113f68f3e9204af36beaeb9d8d9b5e4b0c0b53c2c78a9"
         }
       ],
       "licenseConcluded": "NOASSERTION",
@@ -1562,7 +1562,7 @@
       "checksums": [
         {
           "algorithm": "SHA256",
-          "checksumValue": "513d4b6ef4b1065a3dccbf86c99a6ab11f2b860c11a3d56e89463655183ea954"
+          "checksumValue": "1ac715dd7616d05406ee7a98b028eae28f0af87a66f7d3fcd409cab58bb64097"
         }
       ],
       "licenseConcluded": "NOASSERTION",
@@ -2114,7 +2114,7 @@
       "checksums": [
         {
           "algorithm": "SHA256",
-          "checksumValue": "a63b7199bdf4f1bb4c11ebd3ee70d20ecb3620a737a9eade90337971d4ca2cd7"
+          "checksumValue": "368ad4de6735fd66cde240750743ede1d45e96d404db503ca239306b98b2d833"
         }
       ],
       "licenseConcluded": "NOASSERTION",
@@ -2337,6 +2337,18 @@
       "copyrightText": "NOASSERTION"
     },
     {
+      "fileName": "./scripts/validate-bundled-runtime.js",
+      "SPDXID": "SPDXRef-File-scripts-validate-bundled-runtime.js",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "44fea2d0006439a0d85dd95c96f794b3646ffb3c74c7b2b1d1be6d057c83ff0c"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
       "fileName": "./scripts/verify-checksums.js",
       "SPDXID": "SPDXRef-File-scripts-verify-checksums.js",
       "checksums": [
@@ -2402,7 +2414,7 @@
       "checksums": [
         {
           "algorithm": "SHA256",
-          "checksumValue": "baeed538ca49f3d4051f86573ef57afa33307ab575d1fe978ef485fae255e1fe"
+          "checksumValue": "2644c7c7bf440dea657d70a9847789c167aab78b67394abb480454037b22bd78"
         }
       ],
       "licenseConcluded": "NOASSERTION",
@@ -2426,7 +2438,7 @@
       "checksums": [
         {
           "algorithm": "SHA256",
-          "checksumValue": "09e632bebb11866331e47f32abf56c9809aed79b37fc8d302994961eb6dc67a4"
+          "checksumValue": "35841bd0be69267a906c9e97bb53045428b1564c9670f47434d37cdca49e7572"
         }
       ],
       "licenseConcluded": "NOASSERTION",
@@ -2786,7 +2798,7 @@
       "checksums": [
         {
           "algorithm": "SHA256",
-          "checksumValue": "29ffa343c671223e0dd2cf23a711624ca9a0aff02e1f9a7cf68ff6f50d41220a"
+          "checksumValue": "6ec6baf44024edf34111ba6bb039f97d838b12869d1c582b56ca12e9762cb436"
         }
       ],
       "licenseConcluded": "NOASSERTION",
@@ -2894,7 +2906,7 @@
       "checksums": [
         {
           "algorithm": "SHA256",
-          "checksumValue": "00aff04e42a0ba20923a054ba142bca0c6c2c1c05e4022d45aaaefdaae29aae0"
+          "checksumValue": "2f581089ab70184b1afcc412a1a5546ead5e2077afe04a952b544a26d3b0c630"
         }
       ],
       "licenseConcluded": "NOASSERTION",
@@ -3009,12 +3021,24 @@
       "copyrightText": "NOASSERTION"
     },
     {
+      "fileName": "./tests/integration/bundled-runtime-validation.test.js",
+      "SPDXID": "SPDXRef-File-tests-integration-bundled-runtime-validation.test.js",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "b52865eb26184a22a87874fa61dd541bf5831c7fcd811045c79b07f0b2929801"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "copyrightText": "NOASSERTION"
+    },
+    {
       "fileName": "./tests/integration/bundled-runtime.test.js",
       "SPDXID": "SPDXRef-File-tests-integration-bundled-runtime.test.js",
       "checksums": [
         {
           "algorithm": "SHA256",
-          "checksumValue": "56d47ebd6c6e0b5a06c7521b3cc2d58e2228d12f1b465510b1407deec5af1ad6"
+          "checksumValue": "55402f323ee7e149e73b24116bb3b2f2ad48fb0d7838ce6e3eac0857aaa8f315"
         }
       ],
       "licenseConcluded": "NOASSERTION",
@@ -3050,7 +3074,7 @@
       "checksums": [
         {
           "algorithm": "SHA256",
-          "checksumValue": "5a287f3543c7fba53173763aef72b880f80c08d5708ccbe7ee4137dd659c4a31"
+          "checksumValue": "4b0bac1655a9588ae3872c5d946addeee398cb3a0ef7f8acf4a16fb47c38ce20"
         }
       ],
       "licenseConcluded": "NOASSERTION",
@@ -3542,7 +3566,7 @@
       "checksums": [
         {
           "algorithm": "SHA256",
-          "checksumValue": "edb7d964eb75e1426b9281d84c141408a0e4004a411d4b42185c3d02aa34a885"
+          "checksumValue": "d493c63b2554f0d7a555bd5711df826f2b387d7d3073ccf83e826262a58eda12"
         }
       ],
       "licenseConcluded": "NOASSERTION",
@@ -3722,7 +3746,7 @@
       "checksums": [
         {
           "algorithm": "SHA256",
-          "checksumValue": "deed5fdc0b9f17d424129455c06939bbdefc9993e12374e9334a2186f8662f61"
+          "checksumValue": "1edfcec337f26a779e0aa38106bffc8e304c13c275acb9c0a66170ed0e9d513a"
         }
       ],
       "licenseConcluded": "NOASSERTION",
@@ -4770,6 +4794,11 @@
     {
       "spdxElementId": "SPDXRef-Package-AgentTrail",
       "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-scripts-validate-bundled-runtime.js"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
       "relatedSpdxElement": "SPDXRef-File-scripts-verify-checksums.js"
     },
     {
@@ -5046,6 +5075,11 @@
       "spdxElementId": "SPDXRef-Package-AgentTrail",
       "relationshipType": "CONTAINS",
       "relatedSpdxElement": "SPDXRef-File-tests-integration-audio-transcription.test.js"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-AgentTrail",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-tests-integration-bundled-runtime-validation.test.js"
     },
     {
       "spdxElementId": "SPDXRef-Package-AgentTrail",

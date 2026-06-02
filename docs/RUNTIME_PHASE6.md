@@ -5,9 +5,9 @@
 ## What exists now (the seam)
 - `GET /api/runtime` reports the active backend, bundled runtime provider, optional module resolution, GGUF model path, model readiness, context size, selected acceleration backend, GPU-layer offload policy, CPU SIMD hint, and thread tuning.
 - `AGENTTRAIL_MODEL_ADAPTER=bundled` is a first-class backend adapter. It stays off by default, requires an explicit local `.gguf` file, and loads either `node-llama-cpp` or a compatible provider module from `AGENTTRAIL_BUNDLED_RUNTIME_MODULE`.
-- AgentTrail's internal adapter contract can stream completions and return embeddings through the bundled provider. CI proves this with `tests/fixtures/mock-bundled-runtime.js` and `npm run test:bundled` so the server path is real without bundling native binaries.
+- AgentTrail's internal adapter contract can stream completions and return embeddings through the bundled provider. CI proves this with `tests/fixtures/mock-bundled-runtime.js` and `npm run test:bundled` so the server path is real without bundling native binaries. `npm run validate:bundled-runtime` is the explicit in-process validation command for a configured local GGUF provider.
 - `src/runtime-hardware.js` covers Epic Q policy: Metal on Apple Silicon, CUDA/ROCm/Vulkan path detection, CPU fallback with SIMD/thread tuning, automatic backend selection, and explicit GPU-layer offload via `AGENTTRAIL_BUNDLED_GPU_LAYERS`.
-- `src/runtime-loading.js` covers Epic R policy: quantization-aware GGUF detection, KV-cache/context-shift settings, batch/micro-batch settings, mmap/mlock flags, multi-GPU split config, and the `bench:runtime` comparison harness.
+- `src/runtime-loading.js` covers Epic R policy: quantization-aware GGUF detection, KV-cache/context-shift settings, shared-prefix prefill reuse, speculative decoding policy, batch/micro-batch settings, mmap/mlock flags, multi-GPU split config, and the `bench:runtime` comparison harness.
 - `src/model-registry.js` covers Epic S distribution: resumable/checksummed pulls, Hugging Face/OCI reference parsing, Modelfile-style derived models, local model library metadata/tags, create/cp/show/share operations, and checksum/signature provenance verification.
 - `src/model-ecosystem.js` covers Epic AC ecosystem helpers: LoRA adapter manifests, fine-tuning launch delegation, quantization wrappers, safetensors-to-GGUF conversion plans, and per-task model evaluation.
 - Default behavior is unchanged: Ollama or any OpenAI-compatible server.
@@ -26,6 +26,8 @@ Prefer an **optional `node-llama-cpp`** dependency over spawning `llama-server`:
 - `AGENTTRAIL_BUNDLED_QUANTIZATION=Q4_K_M|Q5_K_M|Q8_0|...` overrides filename-based quantization detection.
 - `AGENTTRAIL_KV_CACHE_TYPE=f16|q8_0|...`, `AGENTTRAIL_CONTEXT_SHIFT=auto|on|off`, and `AGENTTRAIL_CONTEXT_SHIFT_TOKENS=N` control KV-cache/context-shift policy.
 - `AGENTTRAIL_BUNDLED_BATCH_SIZE=N`, `AGENTTRAIL_BUNDLED_UBATCH_SIZE=N`, and `AGENTTRAIL_BUNDLED_PARALLEL_SEQUENCES=N` control batching policy.
+- `AGENTTRAIL_PREFILL_REUSE=on|off`, `AGENTTRAIL_PREFILL_PREFIX_CHARS=N`, and `AGENTTRAIL_PREFILL_MIN_SHARED_CHARS=N` control shared-prefix prefill reuse for compatible bundled providers.
+- `AGENTTRAIL_SPECULATIVE_DECODING=off|ngram-simple|ngram-cache|ngram-map-k|draft-simple`, `AGENTTRAIL_SPECULATIVE_DRAFT_TOKENS=N`, `AGENTTRAIL_SPECULATIVE_NGRAM_SIZE=N`, and `AGENTTRAIL_DRAFT_GGUF_MODEL=path/to/draft.gguf` describe speculative decoding policy for compatible bundled providers.
 - `AGENTTRAIL_BUNDLED_MMAP=true|false` and `AGENTTRAIL_BUNDLED_MLOCK=true|false` control memory-mapped model loading policy.
 - `AGENTTRAIL_GPU_DEVICES=0,1`, `AGENTTRAIL_TENSOR_SPLIT=0.5,0.5`, `AGENTTRAIL_GPU_SPLIT_MODE=layer|row`, and `AGENTTRAIL_MAIN_GPU=N` describe multi-GPU sharding for compatible providers.
 - `npm run bench:runtime` compares bundled runtime tokens/sec against Ollama when both are configured with the same model.
@@ -42,5 +44,7 @@ Prefer an **optional `node-llama-cpp`** dependency over spawning `llama-server`:
 - `AGENTTRAIL_CONVERT_COMMAND` delegates safetensors-to-GGUF conversion to a local converter such as `convert-hf-to-gguf.py`.
 - `/api/model-ecosystem/*` stores auditable manifests and defaults to dry-run planning until `dryRun=false`.
 
-## Still open (the moonshot)
-Real-hardware validation for `node-llama-cpp` and production GGUF load testing still require native toolchains and real hardware.
+## Validation
+Run `npm run test:bundled` for the CI-safe in-process provider contract. Run `npm run validate:bundled-runtime` after setting `AGENTTRAIL_MODEL_ADAPTER=bundled`, installing `node-llama-cpp` or pointing `AGENTTRAIL_BUNDLED_RUNTIME_MODULE` at a compatible provider, and setting `AGENTTRAIL_GGUF_MODEL` to a readable local `.gguf`.
+
+The validation command performs one local completion, confirms streaming chunks were produced, and confirms bundled embeddings return a vector. No native binaries or model weights are bundled by default.

@@ -3,6 +3,7 @@
 const fs = require("node:fs");
 const fsp = require("node:fs/promises");
 const path = require("node:path");
+const crypto = require("node:crypto");
 const { pathToFileURL } = require("node:url");
 const { detectRuntimeHardware } = require("./runtime-hardware");
 const { runtimeLoadingConfig } = require("./runtime-loading");
@@ -17,7 +18,9 @@ const RUNTIME_STATE = {
   loadedModelPath: null,
   model: null,
   context: null,
-  session: null
+  session: null,
+  promptCompletionEngine: null,
+  prefillCache: null
 };
 
 function bundledRuntimeConfig(env = process.env, projectRoot = process.cwd(), requestedModel = "") {
@@ -41,6 +44,8 @@ function bundledRuntimeConfig(env = process.env, projectRoot = process.cwd(), re
     threads: hardware.threading.effective,
     batchSize: loading.batching.batchSize,
     embeddingModelPath: resolveBundledModelPath(env.AGENTTRAIL_BUNDLED_EMBED_MODEL || "", projectRoot),
+    prefill: loading.prefill,
+    speculative: loading.speculative,
     hardware,
     loading
   };
@@ -103,6 +108,12 @@ async function generateBundledText({ env = process.env, projectRoot = process.cw
   }
 
   const runtime = await loadRuntimeModule(config.module, projectRoot);
+  const prefillState = await maybePreloadWithProvider(runtime, config, prompt, options);
+  config.prefillState = prefillState;
+  if (config.speculative && config.speculative.enabled && typeof runtime.generateSpeculative === "function") {
+    const result = await runtime.generateSpeculative({ config, model, prompt, options, onToken });
+    return normalizeGeneratedText(result, onToken);
+  }
   if (typeof runtime.generate === "function") {
     const result = await runtime.generate({ config, model, prompt, options, onToken });
     return normalizeGeneratedText(result, onToken);
@@ -138,9 +149,12 @@ async function generateWithNodeLlamaCpp(runtime, config, prompt, options, onToke
   }
 
   const { session } = await getNodeLlamaSession(getLlama, LlamaChatSession, config);
+  const prefillState = await maybePreloadNodeLlamaSession(session, config, prompt, options);
+  config.prefillState = prefillState;
   const chunks = [];
   const response = await session.prompt(String(prompt || ""), {
     temperature: options.temperature,
+    maxTokens: options.num_predict || options.maxTokens,
     signal: options.signal,
     onTextChunk(chunk) {
       const text = String(chunk || "");
@@ -191,6 +205,9 @@ async function getNodeLlamaSession(getLlama, LlamaChatSession, config) {
   const context = await model.createContext(contextOptions);
   const sequence = typeof context.getSequence === "function" ? context.getSequence() : context;
   const session = new LlamaChatSession({ contextSequence: sequence });
+  const promptCompletionEngine = typeof session.createPromptCompletionEngine === "function"
+    ? session.createPromptCompletionEngine()
+    : null;
 
   RUNTIME_STATE.sessionKey = sessionKey;
   RUNTIME_STATE.loadedModelPath = config.modelPath;
@@ -198,7 +215,98 @@ async function getNodeLlamaSession(getLlama, LlamaChatSession, config) {
   RUNTIME_STATE.model = model;
   RUNTIME_STATE.context = context;
   RUNTIME_STATE.session = session;
+  RUNTIME_STATE.promptCompletionEngine = promptCompletionEngine;
   return RUNTIME_STATE;
+}
+
+async function maybePreloadWithProvider(runtime, config, prompt, options = {}) {
+  const state = buildPrefillState(config, prompt);
+  if (!state.enabled || typeof runtime.preload !== "function") {
+    rememberPrefillState(state);
+    return state;
+  }
+  await runtime.preload({ config, prompt, options, prefill: state });
+  state.preloaded = true;
+  rememberPrefillState(state);
+  return state;
+}
+
+async function maybePreloadNodeLlamaSession(session, config, prompt, options = {}) {
+  const state = buildPrefillState(config, prompt);
+  if (!state.enabled || typeof session.preloadPrompt !== "function") {
+    rememberPrefillState(state);
+    return state;
+  }
+  const shouldPreload = state.hit || state.prefixChars >= state.minSharedChars;
+  if (!shouldPreload) {
+    rememberPrefillState(state);
+    return state;
+  }
+  await session.preloadPrompt(state.prefix, {
+    signal: options.signal
+  });
+  state.preloaded = true;
+  rememberPrefillState(state);
+  return state;
+}
+
+function buildPrefillState(config, prompt) {
+  const policy = config.prefill || (config.loading && config.loading.prefill) || {};
+  const enabled = policy.enabled === true;
+  const prefix = enabled ? sharedPrefixCandidate(prompt, policy.prefixChars) : "";
+  const hash = prefix ? hashText(prefix) : "";
+  const previous = RUNTIME_STATE.prefillCache;
+  const commonChars = previous && previous.prefix ? commonPrefixLength(previous.prefix, prefix) : 0;
+  const minSharedChars = Math.max(1, Number(policy.minSharedChars || 1200));
+  return {
+    schema: "agenttrail.prefill-state.v1",
+    enabled,
+    strategy: policy.strategy || "shared-prefix-preload",
+    prefixChars: prefix.length,
+    minSharedChars,
+    hash,
+    hit: Boolean(previous && (previous.hash === hash || commonChars >= minSharedChars)),
+    commonChars,
+    preloaded: false,
+    prefix
+  };
+}
+
+function rememberPrefillState(state) {
+  if (!state || !state.enabled || !state.prefix) return;
+  RUNTIME_STATE.prefillCache = {
+    hash: state.hash,
+    prefix: state.prefix,
+    prefixChars: state.prefixChars,
+    updatedAt: Date.now()
+  };
+}
+
+function sharedPrefixCandidate(prompt, maxChars = 12000) {
+  const text = String(prompt || "");
+  const limit = Math.max(1, Number(maxChars || 12000));
+  const markers = ["\nConversation:", "\nNext response:"];
+  const markerIndex = markers
+    .map((marker) => text.indexOf(marker))
+    .filter((index) => index >= 0)
+    .sort((a, b) => a - b)[0];
+  const end = Number.isInteger(markerIndex) ? markerIndex : Math.min(text.length, limit);
+  return text.slice(0, Math.min(end, limit));
+}
+
+function hashText(text) {
+  return crypto.createHash("sha256").update(String(text || "")).digest("hex");
+}
+
+function commonPrefixLength(a, b) {
+  const left = String(a || "");
+  const right = String(b || "");
+  const max = Math.min(left.length, right.length);
+  let index = 0;
+  while (index < max && left.charCodeAt(index) === right.charCodeAt(index)) {
+    index += 1;
+  }
+  return index;
 }
 
 async function loadRuntimeModule(moduleId, projectRoot) {

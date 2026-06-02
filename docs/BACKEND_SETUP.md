@@ -99,7 +99,9 @@ AGENTTRAIL_BUNDLED_RUNTIME_MODULE=node-llama-cpp \
 npm run dev
 ```
 
-See [RUNTIME_PHASE6.md](RUNTIME_PHASE6.md) for hardware, quantization, KV cache, mmap, and registry details.
+Run `npm run validate:bundled-runtime` with the same environment to verify local completion streaming and embeddings before using it for longer sessions.
+
+See [RUNTIME_PHASE6.md](RUNTIME_PHASE6.md) for hardware, quantization, KV cache, prefill reuse, speculative decoding, mmap, and registry details.
 
 ## Backend Readiness Checklist
 

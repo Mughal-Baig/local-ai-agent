@@ -37,6 +37,10 @@ async function main() {
       AGENTTRAIL_BUNDLED_THREADS: "6",
       AGENTTRAIL_BUNDLED_BATCH_SIZE: "256",
       AGENTTRAIL_CONTEXT_SHIFT_TOKENS: "512",
+      AGENTTRAIL_BUNDLED_PREFILL_REUSE: "on",
+      AGENTTRAIL_BUNDLED_PREFILL_MIN_SHARED_CHARS: "12",
+      AGENTTRAIL_BUNDLED_SPECULATIVE: "ngram-simple",
+      AGENTTRAIL_BUNDLED_SPECULATIVE_DRAFT_TOKENS: "24",
       AGENTTRAIL_BUNDLED_MMAP: "on",
       AGENTTRAIL_CACHE: "off",
       AGENTTRAIL_NATIVE_TOOLS: "off"
@@ -63,6 +67,10 @@ async function main() {
     assert.equal(runtime.bundledRuntime.loading.quantization.value, "Q4_K_M");
     assert.equal(runtime.bundledRuntime.loading.batching.batchSize, 256);
     assert.equal(runtime.bundledRuntime.loading.kvCache.shiftTokens, 512);
+    assert.equal(runtime.bundledRuntime.loading.prefill.enabled, true);
+    assert.equal(runtime.bundledRuntime.loading.speculative.enabled, true);
+    assert.equal(runtime.bundledRuntime.loading.speculative.type, "ngram-simple");
+    assert.equal(runtime.bundledRuntime.loading.speculative.draftTokens, 24);
     assert.equal(runtime.bundledRuntime.loading.mmap.enabled, true);
 
     const status = await getJson("/api/status");
@@ -80,7 +88,7 @@ async function main() {
     assert.deepEqual(embedding.data[0].embedding.slice(0, 3), [0.11, 0.22, 0.33]);
 
     const text = await streamChat("mock-gguf", "Say the bundled phrase.");
-    assert.match(text, /bundled runtime ok/);
+    assert.match(text, /speculative bundled runtime ok/);
 
     const structured = await postJson("/api/structured-output", {
       model: "mock-gguf",

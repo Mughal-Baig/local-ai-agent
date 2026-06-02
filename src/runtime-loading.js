@@ -21,6 +21,8 @@ function runtimeLoadingConfig(env = process.env, projectRoot = process.cwd(), mo
   const contextSize = positiveNumber(firstEnvValue(env, ["AGENTTRAIL_BUNDLED_CONTEXT_SIZE", "OLLAMA_NUM_CTX"]), 8192);
   const quantization = detectModelQuantization(modelPath, env);
   const kvCache = resolveKvCachePolicy(env, contextSize, quantization);
+  const prefill = resolvePrefillPolicy(env, contextSize);
+  const speculative = resolveSpeculativePolicy(env, projectRoot);
   const batching = resolveBatchPolicy(env, hardware);
   const memoryMap = resolveMmapPolicy(env);
   const sharding = resolveShardingPolicy(env, hardware);
@@ -31,6 +33,8 @@ function runtimeLoadingConfig(env = process.env, projectRoot = process.cwd(), mo
     quantization,
     contextSize,
     kvCache,
+    prefill,
+    speculative,
     batching,
     mmap: memoryMap,
     sharding,
@@ -44,7 +48,9 @@ function runtimeLoadingConfig(env = process.env, projectRoot = process.cwd(), mo
       useMlock: memoryMap.mlock,
       splitMode: sharding.splitMode,
       tensorSplit: sharding.tensorSplit,
-      mainGpu: sharding.mainGpu
+      mainGpu: sharding.mainGpu,
+      prefill,
+      speculative
     }
   };
 }
@@ -83,6 +89,50 @@ function resolveKvCachePolicy(env, contextSize, quantization) {
     reason: shiftEnabled
       ? `Context shifting enabled with ${shiftTokens} token window.`
       : "Context shifting disabled for this runtime config."
+  };
+}
+
+function resolvePrefillPolicy(env, contextSize) {
+  const mode = normalizeMode(firstEnvValue(env, ["AGENTTRAIL_PREFILL_REUSE", "AGENTTRAIL_BUNDLED_PREFILL_REUSE"]) || "on", ["on", "off"]);
+  const prefixChars = positiveNumber(firstEnvValue(env, ["AGENTTRAIL_PREFILL_PREFIX_CHARS", "AGENTTRAIL_BUNDLED_PREFILL_PREFIX_CHARS"]), Math.min(24000, Math.max(4096, contextSize * 3)));
+  const minSharedChars = positiveNumber(firstEnvValue(env, ["AGENTTRAIL_PREFILL_MIN_SHARED_CHARS", "AGENTTRAIL_BUNDLED_PREFILL_MIN_SHARED_CHARS"]), 1200);
+  return {
+    enabled: mode === "on",
+    mode,
+    strategy: "shared-prefix-preload",
+    prefixChars,
+    minSharedChars,
+    reason: mode === "on"
+      ? "Shared prompt prefixes are cached and preloaded when the bundled provider supports it."
+      : "Shared prompt prefix reuse is disabled by config."
+  };
+}
+
+function resolveSpeculativePolicy(env, projectRoot = process.cwd()) {
+  const rawMode = String(firstEnvValue(env, ["AGENTTRAIL_SPECULATIVE_DECODING", "AGENTTRAIL_BUNDLED_SPECULATIVE"]) || "off").trim().toLowerCase();
+  const enabled = !["", "0", "false", "no", "off", "none"].includes(rawMode);
+  const draftModelPath = resolveRuntimePath(firstEnvValue(env, ["AGENTTRAIL_DRAFT_GGUF_MODEL", "AGENTTRAIL_BUNDLED_DRAFT_MODEL"]), projectRoot);
+  const requestedType = firstEnvValue(env, ["AGENTTRAIL_SPECULATIVE_TYPE", "AGENTTRAIL_BUNDLED_SPECULATIVE_TYPE"]);
+  const type = normalizeSpeculativeType(requestedType || (enabled && draftModelPath ? "draft-simple" : enabled ? rawMode : "none"));
+  const draftTokens = positiveNumber(firstEnvValue(env, ["AGENTTRAIL_SPECULATIVE_DRAFT_TOKENS", "AGENTTRAIL_BUNDLED_SPECULATIVE_DRAFT_TOKENS"]), 32);
+  const ngramSize = positiveNumber(firstEnvValue(env, ["AGENTTRAIL_SPECULATIVE_NGRAM_SIZE", "AGENTTRAIL_BUNDLED_SPECULATIVE_NGRAM_SIZE"]), 12);
+  return {
+    enabled,
+    type: enabled ? type : "none",
+    draftModelPath: enabled ? draftModelPath : "",
+    draftTokens,
+    ngramSize,
+    provider: enabled ? "bundled-runtime" : "disabled",
+    reason: enabled
+      ? speculativeReason(type, draftModelPath)
+      : "Speculative decoding is disabled by config.",
+    loadOptions: {
+      enabled,
+      type: enabled ? type : "none",
+      draftModelPath: enabled ? draftModelPath : "",
+      draftTokens,
+      ngramSize
+    }
   };
 }
 
@@ -212,10 +262,48 @@ function normalizeMode(value, allowed) {
   return allowed.includes(normalized) ? normalized : allowed[0];
 }
 
+function normalizeSpeculativeType(value) {
+  const normalized = String(value || "").trim().toLowerCase();
+  const aliases = {
+    on: "ngram-simple",
+    true: "ngram-simple",
+    "1": "ngram-simple",
+    draft: "draft-simple",
+    ngram: "ngram-simple",
+    "ngram-map": "ngram-map-k"
+  };
+  const candidate = aliases[normalized] || normalized;
+  return [
+    "draft-simple",
+    "draft-mtp",
+    "ngram-cache",
+    "ngram-simple",
+    "ngram-map-k",
+    "ngram-map-k4v"
+  ].includes(candidate) ? candidate : "ngram-simple";
+}
+
+function speculativeReason(type, draftModelPath) {
+  if (type.startsWith("draft")) {
+    return draftModelPath
+      ? "Draft-model speculative decoding is requested for a compatible bundled runtime."
+      : "Draft-model speculative decoding is requested; set AGENTTRAIL_DRAFT_GGUF_MODEL for runtimes that require a separate draft model.";
+  }
+  return "N-gram/self speculative decoding is requested for a compatible bundled runtime.";
+}
+
+function resolveRuntimePath(value, projectRoot) {
+  const raw = String(value || "").trim();
+  if (!raw) return "";
+  return path.isAbsolute(raw) ? raw : path.resolve(projectRoot, raw);
+}
+
 module.exports = {
   runtimeLoadingConfig,
   detectModelQuantization,
   resolveKvCachePolicy,
+  resolvePrefillPolicy,
+  resolveSpeculativePolicy,
   resolveBatchPolicy,
   resolveMmapPolicy,
   resolveShardingPolicy,

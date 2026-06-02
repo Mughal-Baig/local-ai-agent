@@ -47,6 +47,7 @@ jobs:
       - run: node --check src/bundled-runtime.js
       - run: node --check scripts/load-test.js
       - run: node --check scripts/benchmark-runtime.js
+      - run: node --check scripts/validate-bundled-runtime.js
       - run: node --check scripts/generate-sbom.js
       - run: node --check scripts/sign-checksums.js
       - run: node --check scripts/verify-checksums.js
@@ -104,6 +105,7 @@ jobs:
       - run: node --check tests/integration/model-options.test.js
       - run: node --check tests/integration/resources.test.js
       - run: node --check tests/integration/bundled-runtime.test.js
+      - run: node --check tests/integration/bundled-runtime-validation.test.js
       - run: node --check tests/integration/portability.test.js
       - run: node tests/unit/foundation.test.js
       - run: node tests/unit/runtime-hardware.test.js
@@ -166,6 +168,7 @@ jobs:
       - run: node tests/integration/model-options.test.js
       - run: node tests/integration/resources.test.js
       - run: node tests/integration/bundled-runtime.test.js
+      - run: node tests/integration/bundled-runtime-validation.test.js
       - run: node tests/integration/portability.test.js
       - run: node tests/integration/native-tool-calling.test.js
       - run: node tests/integration/ollama-native-tools.test.js

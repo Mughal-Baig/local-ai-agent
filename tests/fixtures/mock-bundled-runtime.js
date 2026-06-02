@@ -1,5 +1,17 @@
 "use strict";
 
+let preloadCount = 0;
+
+async function preload({ prefill }) {
+  if (!prefill || prefill.schema !== "agenttrail.prefill-state.v1") {
+    throw new Error("Mock bundled runtime expected prefill state.");
+  }
+  if (!prefill.enabled || !prefill.prefixChars) {
+    throw new Error("Mock bundled runtime expected an enabled prefill prefix.");
+  }
+  preloadCount += 1;
+}
+
 async function generate({ config, prompt, onToken }) {
   if (!config || !config.hardware || !config.hardware.selectedBackend) {
     throw new Error("Mock bundled runtime expected hardware policy in config.");
@@ -10,6 +22,24 @@ async function generate({ config, prompt, onToken }) {
   const text = JSON.stringify(prompt || "").includes("JSON Schema")
     ? JSON.stringify({ tasks: [{ title: "Ship bundled runtime", priority: "high" }] })
     : "bundled runtime ok";
+  for (const token of text.split(/(\s+)/)) {
+    if (token && typeof onToken === "function") {
+      onToken(token);
+    }
+  }
+  return { text, streamed: true };
+}
+
+async function generateSpeculative({ config, prompt, onToken }) {
+  if (!config.speculative || !config.speculative.enabled) {
+    throw new Error("Mock bundled runtime expected speculative policy.");
+  }
+  if (!config.prefillState || !config.prefillState.enabled || preloadCount < 1) {
+    throw new Error("Mock bundled runtime expected prefill before speculative generation.");
+  }
+  const text = JSON.stringify(prompt || "").includes("JSON Schema")
+    ? JSON.stringify({ tasks: [{ title: "Ship bundled runtime", priority: "high" }] })
+    : "speculative bundled runtime ok";
   for (const token of text.split(/(\s+)/)) {
     if (token && typeof onToken === "function") {
       onToken(token);
@@ -30,6 +60,8 @@ async function embed({ config, input }) {
 }
 
 module.exports = {
+  preload,
   generate,
+  generateSpeculative,
   embed
 };

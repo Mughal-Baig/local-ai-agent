@@ -55,7 +55,12 @@ AGENTTRAIL_GGUF_MODEL=/absolute/path/to/model.gguf \
 node server.js
 ```
 
-Useful knobs: `AGENTTRAIL_BUNDLED_MODEL_NAME`, `AGENTTRAIL_BUNDLED_CONTEXT_SIZE`, `AGENTTRAIL_ACCELERATION_BACKEND`, `AGENTTRAIL_BUNDLED_GPU_LAYERS`, `AGENTTRAIL_BUNDLED_THREADS`, `AGENTTRAIL_CPU_SIMD`, `AGENTTRAIL_BUNDLED_QUANTIZATION`, `AGENTTRAIL_KV_CACHE_TYPE`, `AGENTTRAIL_CONTEXT_SHIFT`, `AGENTTRAIL_BUNDLED_BATCH_SIZE`, `AGENTTRAIL_BUNDLED_MMAP`, `AGENTTRAIL_TENSOR_SPLIT`, `AGENTTRAIL_CUDA_PATH`, `AGENTTRAIL_ROCM_PATH`, `AGENTTRAIL_VULKAN_PATH`, and `AGENTTRAIL_BUNDLED_RUNTIME_MODULE`.
+Useful knobs: `AGENTTRAIL_BUNDLED_MODEL_NAME`, `AGENTTRAIL_BUNDLED_CONTEXT_SIZE`, `AGENTTRAIL_ACCELERATION_BACKEND`, `AGENTTRAIL_BUNDLED_GPU_LAYERS`, `AGENTTRAIL_BUNDLED_THREADS`, `AGENTTRAIL_CPU_SIMD`, `AGENTTRAIL_BUNDLED_QUANTIZATION`, `AGENTTRAIL_KV_CACHE_TYPE`, `AGENTTRAIL_CONTEXT_SHIFT`, `AGENTTRAIL_PREFILL_REUSE`, `AGENTTRAIL_SPECULATIVE_DECODING`, `AGENTTRAIL_DRAFT_GGUF_MODEL`, `AGENTTRAIL_BUNDLED_BATCH_SIZE`, `AGENTTRAIL_BUNDLED_MMAP`, `AGENTTRAIL_TENSOR_SPLIT`, `AGENTTRAIL_CUDA_PATH`, `AGENTTRAIL_ROCM_PATH`, `AGENTTRAIL_VULKAN_PATH`, and `AGENTTRAIL_BUNDLED_RUNTIME_MODULE`.
+
+Validate a configured in-process runtime before using it as the app backend:
+```bash
+npm run validate:bundled-runtime
+```
 
 When the server starts it prints the active backend, e.g.:
 ```
@@ -75,7 +80,7 @@ A single dispatcher routes the three model primitives to the active backend:
 - **Vision capability detection** — `/api/status` scores model names for image readiness, and `/api/models/vision-capability?model=...&refresh=1` can probe a backend with a tiny local image payload.
 - **Model listing** — `fetchOllamaModels()` → Ollama `/api/tags` or OpenAI `/v1/models`.
 - **Embeddings** — `fetchOllamaEmbedding()` → Ollama `/api/embed` or OpenAI `/v1/embeddings`, with a local-vector fallback when no embedding model is available.
-- **Bundled runtime** — `AGENTTRAIL_MODEL_ADAPTER=bundled` loads the optional provider contract from `src/bundled-runtime.js`; it can stream completions and embeddings from a local GGUF runtime when the optional module and model path are present. `src/runtime-hardware.js` supplies acceleration policy, while `src/runtime-loading.js` supplies quantization, KV-cache/context shift, batching, mmap/mlock, multi-GPU split, and benchmark policy for compatible providers.
+- **Bundled runtime** — `AGENTTRAIL_MODEL_ADAPTER=bundled` loads the optional provider contract from `src/bundled-runtime.js`; it can stream completions and embeddings from a local GGUF runtime when the optional module and model path are present. `src/runtime-hardware.js` supplies acceleration policy, while `src/runtime-loading.js` supplies quantization, KV-cache/context shift, shared-prefix prefill reuse, speculative decoding policy, batching, mmap/mlock, multi-GPU split, and benchmark policy for compatible providers.
 - **Bundled model registry** — `/api/model-registry/*` and `src/model-registry.js` provide resumable/checksummed GGUF pulls, Hugging Face/OCI reference parsing, Modelfile-style create/copy/show/share, local metadata/tags, and provenance verification.
 - **Model ecosystem** — `/api/model-ecosystem/*` and `src/model-ecosystem.js` add LoRA adapter manifests, fine-tuning launch records, quantization command plans, safetensors-to-GGUF conversion helpers, and per-task model evaluation scores. See [MODEL_ECOSYSTEM.md](MODEL_ECOSYSTEM.md).
 - **Agent-as-API** — AgentTrail also serves its own `/v1/chat/completions`, `/v1/models`, and `/v1/embeddings` facade so OpenAI-compatible clients can call the auditable local agent layer directly. The served API has optional API-key auth, local rate limiting, request queue headers, streaming SSE, and `/v1/openapi.json`.

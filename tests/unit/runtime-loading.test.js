@@ -7,6 +7,8 @@ const {
   runtimeLoadingConfig,
   detectModelQuantization,
   resolveKvCachePolicy,
+  resolvePrefillPolicy,
+  resolveSpeculativePolicy,
   resolveBatchPolicy,
   resolveMmapPolicy,
   resolveShardingPolicy,
@@ -33,6 +35,20 @@ async function main() {
   assert.equal(kv.type, "q8_0");
   assert.equal(kv.shiftEnabled, true);
   assert.equal(kv.shiftTokens, 1024);
+
+  const prefill = resolvePrefillPolicy({ AGENTTRAIL_PREFILL_MIN_SHARED_CHARS: "512" }, 8192);
+  assert.equal(prefill.enabled, true);
+  assert.equal(prefill.strategy, "shared-prefix-preload");
+  assert.equal(prefill.minSharedChars, 512);
+
+  const speculative = resolveSpeculativePolicy({
+    AGENTTRAIL_SPECULATIVE_DECODING: "on",
+    AGENTTRAIL_SPECULATIVE_TYPE: "ngram-map",
+    AGENTTRAIL_SPECULATIVE_DRAFT_TOKENS: "48"
+  }, process.cwd());
+  assert.equal(speculative.enabled, true);
+  assert.equal(speculative.type, "ngram-map-k");
+  assert.equal(speculative.draftTokens, 48);
 
   const batch = resolveBatchPolicy({
     AGENTTRAIL_BUNDLED_BATCH_SIZE: "384",
@@ -66,6 +82,8 @@ async function main() {
   assert.equal(loading.contextSize, 12000);
   assert.equal(loading.quantization.value, "Q5");
   assert.equal(loading.batching.batchSize, 512);
+  assert.equal(loading.prefill.enabled, true);
+  assert.equal(loading.speculative.enabled, false);
   assert.equal(loading.mmap.enabled, true);
   assert.equal(loading.benchmark.targetTokens, 64);
   assert.equal(loading.loadOptions.useMmap, true);

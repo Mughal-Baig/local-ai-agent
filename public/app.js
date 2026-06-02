@@ -2404,6 +2404,7 @@ async function refreshResources() {
       if (rt.bundledRuntime.loading) {
         const load = rt.bundledRuntime.loading;
         rows.push(["Model load", `${load.quantization.value} · mmap ${load.mmap.enabled ? "on" : "off"} · batch ${load.batching.batchSize}`]);
+        rows.push(["Runtime speed", `prefill ${load.prefill && load.prefill.enabled ? "on" : "off"} · speculative ${load.speculative && load.speculative.enabled ? load.speculative.type : "off"}`]);
       }
     }
     els.resourcesSummary.innerHTML = rows

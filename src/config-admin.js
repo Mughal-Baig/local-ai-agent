@@ -29,6 +29,9 @@ const CONFIG_SETTINGS = [
   { key: "OLLAMA_MODEL", group: "model", label: "Default model", type: "text", defaultValue: "llama3.2" },
   { key: "OLLAMA_EMBED_MODEL", group: "model", label: "Embedding model", type: "text", defaultValue: "nomic-embed-text" },
   { key: "OLLAMA_KEEP_ALIVE", group: "model", label: "Idle unload policy", type: "text", defaultValue: "5m", description: "Ollama keep_alive value; use 0 for unload after each request or a duration like 5m to keep models warm." },
+  { key: "AGENTTRAIL_PREFILL_REUSE", group: "model", label: "Prefill reuse", type: "select", defaultValue: "on", options: ["on", "off"], description: "Reuse shared prompt prefixes through bundled-runtime preloading when the provider supports it." },
+  { key: "AGENTTRAIL_SPECULATIVE_DECODING", group: "model", label: "Speculative decoding", type: "select", defaultValue: "off", options: ["off", "ngram-simple", "ngram-cache", "ngram-map-k", "draft-simple"], description: "Request bundled-runtime speculative decoding; draft-simple can use AGENTTRAIL_DRAFT_GGUF_MODEL." },
+  { key: "AGENTTRAIL_DRAFT_GGUF_MODEL", group: "model", label: "Draft GGUF model", type: "text", defaultValue: "", description: "Optional local GGUF draft model path for draft-model speculative decoding." },
   { key: "AGENTTRAIL_NATIVE_TOOLS", group: "model", label: "Native tool calls", type: "select", defaultValue: "on", options: ["on", "off"] },
 
   { key: "AGENTTRAIL_CACHE", group: "cache", label: "Response cache", type: "select", defaultValue: "on", options: ["on", "off"] },
