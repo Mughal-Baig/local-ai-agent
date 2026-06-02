@@ -10,8 +10,6 @@ const os = require("node:os");
 const path = require("node:path");
 
 const projectRoot = path.resolve(__dirname, "..", "..");
-const agentPort = 4800 + Math.floor(Math.random() * 200);
-const mockPort = 5000 + Math.floor(Math.random() * 200);
 
 main().catch((error) => {
   console.error(error);
@@ -20,7 +18,9 @@ main().catch((error) => {
 
 async function main() {
   const state = { requests: [] };
-  const mock = startMockOpenAI(mockPort, state);
+  const mock = await startMockOpenAI(state);
+  const mockPort = mock.address().port;
+  const agentPort = await reservePort();
   const workspaceRoot = await fsp.mkdtemp(path.join(os.tmpdir(), "agenttrail-vision-"));
   await fsp.mkdir(path.join(workspaceRoot, "images"), { recursive: true });
   await fsp.writeFile(path.join(workspaceRoot, "images", "scan.png"), Buffer.from("tiny fake png bytes"));
@@ -62,12 +62,12 @@ async function main() {
     console.log("Vision input integration test passed");
   } finally {
     child.kill("SIGTERM");
-    mock.close();
+    await closeServer(mock);
     await fsp.rm(workspaceRoot, { recursive: true, force: true });
   }
 }
 
-function startMockOpenAI(port, state) {
+function startMockOpenAI(state) {
   const server = http.createServer(async (req, res) => {
     if (req.method === "GET" && req.url.startsWith("/v1/models")) {
       return json(res, { object: "list", data: [{ id: "vision-model", object: "model" }] });
@@ -87,8 +87,37 @@ function startMockOpenAI(port, state) {
     }
     json(res, { error: "not found" }, 404);
   });
-  server.listen(port, "127.0.0.1");
-  return server;
+  return listen(server, 0);
+}
+
+async function reservePort() {
+  const server = http.createServer();
+  await listen(server, 0);
+  const { port } = server.address();
+  await closeServer(server);
+  return port;
+}
+
+function listen(server, port) {
+  return new Promise((resolve, reject) => {
+    const onError = (error) => {
+      server.off("listening", onListening);
+      reject(error);
+    };
+    const onListening = () => {
+      server.off("error", onError);
+      resolve(server);
+    };
+    server.once("error", onError);
+    server.once("listening", onListening);
+    server.listen(port, "127.0.0.1");
+  });
+}
+
+function closeServer(server) {
+  return new Promise((resolve, reject) => {
+    server.close((error) => error ? reject(error) : resolve());
+  });
 }
 
 async function streamChat(port) {
