@@ -3,13 +3,14 @@
 "use strict";
 
 const assert = require("node:assert/strict");
+const http = require("node:http");
 const { spawn } = require("node:child_process");
 const fsp = require("node:fs/promises");
 const os = require("node:os");
 const path = require("node:path");
 
 const projectRoot = path.resolve(__dirname, "..", "..");
-const agentPort = 5980 + Math.floor(Math.random() * 120);
+let agentPort;
 
 main().catch((error) => {
   console.error(error);
@@ -17,6 +18,7 @@ main().catch((error) => {
 });
 
 async function main() {
+  agentPort = await reservePort();
   const workspaceRoot = await fsp.mkdtemp(path.join(os.tmpdir(), "agenttrail-advanced-agent-api-"));
   const child = spawn(process.execPath, ["server.js"], {
     cwd: projectRoot,
@@ -124,7 +126,7 @@ async function postJson(route, body) {
 async function waitForServer(getOutput) {
   for (let i = 0; i < 80; i += 1) {
     try {
-      const response = await fetch(`http://127.0.0.1:${agentPort}/api/health`);
+      const response = await fetch(`http://127.0.0.1:${agentPort}/api/advanced-agent`);
       if (response.ok) return;
     } catch {
       // wait
@@ -132,4 +134,34 @@ async function waitForServer(getOutput) {
     await new Promise((resolve) => setTimeout(resolve, 100));
   }
   throw new Error(`Server did not start. Output:\n${getOutput()}`);
+}
+
+async function reservePort() {
+  const server = http.createServer();
+  await listen(server, 0);
+  const { port } = server.address();
+  await closeServer(server);
+  return port;
+}
+
+function listen(server, port) {
+  return new Promise((resolve, reject) => {
+    const onError = (error) => {
+      server.off("listening", onListening);
+      reject(error);
+    };
+    const onListening = () => {
+      server.off("error", onError);
+      resolve(server);
+    };
+    server.once("error", onError);
+    server.once("listening", onListening);
+    server.listen(port, "127.0.0.1");
+  });
+}
+
+function closeServer(server) {
+  return new Promise((resolve, reject) => {
+    server.close((error) => error ? reject(error) : resolve());
+  });
 }
