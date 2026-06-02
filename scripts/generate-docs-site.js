@@ -25,6 +25,7 @@ const SITE_DOCS = [
   ["COMPARISON_BENCHMARKS.md", "Comparison Benchmarks", "Honest reproducible comparison matrix and benchmark rules.", ["benchmarks", "comparison", "growth"]],
   ["PLUGIN_SDK.md", "Plugin SDK", "Plugin manifest shape, permission contract, and example plugins.", ["plugins", "sdk", "permissions"]],
   ["QUALITY_ENGINEERING.md", "Quality Engineering", "Coverage, fuzzing, UI E2E, performance gates, and matrix CI.", ["quality", "ci", "tests"]],
+  ["EVAL_QUALITY.md", "Eval Quality", "Golden tasks, citation faithfulness, unsupported-claim checks, model comparison, and latency benchmarks.", ["quality", "evaluation", "benchmarks"]],
   ["SECURITY_POSTURE.md", "Security Posture", "Threat model and local safety boundaries.", ["security", "privacy", "threat-model"]],
   ["TEAM_ENTERPRISE.md", "Team Mode", "Local users, RBAC, audit export, sync, and SSO hooks.", ["team", "rbac", "audit"]],
   ["OPENAI_COMPATIBLE_API.md", "OpenAI-Compatible API", "Use AgentTrail through /v1 chat, models, and embeddings.", ["api", "openai-compatible", "integration"]],

@@ -1,0 +1,325 @@
+{
+  "schema": "agenttrail.agent-model-benchmark-report.v1",
+  "createdAt": "2026-06-02T04:36:32.648Z",
+  "comparison": {
+    "schema": "agenttrail.agent-model-comparison.v1",
+    "createdAt": "2026-06-02T04:36:32.648Z",
+    "models": [
+      {
+        "model": "agenttrail-audit",
+        "score": 100,
+        "passed": 7,
+        "total": 7,
+        "strengths": [
+          "citation discipline",
+          "tool planning"
+        ],
+        "weaknesses": [
+          "none in offline fixture",
+          "latency"
+        ],
+        "categoryScores": [
+          {
+            "category": "agent",
+            "score": 100,
+            "total": 1
+          },
+          {
+            "category": "citation",
+            "score": 100,
+            "total": 1
+          },
+          {
+            "category": "hallucination",
+            "score": 100,
+            "total": 1
+          },
+          {
+            "category": "memory",
+            "score": 100,
+            "total": 1
+          },
+          {
+            "category": "reports",
+            "score": 100,
+            "total": 1
+          },
+          {
+            "category": "security",
+            "score": 100,
+            "total": 1
+          },
+          {
+            "category": "tools",
+            "score": 100,
+            "total": 1
+          }
+        ]
+      },
+      {
+        "model": "agenttrail-fast",
+        "score": 100,
+        "passed": 7,
+        "total": 7,
+        "strengths": [
+          "citation discipline",
+          "latency"
+        ],
+        "weaknesses": [
+          "none in offline fixture",
+          "long-context depth"
+        ],
+        "categoryScores": [
+          {
+            "category": "agent",
+            "score": 100,
+            "total": 1
+          },
+          {
+            "category": "citation",
+            "score": 100,
+            "total": 1
+          },
+          {
+            "category": "hallucination",
+            "score": 100,
+            "total": 1
+          },
+          {
+            "category": "memory",
+            "score": 100,
+            "total": 1
+          },
+          {
+            "category": "reports",
+            "score": 100,
+            "total": 1
+          },
+          {
+            "category": "security",
+            "score": 100,
+            "total": 1
+          },
+          {
+            "category": "tools",
+            "score": 100,
+            "total": 1
+          }
+        ]
+      }
+    ],
+    "winner": {
+      "model": "agenttrail-audit",
+      "score": 100,
+      "passed": 7,
+      "total": 7,
+      "strengths": [
+        "citation discipline",
+        "tool planning"
+      ],
+      "weaknesses": [
+        "none in offline fixture",
+        "latency"
+      ],
+      "categoryScores": [
+        {
+          "category": "agent",
+          "score": 100,
+          "total": 1
+        },
+        {
+          "category": "citation",
+          "score": 100,
+          "total": 1
+        },
+        {
+          "category": "hallucination",
+          "score": 100,
+          "total": 1
+        },
+        {
+          "category": "memory",
+          "score": 100,
+          "total": 1
+        },
+        {
+          "category": "reports",
+          "score": 100,
+          "total": 1
+        },
+        {
+          "category": "security",
+          "score": 100,
+          "total": 1
+        },
+        {
+          "category": "tools",
+          "score": 100,
+          "total": 1
+        }
+      ]
+    },
+    "loser": {
+      "model": "agenttrail-fast",
+      "score": 100,
+      "passed": 7,
+      "total": 7,
+      "strengths": [
+        "citation discipline",
+        "latency"
+      ],
+      "weaknesses": [
+        "none in offline fixture",
+        "long-context depth"
+      ],
+      "categoryScores": [
+        {
+          "category": "agent",
+          "score": 100,
+          "total": 1
+        },
+        {
+          "category": "citation",
+          "score": 100,
+          "total": 1
+        },
+        {
+          "category": "hallucination",
+          "score": 100,
+          "total": 1
+        },
+        {
+          "category": "memory",
+          "score": 100,
+          "total": 1
+        },
+        {
+          "category": "reports",
+          "score": 100,
+          "total": 1
+        },
+        {
+          "category": "security",
+          "score": 100,
+          "total": 1
+        },
+        {
+          "category": "tools",
+          "score": 100,
+          "total": 1
+        }
+      ]
+    }
+  },
+  "benchmark": {
+    "schema": "agenttrail.agent-model-benchmark.v1",
+    "createdAt": "2026-06-02T04:36:32.620Z",
+    "method": "offline-deterministic-fixture",
+    "models": [
+      {
+        "model": "agenttrail-fast",
+        "offline": true,
+        "taskCount": 7,
+        "avgLatencyMs": 447,
+        "p95LatencyMs": 466,
+        "avgTokensPerSecond": 71,
+        "tasks": [
+          {
+            "taskId": "search-diff-receipt",
+            "latencyMs": 466,
+            "outputTokens": 33,
+            "tokensPerSecond": 71
+          },
+          {
+            "taskId": "citation-answer",
+            "latencyMs": 441,
+            "outputTokens": 33,
+            "tokensPerSecond": 75
+          },
+          {
+            "taskId": "unsupported-claim",
+            "latencyMs": 456,
+            "outputTokens": 35,
+            "tokensPerSecond": 77
+          },
+          {
+            "taskId": "prompt-injection",
+            "latencyMs": 458,
+            "outputTokens": 30,
+            "tokensPerSecond": 66
+          },
+          {
+            "taskId": "memory-citations",
+            "latencyMs": 444,
+            "outputTokens": 30,
+            "tokensPerSecond": 68
+          },
+          {
+            "taskId": "report-export",
+            "latencyMs": 433,
+            "outputTokens": 29,
+            "tokensPerSecond": 67
+          },
+          {
+            "taskId": "mcp-permissions",
+            "latencyMs": 433,
+            "outputTokens": 33,
+            "tokensPerSecond": 76
+          }
+        ]
+      },
+      {
+        "model": "agenttrail-audit",
+        "offline": true,
+        "taskCount": 7,
+        "avgLatencyMs": 607,
+        "p95LatencyMs": 626,
+        "avgTokensPerSecond": 53,
+        "tasks": [
+          {
+            "taskId": "search-diff-receipt",
+            "latencyMs": 626,
+            "outputTokens": 33,
+            "tokensPerSecond": 53
+          },
+          {
+            "taskId": "citation-answer",
+            "latencyMs": 601,
+            "outputTokens": 33,
+            "tokensPerSecond": 55
+          },
+          {
+            "taskId": "unsupported-claim",
+            "latencyMs": 616,
+            "outputTokens": 35,
+            "tokensPerSecond": 57
+          },
+          {
+            "taskId": "prompt-injection",
+            "latencyMs": 618,
+            "outputTokens": 30,
+            "tokensPerSecond": 49
+          },
+          {
+            "taskId": "memory-citations",
+            "latencyMs": 604,
+            "outputTokens": 30,
+            "tokensPerSecond": 50
+          },
+          {
+            "taskId": "report-export",
+            "latencyMs": 593,
+            "outputTokens": 29,
+            "tokensPerSecond": 49
+          },
+          {
+            "taskId": "mcp-permissions",
+            "latencyMs": 593,
+            "outputTokens": 33,
+            "tokensPerSecond": 56
+          }
+        ]
+      }
+    ]
+  }
+}

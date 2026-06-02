@@ -20,6 +20,7 @@ AgentTrail exposes two API layers: local app endpoints under `/api/*` and an Ope
 | planner | server.js + src/structured-output.js | `/api/agent/plan`<br>`/api/chat` |
 | tools | src/permissions.js + src/tool-schemas.js | `/api/permissions`<br>`/api/tools/schemas`<br>`/api/tools/capability`<br>`/api/mcp` |
 | models | server.js | `/api/models`<br>`/api/models/pull`<br>`/api/models/delete`<br>`/api/models/vision-capability` |
+| eval-quality | server.js + src/eval-quality.js | `/api/evals/agent-quality`<br>`/api/evals/agent-quality/history`<br>`/api/evals/agent-quality/compare`<br>`/api/benchmarks/models` |
 | model-registry | server.js + src/model-registry.js | `/api/model-registry`<br>`/api/model-registry/show`<br>`/api/model-registry/pull`<br>`/api/model-registry/import`<br>`/api/model-registry/create`<br>`/api/model-registry/cp`<br>`/api/model-registry/share` |
 | model-ecosystem | server.js + src/model-ecosystem.js | `/api/model-ecosystem`<br>`/api/model-ecosystem/adapters`<br>`/api/model-ecosystem/fine-tune`<br>`/api/model-ecosystem/quantize`<br>`/api/model-ecosystem/convert`<br>`/api/model-ecosystem/evaluate` |
 | advanced-agent | server.js + src/advanced-agent.js | `/api/advanced-agent`<br>`/api/advanced-agent/orchestrate`<br>`/api/advanced-agent/schedule`<br>`/api/advanced-agent/journal`<br>`/api/advanced-agent/journal/append`<br>`/api/advanced-agent/journal/resume`<br>`/api/advanced-agent/sub-agent`<br>`/api/advanced-agent/replay-diff` |

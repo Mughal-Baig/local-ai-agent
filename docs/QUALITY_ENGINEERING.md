@@ -8,6 +8,9 @@ Epic Z turns the existing smoke-heavy test setup into a visible quality system.
 npm run test:quality
 npm run coverage
 npm run bench:quality
+npm run eval:agent
+npm run bench:models
+npm run test:eval-quality
 npm run test:ui
 npm run eval
 ```
@@ -27,6 +30,12 @@ npm run eval
 ## Performance regression
 
 `npm run bench:quality` runs deterministic micro-benchmarks for chunking, ranking, ANN-index building, path safety, and diff generation. Budgets live in `docs/quality/performance-baseline.json` and can be tightened after collecting public CI history.
+
+## Agent eval quality
+
+`npm run eval:agent` runs the Epic AL golden task harness for agent behavior: citation faithfulness, unsupported-claim detection, correct tool selection/arguments, and regression gating with trend history in `docs/quality/agent-eval-trend.json`.
+
+`npm run bench:models` writes `docs/quality/agent-model-benchmark.json` with deterministic latency and tokens/sec estimates across the same task set. See [Eval Quality](EVAL_QUALITY.md).
 
 ## Cross-platform matrix
 

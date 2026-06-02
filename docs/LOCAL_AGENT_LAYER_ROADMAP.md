@@ -78,16 +78,17 @@ This section tracks the concrete work shipped after the roadmap was publicly ref
 | Codex Epic AJ pass | T244-T250 | Added the resilience layer: `/api/resilience`, graceful backend-down health/UI state, transient backend retry/backoff, atomic temp-file writes across local stores, corrupt search-index detection plus local-vector auto-rebuild, disk-space guards for writes/model pulls, expanded actionable error taxonomy, route/docs/eval/CI coverage, and unit/integration tests. |
 | Codex Epic AK pass | T252-T255 | Added the config/admin layer: schema-backed model/cache/budget/host settings UI, `/api/config/admin`, `/api/config/workspace`, friendly startup validation actions, per-workspace `.agenttrail/workspace-config.json` overrides, persisted first-run setup state, Setup panel wizard controls, route/docs/eval/CI coverage, and unit/integration tests. |
 | Codex T251 pass | T251 | Completed timeout/cancellation surfacing: run-level timeout controller, `run-control`/`timeout`/`cancelled` SSE events with stable codes, backend stream timeout propagation, UI/CLI timeout handling, config-admin timeout knobs, error taxonomy precedence, guardrail timeout test coverage, and docs/eval updates. |
+| Codex Epic AL pass | T256-T262 | Added the eval-quality layer: golden agent task dataset, citation-faithfulness checks, unsupported-claim detector, CI regression trend gate, A/B model comparison, tool-use correctness scoring, latency/tokens benchmarks, `/api/evals/agent-quality`, `/api/benchmarks/models`, docs, route catalog, release metadata, and unit/integration coverage. |
 
 ### Verified After These Passes
 
-- Local suites covered: `npm run test:unit`, `npm run test:desktop`, `npm run test:cli`, `npm run test:supply-chain`, `npm run test:security-privacy`, `npm run test:privacy-controls`, `npm run test:resilience`, `npm run test:config-admin`, `npm run test:hardware`, `npm run test:loading`, `npm run test:registry`, `npm run test:redact`, `npm run test:redact-api`, `npm run test:conv-export`, `npm run test:documents`, `npm run test:audio`, `npm run test:search`, `npm run test:rerank`, `npm run test:integration`, `npm run test:backend`, `npm run test:v1`, `npm run test:bundled`, `npm run test:models`, `npm run test:ecosystem`, `npm run test:advanced`, `npm run test:embed-cache`, `npm run test:resume`, `npm run test:reindex`, `npm run test:health`, `npm run test:concurrency`, `npm run test:options`, `npm run test:resources`, `npm run test:portability`, `npm run eval:search`, `npm run bench:search`, `npm run test:tools`, `npm run test:structured`, `npm run test:planner`, `npm run test:guardrails`, `npm run test:reflection`, memory integration suites, `npm run test:ui` including Epic AG access/PWA checks, `npm run test:quality`, `npm run test:docs`, `npm run test:community`, `npm run coverage`, `npm run bench:quality`, `npm test`, `npm run eval`, `npm run release:sbom`, `npm run release:homebrew`, `npm run release:reproducible`, `npm run release:checksums`, `npm run release:verify-checksums`, GitHub issue cleanup smoke coverage, and `git diff --check`.
+- Local suites covered: `npm run test:unit`, `npm run test:desktop`, `npm run test:cli`, `npm run test:supply-chain`, `npm run test:security-privacy`, `npm run test:privacy-controls`, `npm run test:resilience`, `npm run test:config-admin`, `npm run test:hardware`, `npm run test:loading`, `npm run test:registry`, `npm run test:redact`, `npm run test:redact-api`, `npm run test:conv-export`, `npm run test:documents`, `npm run test:audio`, `npm run test:search`, `npm run test:rerank`, `npm run test:integration`, `npm run test:backend`, `npm run test:v1`, `npm run test:bundled`, `npm run test:models`, `npm run test:ecosystem`, `npm run test:advanced`, `npm run test:embed-cache`, `npm run test:resume`, `npm run test:reindex`, `npm run test:health`, `npm run test:concurrency`, `npm run test:options`, `npm run test:resources`, `npm run test:portability`, `npm run eval:search`, `npm run bench:search`, `npm run eval:agent`, `npm run bench:models`, `npm run test:eval-quality`, `npm run test:tools`, `npm run test:structured`, `npm run test:planner`, `npm run test:guardrails`, `npm run test:reflection`, memory integration suites, `npm run test:ui` including Epic AG access/PWA checks, `npm run test:quality`, `npm run test:docs`, `npm run test:community`, `npm run coverage`, `npm run bench:quality`, `npm test`, `npm run eval`, `npm run release:sbom`, `npm run release:homebrew`, `npm run release:reproducible`, `npm run release:checksums`, `npm run release:verify-checksums`, GitHub issue cleanup smoke coverage, and `git diff --check`.
 - GitHub CI and GitHub Pages passed for the latest roadmap commits.
 - GitHub Actions workflows now use Node-24-ready action majors and keep `FORCE_JAVASCRIPT_ACTIONS_TO_NODE24=true`, addressing the prior Node 20 action-runtime deprecation warning.
 
 ### Best Continuation Points
 
-- T256/T257: move into Epic AL eval quality now that Phase 13 reliability/config operations are complete.
+- T263/T264: move into Epic AM accounting and routing now that Epic AL eval quality is complete.
 
 ---
 
@@ -411,16 +412,16 @@ This section tracks the concrete work shipped after the roadmap was publicly ref
 4. We expand an epic's tasks into finer sub-tasks (toward 1000) only when we start that epic — so the plan stays honest and current.
 5. We re-mark `[x]` here as we go; this file is the single source of truth for the campaign.
 
-**Next up:** Move into Epic AL evaluation quality. The new Phase 17-22 expansion below adds the public "top 1%" path without replacing any earlier phase.
+**Next up:** Move into Epic AM accounting and routing. The new Phase 17-22 expansion below adds the public "top 1%" path without replacing any earlier phase.
 
 ## Status & bug sweep (latest)
 
-- Progress: **Phase 13 is complete through T255**. Fully complete tracked items now include T201-T255; remaining Phase 1-10 work is mostly earlier partial/runtime hardening items such as T044, T090/T091, T094/T096/T098/T104, and T107/T109/T110. Phase 1 is complete; Phase 2 Epic E/F search foundation is complete except T044 as a hardening umbrella; Epic G document ingestion is complete; Phase 3 vision/audio/image generation is complete; Epic K is complete; Epic L is complete; Epic M is partially complete; Epic N/O now have cache, option passthrough, resources, runtime visibility, the AJ resilience layer, T251 timeout/cancel surfacing, and the AK config/admin layer; Phase 6 now has a first-class bundled-runtime adapter seam plus Epic Q/R/S hardware, loading, registry policy, Epic AC model ecosystem helpers, Epic AD advanced-agent manifests, Epic AE chat management, Epic AF composer editing, Epic AG access/PWA polish, Epic AH portability archives, Epic AI privacy controls, Epic AJ resilience controls, T251 run-control polish, and Epic AK config/admin controls; Epic T native desktop distribution is complete at the repo/scaffolding level; Epic U CLI parity is complete; Epic V packaging/supply-chain foundation is complete; Epic W security/privacy is complete; Epic X observability is complete; Epic Y team/enterprise is complete; Epic Z quality engineering is complete; Epic AA documentation is complete; Epic AB community/growth is complete; and the public starter issues are cleared with tests/docs.
+- Progress: **Phase 14 Epic AL is complete through T262**. Fully complete tracked items now include T201-T262; remaining Phase 1-10 work is mostly earlier partial/runtime hardening items such as T044, T090/T091, T094/T096/T098/T104, and T107/T109/T110. Phase 1 is complete; Phase 2 Epic E/F search foundation is complete except T044 as a hardening umbrella; Epic G document ingestion is complete; Phase 3 vision/audio/image generation is complete; Epic K is complete; Epic L is complete; Epic M is partially complete; Epic N/O now have cache, option passthrough, resources, runtime visibility, the AJ resilience layer, T251 timeout/cancel surfacing, and the AK config/admin layer; Phase 6 now has a first-class bundled-runtime adapter seam plus Epic Q/R/S hardware, loading, registry policy, Epic AC model ecosystem helpers, Epic AD advanced-agent manifests, Epic AE chat management, Epic AF composer editing, Epic AG access/PWA polish, Epic AH portability archives, Epic AI privacy controls, Epic AJ resilience controls, T251 run-control polish, and Epic AK config/admin controls; Epic T native desktop distribution is complete at the repo/scaffolding level; Epic U CLI parity is complete; Epic V packaging/supply-chain foundation is complete; Epic W security/privacy is complete; Epic X observability is complete; Epic Y team/enterprise is complete; Epic Z quality engineering is complete; Epic AA documentation is complete; Epic AB community/growth is complete; Epic AL eval quality is complete; and the public starter issues are cleared with tests/docs.
 - Focused test suite green: unit, resilience, config-admin, observability, team enterprise, quality engineering, docs generation, community-growth checks, model ecosystem checks, coverage gate, performance regression, UI E2E, desktop distribution, CLI integration, supply-chain, security/privacy threat-model, privacy controls, runtime hardware, runtime loading, model registry, bundled runtime, redaction, document extraction, API integration, v1 API, health, concurrency, model options, resources, portability, smoke, recipe validation, receipt metadata, repo eval, release SBOM, reproducibility, and release checksums. All touched source files pass `node --check`.
 - **Bug fixed:** `listWorkspaceFiles` only skipped `.DS_Store`, so internal `.agenttrail/*` state (logs, store, search index, pending-run) was being walked, indexed, and returned in search — adding noise and per-request churn to the index. Now excludes `.agenttrail/`. Verified against smoke, api, search-incremental, search-chunking, and eval:search.
 - Known minor item: a couple of integration tests assert relative/invariant counts (not exact) because the workspace can still gain legit files (e.g. `memory/*`) between calls — intentional, not a bug.
 
-Next code target: Epic AL eval quality. After reliability operations feel complete, prioritize T281/T288/T295 so the project has a 60-second proof loop, a low-friction install, and a guided first run.
+Next code target: Epic AM accounting and routing. After eval quality is complete, prioritize T263/T264 for visible per-chat token/time accounting and usage dashboards; keep T281/T288/T295 as public-growth follow-ups.
 
 ---
 
@@ -501,13 +502,13 @@ Open items are still marked `[ ]`; a few Phase 11/12 starter tasks are now `[x]`
 ## Phase 14 — Evaluation & quality depth
 
 ### Epic AL — Evals
-- [ ] T256 Golden-dataset eval harness for agent tasks
-- [ ] T257 Citation-faithfulness check (answer claims map to evidence)
-- [ ] T258 Hallucination / unsupported-claim detector
-- [ ] T259 Regression eval gate in CI with trend tracking
-- [ ] T260 A/B compare two models on the same task set
-- [ ] T261 Tool-use correctness eval (right tool, right args)
-- [ ] T262 Latency + tokens/sec benchmark across models (extend T058)
+- [x] T256 Golden-dataset eval harness for agent tasks (`src/eval-quality.js`, `GOLDEN_TASKS`, `npm run eval:agent`)
+- [x] T257 Citation-faithfulness check (answer claims map to evidence) (`checkCitationFaithfulness`, `[E#]` evidence mapping)
+- [x] T258 Hallucination / unsupported-claim detector (`detectUnsupportedClaims`, forbidden/risky claim flags)
+- [x] T259 Regression eval gate in CI with trend tracking (`agent-eval-trend.json`, CI `node scripts/eval-agent-tasks.js`)
+- [x] T260 A/B compare two models on the same task set (`compareModels`, `/api/evals/agent-quality/compare`)
+- [x] T261 Tool-use correctness eval (right tool, right args) (`evaluateToolUseCorrectness`)
+- [x] T262 Latency + tokens/sec benchmark across models (extend T058) (`npm run bench:models`, `/api/benchmarks/models`)
 
 ## Phase 15 — Cost, usage & smart routing
 

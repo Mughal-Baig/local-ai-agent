@@ -41,6 +41,7 @@ jobs:
       - run: node --check src/model-registry.js
       - run: node --check src/model-ecosystem.js
       - run: node --check src/advanced-agent.js
+      - run: node --check src/eval-quality.js
       - run: node --check src/desktop-notifications.js
       - run: node --check src/bundled-runtime.js
       - run: node --check scripts/load-test.js
@@ -51,6 +52,8 @@ jobs:
       - run: node --check scripts/reproducible-build.js
       - run: node --check scripts/coverage-report.js
       - run: node --check scripts/performance-regression.js
+      - run: node --check scripts/eval-agent-tasks.js
+      - run: node --check scripts/benchmark-agent-models.js
       - run: node --check scripts/generate-docs-site.js
       - run: node --check scripts/generate-api-reference.js
       - run: node --check scripts/update-homebrew-formula.js
@@ -75,6 +78,7 @@ jobs:
       - run: node --check tests/unit/config-admin.test.js
       - run: node --check tests/unit/team-enterprise.test.js
       - run: node --check tests/unit/quality-engineering.test.js
+      - run: node --check tests/unit/eval-quality.test.js
       - run: node --check tests/unit/workspace-safety-fuzz.test.js
       - run: node --check tests/unit/docs.test.js
       - run: node --check tests/unit/community-growth.test.js
@@ -92,6 +96,7 @@ jobs:
       - run: node --check tests/integration/health.test.js
       - run: node --check tests/integration/resilience.test.js
       - run: node --check tests/integration/config-admin.test.js
+      - run: node --check tests/integration/eval-quality.test.js
       - run: node --check tests/integration/concurrency.test.js
       - run: node --check tests/integration/model-options.test.js
       - run: node --check tests/integration/resources.test.js
@@ -144,11 +149,14 @@ jobs:
       - run: node scripts/benchmark-search.js
       - run: node scripts/coverage-report.js
       - run: node scripts/performance-regression.js
+      - run: node scripts/eval-agent-tasks.js
+      - run: node scripts/benchmark-agent-models.js
       - run: node tests/integration/resumable-run.test.js
       - run: node tests/integration/search-incremental.test.js
       - run: node tests/integration/health.test.js
       - run: node tests/integration/resilience.test.js
       - run: node tests/integration/config-admin.test.js
+      - run: node tests/integration/eval-quality.test.js
       - run: node tests/integration/concurrency.test.js
       - run: node tests/integration/model-options.test.js
       - run: node tests/integration/resources.test.js

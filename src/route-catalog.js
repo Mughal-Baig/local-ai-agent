@@ -13,6 +13,7 @@ const ROUTE_CATALOG = [
   { area: "planner", module: "server.js + src/structured-output.js", routes: ["/api/agent/plan", "/api/chat"] },
   { area: "tools", module: "src/permissions.js + src/tool-schemas.js", routes: ["/api/permissions", "/api/tools/schemas", "/api/tools/capability", "/api/mcp"] },
   { area: "models", module: "server.js", routes: ["/api/models", "/api/models/pull", "/api/models/delete", "/api/models/vision-capability"] },
+  { area: "eval-quality", module: "server.js + src/eval-quality.js", routes: ["/api/evals/agent-quality", "/api/evals/agent-quality/history", "/api/evals/agent-quality/compare", "/api/benchmarks/models"] },
   { area: "model-registry", module: "server.js + src/model-registry.js", routes: ["/api/model-registry", "/api/model-registry/show", "/api/model-registry/pull", "/api/model-registry/import", "/api/model-registry/create", "/api/model-registry/cp", "/api/model-registry/share"] },
   { area: "model-ecosystem", module: "server.js + src/model-ecosystem.js", routes: ["/api/model-ecosystem", "/api/model-ecosystem/adapters", "/api/model-ecosystem/fine-tune", "/api/model-ecosystem/quantize", "/api/model-ecosystem/convert", "/api/model-ecosystem/evaluate"] },
   { area: "advanced-agent", module: "server.js + src/advanced-agent.js", routes: ["/api/advanced-agent", "/api/advanced-agent/orchestrate", "/api/advanced-agent/schedule", "/api/advanced-agent/journal", "/api/advanced-agent/journal/append", "/api/advanced-agent/journal/resume", "/api/advanced-agent/sub-agent", "/api/advanced-agent/replay-diff"] },

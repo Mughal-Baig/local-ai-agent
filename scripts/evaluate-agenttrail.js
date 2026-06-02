@@ -43,6 +43,13 @@ async function main() {
   checks.push(await check("Quality performance regression gate exists", async () => includes("scripts/performance-regression.js", ["agenttrail.performance-regression.v1", "PERFORMANCE_BASELINE"]) && includes("docs/quality/performance-baseline.json", ["agenttrail.performance-baseline.v1"]) && includes(".github/workflows/ci.yml", ["node scripts/performance-regression.js"])));
   checks.push(await check("Quality cross-platform matrix exists", async () => includes(".github/workflows/quality-matrix.yml", ["ubuntu-latest", "macos-latest", "windows-latest", "node-version: ${{ matrix.node }}"])));
   checks.push(await check("Quality eval scoreboard exists", async () => includes("scripts/evaluate-agenttrail.js", ["scoreboard", "categoryFor", "AgentTrail eval scoreboard"]) && includes("docs/QUALITY_ENGINEERING.md", ["Eval scoreboard", "Cross-platform matrix"])));
+  checks.push(await check("Epic AL golden dataset eval harness exists", async () => includes("src/eval-quality.js", ["GOLDEN_TASKS", "runAgentTaskEval", "agenttrail.agent-eval.v1"]) && includes("scripts/eval-agent-tasks.js", ["runAgentQualitySuite", "agent-eval-report.json"])));
+  checks.push(await check("Epic AL citation faithfulness check exists", async () => includes("src/eval-quality.js", ["checkCitationFaithfulness", "agenttrail.citation-faithfulness.v1", "extractCitations"]) && includes("tests/unit/eval-quality.test.js", ["checkCitationFaithfulness"])));
+  checks.push(await check("Epic AL unsupported claim detector exists", async () => includes("src/eval-quality.js", ["detectUnsupportedClaims", "agenttrail.unsupported-claims.v1", "forbidden-claim"]) && includes("tests/unit/eval-quality.test.js", ["detectUnsupportedClaims"])));
+  checks.push(await check("Epic AL regression gate with trend exists", async () => includes("src/eval-quality.js", ["evaluateRegressionGate", "agenttrail.agent-eval-trend.v1", "maxRegression"]) && includes(".github/workflows/ci.yml", ["node scripts/eval-agent-tasks.js"])));
+  checks.push(await check("Epic AL A/B model compare exists", async () => includes("src/eval-quality.js", ["compareModels", "agenttrail.agent-model-comparison.v1", "winner"]) && includes("server.js", ["/api/evals/agent-quality/compare", "handleAgentQualityCompare"])));
+  checks.push(await check("Epic AL tool correctness eval exists", async () => includes("src/eval-quality.js", ["evaluateToolUseCorrectness", "agenttrail.tool-correctness.v1", "queryIncludes"]) && includes("tests/unit/eval-quality.test.js", ["evaluateToolUseCorrectness"])));
+  checks.push(await check("Epic AL latency tokens benchmark exists", async () => includes("src/eval-quality.js", ["benchmarkModels", "agenttrail.agent-model-benchmark.v1", "tokensPerSecond"]) && includes("scripts/benchmark-agent-models.js", ["avgTokensPerSecond"]) && includes("server.js", ["/api/benchmarks/models", "handleAgentModelBenchmarks"])));
   checks.push(await check("Docs static searchable site exists", async () => includes("scripts/generate-docs-site.js", ["agenttrail.docs-site.v1", "search-index.json"]) && includes("docs/site/index.html", ["AgentTrail Docs", "search-index.json"]) && includes("docs/site/search-index.json", ["GETTING_STARTED.md", "API_REFERENCE.md"])));
   checks.push(await check("Docs 60-second guide exists", async () => includes("docs/GETTING_STARTED.md", ["60-Second Flow", "Diff Review", "agenttrail-demo.gif"])));
   checks.push(await check("Docs recipe authoring guide exists", async () => includes("docs/RECIPE_AUTHORING.md", ["Minimal Recipe", "Safety Checklist", "Pack Authoring"])));
@@ -253,6 +260,7 @@ function buildScoreboard(checks) {
 
 function categoryFor(name) {
   const text = String(name || "").toLowerCase();
+  if (/epic al|golden dataset|citation faithfulness|unsupported claim|regression gate|a\/b model|tool correctness|tokens benchmark/.test(text)) return "eval-quality";
   if (/community|launch response|marketplace|good-first|governance|changelog|showcase|comparison/.test(text)) return "community";
   if (/advanced agent|multi-agent|scheduled|journal|sub-agent|replay diff|deterministic replay/.test(text)) return "advanced-agent";
   if (/conversation|theme toggle|access layer|theme|keyboard|screen-reader|pwa|i18n/.test(text)) return "conversation-ux";

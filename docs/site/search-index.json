@@ -755,7 +755,7 @@
         {
           "title": "Commands",
           "anchor": "commands",
-          "snippet": "npm run test:quality npm run coverage npm run bench:quality npm run test:ui npm run eval"
+          "snippet": "npm run test:quality npm run coverage npm run bench:quality npm run eval:agent npm run bench:models npm run test:eval-quality npm run test:ui npm run eval"
         },
         {
           "title": "Coverage gate",
@@ -778,6 +778,11 @@
           "snippet": "`npm run bench:quality` runs deterministic micro-benchmarks for chunking, ranking, ANN-index building, path safety, and diff generation. Budgets live in `docs/quality/performance-baseline.json` and can be tightened af..."
         },
         {
+          "title": "Agent eval quality",
+          "anchor": "agent-eval-quality",
+          "snippet": "`npm run eval:agent` runs the Epic AL golden task harness for agent behavior: citation faithfulness, unsupported-claim detection, correct tool selection/arguments, and regression gating with trend history in `docs/qua..."
+        },
+        {
           "title": "Cross-platform matrix",
           "anchor": "cross-platform-matrix",
           "snippet": "`.github/workflows/quality-matrix.yml` runs the quality suite on macOS, Windows, and Linux across Node LTS/current lines. The main CI remains the full Ubuntu gate; the matrix catches platform-specific path and runtime..."
@@ -786,6 +791,39 @@
           "title": "Eval scoreboard",
           "anchor": "eval-scoreboard",
           "snippet": "`npm run eval` now prints a category scoreboard in addition to the total repo score. The scoreboard groups checks by foundation, agent reliability, search, runtime, distribution, security, observability, team, quality..."
+        }
+      ]
+    },
+    {
+      "file": "EVAL_QUALITY.md",
+      "title": "Eval Quality",
+      "description": "Golden tasks, citation faithfulness, unsupported-claim checks, model comparison, and latency benchmarks.",
+      "tags": [
+        "quality",
+        "evaluation",
+        "benchmarks"
+      ],
+      "href": "../EVAL_QUALITY.md",
+      "sections": [
+        {
+          "title": "Commands",
+          "anchor": "commands",
+          "snippet": "npm run eval:agent npm run bench:models npm run test:eval-quality"
+        },
+        {
+          "title": "What It Measures",
+          "anchor": "what-it-measures",
+          "snippet": "**Golden task harness**: seven agent tasks cover search-before-answer, diff-safe writes, citations, unsupported launch claims, prompt-injection handling, project memory, reports, and MCP approvals."
+        },
+        {
+          "title": "API",
+          "anchor": "api",
+          "snippet": "`GET /api/evals/agent-quality` `GET /api/evals/agent-quality/history` `POST /api/evals/agent-quality/compare` `GET /api/benchmarks/models?models=agenttrail-audit,agenttrail-fast` The API saves eval artifacts under `wo..."
+        },
+        {
+          "title": "CI Policy",
+          "anchor": "ci-policy",
+          "snippet": "The main CI workflow runs: node scripts/eval-agent-tasks.js node scripts/benchmark-agent-models.js node tests/integration/eval-quality.test.js Environment knobs: `AGENTTRAIL_AGENT_EVAL_MIN_SCORE`: default `85`"
         }
       ]
     },
@@ -1529,7 +1567,7 @@
         "routes",
         "openapi"
       ],
-      "text": "API Reference Generated from src/route-catalog.js and docs/openapi/agenttrail-v1-openapi.json . Do not edit route tables by hand; run npm run docs:api . AgentTrail exposes two API layers: local app endpoints under /api/ and an OpenAI-compatible facade under /v1/ . By default the server binds to 127.0.0.1 and keeps data inside the configured workspace. Local App Routes Area Module Routes --- --- --- search server.js + src/features/search.js /api/search <br /api/search-index <br /api/search/chunks attachments server.js /api/attachments <br /api/files/content documents server.js + src/document-ingestion.js /api/documents/extract <br /api/documents/ocr <br /api/documents/ingest-url audio server.js + src/audio-transcription.js /api/audio/transcribe <br /api/audio/speak <br /api/files/raw image-generation server.js + src/image-generation.js /api/images/generate <br /api/files/raw memory server.js /api/memory <br /api/memory/scopes <br /api/memory/structured <br /api/memory/retrieve <br /api/memory/history <br /api/memory/history/diff <br /api/memory/history/revert <br /api/memory/suggestions <br /api/memory/suggestions/apply <br /api/memory/citations reports server.js /api/reports <br /api/trust/badge conversations server.js /api/conversations <br /api/conversations/get <br /api/conversations/delete <br /api/conversations/restore <br /api/conversations/import <br /api/conversations/branch <br /api/conversations/export sessions server.js /api/sessions <br /api/replay/plan <br /api/runs/pending <br /api/runs/pending/from-receipt <br /api/receipts/resume planner server.js + src/structured-output.js /api/agent/plan <br /api/chat tools src/permissions.js + src/tool-schemas.js /api/permissions <br /api/tools/schemas <br /api/tools/capability <br /api/mcp models server.js /api/models <br /api/models/pull <br /api/models/delete <br /api/models/vision-capability model-registry server.js + src/model-registry.js /api/model-registry <br /api/model-registry/show <br /api/model-registry/pull <br /api/model-registry/import <br /api/model-registry/create <br /api/model-registry/cp <br /api/model-registry/share model-ecosystem server.js + src/model-ecosystem.js /api/model-ecosystem <br /api/model-ecosystem/adapters <br /api/model-ecosystem/fine-tune <br /api/model-ecosystem/quantize <br /api/model-ecosystem/convert <br /api/model-ecosystem/evaluate advanced-agent server.js + src/advanced-agent.js /api/advanced-agent <br /api/advanced-agent/orchestrate <br /api/advanced-agent/schedule <br /api/advanced-agent/journal <br /api/advanced-agent/journal/append <br /api/advanced-agent/journal/resume <br /api/advanced-agent/sub-agent <br /api/advanced-agent/replay-diff system server.js + src/resilience.js + src/config-admin.js /api/health <br /api/resilience <br /api/resources <br /api/runtime <br /api/concurrency <br /api/config <br /api/config/admin <br /api/config/workspace <br /api/onboarding <br /api/updates/check openai-compatible-api server.js /v1/chat/completions <br /v1/models <br /v1/embeddings <br /v1/openapi.json structured-output src/structured-output.js /api/structured-output/schemas <br /api/structured-output <br /api/structured-output/recipe security src/features/security.js + src/privacy.js + src/privacy-controls.js + src/network-policy.js + src/features/redact.js /api/security/scan <br /api/security/privacy <br /api/privacy/dashboard <br /api/privacy/settings <br /api/privacy/retention <br /api/privacy/retention/apply <br /api/privacy/wipe <br /api/redact observability src/observability.js + src/logger.js /api/logs <br /api/metrics <br /api/observability <br /api/traces <br /api/traces/content <br /api/errors/taxonomy team-enterprise src/team-enterprise.js /api/team/status <br /api/team/users <br /api/team/users/select <br /api/team/rbac <br /api/team/receipts <br /api/team/receipts/content <br /api/team/sync/status <br /api/team/sync/export <br /api/team/audit/export <br /api/team/sso <br /api/team/sso/validate foundation src/foundation.js /api/foundation <br /api/schemas <br /api/migrations plugins src/plugin-loader.js + src/plugin-sandbox.js /api/plugins <br /api/plugins/run jobs src/jobs.js /api/jobs <br /api/jobs/start backup server.js /api/workspace/portability <br /api/workspace/migration-plan <br /api/backup/export <br /api/backup/import <br /api/backup/schedule <br /api/backup/schedule/run OpenAI-Compatible Routes Spec: docs/openapi/agenttrail-v1-openapi.json Method Path Operation Summary --- --- --- --- POST /v1/chat/completions createChatCompletion Run AgentTrail through an OpenAI-compatible chat-completions interface GET /v1/models listModels List models from the active local backend POST /v1/embeddings createEmbedding Create embeddings through the active local backend GET /v1/openapi.json getOpenApiSpec Return this OpenAPI document Auth And Rate Controls - /api/ is intended for the local browser app and local CLI. - /v1/ can require AGENTTRAIL_V1_API_KEY or AGENTTRAIL_V1_API_KEYS . - /v1/ uses AGENTTRAIL_V1_RATE_LIMIT_PER_MINUTE , AGENTTRAIL_V1_QUEUE_CONCURRENCY , and AGENTTRAIL_V1_QUEUE_MAX for local rate limiting and backpressure. - Network egress remains governed by AGENTTRAIL_EGRESS_ALLOWLIST and related privacy settings. Examples Route Ownership Use the module column to find the implementation owner before changing behavior. New endpoints should be added to src/route-catalog.js , covered in tests, and regenerated here."
+      "text": "API Reference Generated from src/route-catalog.js and docs/openapi/agenttrail-v1-openapi.json . Do not edit route tables by hand; run npm run docs:api . AgentTrail exposes two API layers: local app endpoints under /api/ and an OpenAI-compatible facade under /v1/ . By default the server binds to 127.0.0.1 and keeps data inside the configured workspace. Local App Routes Area Module Routes --- --- --- search server.js + src/features/search.js /api/search <br /api/search-index <br /api/search/chunks attachments server.js /api/attachments <br /api/files/content documents server.js + src/document-ingestion.js /api/documents/extract <br /api/documents/ocr <br /api/documents/ingest-url audio server.js + src/audio-transcription.js /api/audio/transcribe <br /api/audio/speak <br /api/files/raw image-generation server.js + src/image-generation.js /api/images/generate <br /api/files/raw memory server.js /api/memory <br /api/memory/scopes <br /api/memory/structured <br /api/memory/retrieve <br /api/memory/history <br /api/memory/history/diff <br /api/memory/history/revert <br /api/memory/suggestions <br /api/memory/suggestions/apply <br /api/memory/citations reports server.js /api/reports <br /api/trust/badge conversations server.js /api/conversations <br /api/conversations/get <br /api/conversations/delete <br /api/conversations/restore <br /api/conversations/import <br /api/conversations/branch <br /api/conversations/export sessions server.js /api/sessions <br /api/replay/plan <br /api/runs/pending <br /api/runs/pending/from-receipt <br /api/receipts/resume planner server.js + src/structured-output.js /api/agent/plan <br /api/chat tools src/permissions.js + src/tool-schemas.js /api/permissions <br /api/tools/schemas <br /api/tools/capability <br /api/mcp models server.js /api/models <br /api/models/pull <br /api/models/delete <br /api/models/vision-capability eval-quality server.js + src/eval-quality.js /api/evals/agent-quality <br /api/evals/agent-quality/history <br /api/evals/agent-quality/compare <br /api/benchmarks/models model-registry server.js + src/model-registry.js /api/model-registry <br /api/model-registry/show <br /api/model-registry/pull <br /api/model-registry/import <br /api/model-registry/create <br /api/model-registry/cp <br /api/model-registry/share model-ecosystem server.js + src/model-ecosystem.js /api/model-ecosystem <br /api/model-ecosystem/adapters <br /api/model-ecosystem/fine-tune <br /api/model-ecosystem/quantize <br /api/model-ecosystem/convert <br /api/model-ecosystem/evaluate advanced-agent server.js + src/advanced-agent.js /api/advanced-agent <br /api/advanced-agent/orchestrate <br /api/advanced-agent/schedule <br /api/advanced-agent/journal <br /api/advanced-agent/journal/append <br /api/advanced-agent/journal/resume <br /api/advanced-agent/sub-agent <br /api/advanced-agent/replay-diff system server.js + src/resilience.js + src/config-admin.js /api/health <br /api/resilience <br /api/resources <br /api/runtime <br /api/concurrency <br /api/config <br /api/config/admin <br /api/config/workspace <br /api/onboarding <br /api/updates/check openai-compatible-api server.js /v1/chat/completions <br /v1/models <br /v1/embeddings <br /v1/openapi.json structured-output src/structured-output.js /api/structured-output/schemas <br /api/structured-output <br /api/structured-output/recipe security src/features/security.js + src/privacy.js + src/privacy-controls.js + src/network-policy.js + src/features/redact.js /api/security/scan <br /api/security/privacy <br /api/privacy/dashboard <br /api/privacy/settings <br /api/privacy/retention <br /api/privacy/retention/apply <br /api/privacy/wipe <br /api/redact observability src/observability.js + src/logger.js /api/logs <br /api/metrics <br /api/observability <br /api/traces <br /api/traces/content <br /api/errors/taxonomy team-enterprise src/team-enterprise.js /api/team/status <br /api/team/users <br /api/team/users/select <br /api/team/rbac <br /api/team/receipts <br /api/team/receipts/content <br /api/team/sync/status <br /api/team/sync/export <br /api/team/audit/export <br /api/team/sso <br /api/team/sso/validate foundation src/foundation.js /api/foundation <br /api/schemas <br /api/migrations plugins src/plugin-loader.js + src/plugin-sandbox.js /api/plugins <br /api/plugins/run jobs src/jobs.js /api/jobs <br /api/jobs/start backup server.js /api/workspace/portability <br /api/workspace/migration-plan <br /api/backup/export <br /api/backup/import <br /api/backup/schedule <br /api/backup/schedule/run OpenAI-Compatible Routes Spec: docs/openapi/agenttrail-v1-openapi.json Method Path Operation Summary --- --- --- --- POST /v1/chat/completions createChatCompletion Run AgentTrail through an OpenAI-compatible chat-completions interface GET /v1/models listModels List models from the active local backend POST /v1/embeddings createEmbedding Create embeddings through the active local backend GET /v1/openapi.json getOpenApiSpec Return this OpenAPI document Auth And Rate Controls - /api/ is intended for the local browser app and local CLI. - /v1/ can require AGENTTRAIL_V1_API_KEY or AGENTTRAIL_V1_API_KEYS . - /v1/ uses AGENTTRAIL_V1_RATE_LIMIT_PER_MINUTE , AGENTTRAIL_V1_QUEUE_CONCURRENCY , and AGENTTRAIL_V1_QUEUE_MAX for local rate limiting and backpressure. - Network egress remains governed by AGENTTRAIL_EGRESS_ALLOWLIST and related privacy settings. Examples Route Ownership Use the module column to find the implementation owner before changing behavior. New endpoints should be added to src/route-catalog.js , covered in tests, and regenerated here."
     },
     {
       "type": "section",
@@ -2285,19 +2323,19 @@
         "ci",
         "tests"
       ],
-      "text": "Quality Engineering Epic Z turns the existing smoke-heavy test setup into a visible quality system. Commands Coverage gate npm run coverage uses V8 coverage through NODE_V8_COVERAGE , runs the focused quality/security/runtime/team suites, and fails below COVERAGE_THRESHOLD default 60 . It reports per-file line coverage for the most risk-sensitive local-agent modules. UI E2E npm run test:ui starts a real local AgentTrail server and validates the browser contract. If Playwright is installed, it drives Chromium through the app shell; otherwise it runs a dependency-free HTTP UI contract so CI stays zero-install. Fuzz tests npm run test:quality includes property-style fuzzing for workspace path resolution and unified diff generation. The same src/workspace-safety.js helpers are used by the server and the tests. Performance regression npm run bench:quality runs deterministic micro-benchmarks for chunking, ranking, ANN-index building, path safety, and diff generation. Budgets live in docs/quality/performance-baseline.json and can be tightened after collecting public CI history. Cross-platform matrix .github/workflows/quality-matrix.yml runs the quality suite on macOS, Windows, and Linux across Node LTS/current lines. The main CI remains the full Ubuntu gate; the matrix catches platform-specific path and runtime regressions early. Eval scoreboard npm run eval now prints a category scoreboard in addition to the total repo score. The scoreboard groups checks by foundation, agent reliability, search, runtime, distribution, security, observability, team, quality, and UX proof."
+      "text": "Quality Engineering Epic Z turns the existing smoke-heavy test setup into a visible quality system. Commands Coverage gate npm run coverage uses V8 coverage through NODE_V8_COVERAGE , runs the focused quality/security/runtime/team suites, and fails below COVERAGE_THRESHOLD default 60 . It reports per-file line coverage for the most risk-sensitive local-agent modules. UI E2E npm run test:ui starts a real local AgentTrail server and validates the browser contract. If Playwright is installed, it drives Chromium through the app shell; otherwise it runs a dependency-free HTTP UI contract so CI stays zero-install. Fuzz tests npm run test:quality includes property-style fuzzing for workspace path resolution and unified diff generation. The same src/workspace-safety.js helpers are used by the server and the tests. Performance regression npm run bench:quality runs deterministic micro-benchmarks for chunking, ranking, ANN-index building, path safety, and diff generation. Budgets live in docs/quality/performance-baseline.json and can be tightened after collecting public CI history. Agent eval quality npm run eval:agent runs the Epic AL golden task harness for agent behavior: citation faithfulness, unsupported-claim detection, correct tool selection/arguments, and regression gating with trend history in docs/quality/agent-eval-trend.json . npm run bench:models writes docs/quality/agent-model-benchmark.json with deterministic latency and tokens/sec estimates across the same task set. See Eval Quality EVAL_QUALITY.md . Cross-platform matrix .github/workflows/quality-matrix.yml runs the quality suite on macOS, Windows, and Linux across Node LTS/current lines. The main CI remains the full Ubuntu gate; the matrix catches platform-specific path and runtime regressions early. Eval scoreboard npm run eval now prints a category scoreboard in addition to the total repo score. The scoreboard groups checks by foundation, agent reliability, search, runtime, distribution, security, observability, team, quality, and UX proof."
     },
     {
       "type": "section",
       "title": "Quality Engineering - Commands",
-      "description": "npm run test:quality npm run coverage npm run bench:quality npm run test:ui npm run eval",
+      "description": "npm run test:quality npm run coverage npm run bench:quality npm run eval:agent npm run bench:models npm run test:eval-quality npm run test:ui npm run eval",
       "href": "../QUALITY_ENGINEERING.md#commands",
       "tags": [
         "quality",
         "ci",
         "tests"
       ],
-      "text": "Commands npm run test:quality npm run coverage npm run bench:quality npm run test:ui npm run eval"
+      "text": "Commands npm run test:quality npm run coverage npm run bench:quality npm run eval:agent npm run bench:models npm run test:eval-quality npm run test:ui npm run eval"
     },
     {
       "type": "section",
@@ -2349,6 +2387,18 @@
     },
     {
       "type": "section",
+      "title": "Quality Engineering - Agent eval quality",
+      "description": "`npm run eval:agent` runs the Epic AL golden task harness for agent behavior: citation faithfulness, unsupported-claim detection, correct tool selection/arguments, and regression gating with trend history in `docs/qua...",
+      "href": "../QUALITY_ENGINEERING.md#agent-eval-quality",
+      "tags": [
+        "quality",
+        "ci",
+        "tests"
+      ],
+      "text": "Agent eval quality `npm run eval:agent` runs the Epic AL golden task harness for agent behavior: citation faithfulness, unsupported-claim detection, correct tool selection/arguments, and regression gating with trend history in `docs/qua..."
+    },
+    {
+      "type": "section",
       "title": "Quality Engineering - Cross-platform matrix",
       "description": "`.github/workflows/quality-matrix.yml` runs the quality suite on macOS, Windows, and Linux across Node LTS/current lines. The main CI remains the full Ubuntu gate; the matrix catches platform-specific path and runtime...",
       "href": "../QUALITY_ENGINEERING.md#cross-platform-matrix",
@@ -2370,6 +2420,66 @@
         "tests"
       ],
       "text": "Eval scoreboard `npm run eval` now prints a category scoreboard in addition to the total repo score. The scoreboard groups checks by foundation, agent reliability, search, runtime, distribution, security, observability, team, quality..."
+    },
+    {
+      "type": "doc",
+      "title": "Eval Quality",
+      "description": "Golden tasks, citation faithfulness, unsupported-claim checks, model comparison, and latency benchmarks.",
+      "href": "../EVAL_QUALITY.md",
+      "tags": [
+        "quality",
+        "evaluation",
+        "benchmarks"
+      ],
+      "text": "Eval Quality Epic AL adds a deeper local-agent evaluation layer. It is offline-friendly by default so CI can verify the agent contract without a running Ollama model. Commands What It Measures - Golden task harness : seven agent tasks cover search-before-answer, diff-safe writes, citations, unsupported launch claims, prompt-injection handling, project memory, reports, and MCP approvals. - Citation faithfulness : every answer claim must map to cited local evidence such as E1 ; weak or missing evidence lowers the score. - Unsupported-claim detection : risky claims such as signed binaries, perfect prompt-injection defense, hidden uploads, or silent edits are flagged. - Regression gate : npm run eval:agent writes docs/quality/agent-eval-report.json and updates docs/quality/agent-eval-trend.json ; CI fails if score drops below the configured floor or regresses too far. - A/B model compare : compareModels scores two or more model profiles on the same task set and reports a winner with category scores. - Tool-use correctness : required tools and arguments are checked, including search queries, file reads, and diff-preview calls. - Latency + tokens/sec benchmark : npm run bench:models writes docs/quality/agent-model-benchmark.json with deterministic per-task latency and tokens/sec estimates. API - GET /api/evals/agent-quality - GET /api/evals/agent-quality/history - POST /api/evals/agent-quality/compare - GET /api/benchmarks/models?models=agenttrail-audit,agenttrail-fast The API saves eval artifacts under workspace/evals/ so the quality proof is inspectable like other AgentTrail receipts. CI Policy The main CI workflow runs: Environment knobs: - AGENTTRAIL_AGENT_EVAL_MIN_SCORE : default 85 - AGENTTRAIL_AGENT_EVAL_MAX_DROP : default 5 - AGENTTRAIL_EVAL_MODELS : comma-separated model names for the A/B comparison - AGENTTRAIL_BENCHMARK_MODELS : comma-separated model names for the benchmark report"
+    },
+    {
+      "type": "section",
+      "title": "Eval Quality - Commands",
+      "description": "npm run eval:agent npm run bench:models npm run test:eval-quality",
+      "href": "../EVAL_QUALITY.md#commands",
+      "tags": [
+        "quality",
+        "evaluation",
+        "benchmarks"
+      ],
+      "text": "Commands npm run eval:agent npm run bench:models npm run test:eval-quality"
+    },
+    {
+      "type": "section",
+      "title": "Eval Quality - What It Measures",
+      "description": "**Golden task harness**: seven agent tasks cover search-before-answer, diff-safe writes, citations, unsupported launch claims, prompt-injection handling, project memory, reports, and MCP approvals.",
+      "href": "../EVAL_QUALITY.md#what-it-measures",
+      "tags": [
+        "quality",
+        "evaluation",
+        "benchmarks"
+      ],
+      "text": "What It Measures **Golden task harness**: seven agent tasks cover search-before-answer, diff-safe writes, citations, unsupported launch claims, prompt-injection handling, project memory, reports, and MCP approvals."
+    },
+    {
+      "type": "section",
+      "title": "Eval Quality - API",
+      "description": "`GET /api/evals/agent-quality` `GET /api/evals/agent-quality/history` `POST /api/evals/agent-quality/compare` `GET /api/benchmarks/models?models=agenttrail-audit,agenttrail-fast` The API saves eval artifacts under `wo...",
+      "href": "../EVAL_QUALITY.md#api",
+      "tags": [
+        "quality",
+        "evaluation",
+        "benchmarks"
+      ],
+      "text": "API `GET /api/evals/agent-quality` `GET /api/evals/agent-quality/history` `POST /api/evals/agent-quality/compare` `GET /api/benchmarks/models?models=agenttrail-audit,agenttrail-fast` The API saves eval artifacts under `wo..."
+    },
+    {
+      "type": "section",
+      "title": "Eval Quality - CI Policy",
+      "description": "The main CI workflow runs: node scripts/eval-agent-tasks.js node scripts/benchmark-agent-models.js node tests/integration/eval-quality.test.js Environment knobs: `AGENTTRAIL_AGENT_EVAL_MIN_SCORE`: default `85`",
+      "href": "../EVAL_QUALITY.md#ci-policy",
+      "tags": [
+        "quality",
+        "evaluation",
+        "benchmarks"
+      ],
+      "text": "CI Policy The main CI workflow runs: node scripts/eval-agent-tasks.js node scripts/benchmark-agent-models.js node tests/integration/eval-quality.test.js Environment knobs: `AGENTTRAIL_AGENT_EVAL_MIN_SCORE`: default `85`"
     },
     {
       "type": "doc",

@@ -28,7 +28,7 @@ This table maps the requested 30-item top-1% and foundation list to the v0.7 imp
 | Config/admin control plane | `/api/config/admin`, `/api/config/workspace`, schema-backed model/cache/budget/host settings UI, friendly startup validation, per-workspace overrides, and a first-run setup wizard |
 | Redaction API | `/api/redact` exposes the same local secret masking used by conversation exports and audit artifacts |
 | Project memory with citations | `/api/memory/citations`, revision history in `workspace/memory/history/` |
-| Model benchmark dashboard | `/api/benchmarks`, `/api/benchmarks/run`, `/api/models/compare`, `/api/models/vision-capability`, benchmark history, vision-readiness scoring |
+| Model benchmark dashboard | `/api/benchmarks`, `/api/benchmarks/run`, `/api/benchmarks/models`, `/api/models/compare`, `/api/models/vision-capability`, benchmark history, vision-readiness scoring, and Epic AL latency/tokens benchmarks |
 | Model ecosystem | `/api/model-ecosystem/*`, LoRA adapter manifests, fine-tuning launch delegation, quantization wrapper, safetensors-to-GGUF conversion plans, and per-task model eval suites |
 | Advanced agent layer | `/api/advanced-agent/*`, multi-agent handoff plans, scheduled-run manifests, resumable task journals, budget-isolated sub-agents, and deterministic replay diffs |
 | MCP support | `mcp/server.js`, `mcp/agenttrail.mcp.json`, approval-required tools, MCP receipts |
@@ -53,9 +53,9 @@ This table maps the requested 30-item top-1% and foundation list to the v0.7 imp
 | Stable schemas | `/api/schemas`, [docs/SCHEMAS.md](SCHEMAS.md), schema validation for sessions |
 | Database-like persistence | SQLite at `workspace/.agenttrail/agenttrail.db`, append-only JSONL event store, `/api/sqlite/status`, `/api/store/stats` |
 | Real tool permission engine | `src/permissions.js`, `/api/permissions`, per-tool policies, permission-audit events, integrated into agent tool execution |
-| Better evals | repo eval now checks foundation modules, semantic hashes/chunks, plugins, jobs, backups, checksums |
-| Better tests | `npm run test:unit`, `npm run test:integration`, `npm run test:advanced`, `npm run test:ui`, `npm run test:quality`, `npm run test:docs`, `npm run test:community`, expanded `npm test`, `npm run eval` |
-| Quality engineering | V8 coverage gate, path/diff fuzz tests, UI E2E smoke, deterministic performance regression budgets, cross-platform Node matrix, and eval scoreboard |
+| Better evals | repo eval now checks foundation modules, semantic hashes/chunks, plugins, jobs, backups, checksums, golden agent tasks, citation faithfulness, unsupported claims, A/B model comparison, tool correctness, and latency/tokens benchmarks |
+| Better tests | `npm run test:unit`, `npm run test:integration`, `npm run test:advanced`, `npm run test:ui`, `npm run test:quality`, `npm run test:eval-quality`, `npm run test:docs`, `npm run test:community`, expanded `npm test`, `npm run eval` |
+| Quality engineering | V8 coverage gate, path/diff fuzz tests, UI E2E smoke, deterministic performance regression budgets, cross-platform Node matrix, eval scoreboard, and Epic AL regression trend gates |
 | Documentation foundation | searchable static docs site, 60-second guide, recipe authoring guide, backend setup guides, architecture deep dive, generated API reference, FAQ, and video walkthrough plans |
 | Migration system | `src/migrations.js`, `migrations/*.json`, `/api/migrations`, migration state in `workspace/.agenttrail/migrations.json` |
 | Model adapter layer | `src/model-adapters.js`, status exposes Ollama plus planned LM Studio, llama.cpp, OpenAI-compatible adapters; `src/model-ecosystem.js` adds trainer/adapter/quantize/convert/eval helpers |

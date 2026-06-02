@@ -1,0 +1,18 @@
+{
+  "schema": "agenttrail.agent-eval-trend.v1",
+  "updatedAt": "2026-06-02T04:36:32.642Z",
+  "history": [
+    {
+      "createdAt": "2026-06-02T04:36:10.912Z",
+      "score": 93,
+      "passed": 5,
+      "total": 7
+    },
+    {
+      "createdAt": "2026-06-02T04:36:32.634Z",
+      "score": 100,
+      "passed": 7,
+      "total": 7
+    }
+  ]
+}

@@ -2,10 +2,10 @@
 
 ## Next
 
-- Move into Epic AL evaluation quality now that the Phase 13 operations layer is complete.
+- Move into Epic AM accounting and routing now that Epic AL evaluation quality is complete.
 - Build the 60-second proof loop: search -> diff preview -> apply -> receipt -> shareable report.
 - Make the install path undeniable: `npx agenttrail`, Docker persistence, Homebrew publication, setup doctor, and friendly failure states.
-- Add deeper evaluation quality: golden task fixtures, citation-faithfulness checks, and unsupported-claim detection.
+- Use the new Epic AL eval quality layer to keep golden task fixtures, citation-faithfulness checks, unsupported-claim detection, and model benchmarks regression-gated.
 - Add public safety proof: prompt-injection demo fixtures, network-path audit, redaction checks, and threat-model page.
 - Publish an honest comparison page against OpenHands, Cline, AnythingLLM, Open Interpreter, Aider, and Continue.
 - Add true local embedding backends behind optional dependencies.
@@ -69,6 +69,7 @@
 - Privacy controls layer: confirmed local data wipe, artifact retention windows, storage dashboard, and opt-in local-only analytics with network disabled.
 - Resilience layer: `/api/resilience`, graceful backend-down health/UI state, retry-with-backoff, consistent timeout/cancel run events, crash-safe atomic writes, corrupt-index rebuild, disk-space guards, and storage/runtime error codes.
 - Config/admin layer: schema-backed settings UI for model/cache/budget/host envs, friendly startup validation, per-workspace overrides, and a persisted first-run setup wizard.
+- Eval quality layer: golden agent task dataset, citation-faithfulness checks, unsupported-claim detector, CI regression trend gate, A/B model comparison, tool-use correctness eval, and latency/tokens benchmarks.
 - Top 1% expansion added to the long roadmap: Phase 17-22 now covers demo proof, one-command install, first-run retention, safety proof, public comparisons, signed releases, supportability, and durable AgentTrail-specific moat.
 
 ## Not Planned

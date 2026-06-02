@@ -132,6 +132,11 @@ const {
   spawnSubAgent,
   diffReplayRuns
 } = require("./src/advanced-agent");
+const {
+  benchmarkModels: benchmarkAgentModels,
+  compareModels: compareAgentModels,
+  runAgentQualitySuite
+} = require("./src/eval-quality");
 
 loadDotEnv();
 const PROJECT_ROOT = __dirname;
@@ -737,6 +742,22 @@ const server = http.createServer(async (req, res) => {
 
     if (url.pathname === "/api/mcp" && req.method === "GET") {
       return handleMcpManifest(res);
+    }
+
+    if (url.pathname === "/api/evals/agent-quality" && req.method === "GET") {
+      return handleAgentQualityEval(res);
+    }
+
+    if (url.pathname === "/api/evals/agent-quality/history" && req.method === "GET") {
+      return handleAgentQualityHistory(res);
+    }
+
+    if (url.pathname === "/api/evals/agent-quality/compare" && req.method === "POST") {
+      return handleAgentQualityCompare(req, res);
+    }
+
+    if (url.pathname === "/api/benchmarks/models" && req.method === "GET") {
+      return handleAgentModelBenchmarks(url, res);
     }
 
     if (url.pathname === "/api/evals" && req.method === "GET") {
@@ -5603,6 +5624,76 @@ async function handleEvalHistory(res) {
   }
   history.sort((a, b) => b.modifiedAt.localeCompare(a.modifiedAt));
   sendJson(res, 200, { history });
+}
+
+async function handleAgentQualityEval(res) {
+  const history = await collectAgentQualityHistory();
+  const models = await agentQualityModelNames();
+  const suite = runAgentQualitySuite({ models, history });
+  const stamp = new Date().toISOString().replace(/[:.]/g, "-");
+  const saved = await writeWorkspaceFile(`${EVALS_DIR}/agent-quality-${stamp}.json`, JSON.stringify(suite, null, 2));
+  await STORE.append("agent-quality-eval", { path: saved.path, score: suite.current.score, gate: suite.gate.ok });
+  SQLITE.insert("agent-quality-eval", { path: saved.path, score: suite.current.score, gate: suite.gate.ok });
+  sendJson(res, 200, { ...suite, saved });
+}
+
+async function handleAgentQualityHistory(res) {
+  sendJson(res, 200, {
+    schema: "agenttrail.agent-quality-history.v1",
+    history: await collectAgentQualityHistory()
+  });
+}
+
+async function handleAgentQualityCompare(req, res) {
+  const body = await readJsonBody(req);
+  const models = normalizeAgentQualityModels(body.models || body.model || await agentQualityModelNames());
+  const comparison = compareAgentModels(models);
+  await STORE.append("agent-quality-compare", {
+    models,
+    winner: comparison.winner ? comparison.winner.model : null
+  });
+  sendJson(res, 200, comparison);
+}
+
+async function handleAgentModelBenchmarks(url, res) {
+  const models = normalizeAgentQualityModels(url.searchParams.get("models") || await agentQualityModelNames());
+  sendJson(res, 200, benchmarkAgentModels(models));
+}
+
+async function collectAgentQualityHistory() {
+  const files = await listWorkspaceFiles();
+  const history = [];
+  for (const file of files.filter((item) => item.path.startsWith(`${EVALS_DIR}/agent-quality-`) && item.path.endsWith(".json"))) {
+    try {
+      const run = JSON.parse((await readWorkspaceFile(file.path, MAX_FILE_BYTES)).content);
+      history.push({
+        path: file.path,
+        modifiedAt: file.modifiedAt,
+        createdAt: run.createdAt || run.current?.createdAt,
+        score: run.current?.score || run.score || 0,
+        passed: run.current?.passed || run.passed || 0,
+        total: run.current?.total || run.total || 0,
+        gate: run.gate ? run.gate.ok : null
+      });
+    } catch {
+      // Ignore malformed agent-quality eval history files.
+    }
+  }
+  history.sort((a, b) => String(a.modifiedAt || "").localeCompare(String(b.modifiedAt || "")));
+  return history.slice(-20);
+}
+
+async function agentQualityModelNames() {
+  const status = await fetchOllamaModels();
+  const models = status.models.map((model) => model.name).filter(Boolean);
+  return normalizeAgentQualityModels(models.length ? models.slice(0, 2) : ["agenttrail-audit", "agenttrail-fast"]);
+}
+
+function normalizeAgentQualityModels(value) {
+  const list = Array.isArray(value)
+    ? value.map((item) => typeof item === "string" ? item : item && item.name).filter(Boolean)
+    : String(value || "").split(",").map((item) => item.trim()).filter(Boolean);
+  return list.length ? list.slice(0, 8) : ["agenttrail-audit", "agenttrail-fast"];
 }
 
 async function handleBenchmarks(res) {

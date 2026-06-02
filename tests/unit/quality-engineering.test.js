@@ -17,6 +17,8 @@ async function main() {
   const matrix = await read(".github/workflows/quality-matrix.yml");
   const coverage = await read("scripts/coverage-report.js");
   const perf = await read("scripts/performance-regression.js");
+  const agentEval = await read("scripts/eval-agent-tasks.js");
+  const modelBench = await read("scripts/benchmark-agent-models.js");
   const evalHarness = await read("scripts/evaluate-agenttrail.js");
   const scoreboard = JSON.parse(await read("docs/quality/eval-scoreboard.json"));
   const ui = await read("tests/ui/playwright-smoke.test.js");
@@ -25,8 +27,14 @@ async function main() {
   assert.equal(pkg.scripts["test:quality"], "node tests/unit/quality-engineering.test.js && node tests/unit/workspace-safety-fuzz.test.js");
   assert.equal(pkg.scripts.coverage, "node scripts/coverage-report.js");
   assert.equal(pkg.scripts["bench:quality"], "node scripts/performance-regression.js");
+  assert.equal(pkg.scripts["eval:agent"], "node scripts/eval-agent-tasks.js");
+  assert.equal(pkg.scripts["bench:models"], "node scripts/benchmark-agent-models.js");
+  assert.equal(pkg.scripts["test:eval-quality"], "node tests/unit/eval-quality.test.js && node tests/integration/eval-quality.test.js");
   assert.match(ci, /node scripts\/coverage-report\.js/);
   assert.match(ci, /node scripts\/performance-regression\.js/);
+  assert.match(ci, /node scripts\/eval-agent-tasks\.js/);
+  assert.match(ci, /node scripts\/benchmark-agent-models\.js/);
+  assert.match(ci, /node tests\/integration\/eval-quality\.test\.js/);
   assert.match(ci, /node tests\/ui\/playwright-smoke\.test\.js/);
   assert.match(matrix, /ubuntu-latest/);
   assert.match(matrix, /macos-latest/);
@@ -36,6 +44,9 @@ async function main() {
   assert.match(coverage, /COVERAGE_THRESHOLD/);
   assert.match(perf, /agenttrail.performance-regression.v1/);
   assert.match(perf, /PERFORMANCE_BASELINE/);
+  assert.match(agentEval, /runAgentQualitySuite/);
+  assert.match(agentEval, /agent-eval-trend/);
+  assert.match(modelBench, /agent-model-benchmark-report/);
   assert.match(evalHarness, /scoreboard/);
   assert.match(evalHarness, /categoryFor/);
   assert.equal(scoreboard.schema, "agenttrail.eval-scoreboard.v1");

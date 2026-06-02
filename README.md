@@ -58,6 +58,7 @@ Writes are off by default. The agent proposes a unified diff; you click **Apply*
 - **Private by design**: the app binds locally, uses local model backends by default, and gates optional network paths with explicit policy.
 - **Privacy control plane**: inspect stored local artifacts, configure retention windows, opt into local-only analytics, preview a wipe, and clear AgentTrail data deliberately.
 - **Resilience layer**: backend-down states degrade cleanly, transient backend calls retry with backoff, run timeouts/cancellations surface consistently, search indexes auto-rebuild when corrupt, and local writes use atomic temp-file renames.
+- **Eval quality layer**: golden agent tasks, citation-faithfulness checks, unsupported-claim detection, tool-use correctness scoring, A/B model comparison, regression trend gates, and latency/tokens benchmarks.
 - **Config/admin control plane**: inspect every model/cache/budget/host env setting, save per-workspace overrides, see friendly startup fixes, and finish a local first-run checklist.
 - **Safe workspace boundary**: file reads and writes are blocked outside `workspace/`.
 - **Zero runtime npm dependencies**: clone, run `node server.js`, and start building.
@@ -309,7 +310,7 @@ When write preview mode is enabled, `write_file` returns a diff preview instead 
 - Advanced agent layer: multi-agent plans, scheduled-run manifests, resumable journals, sub-agent budgets, and deterministic replay diffs in [docs/ADVANCED_AGENT.md](docs/ADVANCED_AGENT.md)
 - Throughput, resource, and resilience visibility: `/api/concurrency`, `/api/health`, `/api/resilience`, `/api/resources`, `/api/runtime`, `npm run load:test`, and `npm run test:resilience`
 - Agent-as-API: `/v1/chat/completions`, `/v1/models`, `/v1/embeddings`, `/v1/openapi.json`, plus [docs/OPENAI_COMPATIBLE_API.md](docs/OPENAI_COMPATIBLE_API.md)
-- Agent eval harness and history: `npm run eval`, `npm run eval:search`, `npm run bench:search`, `/api/evals`, `/api/evals/history`
+- Agent eval harness and history: `npm run eval`, `npm run eval:search`, `npm run eval:agent`, `npm run bench:search`, `npm run bench:models`, `/api/evals`, `/api/evals/history`, `/api/evals/agent-quality`
 - Quality proof: `npm run test:quality`, `npm run coverage`, `npm run bench:quality`, UI E2E in CI, cross-platform quality matrix, and eval category scoreboard
 - Searchable docs: [docs/site/index.html](docs/site/index.html), [GETTING_STARTED.md](docs/GETTING_STARTED.md), [API_REFERENCE.md](docs/API_REFERENCE.md), and video walkthrough shot lists
 - Project memory: `workspace/memory/project-memory.md`, `workspace/memory/project-memory.json`, citations, revision history, plus global memory under local `.local-agent/`
@@ -464,8 +465,11 @@ npm run test:resume
 npm run test:resilience
 npm run eval:search
 npm run bench:search
+npm run eval:agent
+npm run bench:models
 npm run test:guardrails
 npm run test:reflection
+npm run test:eval-quality
 npm run test:memory
 npm run test:memory-suggestions
 npm run test:memory-retrieval
