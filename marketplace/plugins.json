@@ -1,0 +1,31 @@
+{
+  "schema": "agenttrail.plugin-marketplace.v1",
+  "title": "AgentTrail Plugin Marketplace",
+  "description": "Curated local-first plugin examples with explicit permissions, receipts, and approval behavior.",
+  "plugins": [
+    {
+      "id": "calculator",
+      "title": "Calculator",
+      "category": "utility",
+      "risk": "low",
+      "description": "Pure local arithmetic without eval, filesystem, shell, or network access.",
+      "source": "plugins/calculator/plugin.json"
+    },
+    {
+      "id": "web-fetch",
+      "title": "Web Fetch",
+      "category": "research",
+      "risk": "medium",
+      "description": "Allowlisted read-only GET with approval, dry-run checks, and redirect guardrails.",
+      "source": "plugins/web-fetch/plugin.json"
+    },
+    {
+      "id": "shell-guarded",
+      "title": "Shell Guarded",
+      "category": "developer",
+      "risk": "high",
+      "description": "Preview-only shell command pattern; never executes commands from a plugin.",
+      "source": "plugins/shell-guarded/plugin.json"
+    }
+  ]
+}

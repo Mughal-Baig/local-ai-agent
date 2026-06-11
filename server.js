@@ -18,6 +18,12 @@ const { JobManager } = require("./src/jobs");
 const { runMigrations, migrationStatus } = require("./src/migrations");
 const { loadPluginCatalog, loadPlugins, reloadPlugins } = require("./src/plugin-loader");
 const { publicPluginManifest } = require("./src/plugin-sdk");
+const {
+  callMcpClientTool,
+  listMcpClientTools,
+  publicMcpClientStatus,
+  readMcpClientConfig
+} = require("./src/mcp-client");
 const { generateChecksums } = require("./src/release");
 const { buildFoundationStatus } = require("./src/foundation");
 const { StructuredLogger } = require("./src/logger");
@@ -220,6 +226,7 @@ const MARKETPLACE_DIR = path.join(PROJECT_ROOT, "marketplace");
 const UPDATES_DIR = path.join(PROJECT_ROOT, "updates");
 const PLUGINS_DIR = path.join(PROJECT_ROOT, "plugins");
 const MCP_MANIFEST_PATH = path.join(PROJECT_ROOT, "mcp", "agenttrail.mcp.json");
+const MCP_CLIENTS_PATH = path.join(PROJECT_ROOT, "mcp", "clients.json");
 const RECEIPTS_DIR = "receipts";
 const REPORTS_DIR = "reports";
 const SESSIONS_DIR = "sessions";
@@ -431,6 +438,14 @@ const server = http.createServer(async (req, res) => {
       return handleWebhookRun(req, res);
     }
 
+    if (url.pathname === "/api/webhooks/triggers" && req.method === "GET") {
+      return handleWebhookTriggers(res);
+    }
+
+    if (url.pathname === "/api/webhooks/triggers/run" && req.method === "POST") {
+      return handleWebhookTriggerRun(req, res);
+    }
+
     if (url.pathname === "/api/config" && req.method === "GET") {
       return handleConfig(res);
     }
@@ -557,6 +572,18 @@ const server = http.createServer(async (req, res) => {
 
     if (url.pathname === "/api/plugins/run" && req.method === "POST") {
       return handleRunPlugin(req, res);
+    }
+
+    if (url.pathname === "/api/plugins/marketplace" && req.method === "GET") {
+      return handlePluginMarketplace(res);
+    }
+
+    if (url.pathname === "/api/plugins/install" && req.method === "POST") {
+      return handleInstallMarketplacePlugin(req, res);
+    }
+
+    if (url.pathname === "/api/interop/openai-export" && req.method === "GET") {
+      return handleOpenAIExport(url, res);
     }
 
     if (url.pathname === "/api/workspace/portability" && req.method === "GET") {
@@ -707,6 +734,14 @@ const server = http.createServer(async (req, res) => {
       return handleReplayPlan(url, res);
     }
 
+    if (url.pathname === "/api/replay/bundle" && req.method === "POST") {
+      return handleReplayBundle(req, res);
+    }
+
+    if (url.pathname === "/api/replay/bundle/import" && req.method === "POST") {
+      return handleImportReplayBundle(req, res);
+    }
+
     if (url.pathname === "/api/packs" && req.method === "GET") {
       return handleListPacks(res);
     }
@@ -721,6 +756,14 @@ const server = http.createServer(async (req, res) => {
 
     if (url.pathname === "/api/marketplace/import-url" && req.method === "POST") {
       return handleMarketplaceImportUrl(req, res);
+    }
+
+    if (url.pathname === "/api/marketplace/share" && req.method === "GET") {
+      return handleMarketplaceShare(url, res);
+    }
+
+    if (url.pathname === "/api/marketplace/import-share" && req.method === "POST") {
+      return handleMarketplaceImportShare(req, res);
     }
 
     if (url.pathname === "/api/marketplace" && req.method === "GET") {
@@ -781,6 +824,18 @@ const server = http.createServer(async (req, res) => {
 
     if (url.pathname === "/api/mcp" && req.method === "GET") {
       return handleMcpManifest(res);
+    }
+
+    if (url.pathname === "/api/mcp/client/status" && req.method === "GET") {
+      return handleMcpClientStatus(res);
+    }
+
+    if (url.pathname === "/api/mcp/client/tools" && req.method === "GET") {
+      return handleMcpClientTools(url, res);
+    }
+
+    if (url.pathname === "/api/mcp/client/call" && req.method === "POST") {
+      return handleMcpClientCall(req, res);
     }
 
     if (url.pathname === "/api/evals/agent-quality" && req.method === "GET") {
@@ -1483,21 +1538,75 @@ async function handleWebhookRun(req, res) {
     return sendJson(res, 401, { error: "Webhook token required." });
   }
   const body = await readJsonBody(req);
+  const result = await createWebhookPendingRun(body, {
+    source: "webhook",
+    label: body.source || body.event || "automation trigger"
+  });
+  if (result.error) {
+    return sendJson(res, result.status, { error: result.error });
+  }
+  sendJson(res, 202, result.response);
+}
+
+async function handleWebhookTriggers(res) {
+  sendJson(res, 200, {
+    schema: "agenttrail.webhook-triggers.v1",
+    endpoint: "/api/webhooks/triggers/run",
+    triggers: webhookTriggerCatalog()
+  });
+}
+
+async function handleWebhookTriggerRun(req, res) {
+  if (!webhookAuthorized(req)) {
+    return sendJson(res, 401, { error: "Webhook token required." });
+  }
+  const body = await readJsonBody(req);
+  const id = String(body.id || body.triggerId || "").trim();
+  const trigger = webhookTriggerCatalog().find((item) => item.id === id);
+  if (!trigger) {
+    return sendJson(res, 404, { error: "Webhook trigger not found." });
+  }
+  const payload = body.payload && typeof body.payload === "object" ? body.payload : {};
+  const prompt = renderTemplate(trigger.promptTemplate, payload);
+  const result = await createWebhookPendingRun({
+    ...payload,
+    ...body,
+    prompt,
+    source: trigger.id,
+    event: trigger.title,
+    selectedFiles: Array.isArray(body.selectedFiles) ? body.selectedFiles : trigger.selectedFiles,
+    permissions: body.permissions || trigger.permissions,
+    securityMode: body.securityMode !== false
+  }, {
+    source: "webhook-trigger",
+    label: trigger.title,
+    triggerId: trigger.id
+  });
+  if (result.error) {
+    return sendJson(res, result.status, { error: result.error });
+  }
+  sendJson(res, 202, {
+    ...result.response,
+    trigger
+  });
+}
+
+async function createWebhookPendingRun(body, options = {}) {
   const record = normalizePendingRunRecord({
     prompt: body.prompt || body.message || body.text,
     model: body.model,
     selectedFiles: body.selectedFiles,
     permissions: body.permissions,
     securityMode: body.securityMode,
-    source: "webhook",
+    source: options.source || "webhook",
     trail: [{
       time: new Date().toISOString(),
-      type: "webhook",
-      label: truncate(String(body.source || body.event || "automation trigger"), 160)
+      type: options.source === "webhook-trigger" ? "webhook-trigger" : "webhook",
+      label: truncate(String(options.label || body.source || body.event || "automation trigger"), 160)
     }]
   });
   if (!record.prompt) {
-    return sendJson(res, 400, { error: "Webhook prompt is required." });
+    return { status: 400, error: "Webhook prompt is required." };
   }
 
   const stamp = new Date().toISOString().replace(/[:.]/g, "-");
@@ -1515,14 +1624,58 @@ async function handleWebhookRun(req, res) {
     selectedFiles: pending.selectedFiles.length,
     receiptPath: receipt.path
   });
-  sendJson(res, 202, {
-    ok: true,
-    queued: true,
-    pending,
-    receipt,
-    reviewEndpoint: "/api/runs/pending",
-    note: "Webhook triggers create a local pending run for explicit review before execution."
+  await LOGGER.log("info", "webhook.pending", {
+    source: pending.source,
+    triggerId: options.triggerId || "",
+    receiptPath: receipt.path
   });
+  return {
+    status: 202,
+    response: {
+      ok: true,
+      queued: true,
+      pending,
+      receipt,
+      reviewEndpoint: "/api/runs/pending",
+      note: "Webhook triggers create a local pending run for explicit review before execution."
+    }
+  };
+}
+
+function webhookTriggerCatalog() {
+  return [
+    {
+      id: "github-issue-triage",
+      title: "GitHub issue triage",
+      description: "Turns an issue payload into a local review run with security mode on.",
+      promptTemplate: "Review this GitHub issue payload, summarize the user need, search the workspace for relevant code/docs, and propose a safe implementation plan.\n\nIssue: {{title}}\nURL: {{url}}\nBody:\n{{body}}",
+      selectedFiles: ["docs/LOCAL_AGENT_LAYER_ROADMAP.md"],
+      permissions: { readFiles: true, previewWrites: true, writeFiles: false }
+    },
+    {
+      id: "release-smoke",
+      title: "Release smoke check",
+      description: "Creates a pending run for local release-readiness checks.",
+      promptTemplate: "Run the AgentTrail release smoke checklist for version {{version}}. Check docs, package metadata, CI status, and obvious broken links before proposing changes.",
+      selectedFiles: ["package.json", "README.md", "docs/LOCAL_AGENT_LAYER_ROADMAP.md"],
+      permissions: { readFiles: true, previewWrites: true, writeFiles: false }
+    },
+    {
+      id: "docs-refresh",
+      title: "Docs refresh",
+      description: "Routes an external docs signal into a reviewable local docs update.",
+      promptTemplate: "Review this docs refresh request and propose exact README/docs updates with citations to local files.\n\nRequest: {{request}}\nContext: {{context}}",
+      selectedFiles: ["README.md", "docs/API_REFERENCE.md"],
+      permissions: { readFiles: true, previewWrites: true, writeFiles: false }
+    }
+  ];
+}
+
+function renderTemplate(template, values = {}) {
+  return String(template || "").replace(/\{\{([a-zA-Z0-9_.-]+)\}\}/g, (_, key) => {
+    const value = key.split(".").reduce((current, part) => current && current[part], values);
+    return value === undefined || value === null ? "" : String(value);
+  }).trim();
 }
 
 function webhookAuthorized(req) {
@@ -3451,6 +3604,133 @@ async function handleRunPlugin(req, res) {
   SQLITE.insert("plugin", { pluginId, tool: toolName, result: result.ok, risk: result.permission?.risk || "unknown" });
   await LOGGER.log("info", "plugin.run", { pluginId, tool: toolName, risk: result.permission?.risk || "unknown" });
   sendJson(res, 200, result);
+}
+
+async function handlePluginMarketplace(res) {
+  const marketplace = await listPluginMarketplace();
+  const catalog = await loadPluginCatalog(PLUGINS_DIR);
+  const installed = new Map(catalog.plugins.map((plugin) => [plugin.id, publicPluginManifest(plugin)]));
+  sendJson(res, 200, {
+    schema: "agenttrail.plugin-marketplace-status.v1",
+    marketplace: {
+      ...marketplace,
+      plugins: marketplace.plugins.map((plugin) => ({
+        ...plugin,
+        installed: installed.has(plugin.id),
+        installedVersion: installed.get(plugin.id)?.version || null,
+        manifest: installed.get(plugin.id) || null
+      }))
+    },
+    invalid: catalog.invalid
+  });
+}
+
+async function handleInstallMarketplacePlugin(req, res) {
+  const body = await readJsonBody(req);
+  const id = String(body.id || body.pluginId || "").trim();
+  const marketplace = await listPluginMarketplace();
+  const item = marketplace.plugins.find((plugin) => plugin.id === id);
+  if (!item) {
+    return sendJson(res, 404, { error: "Marketplace plugin not found." });
+  }
+  const manifestPath = normalizeRelativePath(item.source || "");
+  if (!manifestPath.startsWith("plugins/") || !manifestPath.endsWith("/plugin.json")) {
+    return sendJson(res, 400, { error: "Marketplace plugin source must point at plugins/<id>/plugin.json." });
+  }
+  const absolutePath = path.resolve(PROJECT_ROOT, manifestPath);
+  if (!absolutePath.startsWith(`${PROJECT_ROOT}${path.sep}`)) {
+    return sendJson(res, 400, { error: "Plugin manifest path escaped the project root." });
+  }
+  let manifest;
+  try {
+    manifest = JSON.parse(await fsp.readFile(absolutePath, "utf8"));
+  } catch (error) {
+    return sendJson(res, 400, { error: `Plugin manifest could not be read: ${error.message}` });
+  }
+  if (String(manifest.id || "") !== id) {
+    return sendJson(res, 400, { error: "Plugin manifest id does not match marketplace entry." });
+  }
+  const catalog = await reloadPlugins(PLUGINS_DIR);
+  const installed = catalog.plugins.find((plugin) => plugin.id === id);
+  if (!installed) {
+    return sendJson(res, 400, { error: "Plugin manifest failed validation.", invalid: catalog.invalid });
+  }
+  const receipt = await writePluginInstallReceipt(item, installed);
+  await STORE.append("plugin-install", {
+    id,
+    title: item.title,
+    path: manifestPath,
+    receiptPath: receipt.path
+  });
+  SQLITE.insert("plugin", {
+    pluginId: id,
+    tool: "marketplace.install",
+    result: true,
+    risk: item.risk || "unknown"
+  });
+  await LOGGER.log("info", "plugin.marketplace.install", {
+    id,
+    source: manifestPath,
+    receiptPath: receipt.path
+  });
+  sendJson(res, 200, {
+    ok: true,
+    installed: true,
+    alreadyLocal: true,
+    path: manifestPath,
+    receipt,
+    plugin: publicPluginManifest(installed)
+  });
+}
+
+async function writePluginInstallReceipt(item, manifest) {
+  const stamp = new Date().toISOString().replace(/[:.]/g, "-");
+  const lines = [
+    "# AgentTrail Plugin Install Receipt",
+    "",
+    `Time: ${new Date().toISOString()}`,
+    `Plugin: ${item.title} (${item.id})`,
+    `Version: ${manifest.version || "unknown"}`,
+    `Risk: ${item.risk || "unknown"}`,
+    `Source: ${item.source}`,
+    "",
+    "## Permission Summary",
+    "",
+    ...(manifest.permissions || []).map((permission) => `- ${permission.tool}: ${permission.risk || "unknown"} risk, approval ${permission.requiresApproval === false ? "optional" : "required"}`),
+    "",
+    "## Result",
+    "",
+    "The plugin manifest was validated locally and the plugin catalog was hot-reloaded."
+  ];
+  return writeWorkspaceFile(`${RECEIPTS_DIR}/plugins/install-${item.id}-${stamp}.md`, lines.join("\n"));
+}
+
+async function handleOpenAIExport(url, res) {
+  const origin = url.origin && url.origin !== "null" ? url.origin : `http://${HOST}:${PORT}`;
+  const baseUrl = `${origin}/v1`;
+  sendJson(res, 200, {
+    schema: "agenttrail.openai-export.v1",
+    app: {
+      name: packageMeta.name,
+      version: packageMeta.version
+    },
+    baseUrl,
+    auth: {
+      type: "bearer-or-local",
+      note: "Use AGENTTRAIL_V1_API_KEY or AGENTTRAIL_V1_API_KEYS when configured; otherwise localhost can be used without a key."
+    },
+    endpoints: [
+      { method: "GET", path: "/v1/models", url: `${baseUrl}/models` },
+      { method: "POST", path: "/v1/chat/completions", url: `${baseUrl}/chat/completions` },
+      { method: "POST", path: "/v1/embeddings", url: `${baseUrl}/embeddings` },
+      { method: "GET", path: "/v1/openapi.json", url: `${baseUrl}/openapi.json` }
+    ],
+    capabilities: ["chat-completions", "streaming", "tool-calling", "embeddings"],
+    examples: {
+      curl: `curl ${baseUrl}/chat/completions -H 'Content-Type: application/json' -d '{"model":"${DEFAULT_MODEL}","messages":[{"role":"user","content":"Say hello from AgentTrail"}]}'`,
+      openaiJs: `const client = new OpenAI({ baseURL: "${baseUrl}", apiKey: process.env.AGENTTRAIL_V1_API_KEY || "local" });`
+    }
+  });
 }
 
 async function handleExportBackup(req, res) {
@@ -5506,10 +5786,14 @@ async function handleReplayPlan(url, res) {
   if (!relativePath) {
     return sendJson(res, 400, { error: "Session path is required" });
   }
+  sendJson(res, 200, await buildReplayPlan(relativePath));
+}
+
+async function buildReplayPlan(relativePath) {
   const normalizedPath = normalizeRelativePath(relativePath);
   if (normalizedPath.startsWith(`${RECEIPTS_DIR}/`) || normalizedPath.startsWith(`${REPORTS_DIR}/`)) {
     const receiptResume = await buildReceiptResume(normalizedPath);
-    return sendJson(res, 200, {
+    return {
       path: receiptResume.path,
       title: "Resume receipt",
       steps: [
@@ -5522,11 +5806,11 @@ async function handleReplayPlan(url, res) {
       ],
       replay: receiptResume.pending,
       warnings: receiptResume.warnings
-    });
+    };
   }
   const file = await readWorkspaceFile(relativePath, MAX_FILE_BYTES);
   const session = JSON.parse(file.content || "{}");
-  sendJson(res, 200, {
+  return {
     path: file.path,
     title: session.title || "Replay session",
     steps: [
@@ -5538,7 +5822,138 @@ async function handleReplayPlan(url, res) {
       { id: "rerun", label: "User reviews and reruns deliberately", done: false }
     ],
     replay: session.replay || {}
+  };
+}
+
+async function handleReplayBundle(req, res) {
+  const body = await readJsonBody(req);
+  const relativePath = body.path || body.sessionPath || body.receiptPath || "";
+  if (!relativePath) {
+    return sendJson(res, 400, { error: "Replay bundle path is required." });
+  }
+  const plan = await buildReplayPlan(relativePath);
+  const selectedFiles = normalizeReceiptSelectedFiles(plan.replay?.selectedFiles || plan.replay?.files || []);
+  const files = body.includeFiles === true ? await collectReplayBundleFiles(selectedFiles) : [];
+  const bundle = {
+    schema: "agenttrail.replay-bundle.v1",
+    exportedAt: new Date().toISOString(),
+    appVersion: packageMeta.version,
+    sourcePath: plan.path,
+    title: plan.title,
+    steps: plan.steps,
+    replay: plan.replay || {},
+    warnings: plan.warnings || [],
+    files,
+    privacy: {
+      selfContained: files.length > 0,
+      note: files.length ? "Included file snapshots are redacted with AgentTrail privacy rules." : "No workspace file contents were included."
+    }
+  };
+  const stamp = new Date().toISOString().replace(/[:.]/g, "-");
+  const saved = await writeWorkspaceFile(`${REPORTS_DIR}/replay-bundles/replay-${stamp}.json`, JSON.stringify(bundle, null, 2));
+  await STORE.append("replay-bundle", {
+    path: saved.path,
+    sourcePath: plan.path,
+    fileSnapshots: files.length
   });
+  sendJson(res, 200, { ok: true, path: saved.path, bundle });
+}
+
+async function handleImportReplayBundle(req, res) {
+  const body = await readJsonBody(req);
+  const bundle = normalizeReplayBundle(body.bundle || body.content || body);
+  if (!bundle) {
+    return sendJson(res, 400, { error: "Invalid replay bundle." });
+  }
+  const pending = normalizePendingRunRecord({
+    ...(bundle.replay || {}),
+    prompt: bundle.replay?.prompt || bundle.replay?.request || "",
+    selectedFiles: bundle.replay?.selectedFiles || bundle.replay?.files || [],
+    source: "replay-bundle",
+    trail: [
+      ...(Array.isArray(bundle.replay?.trail) ? bundle.replay.trail : []),
+      {
+        time: new Date().toISOString(),
+        type: "replay-bundle",
+        label: truncate(`Imported replay bundle from ${bundle.sourcePath || "share"}`, 160)
+      }
+    ]
+  });
+  if (!pending.prompt) {
+    return sendJson(res, 400, { error: "Replay bundle does not contain a prompt to restore." });
+  }
+  const stamp = new Date().toISOString().replace(/[:.]/g, "-");
+  const receipt = await writeWorkspaceFile(`${RECEIPTS_DIR}/replay-bundles/import-${stamp}.md`, buildReplayBundleImportReceipt(bundle, pending));
+  const withReceipt = { ...pending, receiptPath: receipt.path };
+  await persistPendingRun(withReceipt);
+  await STORE.append("replay-bundle-import", {
+    sourcePath: bundle.sourcePath || "",
+    receiptPath: receipt.path,
+    selectedFiles: withReceipt.selectedFiles.length
+  });
+  sendJson(res, 202, {
+    ok: true,
+    queued: true,
+    pending: withReceipt,
+    receipt,
+    reviewEndpoint: "/api/runs/pending"
+  });
+}
+
+async function collectReplayBundleFiles(selectedFiles) {
+  const files = [];
+  for (const relativePath of selectedFiles.slice(0, 12)) {
+    try {
+      const file = await readWorkspaceFile(relativePath, Math.min(MAX_FILE_BYTES, 512 * 1024));
+      files.push({
+        path: file.path,
+        size: file.size,
+        modifiedAt: file.modifiedAt,
+        hash: hashContent(file.content),
+        content: redactTextOnly(file.content, process.env)
+      });
+    } catch (error) {
+      files.push({
+        path: normalizeRelativePath(relativePath),
+        error: truncate(error.message, 180)
+      });
+    }
+  }
+  return files;
+}
+
+function normalizeReplayBundle(value) {
+  if (typeof value === "string") {
+    try {
+      value = JSON.parse(value);
+    } catch {
+      return null;
+    }
+  }
+  if (!value || typeof value !== "object" || value.schema !== "agenttrail.replay-bundle.v1") {
+    return null;
+  }
+  return value;
+}
+
+function buildReplayBundleImportReceipt(bundle, pending) {
+  return [
+    "# AgentTrail Replay Bundle Import",
+    "",
+    `Time: ${new Date().toISOString()}`,
+    `Source: ${bundle.sourcePath || "share"}`,
+    `Model: ${pending.model || "auto"}`,
+    `Selected files: ${pending.selectedFiles.length ? pending.selectedFiles.join(", ") : "none"}`,
+    `File snapshots: ${Array.isArray(bundle.files) ? bundle.files.length : 0}`,
+    "",
+    "## Restored Prompt",
+    "",
+    pending.prompt,
+    "",
+    "## Safety",
+    "",
+    "Imported bundles create a pending run for local review before any execution or file write."
+  ].join("\n");
 }
 
 async function handleListPacks(res) {
@@ -5593,6 +6008,38 @@ async function handleMarketplaceImportUrl(req, res) {
   await assertDiskSpace(RECIPE_PACKS_DIR, Buffer.byteLength(JSON.stringify(importedPack, null, 2), "utf8"), { minFreeBytes: WRITE_MIN_FREE_BYTES });
   await atomicWriteFile(packPath, JSON.stringify(importedPack, null, 2), "utf8");
   await STORE.append("recipe-pack-import", { id: pack.id, source: sourceUrl });
+  sendJson(res, 200, { ok: true, path: `recipe-packs/${pack.id}.json`, pack: importedPack });
+}
+
+async function handleMarketplaceShare(url, res) {
+  const id = String(url.searchParams.get("id") || "").trim();
+  const pack = await findShareableRecipePack(id);
+  if (!pack) {
+    return sendJson(res, 404, { error: "Recipe pack not found." });
+  }
+  const share = buildRecipePackShare(pack);
+  sendJson(res, 200, share);
+}
+
+async function handleMarketplaceImportShare(req, res) {
+  const body = await readJsonBody(req);
+  const parsed = parseRecipePackShare(body.url || body.shareUrl || body.content || body);
+  if (!parsed) {
+    return sendJson(res, 400, { error: "Invalid AgentTrail recipe share URL or payload." });
+  }
+  const pack = normalizeImportedPack(parsed.pack || parsed);
+  if (!pack) {
+    return sendJson(res, 400, { error: "Recipe share did not contain a valid pack." });
+  }
+  const packPath = path.join(RECIPE_PACKS_DIR, `${pack.id}.json`);
+  const importedPack = {
+    ...pack,
+    source: parsed.shareUrl || "agenttrail-share",
+    importedAt: new Date().toISOString()
+  };
+  await assertDiskSpace(RECIPE_PACKS_DIR, Buffer.byteLength(JSON.stringify(importedPack, null, 2), "utf8"), { minFreeBytes: WRITE_MIN_FREE_BYTES });
+  await atomicWriteFile(packPath, JSON.stringify(importedPack, null, 2), "utf8");
+  await STORE.append("recipe-pack-share-import", { id: pack.id, source: importedPack.source });
   sendJson(res, 200, { ok: true, path: `recipe-packs/${pack.id}.json`, pack: importedPack });
 }
 
@@ -5828,6 +6275,85 @@ async function handleMcpManifest(res) {
       note: "MCP bridge manifest not found."
     });
   }
+}
+
+async function handleMcpClientStatus(res) {
+  const config = await readMcpClientConfig(MCP_CLIENTS_PATH, process.env);
+  sendJson(res, 200, {
+    ok: true,
+    ...publicMcpClientStatus(config),
+    configPath: process.env.AGENTTRAIL_MCP_CLIENT_CONFIG || "mcp/clients.json"
+  });
+}
+
+async function handleMcpClientTools(url, res) {
+  const config = await readMcpClientConfig(MCP_CLIENTS_PATH, process.env);
+  const serverId = String(url.searchParams.get("serverId") || "").trim();
+  if (url.searchParams.get("live") !== "true") {
+    return sendJson(res, 200, {
+      ok: true,
+      live: false,
+      ...publicMcpClientStatus(config),
+      note: "Pass live=true to launch the external MCP server and list tools."
+    });
+  }
+  try {
+    const result = await listMcpClientTools(config, { serverId: serverId || undefined });
+    sendJson(res, 200, { ok: true, live: true, ...result });
+  } catch (error) {
+    sendJson(res, error.status || 502, { error: error.message });
+  }
+}
+
+async function handleMcpClientCall(req, res) {
+  const body = await readJsonBody(req);
+  const config = await readMcpClientConfig(MCP_CLIENTS_PATH, process.env);
+  try {
+    const result = await callMcpClientTool(config, body, {});
+    const stamp = new Date().toISOString().replace(/[:.]/g, "-");
+    const receipt = await writeWorkspaceFile(`${RECEIPTS_DIR}/mcp-client/mcp-${result.server.id}-${stamp}.md`, buildMcpClientReceipt(result, body));
+    await STORE.append("mcp-client", {
+      serverId: result.server.id,
+      tool: result.tool,
+      receiptPath: receipt.path
+    });
+    SQLITE.insert("mcp", {
+      tool: result.tool,
+      path: receipt.path,
+      approval: body.approved === true ? "approved" : "missing"
+    });
+    await LOGGER.log("info", "mcp.client.call", {
+      serverId: result.server.id,
+      tool: result.tool,
+      receiptPath: receipt.path
+    });
+    sendJson(res, 200, { ...result, receipt });
+  } catch (error) {
+    sendJson(res, error.status || 502, { error: error.message });
+  }
+}
+
+function buildMcpClientReceipt(result, body) {
+  return [
+    "# AgentTrail MCP Client Receipt",
+    "",
+    `Time: ${new Date().toISOString()}`,
+    `Server: ${result.server.title} (${result.server.id})`,
+    `Tool: ${result.tool}`,
+    `Approval: ${body.approved === true ? "explicit" : "missing"}`,
+    "",
+    "## Arguments",
+    "",
+    "```json",
+    JSON.stringify(redactValueOnly(body.arguments || body.input || {}), null, 2),
+    "```",
+    "",
+    "## Result",
+    "",
+    "```json",
+    JSON.stringify(redactValueOnly(result.result || {}), null, 2),
+    "```"
+  ].join("\n");
 }
 
 async function handleRunEvals(res) {
@@ -10673,6 +11199,114 @@ async function listMarketplace() {
       packs: []
     };
   }
+}
+
+async function listPluginMarketplace() {
+  const manifestPath = path.join(MARKETPLACE_DIR, "plugins.json");
+  try {
+    const raw = await fsp.readFile(manifestPath, "utf8");
+    const marketplace = JSON.parse(raw);
+    const plugins = Array.isArray(marketplace.plugins) ? marketplace.plugins : [];
+    return {
+      schema: "agenttrail.plugin-marketplace.v1",
+      title: truncate(marketplace.title || "AgentTrail Plugin Marketplace", 100),
+      description: truncate(marketplace.description || "", 220),
+      plugins: plugins
+        .filter((plugin) => plugin && plugin.id && plugin.title && plugin.source)
+        .map((plugin) => ({
+          id: String(plugin.id).trim(),
+          title: truncate(plugin.title, 80),
+          category: truncate(plugin.category || "utility", 50),
+          risk: truncate(plugin.risk || "unknown", 30),
+          description: truncate(plugin.description || "", 220),
+          source: normalizeRelativePath(plugin.source)
+        }))
+        .filter((plugin) => /^[a-z][a-z0-9-]{1,63}$/.test(plugin.id))
+    };
+  } catch {
+    return {
+      schema: "agenttrail.plugin-marketplace.v1",
+      title: "AgentTrail Plugin Marketplace",
+      description: "No plugin marketplace manifest found yet.",
+      plugins: []
+    };
+  }
+}
+
+async function findShareableRecipePack(id) {
+  if (!id) {
+    return null;
+  }
+  const packs = await listRecipePacks();
+  const localPack = packs.find((pack) => pack.id === id);
+  if (localPack) {
+    return {
+      id: localPack.id,
+      title: localPack.title,
+      description: localPack.description,
+      recipes: localPack.recipes.map((recipe) => recipe.id)
+    };
+  }
+  const marketplace = await listMarketplace();
+  const marketplacePack = (marketplace.packs || []).find((pack) => pack.id === id);
+  if (!marketplacePack) {
+    return null;
+  }
+  return {
+    id: marketplacePack.id,
+    title: marketplacePack.title,
+    description: marketplacePack.description,
+    recipes: marketplacePack.recipes,
+    source: marketplacePack.source || "marketplace"
+  };
+}
+
+function buildRecipePackShare(pack) {
+  const payload = {
+    schema: "agenttrail.recipe-pack-share.v1",
+    exportedAt: new Date().toISOString(),
+    appVersion: packageMeta.version,
+    pack: normalizeImportedPack(pack)
+  };
+  const encoded = base64UrlEncode(JSON.stringify(payload));
+  return {
+    ...payload,
+    shareUrl: `agenttrail://recipe-pack/${encoded}`
+  };
+}
+
+function parseRecipePackShare(value) {
+  if (value && typeof value === "object") {
+    return value.schema === "agenttrail.recipe-pack-share.v1" || value.pack ? value : null;
+  }
+  const text = String(value || "").trim();
+  if (!text) {
+    return null;
+  }
+  if (text.startsWith("agenttrail://recipe-pack/")) {
+    try {
+      const json = Buffer.from(text.replace("agenttrail://recipe-pack/", ""), "base64url").toString("utf8");
+      return { ...JSON.parse(json), shareUrl: text };
+    } catch {
+      return null;
+    }
+  }
+  if (text.startsWith("data:application/json;base64,")) {
+    try {
+      return JSON.parse(Buffer.from(text.replace("data:application/json;base64,", ""), "base64").toString("utf8"));
+    } catch {
+      return null;
+    }
+  }
+  try {
+    return JSON.parse(text);
+  } catch {
+    return null;
+  }
+}
+
+function base64UrlEncode(value) {
+  return Buffer.from(String(value), "utf8").toString("base64url");
 }
 
 function normalizeImportedPack(value) {

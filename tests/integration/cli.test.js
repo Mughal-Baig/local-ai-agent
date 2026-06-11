@@ -75,6 +75,11 @@ async function main() {
     assert.equal(run.ok, true);
     assert.match(run.response, /CLI response/);
 
+    const chat = await cliJson(["--url", baseUrl, "chat", "--model", "llama3.2", "--prompt", "Say hello", "--json"]);
+    assert.equal(chat.ok, true);
+    assert.equal(chat.model, "llama3.2");
+    assert.match(chat.response, /CLI response/);
+
     const bashCompletion = await cli(["completion", "bash"]);
     assert.match(bashCompletion.stdout, /complete -F _agenttrail agenttrail/);
     const zshCompletion = await cli(["completion", "zsh"]);

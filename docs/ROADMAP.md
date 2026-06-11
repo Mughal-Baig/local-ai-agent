@@ -2,7 +2,8 @@
 
 ## Next
 
-- Continue Epic AN with plugin marketplace browse/install and recipe sharing imports now that the SDK, hot reload, and runnable examples are complete.
+- Start the T281 public proof loop: record the real search -> diff preview -> apply -> receipt/report GIF/video.
+- Harden the install/distribution path around the new interop surfaces: `agenttrail chat`, VS Code MVP, OpenAI export descriptor, webhook triggers, and external MCP client config.
 - Build the 60-second proof loop: search -> diff preview -> apply -> receipt -> shareable report.
 - Make the install path undeniable: `npx agenttrail`, Docker persistence, Homebrew publication, setup doctor, and friendly failure states.
 - Use the new Epic AL eval quality layer to keep golden task fixtures, citation-faithfulness checks, unsupported-claim detection, and model benchmarks regression-gated.
@@ -74,6 +75,7 @@
 - Accounting and routing layer: per-chat token/time usage receipts, aggregate model/recipe/time dashboards, soft/hard budget caps, automatic task-based routing, speculative draft-then-verify, and per-recipe default model hints.
 - Plugin SDK hardening: typed `agenttrail.plugin.v1` manifest validation, sanitized plugin catalog output, receipt-backed permission scopes, medium/high-risk approval gates, VM inline-code restrictions, and CI plugin SDK tests.
 - Plugin developer loop and examples: manifest-fingerprint hot reload, `/api/plugins/status`, `/api/plugins/reload`, and runnable `web-fetch`, `calculator`, and `shell-guarded` example plugins.
+- Marketplace and interop layer: plugin marketplace browse/install receipts, recipe share URLs/imports, VS Code chat/apply MVP, `agenttrail chat`, webhook trigger presets, external MCP client consumption, OpenAI export descriptor, and replay bundle export/import.
 - Top 1% expansion added to the long roadmap: Phase 17-22 now covers demo proof, one-command install, first-run retention, safety proof, public comparisons, signed releases, supportability, and durable AgentTrail-specific moat.
 
 ## Not Planned

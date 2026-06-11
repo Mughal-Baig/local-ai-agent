@@ -8,6 +8,11 @@ Current schema families:
 - `agenttrail.receipt.v1`
 - `agenttrail.report.v1`
 - `agenttrail.recipe-pack.v1`
+- `agenttrail.recipe-pack-share.v1`
+- `agenttrail.plugin-marketplace.v1`
+- `agenttrail.mcp-clients.v1`
+- `agenttrail.openai-export.v1`
+- `agenttrail.replay-bundle.v1`
 - `agenttrail.profile.v1`
 - `agenttrail.memory-revision.v1`
 - `agenttrail.search-index.v1`
@@ -34,6 +39,8 @@ Current schema families:
 The running app exposes schema summaries at `/api/schemas`. Markdown receipts now include a resume prompt section so `/api/receipts/resume` can recreate a pending run without depending on a proprietary container. Extracted PDF/DOCX/PPTX/XLSX/HTML/Markdown/code files, OCR image extracts, audio transcripts, local speech outputs, generated images, and allowlisted URL ingests are stored as plain Markdown sidecars or workspace artifacts with source/provenance metadata, plus ingestion receipts where applicable so search, receipts, and Git diffs can inspect normalized text and the ingestion steps without parsing the source again.
 
 Plugin manifests use `agenttrail.plugin.v1` with a stricter SDK validator in `src/plugin-sdk.js`: manifests require typed tools, matching receipt-backed permissions, explicit risk levels, approval gates for medium/high-risk tools, and hot-reloadable local manifest fingerprints.
+
+Interop artifacts use additive schemas: recipe pack shares are portable `agenttrail://recipe-pack/...` payloads, MCP client configs list external stdio servers with approval defaults, OpenAI export descriptors publish the local `/v1` setup, and replay bundles restore runs as pending local reviews before execution.
 
 The served OpenAI-compatible API contract is documented separately as OpenAPI 3.1 in `docs/openapi/agenttrail-v1-openapi.json` and is available at `/v1/openapi.json`.
 

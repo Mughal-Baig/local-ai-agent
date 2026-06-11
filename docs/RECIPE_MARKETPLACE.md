@@ -53,10 +53,39 @@ The AgentTrail recipe marketplace is intentionally lightweight: JSON recipes, cu
 }
 ```
 
+## Share URLs
+
+Recipe packs can be exported as self-contained AgentTrail share URLs:
+
+```bash
+curl "http://127.0.0.1:4173/api/marketplace/share?id=coder"
+```
+
+The response includes `agenttrail://recipe-pack/<payload>`. Import it through the Top 1% Kit or:
+
+```bash
+curl -X POST http://127.0.0.1:4173/api/marketplace/import-share \
+  -H "Content-Type: application/json" \
+  -d '{"url":"agenttrail://recipe-pack/..."}'
+```
+
+Imports write a local `recipe-packs/<id>.json` file. GitHub raw/gist URL imports remain available through `/api/marketplace/import-url`.
+
+## Plugin Marketplace
+
+`marketplace/plugins.json` lists curated plugin examples. The UI can browse and install/recheck entries through:
+
+- `GET /api/plugins/marketplace`
+- `POST /api/plugins/install`
+
+Plugin marketplace installs validate the referenced local `plugins/<id>/plugin.json`, hot-reload the plugin catalog, and write an install receipt under `receipts/plugins/`.
+
 ## Maintainer Checklist
 
 - Confirm all referenced recipe IDs exist.
 - Confirm the pack appears in the import/export UI.
+- Confirm recipe share import/export works for the pack.
+- Confirm plugin marketplace entries point at valid local plugin manifests.
 - Confirm the pack has a useful one-sentence description.
 - Confirm no recipe asks users to paste secrets into external services.
 - Add a short changelog entry when a pack is promoted.

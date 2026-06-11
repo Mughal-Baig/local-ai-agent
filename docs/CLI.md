@@ -33,6 +33,25 @@ agenttrail run llama3.2 --prompt "list risks" --json
 
 Use `--json` for scripts and CI jobs. Use `--url http://127.0.0.1:4173` when the server runs somewhere else.
 
+## Chat REPL
+
+`agenttrail chat` is the model-optional app-composer path. It uses AgentTrail's default model/router unless `--model` is set.
+
+```bash
+agenttrail chat
+agenttrail chat --model llama3.2
+agenttrail chat --prompt "Summarize docs/ROADMAP.md" --file docs/ROADMAP.md --json
+echo "list the next risks" | agenttrail chat --json
+```
+
+Interactive slash commands:
+
+- `/model <name>` sets the model for following turns.
+- `/file <path>` adds a workspace file to selected context.
+- `/files` shows selected files.
+- `/clear` clears the conversation.
+- `/exit` quits.
+
 ## Manage Models
 
 ```bash

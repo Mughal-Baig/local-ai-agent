@@ -9,9 +9,17 @@
     realBench: document.querySelector("#runRealBenchmark"),
     compare: document.querySelector("#compareModels"),
     compareSummary: document.querySelector("#modelCompareSummary"),
+    packSelect: document.querySelector("#packSelect"),
     packUrl: document.querySelector("#packImportUrl"),
     importPack: document.querySelector("#importPackUrl"),
+    sharePack: document.querySelector("#sharePack"),
+    shareUrl: document.querySelector("#shareImportUrl"),
+    importShare: document.querySelector("#importShareUrl"),
+    pluginMarketplace: document.querySelector("#pluginMarketplace"),
     pluginGallery: document.querySelector("#pluginGallery"),
+    interop: document.querySelector("#interopSummary"),
+    exportReplayBundle: document.querySelector("#exportReplayBundle"),
+    importReplayBundle: document.querySelector("#importReplayBundle"),
     onboarding: document.querySelector("#onboardingSummary")
   };
 
@@ -30,8 +38,15 @@
   els.realBench?.addEventListener("click", runRealBenchmark);
   els.compare?.addEventListener("click", compareModels);
   els.importPack?.addEventListener("click", importPackUrl);
+  els.sharePack?.addEventListener("click", shareSelectedPack);
+  els.importShare?.addEventListener("click", importShareUrl);
+  els.pluginMarketplace?.addEventListener("click", handlePluginMarketplaceClick);
+  els.exportReplayBundle?.addEventListener("click", exportReplayBundle);
+  els.importReplayBundle?.addEventListener("click", importReplayBundle);
 
+  refreshPluginMarketplace();
   refreshPluginGallery();
+  refreshInteropStatus();
   refreshOnboarding();
   compareModels();
   refreshReplayPlan();
@@ -139,6 +154,81 @@
     }
   }
 
+  async function shareSelectedPack() {
+    const id = els.packSelect?.value || "";
+    if (!id) {
+      return;
+    }
+    els.pluginGallery.innerHTML = `<div class="mini-row muted">Creating recipe share...</div>`;
+    try {
+      const data = await getJson(`/api/marketplace/share?id=${encodeURIComponent(id)}`);
+      if (navigator.clipboard && data.shareUrl) {
+        await navigator.clipboard.writeText(data.shareUrl).catch(() => {});
+      }
+      els.pluginGallery.innerHTML = `<div class="mini-row"><strong>Share ready</strong><span>${escapeHtml(data.pack.title)} · copied when clipboard is available</span></div>`;
+      if (els.shareUrl) {
+        els.shareUrl.value = data.shareUrl || "";
+      }
+    } catch (error) {
+      els.pluginGallery.innerHTML = `<div class="mini-row muted">${escapeHtml(error.message)}</div>`;
+    }
+  }
+
+  async function importShareUrl() {
+    const url = (els.shareUrl?.value || "").trim();
+    if (!url) {
+      return;
+    }
+    els.pluginGallery.innerHTML = `<div class="mini-row muted">Importing recipe share...</div>`;
+    try {
+      const data = await postJson("/api/marketplace/import-share", { url });
+      els.pluginGallery.innerHTML = `<div class="mini-row"><strong>Imported ${escapeHtml(data.pack.title)}</strong><span>${escapeHtml(data.path)}</span></div>`;
+    } catch (error) {
+      els.pluginGallery.innerHTML = `<div class="mini-row muted">${escapeHtml(error.message)}</div>`;
+    }
+  }
+
+  async function refreshPluginMarketplace() {
+    if (!els.pluginMarketplace) {
+      return;
+    }
+    try {
+      const data = await getJson("/api/plugins/marketplace");
+      const plugins = data.marketplace?.plugins || [];
+      els.pluginMarketplace.innerHTML = plugins.length
+        ? plugins.map((plugin) => `
+          <div class="mini-row plugin-marketplace-row">
+            <strong>${escapeHtml(plugin.title)} ${plugin.installed ? "OK" : ""}</strong>
+            <span>${escapeHtml(plugin.category)} · ${escapeHtml(plugin.risk)} risk</span>
+            <button class="secondary-button compact-button" type="button" data-plugin-id="${escapeHtml(plugin.id)}">${plugin.installed ? "Recheck" : "Install"}</button>
+          </div>
+        `).join("")
+        : `<div class="mini-row muted">Plugin marketplace is empty.</div>`;
+    } catch (error) {
+      els.pluginMarketplace.innerHTML = `<div class="mini-row muted">${escapeHtml(error.message)}</div>`;
+    }
+  }
+
+  async function handlePluginMarketplaceClick(event) {
+    const button = event.target.closest("[data-plugin-id]");
+    if (!button) {
+      return;
+    }
+    const id = button.dataset.pluginId;
+    button.disabled = true;
+    button.textContent = "Checking";
+    try {
+      const data = await postJson("/api/plugins/install", { id });
+      els.pluginGallery.innerHTML = `<div class="mini-row"><strong>${escapeHtml(data.plugin.title)} installed</strong><span>${escapeHtml(data.receipt.path)}</span></div>`;
+      await refreshPluginMarketplace();
+      await refreshPluginGallery();
+    } catch (error) {
+      button.textContent = "Install";
+      button.disabled = false;
+      els.pluginGallery.innerHTML = `<div class="mini-row muted">${escapeHtml(error.message)}</div>`;
+    }
+  }
+
   async function refreshPluginGallery() {
     try {
       const data = await getJson("/api/plugins");
@@ -147,6 +237,58 @@
         : `<div class="mini-row muted">No plugins installed yet.</div>`;
     } catch {
       els.pluginGallery.innerHTML = "";
+    }
+  }
+
+  async function refreshInteropStatus() {
+    if (!els.interop) {
+      return;
+    }
+    try {
+      const [mcp, openai, webhooks] = await Promise.all([
+        getJson("/api/mcp/client/status"),
+        getJson("/api/interop/openai-export"),
+        getJson("/api/webhooks/triggers")
+      ]);
+      els.interop.innerHTML = [
+        `<div class="mini-row"><strong>MCP clients</strong><span>${(mcp.servers || []).length} configured external server(s)</span></div>`,
+        `<div class="mini-row"><strong>OpenAI endpoint</strong><span>${escapeHtml(openai.baseUrl || "/v1")}</span></div>`,
+        `<div class="mini-row"><strong>Webhook triggers</strong><span>${(webhooks.triggers || []).length} local pending-run preset(s)</span></div>`
+      ].join("");
+    } catch (error) {
+      els.interop.innerHTML = `<div class="mini-row muted">${escapeHtml(error.message)}</div>`;
+    }
+  }
+
+  async function exportReplayBundle() {
+    const path = els.session?.value || "";
+    if (!path) {
+      return;
+    }
+    els.replayPlan.innerHTML = `<div class="mini-row muted">Exporting replay bundle...</div>`;
+    try {
+      const data = await postJson("/api/replay/bundle", { path, includeFiles: false });
+      const bundleText = JSON.stringify(data.bundle, null, 2);
+      if (navigator.clipboard) {
+        await navigator.clipboard.writeText(bundleText).catch(() => {});
+      }
+      els.replayPlan.innerHTML = `<div class="mini-row"><strong>Bundle exported</strong><span>${escapeHtml(data.path)} · copied when clipboard is available</span></div>`;
+    } catch (error) {
+      els.replayPlan.innerHTML = `<div class="mini-row muted">${escapeHtml(error.message)}</div>`;
+    }
+  }
+
+  async function importReplayBundle() {
+    const content = window.prompt("Paste AgentTrail replay bundle JSON");
+    if (!content) {
+      return;
+    }
+    els.replayPlan.innerHTML = `<div class="mini-row muted">Importing replay bundle...</div>`;
+    try {
+      const data = await postJson("/api/replay/bundle/import", { content });
+      els.replayPlan.innerHTML = `<div class="mini-row"><strong>Replay queued</strong><span>${escapeHtml(data.receipt.path)}</span></div>`;
+    } catch (error) {
+      els.replayPlan.innerHTML = `<div class="mini-row muted">${escapeHtml(error.message)}</div>`;
     }
   }
 

@@ -127,7 +127,7 @@ Open `http://127.0.0.1:4173`, build the semantic index, ask for a change, review
 - Advanced agent APIs: multi-agent orchestration plans, scheduled run manifests, task journals with resume, sub-agent budget isolation, and deterministic replay diffs at `/api/advanced-agent/*`
 - Workspace-aware tools: list files, search files, read files, preview writes, and write files
 - Native tool calling for Ollama `/api/chat` and OpenAI-compatible local backends, with per-model capability probing, multi-tool batches, schema validation, and repair for malformed arguments
-- OpenAI-compatible server mode: `/v1/chat/completions`, `/v1/models`, `/v1/embeddings`, streaming SSE, API keys, rate limits, request queue, and OpenAPI spec
+- OpenAI-compatible server mode: `/v1/chat/completions`, `/v1/models`, `/v1/embeddings`, streaming SSE, API keys, rate limits, request queue, OpenAPI spec, and `/api/interop/openai-export`
 - Bounded model concurrency and graceful overload responses through `AGENTTRAIL_MAX_CONCURRENCY`, `AGENTTRAIL_MAX_QUEUE`, and `/api/concurrency`
 - Health/resources/runtime/resilience endpoints for deployment checks and system visibility: `/api/health`, `/api/resilience`, `/api/resources`, `/api/runtime`
 - Resilience safeguards: graceful backend-down UI state, retry-with-backoff for transient backend calls, crash-safe atomic writes for local stores, corrupt-index auto-rebuild, disk-space guards for writes and model pulls, and actionable error codes
@@ -146,8 +146,9 @@ Open `http://127.0.0.1:4173`, build the semantic index, ask for a change, review
 - Post-run memory suggestions that the user can review and apply; nothing is silently remembered
 - Memory history view with revision diffs and revert that creates a new auditable history entry
 - Project/global memory scopes so reusable preferences can follow you without mixing project facts
-- Recipe packs for coder, founder, and security workflows, plus marketplace manifest and import/export route
-- Real MCP stdio server with explicit per-tool approvals and receipts
+- Recipe packs for coder, founder, student, writer, and security workflows, plus marketplace manifests, share URLs, and import/export routes
+- Plugin marketplace browse/install for curated local plugins, with validation, hot reload, and install receipts
+- Real MCP stdio server plus external MCP client consumption, both with explicit approvals and receipts
 - Workspace profile templates with profile switching API/UI
 - Local team controls with owner/auditor/viewer defaults, read-only shared receipt views, RBAC-limited tools, audit-log export, opt-in sync package export, and SSO identity hook
 - Local evaluation harness plus saved pass/fail history and model benchmark surface
@@ -302,11 +303,11 @@ When write preview mode is enabled, `write_file` returns a diff preview instead 
 - Local image generation: `/api/images/generate` talks to local Automatic1111/Forge or OpenAI-compatible Flux/SD servers, saves image artifacts, and writes Markdown provenance beside them
 - Local audio transcription: `/api/audio/transcribe` runs a local whisper.cpp-compatible command, writes searchable transcript sidecars, and saves ingestion receipts; the Audio Transcription recipe can run it from selected audio
 - Local response speech: `/api/audio/speak` runs a local TTS command, saves response audio, and gives assistant messages a Speak control
-- MCP bridge: [mcp/server.js](mcp/server.js) and [mcp/agenttrail.mcp.json](mcp/agenttrail.mcp.json)
-- Recipe marketplace: [marketplace/recipes.json](marketplace/recipes.json), [recipe-packs](recipe-packs), `/api/packs/import`
+- MCP bridge: [mcp/server.js](mcp/server.js), [mcp/agenttrail.mcp.json](mcp/agenttrail.mcp.json), external client config in [mcp/clients.json](mcp/clients.json), and `/api/mcp/client/*`
+- Recipe and plugin marketplaces: [marketplace/recipes.json](marketplace/recipes.json), [marketplace/plugins.json](marketplace/plugins.json), [recipe-packs](recipe-packs), `/api/marketplace/share`, `/api/marketplace/import-share`, and `/api/plugins/install`
 - One-command install surfaces: `bin/agenttrail.js`, [Dockerfile](Dockerfile), [docker-compose.yml](docker-compose.yml), [install.sh](install.sh), [Formula/agenttrail.rb](Formula/agenttrail.rb), [desktop](desktop)
 - Supply-chain proof: multi-arch GHCR workflow, npm provenance workflow, SPDX SBOM, signed-checksum script, and reproducible `npm pack` check in [docs/SUPPLY_CHAIN.md](docs/SUPPLY_CHAIN.md)
-- CLI and editor integrations: Ollama-style `agenttrail run/pull/list/rm/ps/show/serve/create`, `agenttrail-chat`, shell completions, [docs/CLI.md](docs/CLI.md), [docs/INTEGRATIONS.md](docs/INTEGRATIONS.md), and the VS Code MVP in [editor/vscode-agenttrail](editor/vscode-agenttrail)
+- CLI and editor integrations: Ollama-style `agenttrail run/pull/list/rm/ps/show/serve/create`, `agenttrail chat`, `agenttrail-chat`, shell completions, [docs/CLI.md](docs/CLI.md), [docs/INTEGRATIONS.md](docs/INTEGRATIONS.md), and the VS Code chat/apply MVP in [editor/vscode-agenttrail](editor/vscode-agenttrail)
 - Physical desktop app: `npm run package:mac-app` builds `dist/mac/AgentTrail.app`; Windows tray and Linux desktop/package templates live in [desktop](desktop) and [installers](installers)
 - Model scoring and benchmarking: `/api/status`, `/api/models/vision-capability`, `/api/benchmarks`
 - Model ecosystem: LoRA/adapter manifests, fine-tuning launcher, quantization wrapper, safetensors-to-GGUF conversion helpers, and per-task model evals in [docs/MODEL_ECOSYSTEM.md](docs/MODEL_ECOSYSTEM.md)
@@ -330,7 +331,9 @@ When write preview mode is enabled, `write_file` returns a diff preview instead 
 - Trust badge: `/api/trust/badge`
 - Model comparison: `/api/models/compare`
 - Real benchmark run endpoint: `/api/benchmarks/run`
-- Pack import from GitHub URL: `/api/marketplace/import-url`
+- Pack import/share: `/api/marketplace/import-url`, `/api/marketplace/share`, `/api/marketplace/import-share`
+- Replay bundles: `/api/replay/bundle` and `/api/replay/bundle/import`
+- Webhook trigger presets: `/api/webhooks/triggers` and `/api/webhooks/triggers/run`
 - Public demo data: `/api/demo/public` and [docs/public-demo.html](docs/public-demo.html), with recipe picker, safety signals, diff preview, and receipt timeline proof
 - MCP client setup examples: [docs/mcp/CLIENT_SETUP.md](docs/mcp/CLIENT_SETUP.md)
 

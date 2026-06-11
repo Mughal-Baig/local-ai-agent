@@ -5,7 +5,7 @@ const path = require("node:path");
 const readline = require("node:readline");
 const packageMeta = require("../package.json");
 
-const COMMANDS = ["run", "pull", "list", "rm", "ps", "show", "serve", "create", "completion"];
+const COMMANDS = ["chat", "run", "pull", "list", "rm", "ps", "show", "serve", "create", "completion"];
 
 async function runCli(argv = process.argv.slice(2), io = process) {
   const parsed = parseCliArgs(argv);
@@ -28,6 +28,8 @@ async function runCli(argv = process.argv.slice(2), io = process) {
   }
 
   switch (command) {
+    case "chat":
+      return chatCommand(parsed.args, parsed.options, io);
     case "run":
       return runCommand(parsed.args, parsed.options, io);
     case "pull":
@@ -92,6 +94,10 @@ function parseCliArgs(argv) {
       options.prompt = requireValue(argv, i += 1, arg);
     } else if (arg.startsWith("--prompt=")) {
       options.prompt = arg.slice("--prompt=".length);
+    } else if (arg === "-m" || arg === "--model") {
+      options.model = requireValue(argv, i += 1, arg);
+    } else if (arg.startsWith("--model=")) {
+      options.model = arg.slice("--model=".length);
     } else if (arg === "-f" || arg === "--file") {
       options.file = requireValue(argv, i += 1, arg);
     } else if (arg.startsWith("--file=")) {
@@ -136,11 +142,41 @@ function normalizeCommand(value) {
     models: "list",
     delete: "rm",
     remove: "rm",
+    repl: "chat",
     completions: "completion",
     complete: "completion",
     "-h": "help",
     "--help": "help"
   }[command] || command;
+}
+
+async function chatCommand(args, options, io) {
+  const baseUrl = baseUrlFromOptions(options);
+  const prompt = await resolvePrompt(args, options, io);
+  const model = String(options.model || "").trim();
+  const selectedFiles = splitCsv(options.file).slice(0, 8);
+  if (!prompt) {
+    return interactiveChat(model, selectedFiles, baseUrl, options, io);
+  }
+  const result = await sendChatPrompt(baseUrl, {
+    ...(model ? { model } : {}),
+    messages: [{ role: "user", content: prompt }],
+    selectedFiles,
+    permissions: { readFiles: selectedFiles.length > 0, previewWrites: true, writeFiles: false },
+    securityMode: options.securityMode !== false
+  }, options, io);
+  if (options.json) {
+    writeJson(io, {
+      ok: result.ok,
+      model: model || "auto",
+      prompt,
+      selectedFiles,
+      response: result.text,
+      events: result.events
+    });
+  } else if (!result.text.endsWith("\n")) {
+    io.stdout.write("\n");
+  }
 }
 
 async function runCommand(args, options, io) {
@@ -171,6 +207,90 @@ async function runCommand(args, options, io) {
   } else if (!result.text.endsWith("\n")) {
     io.stdout.write("\n");
   }
+}
+
+async function interactiveChat(initialModel, initialFiles, baseUrl, options, io) {
+  if (!io.stdin.isTTY) {
+    throw usageError("No prompt provided. Pass text, use --prompt, or pipe stdin.");
+  }
+  const rl = readline.createInterface({ input: io.stdin, output: io.stdout, prompt: "agenttrail> " });
+  const messages = [];
+  let model = String(initialModel || "").trim();
+  const selectedFiles = [...initialFiles];
+  io.stdout.write("AgentTrail chat REPL. Type /help for commands or /exit to quit.\n");
+  rl.prompt();
+  for await (const line of rl) {
+    const prompt = line.trim();
+    if (!prompt) {
+      rl.prompt();
+      continue;
+    }
+    const handled = await handleChatSlashCommand(prompt, { selectedFiles, modelRef: { get: () => model, set: (value) => { model = value; } } }, io);
+    if (handled === "exit") break;
+    if (handled === "clear") {
+      messages.length = 0;
+      rl.prompt();
+      continue;
+    }
+    if (handled) {
+      rl.prompt();
+      continue;
+    }
+    messages.push({ role: "user", content: prompt });
+    const result = await sendChatPrompt(baseUrl, {
+      ...(model ? { model } : {}),
+      messages,
+      selectedFiles,
+      permissions: { readFiles: selectedFiles.length > 0, previewWrites: true, writeFiles: false },
+      securityMode: options.securityMode !== false
+    }, { ...options, json: false }, io);
+    messages.push({ role: "assistant", content: result.text });
+    if (!result.text.endsWith("\n")) io.stdout.write("\n");
+    rl.prompt();
+  }
+  rl.close();
+}
+
+async function handleChatSlashCommand(prompt, state, io) {
+  const [command, ...rest] = prompt.split(/\s+/);
+  const name = command.toLowerCase();
+  if (["/bye", "/exit", "/quit"].includes(name)) {
+    return "exit";
+  }
+  if (name === "/help") {
+    io.stdout.write([
+      "Commands:",
+      "  /model <name>   Set the model for following turns",
+      "  /file <path>    Add a workspace file to selected context",
+      "  /files          Show selected files",
+      "  /clear          Clear conversation history on the next prompt",
+      "  /exit           Quit"
+    ].join("\n") + "\n");
+    return true;
+  }
+  if (name === "/model") {
+    const value = rest.join(" ").trim();
+    state.modelRef.set(value);
+    io.stdout.write(`Model: ${value || "auto"}\n`);
+    return true;
+  }
+  if (name === "/file") {
+    const value = rest.join(" ").trim();
+    if (value && !state.selectedFiles.includes(value)) {
+      state.selectedFiles.push(value);
+    }
+    io.stdout.write(`Files: ${state.selectedFiles.join(", ") || "none"}\n`);
+    return true;
+  }
+  if (name === "/files") {
+    io.stdout.write(`Files: ${state.selectedFiles.join(", ") || "none"}\n`);
+    return true;
+  }
+  if (name === "/clear") {
+    io.stdout.write("Conversation cleared.\n");
+    return "clear";
+  }
+  return prompt.startsWith("/") ? false : false;
 }
 
 async function interactiveRun(model, baseUrl, options, io) {
@@ -490,6 +610,10 @@ function splitTags(value) {
   return String(value || "").split(/[,\s]+/).map((tag) => tag.trim()).filter(Boolean);
 }
 
+function splitCsv(value) {
+  return String(value || "").split(",").map((item) => item.trim()).filter(Boolean);
+}
+
 function formatBytes(value) {
   const size = Number(value || 0);
   if (!size) return "0 B";
@@ -519,6 +643,7 @@ function mainHelp() {
     "",
     "Usage:",
     "  agenttrail serve [--host 127.0.0.1] [--port 4173]",
+    "  agenttrail chat [prompt...] [--model <model>] [--file path] [--json]",
     "  agenttrail run <model> [prompt...] [--json]",
     "  agenttrail pull <model> [--json]",
     "  agenttrail list [--json]",
@@ -531,7 +656,8 @@ function mainHelp() {
     "Global options:",
     "  -u, --url <url>       AgentTrail server URL (default http://127.0.0.1:4173)",
     "      --json            Print machine-readable JSON",
-    "  -p, --prompt <text>   Non-interactive prompt for run",
+    "  -p, --prompt <text>   Non-interactive prompt for chat/run",
+    "  -m, --model <name>    Model for chat",
     "  -h, --help            Show help",
     "  -v, --version         Print version",
     ""
@@ -540,6 +666,7 @@ function mainHelp() {
 
 function commandHelp(command) {
   const help = {
+    chat: "Usage: agenttrail chat [prompt...] [--model name] [--file path] [--json]\nStarts a model-optional chat REPL when no prompt/stdin is provided.\n",
     run: "Usage: agenttrail run <model> [prompt...] [--prompt text] [--json]\nStarts a REPL when no prompt/stdin is provided.\n",
     pull: "Usage: agenttrail pull <model> [--json]\nUse --source <file|url|hf://...> to pull into the AgentTrail model registry.\n",
     list: "Usage: agenttrail list [--json]\nLists Ollama and AgentTrail registry models.\n",

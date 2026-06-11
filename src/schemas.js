@@ -23,6 +23,31 @@ const SCHEMAS = {
     required: ["id", "title", "recipes"],
     optional: ["description", "role", "author", "source"]
   },
+  recipePackShare: {
+    schema: "agenttrail.recipe-pack-share.v1",
+    required: ["schema", "exportedAt", "appVersion", "pack"],
+    optional: ["shareUrl"]
+  },
+  pluginMarketplace: {
+    schema: "agenttrail.plugin-marketplace.v1",
+    required: ["schema", "title", "plugins"],
+    optional: ["description"]
+  },
+  mcpClients: {
+    schema: "agenttrail.mcp-clients.v1",
+    required: ["schema", "servers"],
+    optional: ["configPath"]
+  },
+  openaiExport: {
+    schema: "agenttrail.openai-export.v1",
+    required: ["schema", "app", "baseUrl", "endpoints", "capabilities"],
+    optional: ["auth", "examples"]
+  },
+  replayBundle: {
+    schema: "agenttrail.replay-bundle.v1",
+    required: ["schema", "exportedAt", "appVersion", "sourcePath", "replay"],
+    optional: ["title", "steps", "warnings", "files", "privacy"]
+  },
   profile: {
     schema: "agenttrail.profile.v1",
     required: ["id", "title", "workspace", "permissions"],

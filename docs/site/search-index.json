@@ -564,9 +564,10 @@
     {
       "file": "RECIPE_MARKETPLACE.md",
       "title": "Recipe Marketplace",
-      "description": "Submission path, curation rules, review rubric, and featured pack queue.",
+      "description": "Recipe shares, plugin marketplace, curation rules, review rubric, and featured pack queue.",
       "tags": [
         "recipes",
+        "plugins",
         "marketplace",
         "community"
       ],
@@ -598,9 +599,19 @@
           "snippet": "`marketplace/recipes.json` stores public pack metadata, submission links, and curation rules. Keep this file human-readable so contributors can update it without tooling. { \"id\": \"researcher-pack\","
         },
         {
+          "title": "Share URLs",
+          "anchor": "share-urls",
+          "snippet": "Recipe packs can be exported as self-contained AgentTrail share URLs: curl \"http://127.0.0.1:4173/api/marketplace/share?id=coder\" The response includes `agenttrail://recipe-pack/<payload>`. Import it through the Top 1..."
+        },
+        {
+          "title": "Plugin Marketplace",
+          "anchor": "plugin-marketplace",
+          "snippet": "`marketplace/plugins.json` lists curated plugin examples. The UI can browse and install/recheck entries through: `GET /api/plugins/marketplace` `POST /api/plugins/install` Plugin marketplace installs validate the refe..."
+        },
+        {
           "title": "Maintainer Checklist",
           "anchor": "maintainer-checklist",
-          "snippet": "Confirm all referenced recipe IDs exist. Confirm the pack appears in the import/export UI. Confirm the pack has a useful one-sentence description. Confirm no recipe asks users to paste secrets into external services."
+          "snippet": "Confirm all referenced recipe IDs exist. Confirm the pack appears in the import/export UI. Confirm recipe share import/export works for the pack. Confirm plugin marketplace entries point at valid local plugin manifests."
         }
       ]
     },
@@ -959,7 +970,7 @@
     {
       "file": "OPENAI_COMPATIBLE_API.md",
       "title": "OpenAI-Compatible API",
-      "description": "Use AgentTrail through /v1 chat, models, and embeddings.",
+      "description": "Use AgentTrail through /v1 chat, models, embeddings, and export discovery.",
       "tags": [
         "api",
         "openai-compatible",
@@ -983,6 +994,11 @@
           "snippet": "`GET /v1/models` lists models from the active local backend. `POST /v1/embeddings` passes requests through the active embedding backend and returns OpenAI-shaped embedding rows."
         },
         {
+          "title": "Export Descriptor",
+          "anchor": "export-descriptor",
+          "snippet": "Use this endpoint when wiring another local tool to AgentTrail: GET /api/interop/openai-export It returns: `baseUrl`, usually `http://127.0.0.1:4173/v1` supported endpoint paths auth expectations"
+        },
+        {
           "title": "Queue And Rate Controls",
           "anchor": "queue-and-rate-controls",
           "snippet": "`AGENTTRAIL_V1_RATE_LIMIT_PER_MINUTE`: default `60`; set `0` to disable. `AGENTTRAIL_V1_QUEUE_CONCURRENCY`: default `2`. `AGENTTRAIL_V1_QUEUE_MAX`: default `16`. Responses include `X-AgentTrail-Queue-*` and `X-RateLim..."
@@ -997,9 +1013,10 @@
     {
       "file": "CLI.md",
       "title": "CLI",
-      "description": "Run AgentTrail from terminal scripts and shell completions.",
+      "description": "Run AgentTrail chat, model commands, terminal scripts, and shell completions.",
       "tags": [
         "cli",
+        "chat",
         "automation",
         "terminal"
       ],
@@ -1014,6 +1031,11 @@
           "title": "Run A Model",
           "anchor": "run-a-model",
           "snippet": "Interactive REPL: agenttrail run llama3.2 Non-interactive prompt: agenttrail run llama3.2 \"summarize workspace/welcome.md\" echo \"write release notes\" | agenttrail run llama3.2 agenttrail run llama3.2 --prompt \"list ri..."
+        },
+        {
+          "title": "Chat REPL",
+          "anchor": "chat-repl",
+          "snippet": "`agenttrail chat` is the model-optional app-composer path. It uses AgentTrail's default model/router unless `--model` is set. agenttrail chat agenttrail chat --model llama3.2 agenttrail chat --prompt \"Summarize docs/R..."
         },
         {
           "title": "Manage Models",
@@ -1680,7 +1702,7 @@
         "routes",
         "openapi"
       ],
-      "text": "API Reference Generated from src/route-catalog.js and docs/openapi/agenttrail-v1-openapi.json . Do not edit route tables by hand; run npm run docs:api . AgentTrail exposes two API layers: local app endpoints under /api/ and an OpenAI-compatible facade under /v1/ . By default the server binds to 127.0.0.1 and keeps data inside the configured workspace. Local App Routes Area Module Routes --- --- --- search server.js + src/features/search.js /api/search <br /api/search-index <br /api/search/chunks attachments server.js /api/attachments <br /api/files/content documents server.js + src/document-ingestion.js /api/documents/extract <br /api/documents/ocr <br /api/documents/ingest-url audio server.js + src/audio-transcription.js /api/audio/transcribe <br /api/audio/speak <br /api/files/raw image-generation server.js + src/image-generation.js /api/images/generate <br /api/files/raw memory server.js /api/memory <br /api/memory/scopes <br /api/memory/structured <br /api/memory/retrieve <br /api/memory/history <br /api/memory/history/diff <br /api/memory/history/revert <br /api/memory/suggestions <br /api/memory/suggestions/apply <br /api/memory/citations reports server.js /api/reports <br /api/trust/badge conversations server.js /api/conversations <br /api/conversations/get <br /api/conversations/delete <br /api/conversations/restore <br /api/conversations/import <br /api/conversations/branch <br /api/conversations/export sessions server.js /api/sessions <br /api/replay/plan <br /api/runs/pending <br /api/runs/pending/from-receipt <br /api/receipts/resume planner server.js + src/structured-output.js /api/agent/plan <br /api/chat automation server.js /api/webhooks/run tools src/permissions.js + src/tool-schemas.js /api/permissions <br /api/tools/schemas <br /api/tools/capability <br /api/mcp models server.js /api/models <br /api/models/pull <br /api/models/delete <br /api/models/vision-capability accounting-routing server.js + src/accounting-routing.js /api/accounting/usage <br /api/accounting/routing eval-quality server.js + src/eval-quality.js /api/evals/agent-quality <br /api/evals/agent-quality/history <br /api/evals/agent-quality/compare <br /api/benchmarks/models model-registry server.js + src/model-registry.js /api/model-registry <br /api/model-registry/show <br /api/model-registry/pull <br /api/model-registry/import <br /api/model-registry/create <br /api/model-registry/cp <br /api/model-registry/share model-ecosystem server.js + src/model-ecosystem.js /api/model-ecosystem <br /api/model-ecosystem/adapters <br /api/model-ecosystem/fine-tune <br /api/model-ecosystem/quantize <br /api/model-ecosystem/convert <br /api/model-ecosystem/evaluate advanced-agent server.js + src/advanced-agent.js /api/advanced-agent <br /api/advanced-agent/orchestrate <br /api/advanced-agent/schedule <br /api/advanced-agent/journal <br /api/advanced-agent/journal/append <br /api/advanced-agent/journal/resume <br /api/advanced-agent/sub-agent <br /api/advanced-agent/replay-diff system server.js + src/resilience.js + src/config-admin.js /api/health <br /api/resilience <br /api/resources <br /api/runtime <br /api/concurrency <br /api/config <br /api/config/admin <br /api/config/workspace <br /api/onboarding <br /api/updates/check openai-compatible-api server.js /v1/chat/completions <br /v1/models <br /v1/embeddings <br /v1/openapi.json structured-output src/structured-output.js /api/structured-output/schemas <br /api/structured-output <br /api/structured-output/recipe security src/features/security.js + src/privacy.js + src/privacy-controls.js + src/network-policy.js + src/features/redact.js /api/security/scan <br /api/security/privacy <br /api/privacy/dashboard <br /api/privacy/settings <br /api/privacy/retention <br /api/privacy/retention/apply <br /api/privacy/wipe <br /api/redact observability src/observability.js + src/logger.js /api/logs <br /api/metrics <br /api/observability <br /api/traces <br /api/traces/content <br /api/errors/taxonomy team-enterprise src/team-enterprise.js /api/team/status <br /api/team/users <br /api/team/users/select <br /api/team/rbac <br /api/team/receipts <br /api/team/receipts/content <br /api/team/sync/status <br /api/team/sync/export <br /api/team/audit/export <br /api/team/sso <br /api/team/sso/validate foundation src/foundation.js /api/foundation <br /api/schemas <br /api/migrations plugins src/plugin-loader.js + src/plugin-sandbox.js /api/plugins <br /api/plugins/status <br /api/plugins/reload <br /api/plugins/run jobs src/jobs.js /api/jobs <br /api/jobs/start backup server.js /api/workspace/portability <br /api/workspace/migration-plan <br /api/backup/export <br /api/backup/import <br /api/backup/schedule <br /api/backup/schedule/run OpenAI-Compatible Routes Spec: docs/openapi/agenttrail-v1-openapi.json Method Path Operation Summary --- --- --- --- POST /v1/chat/completions createChatCompletion Run AgentTrail through an OpenAI-compatible chat-completions interface GET /v1/models listModels List models from the active local backend POST /v1/embeddings createEmbedding Create embeddings through the active local backend GET /v1/openapi.json getOpenApiSpec Return this OpenAPI document Auth And Rate Controls - /api/ is intended for the local browser app and local CLI. - /v1/ can require AGENTTRAIL_V1_API_KEY or AGENTTRAIL_V1_API_KEYS . - /v1/ uses AGENTTRAIL_V1_RATE_LIMIT_PER_MINUTE , AGENTTRAIL_V1_QUEUE_CONCURRENCY , and AGENTTRAIL_V1_QUEUE_MAX for local rate limiting and backpressure. - Network egress remains governed by AGENTTRAIL_EGRESS_ALLOWLIST and related privacy settings. Examples Route Ownership Use the module column to find the implementation owner before changing behavior. New endpoints should be added to src/route-catalog.js , covered in tests, and regenerated here."
+      "text": "API Reference Generated from src/route-catalog.js and docs/openapi/agenttrail-v1-openapi.json . Do not edit route tables by hand; run npm run docs:api . AgentTrail exposes two API layers: local app endpoints under /api/ and an OpenAI-compatible facade under /v1/ . By default the server binds to 127.0.0.1 and keeps data inside the configured workspace. Local App Routes Area Module Routes --- --- --- search server.js + src/features/search.js /api/search <br /api/search-index <br /api/search/chunks attachments server.js /api/attachments <br /api/files/content documents server.js + src/document-ingestion.js /api/documents/extract <br /api/documents/ocr <br /api/documents/ingest-url audio server.js + src/audio-transcription.js /api/audio/transcribe <br /api/audio/speak <br /api/files/raw image-generation server.js + src/image-generation.js /api/images/generate <br /api/files/raw memory server.js /api/memory <br /api/memory/scopes <br /api/memory/structured <br /api/memory/retrieve <br /api/memory/history <br /api/memory/history/diff <br /api/memory/history/revert <br /api/memory/suggestions <br /api/memory/suggestions/apply <br /api/memory/citations reports server.js /api/reports <br /api/trust/badge conversations server.js /api/conversations <br /api/conversations/get <br /api/conversations/delete <br /api/conversations/restore <br /api/conversations/import <br /api/conversations/branch <br /api/conversations/export sessions server.js /api/sessions <br /api/replay/plan <br /api/replay/bundle <br /api/replay/bundle/import <br /api/runs/pending <br /api/runs/pending/from-receipt <br /api/receipts/resume planner server.js + src/structured-output.js /api/agent/plan <br /api/chat automation server.js /api/webhooks/run <br /api/webhooks/triggers <br /api/webhooks/triggers/run tools src/permissions.js + src/tool-schemas.js + src/mcp-client.js /api/permissions <br /api/tools/schemas <br /api/tools/capability <br /api/mcp <br /api/mcp/client/status <br /api/mcp/client/tools <br /api/mcp/client/call models server.js /api/models <br /api/models/pull <br /api/models/delete <br /api/models/vision-capability accounting-routing server.js + src/accounting-routing.js /api/accounting/usage <br /api/accounting/routing eval-quality server.js + src/eval-quality.js /api/evals/agent-quality <br /api/evals/agent-quality/history <br /api/evals/agent-quality/compare <br /api/benchmarks/models model-registry server.js + src/model-registry.js /api/model-registry <br /api/model-registry/show <br /api/model-registry/pull <br /api/model-registry/import <br /api/model-registry/create <br /api/model-registry/cp <br /api/model-registry/share model-ecosystem server.js + src/model-ecosystem.js /api/model-ecosystem <br /api/model-ecosystem/adapters <br /api/model-ecosystem/fine-tune <br /api/model-ecosystem/quantize <br /api/model-ecosystem/convert <br /api/model-ecosystem/evaluate advanced-agent server.js + src/advanced-agent.js /api/advanced-agent <br /api/advanced-agent/orchestrate <br /api/advanced-agent/schedule <br /api/advanced-agent/journal <br /api/advanced-agent/journal/append <br /api/advanced-agent/journal/resume <br /api/advanced-agent/sub-agent <br /api/advanced-agent/replay-diff system server.js + src/resilience.js + src/config-admin.js /api/health <br /api/resilience <br /api/resources <br /api/runtime <br /api/concurrency <br /api/config <br /api/config/admin <br /api/config/workspace <br /api/onboarding <br /api/updates/check openai-compatible-api server.js /v1/chat/completions <br /v1/models <br /v1/embeddings <br /v1/openapi.json <br /api/interop/openai-export structured-output src/structured-output.js /api/structured-output/schemas <br /api/structured-output <br /api/structured-output/recipe security src/features/security.js + src/privacy.js + src/privacy-controls.js + src/network-policy.js + src/features/redact.js /api/security/scan <br /api/security/privacy <br /api/privacy/dashboard <br /api/privacy/settings <br /api/privacy/retention <br /api/privacy/retention/apply <br /api/privacy/wipe <br /api/redact observability src/observability.js + src/logger.js /api/logs <br /api/metrics <br /api/observability <br /api/traces <br /api/traces/content <br /api/errors/taxonomy team-enterprise src/team-enterprise.js /api/team/status <br /api/team/users <br /api/team/users/select <br /api/team/rbac <br /api/team/receipts <br /api/team/receipts/content <br /api/team/sync/status <br /api/team/sync/export <br /api/team/audit/export <br /api/team/sso <br /api/team/sso/validate foundation src/foundation.js /api/foundation <br /api/schemas <br /api/migrations marketplace server.js + marketplace/ .json /api/marketplace <br /api/marketplace/import-url <br /api/marketplace/share <br /api/marketplace/import-share plugins src/plugin-loader.js + src/plugin-sandbox.js /api/plugins <br /api/plugins/status <br /api/plugins/reload <br /api/plugins/run <br /api/plugins/marketplace <br /api/plugins/install jobs src/jobs.js /api/jobs <br /api/jobs/start backup server.js /api/workspace/portability <br /api/workspace/migration-plan <br /api/backup/export <br /api/backup/import <br /api/backup/schedule <br /api/backup/schedule/run OpenAI-Compatible Routes Spec: docs/openapi/agenttrail-v1-openapi.json Method Path Operation Summary --- --- --- --- POST /v1/chat/completions createChatCompletion Run AgentTrail through an OpenAI-compatible chat-completions interface GET /v1/models listModels List models from the active local backend POST /v1/embeddings createEmbedding Create embeddings through the active local backend GET /v1/openapi.json getOpenApiSpec Return this OpenAPI document Auth And Rate Controls - /api/ is intended for the local browser app and local CLI. - /v1/ can require AGENTTRAIL_V1_API_KEY or AGENTTRAIL_V1_API_KEYS . - /v1/ uses AGENTTRAIL_V1_RATE_LIMIT_PER_MINUTE , AGENTTRAIL_V1_QUEUE_CONCURRENCY , and AGENTTRAIL_V1_QUEUE_MAX for local rate limiting and backpressure. - Network egress remains governed by AGENTTRAIL_EGRESS_ALLOWLIST and related privacy settings. Examples Route Ownership Use the module column to find the implementation owner before changing behavior. New endpoints should be added to src/route-catalog.js , covered in tests, and regenerated here."
     },
     {
       "type": "section",
@@ -2033,14 +2055,15 @@
     {
       "type": "doc",
       "title": "Recipe Marketplace",
-      "description": "Submission path, curation rules, review rubric, and featured pack queue.",
+      "description": "Recipe shares, plugin marketplace, curation rules, review rubric, and featured pack queue.",
       "href": "../RECIPE_MARKETPLACE.md",
       "tags": [
         "recipes",
+        "plugins",
         "marketplace",
         "community"
       ],
-      "text": "Recipe Marketplace The AgentTrail recipe marketplace is intentionally lightweight: JSON recipes, curated role packs, visible safety expectations, and reviewable pull requests. Submission Path 1. Open a recipe-pack issue with role, recipes, inputs, expected outputs, and safety behavior. 2. Add or update recipes in recipes/ . 3. Add the role pack to recipe-packs/ if it belongs to a pack. 4. Add marketplace metadata in marketplace/recipes.json . 5. Run npm run test:community . Curation Rules - Every recipe must have a specific role and task, not generic \"be helpful\" text. - File-writing recipes must mention diff preview or explicit Apply. - Recipes that inspect files should request the smallest useful workspace scope. - Recipes that mention security must ask for evidence and avoid unsupported claims. - Recipes must work without cloud-only services. - A marketplace pack needs at least three useful recipes and one clear target user. Review Rubric Area Pass condition --- --- Role clarity The intended user can tell why this pack exists in one sentence. Local-first fit It works with local files and local models. Safety File reads/writes, tools, and receipts are explicit. Reuse The recipe can be used across projects with minimal edits. Evidence Outputs ask for citations, paths, diffs, receipts, or assumptions. Featured Pack Queue - Coder Pack: stable built-in. - Founder Pack: stable built-in. - Security Pack: stable built-in. - Student Pack: stable built-in. - Writer Pack: stable built-in. - Researcher Pack: next candidate when enough research workflows land. - Maintainer Pack: next candidate when issue triage and release workflows mature. Marketplace Metadata marketplace/recipes.json stores public pack metadata, submission links, and curation rules. Keep this file human-readable so contributors can update it without tooling. Maintainer Checklist - Confirm all referenced recipe IDs exist. - Confirm the pack appears in the import/export UI. - Confirm the pack has a useful one-sentence description. - Confirm no recipe asks users to paste secrets into external services. - Add a short changelog entry when a pack is promoted."
+      "text": "Recipe Marketplace The AgentTrail recipe marketplace is intentionally lightweight: JSON recipes, curated role packs, visible safety expectations, and reviewable pull requests. Submission Path 1. Open a recipe-pack issue with role, recipes, inputs, expected outputs, and safety behavior. 2. Add or update recipes in recipes/ . 3. Add the role pack to recipe-packs/ if it belongs to a pack. 4. Add marketplace metadata in marketplace/recipes.json . 5. Run npm run test:community . Curation Rules - Every recipe must have a specific role and task, not generic \"be helpful\" text. - File-writing recipes must mention diff preview or explicit Apply. - Recipes that inspect files should request the smallest useful workspace scope. - Recipes that mention security must ask for evidence and avoid unsupported claims. - Recipes must work without cloud-only services. - A marketplace pack needs at least three useful recipes and one clear target user. Review Rubric Area Pass condition --- --- Role clarity The intended user can tell why this pack exists in one sentence. Local-first fit It works with local files and local models. Safety File reads/writes, tools, and receipts are explicit. Reuse The recipe can be used across projects with minimal edits. Evidence Outputs ask for citations, paths, diffs, receipts, or assumptions. Featured Pack Queue - Coder Pack: stable built-in. - Founder Pack: stable built-in. - Security Pack: stable built-in. - Student Pack: stable built-in. - Writer Pack: stable built-in. - Researcher Pack: next candidate when enough research workflows land. - Maintainer Pack: next candidate when issue triage and release workflows mature. Marketplace Metadata marketplace/recipes.json stores public pack metadata, submission links, and curation rules. Keep this file human-readable so contributors can update it without tooling. Share URLs Recipe packs can be exported as self-contained AgentTrail share URLs: The response includes agenttrail://recipe-pack/<payload . Import it through the Top 1% Kit or: Imports write a local recipe-packs/<id .json file. GitHub raw/gist URL imports remain available through /api/marketplace/import-url . Plugin Marketplace marketplace/plugins.json lists curated plugin examples. The UI can browse and install/recheck entries through: - GET /api/plugins/marketplace - POST /api/plugins/install Plugin marketplace installs validate the referenced local plugins/<id /plugin.json , hot-reload the plugin catalog, and write an install receipt under receipts/plugins/ . Maintainer Checklist - Confirm all referenced recipe IDs exist. - Confirm the pack appears in the import/export UI. - Confirm recipe share import/export works for the pack. - Confirm plugin marketplace entries point at valid local plugin manifests. - Confirm the pack has a useful one-sentence description. - Confirm no recipe asks users to paste secrets into external services. - Add a short changelog entry when a pack is promoted."
     },
     {
       "type": "section",
@@ -2049,6 +2072,7 @@
       "href": "../RECIPE_MARKETPLACE.md#submission-path",
       "tags": [
         "recipes",
+        "plugins",
         "marketplace",
         "community"
       ],
@@ -2061,6 +2085,7 @@
       "href": "../RECIPE_MARKETPLACE.md#curation-rules",
       "tags": [
         "recipes",
+        "plugins",
         "marketplace",
         "community"
       ],
@@ -2073,6 +2098,7 @@
       "href": "../RECIPE_MARKETPLACE.md#review-rubric",
       "tags": [
         "recipes",
+        "plugins",
         "marketplace",
         "community"
       ],
@@ -2085,6 +2111,7 @@
       "href": "../RECIPE_MARKETPLACE.md#featured-pack-queue",
       "tags": [
         "recipes",
+        "plugins",
         "marketplace",
         "community"
       ],
@@ -2097,6 +2124,7 @@
       "href": "../RECIPE_MARKETPLACE.md#marketplace-metadata",
       "tags": [
         "recipes",
+        "plugins",
         "marketplace",
         "community"
       ],
@@ -2104,15 +2132,42 @@
     },
     {
       "type": "section",
-      "title": "Recipe Marketplace - Maintainer Checklist",
-      "description": "Confirm all referenced recipe IDs exist. Confirm the pack appears in the import/export UI. Confirm the pack has a useful one-sentence description. Confirm no recipe asks users to paste secrets into external services.",
-      "href": "../RECIPE_MARKETPLACE.md#maintainer-checklist",
+      "title": "Recipe Marketplace - Share URLs",
+      "description": "Recipe packs can be exported as self-contained AgentTrail share URLs: curl \"http://127.0.0.1:4173/api/marketplace/share?id=coder\" The response includes `agenttrail://recipe-pack/<payload>`. Import it through the Top 1...",
+      "href": "../RECIPE_MARKETPLACE.md#share-urls",
       "tags": [
         "recipes",
+        "plugins",
         "marketplace",
         "community"
       ],
-      "text": "Maintainer Checklist Confirm all referenced recipe IDs exist. Confirm the pack appears in the import/export UI. Confirm the pack has a useful one-sentence description. Confirm no recipe asks users to paste secrets into external services."
+      "text": "Share URLs Recipe packs can be exported as self-contained AgentTrail share URLs: curl \"http://127.0.0.1:4173/api/marketplace/share?id=coder\" The response includes `agenttrail://recipe-pack/<payload>`. Import it through the Top 1..."
+    },
+    {
+      "type": "section",
+      "title": "Recipe Marketplace - Plugin Marketplace",
+      "description": "`marketplace/plugins.json` lists curated plugin examples. The UI can browse and install/recheck entries through: `GET /api/plugins/marketplace` `POST /api/plugins/install` Plugin marketplace installs validate the refe...",
+      "href": "../RECIPE_MARKETPLACE.md#plugin-marketplace",
+      "tags": [
+        "recipes",
+        "plugins",
+        "marketplace",
+        "community"
+      ],
+      "text": "Plugin Marketplace `marketplace/plugins.json` lists curated plugin examples. The UI can browse and install/recheck entries through: `GET /api/plugins/marketplace` `POST /api/plugins/install` Plugin marketplace installs validate the refe..."
+    },
+    {
+      "type": "section",
+      "title": "Recipe Marketplace - Maintainer Checklist",
+      "description": "Confirm all referenced recipe IDs exist. Confirm the pack appears in the import/export UI. Confirm recipe share import/export works for the pack. Confirm plugin marketplace entries point at valid local plugin manifests.",
+      "href": "../RECIPE_MARKETPLACE.md#maintainer-checklist",
+      "tags": [
+        "recipes",
+        "plugins",
+        "marketplace",
+        "community"
+      ],
+      "text": "Maintainer Checklist Confirm all referenced recipe IDs exist. Confirm the pack appears in the import/export UI. Confirm recipe share import/export works for the pack. Confirm plugin marketplace entries point at valid local plugin manifests."
     },
     {
       "type": "doc",
@@ -2777,14 +2832,14 @@
     {
       "type": "doc",
       "title": "OpenAI-Compatible API",
-      "description": "Use AgentTrail through /v1 chat, models, and embeddings.",
+      "description": "Use AgentTrail through /v1 chat, models, embeddings, and export discovery.",
       "href": "../OPENAI_COMPATIBLE_API.md",
       "tags": [
         "api",
         "openai-compatible",
         "integration"
       ],
-      "text": "OpenAI-Compatible API AgentTrail can expose its local agent through OpenAI-style endpoints. This is for local tools that already know how to call /v1/chat/completions , /v1/models , or /v1/embeddings . Enable Auth Use AGENTTRAIL_V1_API_KEYS for a comma- or newline-separated list. When one or more keys are configured, every /v1/ endpoint except /v1/openapi.json requires either: or: Chat Streaming uses normal OpenAI-style SSE chunks: Models And Embeddings GET /v1/models lists models from the active local backend. POST /v1/embeddings passes requests through the active embedding backend and returns OpenAI-shaped embedding rows. Queue And Rate Controls - AGENTTRAIL_V1_RATE_LIMIT_PER_MINUTE : default 60 ; set 0 to disable. - AGENTTRAIL_V1_QUEUE_CONCURRENCY : default 2 . - AGENTTRAIL_V1_QUEUE_MAX : default 16 . Responses include X-AgentTrail-Queue- and X-RateLimit- headers so clients can back off politely. OpenAPI The spec lives at openapi/agenttrail-v1-openapi.json openapi/agenttrail-v1-openapi.json and is served from:"
+      "text": "OpenAI-Compatible API AgentTrail can expose its local agent through OpenAI-style endpoints. This is for local tools that already know how to call /v1/chat/completions , /v1/models , or /v1/embeddings . Enable Auth Use AGENTTRAIL_V1_API_KEYS for a comma- or newline-separated list. When one or more keys are configured, every /v1/ endpoint except /v1/openapi.json requires either: or: Chat Streaming uses normal OpenAI-style SSE chunks: Models And Embeddings GET /v1/models lists models from the active local backend. POST /v1/embeddings passes requests through the active embedding backend and returns OpenAI-shaped embedding rows. Export Descriptor Use this endpoint when wiring another local tool to AgentTrail: It returns: - baseUrl , usually http://127.0.0.1:4173/v1 - supported endpoint paths - auth expectations - copyable cURL and OpenAI SDK examples - capability flags for chat completions, streaming, tools, and embeddings Queue And Rate Controls - AGENTTRAIL_V1_RATE_LIMIT_PER_MINUTE : default 60 ; set 0 to disable. - AGENTTRAIL_V1_QUEUE_CONCURRENCY : default 2 . - AGENTTRAIL_V1_QUEUE_MAX : default 16 . Responses include X-AgentTrail-Queue- and X-RateLimit- headers so clients can back off politely. OpenAPI The spec lives at openapi/agenttrail-v1-openapi.json openapi/agenttrail-v1-openapi.json and is served from:"
     },
     {
       "type": "section",
@@ -2824,6 +2879,18 @@
     },
     {
       "type": "section",
+      "title": "OpenAI-Compatible API - Export Descriptor",
+      "description": "Use this endpoint when wiring another local tool to AgentTrail: GET /api/interop/openai-export It returns: `baseUrl`, usually `http://127.0.0.1:4173/v1` supported endpoint paths auth expectations",
+      "href": "../OPENAI_COMPATIBLE_API.md#export-descriptor",
+      "tags": [
+        "api",
+        "openai-compatible",
+        "integration"
+      ],
+      "text": "Export Descriptor Use this endpoint when wiring another local tool to AgentTrail: GET /api/interop/openai-export It returns: `baseUrl`, usually `http://127.0.0.1:4173/v1` supported endpoint paths auth expectations"
+    },
+    {
+      "type": "section",
       "title": "OpenAI-Compatible API - Queue And Rate Controls",
       "description": "`AGENTTRAIL_V1_RATE_LIMIT_PER_MINUTE`: default `60`; set `0` to disable. `AGENTTRAIL_V1_QUEUE_CONCURRENCY`: default `2`. `AGENTTRAIL_V1_QUEUE_MAX`: default `16`. Responses include `X-AgentTrail-Queue-*` and `X-RateLim...",
       "href": "../OPENAI_COMPATIBLE_API.md#queue-and-rate-controls",
@@ -2849,14 +2916,15 @@
     {
       "type": "doc",
       "title": "CLI",
-      "description": "Run AgentTrail from terminal scripts and shell completions.",
+      "description": "Run AgentTrail chat, model commands, terminal scripts, and shell completions.",
       "href": "../CLI.md",
       "tags": [
         "cli",
+        "chat",
         "automation",
         "terminal"
       ],
-      "text": "AgentTrail CLI AgentTrail ships an Ollama-style CLI for local agent workflows while keeping the browser UI and API server available. Start The Server No arguments still start the local AgentTrail server for backward compatibility: Run A Model Interactive REPL: Non-interactive prompt: Use --json for scripts and CI jobs. Use --url http://127.0.0.1:4173 when the server runs somewhere else. Manage Models list shows both Ollama-managed models and AgentTrail registry models. ps reports active and queued AgentTrail model work from /api/concurrency . Create A Registry Model Supported build-file directives include FROM , NAME , PARAMETER , TAG , TEMPLATE , SYSTEM , and LICENSE . Shell Completions Install the printed script through your shell's normal completion setup."
+      "text": "AgentTrail CLI AgentTrail ships an Ollama-style CLI for local agent workflows while keeping the browser UI and API server available. Start The Server No arguments still start the local AgentTrail server for backward compatibility: Run A Model Interactive REPL: Non-interactive prompt: Use --json for scripts and CI jobs. Use --url http://127.0.0.1:4173 when the server runs somewhere else. Chat REPL agenttrail chat is the model-optional app-composer path. It uses AgentTrail's default model/router unless --model is set. Interactive slash commands: - /model <name sets the model for following turns. - /file <path adds a workspace file to selected context. - /files shows selected files. - /clear clears the conversation. - /exit quits. Manage Models list shows both Ollama-managed models and AgentTrail registry models. ps reports active and queued AgentTrail model work from /api/concurrency . Create A Registry Model Supported build-file directives include FROM , NAME , PARAMETER , TAG , TEMPLATE , SYSTEM , and LICENSE . Shell Completions Install the printed script through your shell's normal completion setup."
     },
     {
       "type": "section",
@@ -2865,6 +2933,7 @@
       "href": "../CLI.md#start-the-server",
       "tags": [
         "cli",
+        "chat",
         "automation",
         "terminal"
       ],
@@ -2877,10 +2946,24 @@
       "href": "../CLI.md#run-a-model",
       "tags": [
         "cli",
+        "chat",
         "automation",
         "terminal"
       ],
       "text": "Run A Model Interactive REPL: agenttrail run llama3.2 Non-interactive prompt: agenttrail run llama3.2 \"summarize workspace/welcome.md\" echo \"write release notes\" | agenttrail run llama3.2 agenttrail run llama3.2 --prompt \"list ri..."
+    },
+    {
+      "type": "section",
+      "title": "CLI - Chat REPL",
+      "description": "`agenttrail chat` is the model-optional app-composer path. It uses AgentTrail's default model/router unless `--model` is set. agenttrail chat agenttrail chat --model llama3.2 agenttrail chat --prompt \"Summarize docs/R...",
+      "href": "../CLI.md#chat-repl",
+      "tags": [
+        "cli",
+        "chat",
+        "automation",
+        "terminal"
+      ],
+      "text": "Chat REPL `agenttrail chat` is the model-optional app-composer path. It uses AgentTrail's default model/router unless `--model` is set. agenttrail chat agenttrail chat --model llama3.2 agenttrail chat --prompt \"Summarize docs/R..."
     },
     {
       "type": "section",
@@ -2889,6 +2972,7 @@
       "href": "../CLI.md#manage-models",
       "tags": [
         "cli",
+        "chat",
         "automation",
         "terminal"
       ],
@@ -2901,6 +2985,7 @@
       "href": "../CLI.md#create-a-registry-model",
       "tags": [
         "cli",
+        "chat",
         "automation",
         "terminal"
       ],
@@ -2913,6 +2998,7 @@
       "href": "../CLI.md#shell-completions",
       "tags": [
         "cli",
+        "chat",
         "automation",
         "terminal"
       ],

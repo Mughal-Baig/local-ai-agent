@@ -454,6 +454,10 @@
           <select id="sessionSelect"></select>
           <button id="replaySession" class="secondary-button compact-button" type="button">Replay selected run</button>
           <button id="resumeReceipt" class="secondary-button compact-button" type="button" disabled>Resume selected receipt</button>
+          <div class="toolkit-grid">
+            <button id="exportReplayBundle" class="secondary-button compact-button" type="button">Export bundle</button>
+            <button id="importReplayBundle" class="secondary-button compact-button" type="button">Import bundle</button>
+          </div>
           <div id="replayPlan" class="mini-list"></div>
           <div id="receiptTimeline" class="receipt-timeline"></div>
         </section>
@@ -509,7 +513,10 @@
           </div>
           <label class="field-label" for="packSelect">Recipe pack</label>
           <select id="packSelect"></select>
-          <button id="exportPack" class="secondary-button" type="button">Export pack</button>
+          <div class="toolkit-grid">
+            <button id="exportPack" class="secondary-button compact-button" type="button">Export pack</button>
+            <button id="sharePack" class="secondary-button compact-button" type="button">Share pack</button>
+          </div>
           <label class="field-label tight-label" for="profileSelect">Workspace profile</label>
           <select id="profileSelect"></select>
           <button id="applyProfile" class="secondary-button compact-button" type="button">Apply profile</button>
@@ -524,12 +531,17 @@
           <label class="field-label tight-label" for="packImportUrl">Import pack URL</label>
           <input id="packImportUrl" class="search-input" type="url" placeholder="https://raw.githubusercontent.com/..." />
           <button id="importPackUrl" class="secondary-button compact-button" type="button">Import from URL</button>
+          <label class="field-label tight-label" for="shareImportUrl">Import share URL</label>
+          <input id="shareImportUrl" class="search-input" type="text" placeholder="agenttrail://recipe-pack/..." />
+          <button id="importShareUrl" class="secondary-button compact-button" type="button">Import share</button>
           <div id="evalSummary" class="eval-summary"></div>
           <div id="benchmarkSummary" class="mini-list"></div>
           <div id="modelCompareSummary" class="mini-list"></div>
           <div id="securitySummary" class="mini-list"></div>
           <div id="marketplaceSummary" class="mini-list"></div>
+          <div id="pluginMarketplace" class="mini-list"></div>
           <div id="pluginGallery" class="mini-list"></div>
+          <div id="interopSummary" class="mini-list"></div>
           <div id="onboardingSummary" class="mini-list"></div>
           <p id="profileSummary" class="hint">Loading profiles and MCP manifest...</p>
         </section>
@@ -558,6 +570,6 @@
 
     <script src="/app.js?v=30"></script>
     <script src="/modules/foundation.js?v=1"></script>
-    <script src="/modules/product.js?v=1"></script>
+    <script src="/modules/product.js?v=2"></script>
   </body>
 </html>

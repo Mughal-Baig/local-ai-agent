@@ -1,17 +1,36 @@
 {
   "name": "agenttrail-vscode",
   "displayName": "AgentTrail",
-  "description": "Chat with your local AgentTrail server from VS Code (MVP).",
+  "description": "Chat with your local AgentTrail server and apply reviewed suggestions from VS Code.",
   "version": "0.1.0",
   "engines": { "vscode": "^1.80.0" },
   "categories": ["Other"],
-  "activationEvents": ["onCommand:agenttrail.ask"],
+  "activationEvents": [
+    "onCommand:agenttrail.chat",
+    "onCommand:agenttrail.ask",
+    "onCommand:agenttrail.applySuggestion"
+  ],
   "main": "./extension.js",
   "contributes": {
-    "commands": [{ "command": "agenttrail.ask", "title": "AgentTrail: Ask about selection" }],
+    "commands": [
+      { "command": "agenttrail.chat", "title": "AgentTrail: Chat" },
+      { "command": "agenttrail.ask", "title": "AgentTrail: Ask about selection" },
+      { "command": "agenttrail.applySuggestion", "title": "AgentTrail: Apply last suggestion" }
+    ],
     "configuration": {
       "title": "AgentTrail",
-      "properties": { "agenttrail.url": { "type": "string", "default": "http://127.0.0.1:4173", "description": "AgentTrail server URL" } }
+      "properties": {
+        "agenttrail.url": {
+          "type": "string",
+          "default": "http://127.0.0.1:4173",
+          "description": "AgentTrail server URL"
+        },
+        "agenttrail.model": {
+          "type": "string",
+          "default": "",
+          "description": "Optional local model name. Empty uses the AgentTrail default/router."
+        }
+      }
     }
   }
 }

@@ -84,6 +84,7 @@ This section tracks the concrete work shipped after the roadmap was publicly ref
 | Codex pre-Phase 15 partial closeout | T094, T096, T107, T109, T110 | Closed the remaining partials with bundled-runtime speculative policy (`AGENTTRAIL_SPECULATIVE_DECODING`), shared-prefix prefill reuse (`AGENTTRAIL_PREFILL_REUSE` plus provider `preload` / `node-llama-cpp` `preloadPrompt`), in-process GGUF validation (`npm run validate:bundled-runtime`), and expanded `npm run test:bundled` coverage for local completion streaming and embeddings without an external model server. |
 | Codex Epic AN starter | T269-T270 | Added typed plugin manifest validation (`src/plugin-sdk.js`), SDK docs for required fields/approval behavior, sanitized public plugin manifests, receipt-backed permission enforcement, medium/high-risk approval gates, VM inline-code hardening, and `npm run test:plugins` CI coverage. |
 | Codex Epic AN completion | T271-T272 | Added manifest-fingerprint plugin hot reload, `/api/plugins/status`, `/api/plugins/reload`, catalog reload receipts/logs, async sandbox execution, runnable `web-fetch`, `calculator`, and `shell-guarded` examples, and API/unit coverage for dev reload plus permissioned plugin behavior. |
+| Codex Epic AN/AO interop pass | T273-T280 | Added plugin marketplace browse/install UI and receipts, recipe share URLs/imports, VS Code chat/apply MVP, `agenttrail chat` REPL parity, webhook trigger presets, external stdio MCP client consumption, `/api/interop/openai-export`, replay bundle export/import, docs, route catalog, and API/CLI/MCP test coverage. |
 
 ### Verified After These Passes
 
@@ -93,7 +94,7 @@ This section tracks the concrete work shipped after the roadmap was publicly ref
 
 ### Best Continuation Points
 
-- T273/T274: continue Epic AN with plugin marketplace browse/install and recipe sharing import/export now that the SDK, hot reload, and example plugins are complete.
+- T281/T288/T295: continue with public proof, README/GitHub polish, and community-growth loops now that Epic AN/AO marketplace and interop surfaces are complete.
 
 ---
 
@@ -417,16 +418,16 @@ This section tracks the concrete work shipped after the roadmap was publicly ref
 4. We expand an epic's tasks into finer sub-tasks (toward 1000) only when we start that epic — so the plan stays honest and current.
 5. We re-mark `[x]` here as we go; this file is the single source of truth for the campaign.
 
-**Next up:** Continue Epic AN with plugin marketplace browse/install and recipe sharing import/export. The new Phase 17-22 expansion below adds the public "top 1%" path without replacing any earlier phase.
+**Next up:** Start the public-growth expansion at T281 with real demo proof and install-path hardening. The new Phase 17-22 expansion below adds the public "top 1%" path without replacing any earlier phase.
 
 ## Status & bug sweep (latest)
 
-- Progress: **Epic AN is underway and complete through T272** with no open or partial pre-Phase-16 roadmap items. Fully complete tracked items now include T001-T272, including the pre-Phase-15 closeout tasks T044, T090, T091, T094, T096, T098, T104, T107, T109, and T110. Phase 1 is complete; Phase 2 Epic E/F search foundation is complete; Epic G document ingestion is complete; Phase 3 vision/audio/image generation is complete; Epic K is complete; Epic L is complete; Epic M is complete for the local automation/MCP server surface; Epic N/O now have cache, option passthrough, resources, speculative bundled-runtime policy, explicit shared-prefix prefill reuse, TTFT/tokens-sec usage visibility, keep-alive idle-unload controls, runtime visibility, the AJ resilience layer, T251 timeout/cancel surfacing, and the AK config/admin layer; Phase 6 now has a first-class bundled-runtime adapter seam plus local GGUF validation, streaming, embeddings, Epic Q/R/S hardware, loading, registry policy, Epic AC model ecosystem helpers, Epic AD advanced-agent manifests, Epic AE chat management, Epic AF composer editing, Epic AG access/PWA polish, Epic AH portability archives, Epic AI privacy controls, Epic AJ resilience controls, T251 run-control polish, and Epic AK config/admin controls; Epic T native desktop distribution is complete at the repo/scaffolding level; Epic U CLI parity is complete; Epic V packaging/supply-chain foundation is complete; Epic W security/privacy is complete; Epic X observability is complete; Epic Y team/enterprise is complete; Epic Z quality engineering is complete; Epic AA documentation is complete; Epic AB community/growth is complete; Epic AL eval quality is complete; Epic AM accounting/routing is complete; Epic AN SDK/permission hardening, plugin hot reload, and runnable example plugins are complete through T272; and the public starter issues are cleared with tests/docs.
+- Progress: **Epic AN and Epic AO are complete through T280** with no open or partial pre-Phase-16 roadmap items. Fully complete tracked items now include T001-T280, including the pre-Phase-15 closeout tasks T044, T090, T091, T094, T096, T098, T104, T107, T109, and T110. Phase 1 is complete; Phase 2 Epic E/F search foundation is complete; Epic G document ingestion is complete; Phase 3 vision/audio/image generation is complete; Epic K is complete; Epic L is complete; Epic M is complete for the local automation/MCP server surface; Epic N/O now have cache, option passthrough, resources, speculative bundled-runtime policy, explicit shared-prefix prefill reuse, TTFT/tokens-sec usage visibility, keep-alive idle-unload controls, runtime visibility, the AJ resilience layer, T251 timeout/cancel surfacing, and the AK config/admin layer; Phase 6 now has a first-class bundled-runtime adapter seam plus local GGUF validation, streaming, embeddings, Epic Q/R/S hardware, loading, registry policy, Epic AC model ecosystem helpers, Epic AD advanced-agent manifests, Epic AE chat management, Epic AF composer editing, Epic AG access/PWA polish, Epic AH portability archives, Epic AI privacy controls, Epic AJ resilience controls, T251 run-control polish, and Epic AK config/admin controls; Epic T native desktop distribution is complete at the repo/scaffolding level; Epic U CLI parity is complete; Epic V packaging/supply-chain foundation is complete; Epic W security/privacy is complete; Epic X observability is complete; Epic Y team/enterprise is complete; Epic Z quality engineering is complete; Epic AA documentation is complete; Epic AB community/growth is complete; Epic AL eval quality is complete; Epic AM accounting/routing is complete; Epic AN SDK/permission hardening, plugin hot reload, runnable examples, marketplace install, and recipe sharing are complete; Epic AO interop is complete with VS Code, CLI chat, webhook triggers, MCP client, OpenAI export, and replay bundles; and the public starter issues are cleared with tests/docs.
 - Focused test suite green: accounting/routing, MCP stdio contract, config-admin, docs generation, UI E2E, bundled runtime, API integration, smoke, and repo eval, plus the prior unit, resilience, observability, team enterprise, quality engineering, community-growth, model ecosystem, coverage gate, performance regression, desktop distribution, CLI integration, supply-chain, security/privacy threat-model, privacy controls, runtime hardware, runtime loading, model registry, redaction, document extraction, v1 API, health, concurrency, model options, resources, portability, recipe validation, receipt metadata, release SBOM, reproducibility, and release checksums coverage. All touched source files pass `node --check`.
 - **Bug fixed:** `listWorkspaceFiles` only skipped `.DS_Store`, so internal `.agenttrail/*` state (logs, store, search index, pending-run) was being walked, indexed, and returned in search — adding noise and per-request churn to the index. Now excludes `.agenttrail/`. Verified against smoke, api, search-incremental, search-chunking, and eval:search.
 - Known minor item: a couple of integration tests assert relative/invariant counts (not exact) because the workspace can still gain legit files (e.g. `memory/*`) between calls — intentional, not a bug.
 
-Next code target: Epic AN marketplace and sharing. Prioritize T273/T274 so users can browse/install plugin examples and import/export recipe shares; keep T281/T288/T295 as public-growth follow-ups.
+Next code target: public proof and growth. Prioritize T281 demo video/GIF proof, then T288 README/GitHub polish and T295 community-growth loops.
 
 ---
 
@@ -532,16 +533,16 @@ Open items are still marked `[ ]`; a few Phase 11/12 starter tasks are now `[x]`
 - [x] T270 Plugin permissions + sandbox hardening review (matching permissions required, receipt-backed scopes, medium/high approval gates, inline VM code restrictions)
 - [x] T271 Plugin hot-reload in dev (`loadPluginCatalog`, `/api/plugins/status`, `/api/plugins/reload`, reload logs/receipts)
 - [x] T272 Example plugins (runnable `web-fetch`, `calculator`, `shell-guarded` with permissioned sandbox handlers)
-- [ ] T273 Plugin marketplace browse/install from UI
-- [ ] T274 Recipe sharing import/export from URL (extend marketplace)
+- [x] T273 Plugin marketplace browse/install from UI (`marketplace/plugins.json`, `/api/plugins/marketplace`, `/api/plugins/install`, Top 1% Kit install/recheck UI, install receipts)
+- [x] T274 Recipe sharing import/export from URL (AgentTrail share URLs, `/api/marketplace/share`, `/api/marketplace/import-share`, Top 1% Kit share/import UI)
 
 ### Epic AO — Interop
-- [ ] T275 VS Code extension MVP (chat + diff-apply in editor)
-- [ ] T276 CLI chat REPL parity (extend Epic U)
-- [ ] T277 Webhook triggers for automation
-- [ ] T278 Local MCP client to consume external MCP servers
-- [ ] T279 Export agent as an OpenAI-compatible endpoint (extend T076)
-- [ ] T280 Shareable, self-contained run replay bundle
+- [x] T275 VS Code extension MVP (chat + diff-apply in editor via `editor/vscode-agenttrail`)
+- [x] T276 CLI chat REPL parity (extend Epic U with `agenttrail chat`, slash commands, JSON one-shot mode)
+- [x] T277 Webhook triggers for automation (`/api/webhooks/triggers`, `/api/webhooks/triggers/run`, pending-run receipts)
+- [x] T278 Local MCP client to consume external MCP servers (`src/mcp-client.js`, `mcp/clients.json`, approved calls + receipts)
+- [x] T279 Export agent as an OpenAI-compatible endpoint (extend T076 with `/api/interop/openai-export`)
+- [x] T280 Shareable, self-contained run replay bundle (`/api/replay/bundle`, `/api/replay/bundle/import`, optional redacted file snapshots)
 
 ---
 
@@ -661,7 +662,7 @@ This expansion does not replace Phase 0-16. It adds the next public-product laye
 
 ### Epic AZ — AgentTrail-only differentiators
 - [ ] T348 Make trust score explainable: each score item links to evidence, files, diffs, or receipts.
-- [ ] T349 Add receipt replay bundles that can be shared without exposing private workspace files.
+- [x] T349 Add receipt replay bundles that can be shared without exposing private workspace files (delivered via T280 replay bundles with default no-file-content export and optional redacted snapshots)
 - [ ] T350 Add "proof mode" that refuses to answer without cited local evidence when enabled.
 - [ ] T351 Add an agent black-box recorder: prompts, tools, diffs, approvals, timing, errors, and model settings.
 - [ ] T352 Add recipe-to-report pipelines for repeatable workflows with consistent outputs.

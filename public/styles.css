@@ -706,6 +706,9 @@ select:hover, .search-input:hover { border-color: var(--line-strong); }
 .mini-row span { color: var(--muted); font-size: 0.72rem; font-weight: 600; }
 .mini-row.muted { color: var(--muted); font-size: 0.78rem; font-weight: 600; }
 .mini-row.warn { border-color: var(--rose); background: var(--rose-soft); }
+.plugin-marketplace-row { grid-template-columns: minmax(0, 1fr) auto; align-items: center; }
+.plugin-marketplace-row span { grid-column: 1 / 2; }
+.plugin-marketplace-row button { grid-column: 2 / 3; grid-row: 1 / span 2; width: auto; min-width: 72px; margin: 0; }
 
 .config-settings { display: grid; gap: 8px; margin-top: 10px; }
 

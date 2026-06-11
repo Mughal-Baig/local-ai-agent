@@ -18,6 +18,8 @@ main().catch((error) => {
 
 async function main() {
   const workspaceRoot = await fsp.mkdtemp(path.join(os.tmpdir(), "agenttrail-api-"));
+  const recipePacksDir = path.join(workspaceRoot, "recipe-packs");
+  await fsp.cp(path.join(projectRoot, "recipe-packs"), recipePacksDir, { recursive: true });
   let urlServer = null;
   const child = spawn(process.execPath, ["server.js"], {
     cwd: projectRoot,
@@ -25,6 +27,7 @@ async function main() {
       ...process.env,
       PORT: String(port),
       WORKSPACE_ROOT: workspaceRoot,
+      AGENTTRAIL_RECIPE_PACKS_DIR: recipePacksDir,
       OLLAMA_HOST: "http://127.0.0.1:1",
       AGENTTRAIL_OCR_COMMAND: process.execPath,
       AGENTTRAIL_OCR_ARGS: "tests/fixtures/mock-ocr.js {{input}} {{language}}"
@@ -63,6 +66,11 @@ async function main() {
       "/api/watch/status",
       "/api/plugins",
       "/api/plugins/status",
+      "/api/plugins/marketplace",
+      "/api/mcp/client/status",
+      "/api/mcp/client/tools",
+      "/api/interop/openai-export",
+      "/api/webhooks/triggers",
       "/api/search?query=semantic",
       "/api/search/chunks?query=receipt",
       "/api/onboarding",
@@ -292,6 +300,14 @@ async function main() {
     assert.equal(pluginStatus.ok, true);
     assert.equal(pluginStatus.pluginCount >= 4, true);
 
+    const pluginMarketplace = await get("/api/plugins/marketplace");
+    assert.equal(pluginMarketplace.marketplace.plugins.some((item) => item.id === "calculator" && item.installed === true), true);
+
+    const pluginInstall = await post("/api/plugins/install", { id: "calculator" });
+    assert.equal(pluginInstall.ok, true);
+    assert.equal(pluginInstall.plugin.id, "calculator");
+    assert.match(pluginInstall.receipt.path, /^receipts\/plugins\/install-calculator-/);
+
     const pluginReload = await post("/api/plugins/reload", {});
     assert.equal(pluginReload.ok, true);
     assert.equal(pluginReload.hotReload.forced, true);
@@ -332,6 +348,58 @@ async function main() {
     });
     assert.equal(shellPlugin.output.previewOnly, true);
     assert.equal(shellPlugin.output.allowed, true);
+
+    const recipeShare = await get("/api/marketplace/share?id=coder");
+    assert.equal(recipeShare.schema, "agenttrail.recipe-pack-share.v1");
+    assert.match(recipeShare.shareUrl, /^agenttrail:\/\/recipe-pack\//);
+
+    const recipeImport = await post("/api/marketplace/import-share", { url: recipeShare.shareUrl });
+    assert.equal(recipeImport.ok, true);
+    assert.equal(recipeImport.pack.id, "coder");
+
+    const openaiExport = await get("/api/interop/openai-export");
+    assert.equal(openaiExport.schema, "agenttrail.openai-export.v1");
+    assert.match(openaiExport.baseUrl, /\/v1$/);
+    assert.equal(openaiExport.endpoints.some((endpoint) => endpoint.path === "/v1/chat/completions"), true);
+
+    const mcpClient = await get("/api/mcp/client/status");
+    assert.equal(mcpClient.schema, "agenttrail.mcp-clients.v1");
+    assert.equal(mcpClient.servers.some((server) => server.id === "agenttrail-self"), true);
+
+    const webhookTriggers = await get("/api/webhooks/triggers");
+    assert.equal(webhookTriggers.triggers.some((trigger) => trigger.id === "github-issue-triage"), true);
+
+    const webhookTriggered = await post("/api/webhooks/triggers/run", {
+      id: "github-issue-triage",
+      payload: {
+        title: "Improve local agent docs",
+        url: "https://github.com/Mughal-Baig/local-ai-agent/issues/1",
+        body: "Please refresh the roadmap."
+      }
+    });
+    assert.equal(webhookTriggered.ok, true);
+    assert.equal(webhookTriggered.pending.source, "webhook-trigger");
+    assert.match(webhookTriggered.receipt.path, /^receipts\/webhooks\/webhook-/);
+
+    const session = await post("/api/sessions", {
+      title: "API Replay",
+      model: "llama3.2",
+      selectedFiles: ["notes/api.md"],
+      messages: [{ role: "user", content: "Summarize the API fixture." }],
+      pendingPreviews: [],
+      trail: [{ type: "search", label: "semantic" }]
+    });
+    assert.match(session.path, /^sessions\/api-replay-/);
+
+    const replayBundle = await post("/api/replay/bundle", { path: session.path, includeFiles: true });
+    assert.equal(replayBundle.ok, true);
+    assert.equal(replayBundle.bundle.schema, "agenttrail.replay-bundle.v1");
+    assert.equal(replayBundle.bundle.files.some((file) => file.path === "notes/api.md"), true);
+
+    const replayImport = await post("/api/replay/bundle/import", { bundle: replayBundle.bundle });
+    assert.equal(replayImport.ok, true);
+    assert.equal(replayImport.pending.source, "replay-bundle");
+    assert.match(replayImport.receipt.path, /^receipts\/replay-bundles\/import-/);
 
     const webhook = await post("/api/webhooks/run", {
       source: "integration-test",

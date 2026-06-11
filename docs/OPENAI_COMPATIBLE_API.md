@@ -46,6 +46,22 @@ Streaming uses normal OpenAI-style SSE chunks:
 
 `GET /v1/models` lists models from the active local backend. `POST /v1/embeddings` passes requests through the active embedding backend and returns OpenAI-shaped embedding rows.
 
+## Export Descriptor
+
+Use this endpoint when wiring another local tool to AgentTrail:
+
+```text
+GET /api/interop/openai-export
+```
+
+It returns:
+
+- `baseUrl`, usually `http://127.0.0.1:4173/v1`
+- supported endpoint paths
+- auth expectations
+- copyable cURL and OpenAI SDK examples
+- capability flags for chat completions, streaming, tools, and embeddings
+
 ## Queue And Rate Controls
 
 - `AGENTTRAIL_V1_RATE_LIMIT_PER_MINUTE`: default `60`; set `0` to disable.

@@ -4,6 +4,7 @@ All notable changes to AgentTrail are tracked here. Release notes live in `docs/
 
 ## Unreleased
 
+- Added Epic AN/AO marketplace and interop layer: plugin marketplace install receipts, recipe share URLs, VS Code chat/apply MVP, `agenttrail chat`, webhook trigger presets, external MCP client calls, OpenAI export descriptor, and replay bundles.
 - Added Epic AB community and growth foundation: launch response workflow, recipe marketplace curation, good-first issue backlog, governance, release process, showcase gallery, comparison benchmarks, and plugin SDK examples.
 
 ## v0.7.0

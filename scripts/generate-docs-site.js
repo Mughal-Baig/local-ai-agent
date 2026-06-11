@@ -19,7 +19,7 @@ const SITE_DOCS = [
   ["TROUBLESHOOTING.md", "Troubleshooting And FAQ", "Fix Ollama, model, file, receipt, performance, and CI issues.", ["faq", "help", "debugging"]],
   ["VIDEO_WALKTHROUGHS.md", "Video Walkthroughs", "Shot lists and recording commands for the public demo videos.", ["video", "demo", "launch"]],
   ["LAUNCH_RESPONSE_WORKFLOW.md", "Launch Response", "Public launch checklist, response macros, triage, and success metrics.", ["launch", "community", "growth"]],
-  ["RECIPE_MARKETPLACE.md", "Recipe Marketplace", "Submission path, curation rules, review rubric, and featured pack queue.", ["recipes", "marketplace", "community"]],
+  ["RECIPE_MARKETPLACE.md", "Recipe Marketplace", "Recipe shares, plugin marketplace, curation rules, review rubric, and featured pack queue.", ["recipes", "plugins", "marketplace", "community"]],
   ["GOOD_FIRST_ISSUES.md", "Good First Issues", "Scoped issue backlog, label set, and maintainer rules for starter tasks.", ["issues", "labels", "community"]],
   ["RELEASE_PROCESS.md", "Release Process", "Changelog discipline, release note shape, and release readiness gates.", ["release", "changelog", "process"]],
   ["SHOWCASE.md", "Showcase Gallery", "How to collect real workflows with receipt, report, and trust proof.", ["showcase", "receipts", "proof"]],
@@ -29,8 +29,8 @@ const SITE_DOCS = [
   ["EVAL_QUALITY.md", "Eval Quality", "Golden tasks, citation faithfulness, unsupported-claim checks, model comparison, and latency benchmarks.", ["quality", "evaluation", "benchmarks"]],
   ["SECURITY_POSTURE.md", "Security Posture", "Threat model and local safety boundaries.", ["security", "privacy", "threat-model"]],
   ["TEAM_ENTERPRISE.md", "Team Mode", "Local users, RBAC, audit export, sync, and SSO hooks.", ["team", "rbac", "audit"]],
-  ["OPENAI_COMPATIBLE_API.md", "OpenAI-Compatible API", "Use AgentTrail through /v1 chat, models, and embeddings.", ["api", "openai-compatible", "integration"]],
-  ["CLI.md", "CLI", "Run AgentTrail from terminal scripts and shell completions.", ["cli", "automation", "terminal"]]
+  ["OPENAI_COMPATIBLE_API.md", "OpenAI-Compatible API", "Use AgentTrail through /v1 chat, models, embeddings, and export discovery.", ["api", "openai-compatible", "integration"]],
+  ["CLI.md", "CLI", "Run AgentTrail chat, model commands, terminal scripts, and shell completions.", ["cli", "chat", "automation", "terminal"]]
 ];
 
 main().catch((error) => {

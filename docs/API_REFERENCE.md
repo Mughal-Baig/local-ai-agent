@@ -16,10 +16,10 @@ AgentTrail exposes two API layers: local app endpoints under `/api/*` and an Ope
 | memory | server.js | `/api/memory`<br>`/api/memory/scopes`<br>`/api/memory/structured`<br>`/api/memory/retrieve`<br>`/api/memory/history`<br>`/api/memory/history/diff`<br>`/api/memory/history/revert`<br>`/api/memory/suggestions`<br>`/api/memory/suggestions/apply`<br>`/api/memory/citations` |
 | reports | server.js | `/api/reports`<br>`/api/trust/badge` |
 | conversations | server.js | `/api/conversations`<br>`/api/conversations/get`<br>`/api/conversations/delete`<br>`/api/conversations/restore`<br>`/api/conversations/import`<br>`/api/conversations/branch`<br>`/api/conversations/export` |
-| sessions | server.js | `/api/sessions`<br>`/api/replay/plan`<br>`/api/runs/pending`<br>`/api/runs/pending/from-receipt`<br>`/api/receipts/resume` |
+| sessions | server.js | `/api/sessions`<br>`/api/replay/plan`<br>`/api/replay/bundle`<br>`/api/replay/bundle/import`<br>`/api/runs/pending`<br>`/api/runs/pending/from-receipt`<br>`/api/receipts/resume` |
 | planner | server.js + src/structured-output.js | `/api/agent/plan`<br>`/api/chat` |
-| automation | server.js | `/api/webhooks/run` |
-| tools | src/permissions.js + src/tool-schemas.js | `/api/permissions`<br>`/api/tools/schemas`<br>`/api/tools/capability`<br>`/api/mcp` |
+| automation | server.js | `/api/webhooks/run`<br>`/api/webhooks/triggers`<br>`/api/webhooks/triggers/run` |
+| tools | src/permissions.js + src/tool-schemas.js + src/mcp-client.js | `/api/permissions`<br>`/api/tools/schemas`<br>`/api/tools/capability`<br>`/api/mcp`<br>`/api/mcp/client/status`<br>`/api/mcp/client/tools`<br>`/api/mcp/client/call` |
 | models | server.js | `/api/models`<br>`/api/models/pull`<br>`/api/models/delete`<br>`/api/models/vision-capability` |
 | accounting-routing | server.js + src/accounting-routing.js | `/api/accounting/usage`<br>`/api/accounting/routing` |
 | eval-quality | server.js + src/eval-quality.js | `/api/evals/agent-quality`<br>`/api/evals/agent-quality/history`<br>`/api/evals/agent-quality/compare`<br>`/api/benchmarks/models` |
@@ -27,13 +27,14 @@ AgentTrail exposes two API layers: local app endpoints under `/api/*` and an Ope
 | model-ecosystem | server.js + src/model-ecosystem.js | `/api/model-ecosystem`<br>`/api/model-ecosystem/adapters`<br>`/api/model-ecosystem/fine-tune`<br>`/api/model-ecosystem/quantize`<br>`/api/model-ecosystem/convert`<br>`/api/model-ecosystem/evaluate` |
 | advanced-agent | server.js + src/advanced-agent.js | `/api/advanced-agent`<br>`/api/advanced-agent/orchestrate`<br>`/api/advanced-agent/schedule`<br>`/api/advanced-agent/journal`<br>`/api/advanced-agent/journal/append`<br>`/api/advanced-agent/journal/resume`<br>`/api/advanced-agent/sub-agent`<br>`/api/advanced-agent/replay-diff` |
 | system | server.js + src/resilience.js + src/config-admin.js | `/api/health`<br>`/api/resilience`<br>`/api/resources`<br>`/api/runtime`<br>`/api/concurrency`<br>`/api/config`<br>`/api/config/admin`<br>`/api/config/workspace`<br>`/api/onboarding`<br>`/api/updates/check` |
-| openai-compatible-api | server.js | `/v1/chat/completions`<br>`/v1/models`<br>`/v1/embeddings`<br>`/v1/openapi.json` |
+| openai-compatible-api | server.js | `/v1/chat/completions`<br>`/v1/models`<br>`/v1/embeddings`<br>`/v1/openapi.json`<br>`/api/interop/openai-export` |
 | structured-output | src/structured-output.js | `/api/structured-output/schemas`<br>`/api/structured-output`<br>`/api/structured-output/recipe` |
 | security | src/features/security.js + src/privacy.js + src/privacy-controls.js + src/network-policy.js + src/features/redact.js | `/api/security/scan`<br>`/api/security/privacy`<br>`/api/privacy/dashboard`<br>`/api/privacy/settings`<br>`/api/privacy/retention`<br>`/api/privacy/retention/apply`<br>`/api/privacy/wipe`<br>`/api/redact` |
 | observability | src/observability.js + src/logger.js | `/api/logs`<br>`/api/metrics`<br>`/api/observability`<br>`/api/traces`<br>`/api/traces/content`<br>`/api/errors/taxonomy` |
 | team-enterprise | src/team-enterprise.js | `/api/team/status`<br>`/api/team/users`<br>`/api/team/users/select`<br>`/api/team/rbac`<br>`/api/team/receipts`<br>`/api/team/receipts/content`<br>`/api/team/sync/status`<br>`/api/team/sync/export`<br>`/api/team/audit/export`<br>`/api/team/sso`<br>`/api/team/sso/validate` |
 | foundation | src/foundation.js | `/api/foundation`<br>`/api/schemas`<br>`/api/migrations` |
-| plugins | src/plugin-loader.js + src/plugin-sandbox.js | `/api/plugins`<br>`/api/plugins/status`<br>`/api/plugins/reload`<br>`/api/plugins/run` |
+| marketplace | server.js + marketplace/*.json | `/api/marketplace`<br>`/api/marketplace/import-url`<br>`/api/marketplace/share`<br>`/api/marketplace/import-share` |
+| plugins | src/plugin-loader.js + src/plugin-sandbox.js | `/api/plugins`<br>`/api/plugins/status`<br>`/api/plugins/reload`<br>`/api/plugins/run`<br>`/api/plugins/marketplace`<br>`/api/plugins/install` |
 | jobs | src/jobs.js | `/api/jobs`<br>`/api/jobs/start` |
 | backup | server.js | `/api/workspace/portability`<br>`/api/workspace/migration-plan`<br>`/api/backup/export`<br>`/api/backup/import`<br>`/api/backup/schedule`<br>`/api/backup/schedule/run` |
 

@@ -1,0 +1,15 @@
+{
+  "schema": "agenttrail.mcp-clients.v1",
+  "servers": [
+    {
+      "id": "agenttrail-self",
+      "title": "AgentTrail self-check server",
+      "transport": "stdio",
+      "command": "node",
+      "args": ["mcp/server.js"],
+      "enabled": false,
+      "requiresApproval": true,
+      "timeoutMs": 5000
+    }
+  ]
+}
