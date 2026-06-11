@@ -9,5 +9,6 @@ services:
       OLLAMA_HOST: "http://host.docker.internal:11434"
       OLLAMA_MODEL: "llama3.2"
       OLLAMA_EMBED_MODEL: "nomic-embed-text"
+      WORKSPACE_ROOT: "/data/workspace"
     volumes:
-      - ./workspace:/app/workspace
+      - ./workspace:/data/workspace

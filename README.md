@@ -87,11 +87,25 @@ Popular local AI tools usually optimize for broad chat, model management, or aut
 ## 60-second Quick Start
 
 ```bash
-git clone https://github.com/Mughal-Baig/local-ai-agent.git
-cd local-ai-agent
 ollama pull llama3.2
-npx github:Mughal-Baig/local-ai-agent
+npx agenttrail
 ```
+
+AgentTrail creates `./agenttrail-workspace`, adds a first-run note, and opens the local app path at `http://127.0.0.1:4173`. Check setup with:
+
+```bash
+npx agenttrail doctor
+```
+
+Other install paths:
+
+```bash
+brew tap Mughal-Baig/local-ai-agent
+brew install agenttrail
+docker compose up
+```
+
+Full install guide: [docs/INSTALL.md](docs/INSTALL.md).
 
 Or clone and run:
 

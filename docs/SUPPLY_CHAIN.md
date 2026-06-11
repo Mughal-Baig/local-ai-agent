@@ -14,6 +14,16 @@ docker buildx build --platform linux/amd64,linux/arm64 -t ghcr.io/Mughal-Baig/ag
 
 GitHub workflow: `.github/workflows/container.yml`.
 
+Safe local quick start with persisted workspace data:
+
+```bash
+mkdir -p agenttrail-workspace
+docker run --rm -p 4173:4173 \
+  -e OLLAMA_HOST=http://host.docker.internal:11434 \
+  -v "$PWD/agenttrail-workspace:/data/workspace" \
+  ghcr.io/mughal-baig/agenttrail:latest
+```
+
 ## Homebrew
 
 The formula points to the npm release tarball uploaded with the GitHub release:
@@ -23,6 +33,14 @@ npm run release:homebrew
 ```
 
 That command packs the current npm artifact, computes its SHA-256, and updates [Formula/agenttrail.rb](../Formula/agenttrail.rb). The formula installs both `agenttrail` and `agenttrail-chat` and includes a launch service.
+
+After the tap is published:
+
+```bash
+brew tap Mughal-Baig/local-ai-agent
+brew install agenttrail
+agenttrail doctor
+```
 
 ## npm Provenance
 

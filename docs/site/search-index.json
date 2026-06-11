@@ -22,7 +22,7 @@
         {
           "title": "Quick Start",
           "anchor": "quick-start",
-          "snippet": "npx agenttrail Or from a clone: npm run dev Open: http://127.0.0.1:4173"
+          "snippet": "npx agenttrail This creates `./agenttrail-workspace`, writes `notes/first-run.md`, starts the local app, and keeps write previews gated by Apply. Check setup: npx agenttrail doctor"
         },
         {
           "title": "First Safe Task",
@@ -42,7 +42,7 @@
         {
           "title": "Next Guides",
           "anchor": "next-guides",
-          "snippet": "Recipes: [RECIPE_AUTHORING.md](RECIPE_AUTHORING.md) Backends: [BACKEND_SETUP.md](BACKEND_SETUP.md) Architecture: [ARCHITECTURE.md](ARCHITECTURE.md) Troubleshooting: [TROUBLESHOOTING.md](TROUBLESHOOTING.md)"
+          "snippet": "Recipes: [RECIPE_AUTHORING.md](RECIPE_AUTHORING.md) Install: [INSTALL.md](INSTALL.md) Backends: [BACKEND_SETUP.md](BACKEND_SETUP.md) Architecture: [ARCHITECTURE.md](ARCHITECTURE.md)"
         }
       ]
     },
@@ -662,7 +662,7 @@
         {
           "title": "Version Checklist",
           "anchor": "version-checklist",
-          "snippet": "1. Update `CHANGELOG.md`. 2. Add or update `docs/RELEASE_NOTES_vX.Y.Z.md`. 3. Run `npm run docs:build`. 4. Run `npm run demo:proof`. 5. Run `npm run demo:health`. 6. Run `npm run test:community`."
+          "snippet": "1. Update `CHANGELOG.md`. 2. Add or update `docs/RELEASE_NOTES_vX.Y.Z.md`. 3. Run `npm run docs:build`. 4. Run `npm run demo:proof`. 5. Run `npm run demo:health`. 6. Run `npm run test:install`."
         },
         {
           "title": "Release Notes Shape",
@@ -1025,7 +1025,12 @@
         {
           "title": "Start The Server",
           "anchor": "start-the-server",
-          "snippet": "agenttrail serve agenttrail serve --host 127.0.0.1 --port 4173 No arguments still start the local AgentTrail server for backward compatibility: agenttrail"
+          "snippet": "agenttrail serve agenttrail serve --host 127.0.0.1 --port 4173 No arguments still start the local AgentTrail server for backward compatibility: agenttrail First run creates `./agenttrail-workspace` with `notes/first-r..."
+        },
+        {
+          "title": "Setup Doctor",
+          "anchor": "setup-doctor",
+          "snippet": "agenttrail doctor agenttrail doctor --json agenttrail doctor --workspace \"$HOME/AgentTrail/workspace\" The doctor checks Node.js, workspace permissions, disk space, port availability, Ollama reachability, and default m..."
         },
         {
           "title": "Run A Model",
@@ -1066,7 +1071,7 @@
         "install",
         "demo"
       ],
-      "text": "Getting Started This is the fastest path to a useful AgentTrail run: install, open, search, preview a safe edit, save a receipt, and export proof. 60-Second Flow Quick Start Or from a clone: Open: First Safe Task 1. Put a small note in workspace/notes/demo.md . 2. Turn on file reads and write previews. 3. Ask: Search the workspace, improve notes/demo.md, and show me the diff before applying. 4. Review the Diff Review panel. 5. Click Apply only after the proposed content looks right. 6. Export a receipt or HTML report. What Good Looks Like Signal Expected result --- --- Search The trail shows a search/read step before edits. Diff preview The proposed write appears in Diff Review. Apply The file changes only after explicit approval. Receipt The receipt lists model, selected files, tools, diffs, and trust score. Privacy The app runs on 127.0.0.1 and keeps workspace data local. Demo Assets - GIF proof: agenttrail-demo.gif agenttrail-demo.gif - App screenshot: preview-app.png preview-app.png - Diff screenshot: preview-diff.png preview-diff.png - Static browser demo: public-demo.html public-demo.html Next Guides - Recipes: RECIPE_AUTHORING.md RECIPE_AUTHORING.md - Backends: BACKEND_SETUP.md BACKEND_SETUP.md - Architecture: ARCHITECTURE.md ARCHITECTURE.md - Troubleshooting: TROUBLESHOOTING.md TROUBLESHOOTING.md"
+      "text": "Getting Started This is the fastest path to a useful AgentTrail run: install, open, search, preview a safe edit, save a receipt, and export proof. 60-Second Flow Quick Start This creates ./agenttrail-workspace , writes notes/first-run.md , starts the local app, and keeps write previews gated by Apply. Check setup: Or from a clone: Open: First Safe Task 1. Put a small note in workspace/notes/demo.md . 2. Turn on file reads and write previews. 3. Ask: Search the workspace, improve notes/demo.md, and show me the diff before applying. 4. Review the Diff Review panel. 5. Click Apply only after the proposed content looks right. 6. Export a receipt or HTML report. What Good Looks Like Signal Expected result --- --- Search The trail shows a search/read step before edits. Diff preview The proposed write appears in Diff Review. Apply The file changes only after explicit approval. Receipt The receipt lists model, selected files, tools, diffs, and trust score. Privacy The app runs on 127.0.0.1 and keeps workspace data local. Demo Assets - GIF proof: agenttrail-demo.gif agenttrail-demo.gif - App screenshot: preview-app.png preview-app.png - Diff screenshot: preview-diff.png preview-diff.png - Static browser demo: public-demo.html public-demo.html Next Guides - Recipes: RECIPE_AUTHORING.md RECIPE_AUTHORING.md - Install: INSTALL.md INSTALL.md - Backends: BACKEND_SETUP.md BACKEND_SETUP.md - Architecture: ARCHITECTURE.md ARCHITECTURE.md - Troubleshooting: TROUBLESHOOTING.md TROUBLESHOOTING.md"
     },
     {
       "type": "section",
@@ -1083,14 +1088,14 @@
     {
       "type": "section",
       "title": "Start Here - Quick Start",
-      "description": "npx agenttrail Or from a clone: npm run dev Open: http://127.0.0.1:4173",
+      "description": "npx agenttrail This creates `./agenttrail-workspace`, writes `notes/first-run.md`, starts the local app, and keeps write previews gated by Apply. Check setup: npx agenttrail doctor",
       "href": "../GETTING_STARTED.md#quick-start",
       "tags": [
         "quickstart",
         "install",
         "demo"
       ],
-      "text": "Quick Start npx agenttrail Or from a clone: npm run dev Open: http://127.0.0.1:4173"
+      "text": "Quick Start npx agenttrail This creates `./agenttrail-workspace`, writes `notes/first-run.md`, starts the local app, and keeps write previews gated by Apply. Check setup: npx agenttrail doctor"
     },
     {
       "type": "section",
@@ -1131,14 +1136,14 @@
     {
       "type": "section",
       "title": "Start Here - Next Guides",
-      "description": "Recipes: [RECIPE_AUTHORING.md](RECIPE_AUTHORING.md) Backends: [BACKEND_SETUP.md](BACKEND_SETUP.md) Architecture: [ARCHITECTURE.md](ARCHITECTURE.md) Troubleshooting: [TROUBLESHOOTING.md](TROUBLESHOOTING.md)",
+      "description": "Recipes: [RECIPE_AUTHORING.md](RECIPE_AUTHORING.md) Install: [INSTALL.md](INSTALL.md) Backends: [BACKEND_SETUP.md](BACKEND_SETUP.md) Architecture: [ARCHITECTURE.md](ARCHITECTURE.md)",
       "href": "../GETTING_STARTED.md#next-guides",
       "tags": [
         "quickstart",
         "install",
         "demo"
       ],
-      "text": "Next Guides Recipes: [RECIPE_AUTHORING.md](RECIPE_AUTHORING.md) Backends: [BACKEND_SETUP.md](BACKEND_SETUP.md) Architecture: [ARCHITECTURE.md](ARCHITECTURE.md) Troubleshooting: [TROUBLESHOOTING.md](TROUBLESHOOTING.md)"
+      "text": "Next Guides Recipes: [RECIPE_AUTHORING.md](RECIPE_AUTHORING.md) Install: [INSTALL.md](INSTALL.md) Backends: [BACKEND_SETUP.md](BACKEND_SETUP.md) Architecture: [ARCHITECTURE.md](ARCHITECTURE.md)"
     },
     {
       "type": "doc",
@@ -2239,19 +2244,19 @@
         "changelog",
         "process"
       ],
-      "text": "Release Process Release discipline matters because AgentTrail makes a trust claim. Every release should explain what changed, how it was verified, and what proof users can inspect. Version Checklist 1. Update CHANGELOG.md . 2. Add or update docs/RELEASE_NOTES_vX.Y.Z.md . 3. Run npm run docs:build . 4. Run npm run demo:proof . 5. Run npm run demo:health . 6. Run npm run test:community . 7. Run npm run eval . 8. Run release artifact checks: 9. Attach the demo GIF, proof page, screenshots, checksums, and release notes. 10. Keep the release post honest: show the exact workflow and limitations. Release Notes Shape Each release note should include: - One-line user promise. - What changed. - How to verify. - Known limits. - Links to screenshots, demo, or docs. Changelog Rules - CHANGELOG.md summarizes public changes by version. - docs/RELEASE_NOTES_v .md gives the detailed version-specific story. - Do not list unreleased features as shipped. - Do not claim performance wins without a benchmark entry. - Do not claim security guarantees without the relevant test or docs link. Release Readiness Gate A release is ready only when: - CI is green. - Quality Matrix is green. - Docs site check passes. - Community test passes. - Checksums have no missing artifacts. - The README still shows the demo and quick start above the fold. - npm run demo:health passes, which blocks launch when demo assets are stale."
+      "text": "Release Process Release discipline matters because AgentTrail makes a trust claim. Every release should explain what changed, how it was verified, and what proof users can inspect. Version Checklist 1. Update CHANGELOG.md . 2. Add or update docs/RELEASE_NOTES_vX.Y.Z.md . 3. Run npm run docs:build . 4. Run npm run demo:proof . 5. Run npm run demo:health . 6. Run npm run test:install . 7. Run npm run test:community . 8. Run npm run eval . 9. Run release artifact checks: 10. Attach the demo GIF, proof page, screenshots, checksums, and release notes. 11. Keep the release post honest: show the exact workflow and limitations. Release Notes Shape Each release note should include: - One-line user promise. - What changed. - How to verify. - Known limits. - Links to screenshots, demo, or docs. Changelog Rules - CHANGELOG.md summarizes public changes by version. - docs/RELEASE_NOTES_v .md gives the detailed version-specific story. - Do not list unreleased features as shipped. - Do not claim performance wins without a benchmark entry. - Do not claim security guarantees without the relevant test or docs link. Release Readiness Gate A release is ready only when: - CI is green. - Quality Matrix is green. - Docs site check passes. - Community test passes. - Checksums have no missing artifacts. - The README still shows the demo and quick start above the fold. - npm run demo:health passes, which blocks launch when demo assets are stale. - npm run test:install passes, proving the packaged npx artifact path still works."
     },
     {
       "type": "section",
       "title": "Release Process - Version Checklist",
-      "description": "1. Update `CHANGELOG.md`. 2. Add or update `docs/RELEASE_NOTES_vX.Y.Z.md`. 3. Run `npm run docs:build`. 4. Run `npm run demo:proof`. 5. Run `npm run demo:health`. 6. Run `npm run test:community`.",
+      "description": "1. Update `CHANGELOG.md`. 2. Add or update `docs/RELEASE_NOTES_vX.Y.Z.md`. 3. Run `npm run docs:build`. 4. Run `npm run demo:proof`. 5. Run `npm run demo:health`. 6. Run `npm run test:install`.",
       "href": "../RELEASE_PROCESS.md#version-checklist",
       "tags": [
         "release",
         "changelog",
         "process"
       ],
-      "text": "Version Checklist 1. Update `CHANGELOG.md`. 2. Add or update `docs/RELEASE_NOTES_vX.Y.Z.md`. 3. Run `npm run docs:build`. 4. Run `npm run demo:proof`. 5. Run `npm run demo:health`. 6. Run `npm run test:community`."
+      "text": "Version Checklist 1. Update `CHANGELOG.md`. 2. Add or update `docs/RELEASE_NOTES_vX.Y.Z.md`. 3. Run `npm run docs:build`. 4. Run `npm run demo:proof`. 5. Run `npm run demo:health`. 6. Run `npm run test:install`."
     },
     {
       "type": "section",
@@ -2924,12 +2929,12 @@
         "automation",
         "terminal"
       ],
-      "text": "AgentTrail CLI AgentTrail ships an Ollama-style CLI for local agent workflows while keeping the browser UI and API server available. Start The Server No arguments still start the local AgentTrail server for backward compatibility: Run A Model Interactive REPL: Non-interactive prompt: Use --json for scripts and CI jobs. Use --url http://127.0.0.1:4173 when the server runs somewhere else. Chat REPL agenttrail chat is the model-optional app-composer path. It uses AgentTrail's default model/router unless --model is set. Interactive slash commands: - /model <name sets the model for following turns. - /file <path adds a workspace file to selected context. - /files shows selected files. - /clear clears the conversation. - /exit quits. Manage Models list shows both Ollama-managed models and AgentTrail registry models. ps reports active and queued AgentTrail model work from /api/concurrency . Create A Registry Model Supported build-file directives include FROM , NAME , PARAMETER , TAG , TEMPLATE , SYSTEM , and LICENSE . Shell Completions Install the printed script through your shell's normal completion setup."
+      "text": "AgentTrail CLI AgentTrail ships an Ollama-style CLI for local agent workflows while keeping the browser UI and API server available. Start The Server No arguments still start the local AgentTrail server for backward compatibility: First run creates ./agenttrail-workspace with notes/first-run.md . Use --workspace to pick another writable folder: Setup Doctor The doctor checks Node.js, workspace permissions, disk space, port availability, Ollama reachability, and default model availability. Run A Model Interactive REPL: Non-interactive prompt: Use --json for scripts and CI jobs. Use --url http://127.0.0.1:4173 when the server runs somewhere else. Chat REPL agenttrail chat is the model-optional app-composer path. It uses AgentTrail's default model/router unless --model is set. Interactive slash commands: - /model <name sets the model for following turns. - /file <path adds a workspace file to selected context. - /files shows selected files. - /clear clears the conversation. - /exit quits. Manage Models list shows both Ollama-managed models and AgentTrail registry models. ps reports active and queued AgentTrail model work from /api/concurrency . Create A Registry Model Supported build-file directives include FROM , NAME , PARAMETER , TAG , TEMPLATE , SYSTEM , and LICENSE . Shell Completions Install the printed script through your shell's normal completion setup."
     },
     {
       "type": "section",
       "title": "CLI - Start The Server",
-      "description": "agenttrail serve agenttrail serve --host 127.0.0.1 --port 4173 No arguments still start the local AgentTrail server for backward compatibility: agenttrail",
+      "description": "agenttrail serve agenttrail serve --host 127.0.0.1 --port 4173 No arguments still start the local AgentTrail server for backward compatibility: agenttrail First run creates `./agenttrail-workspace` with `notes/first-r...",
       "href": "../CLI.md#start-the-server",
       "tags": [
         "cli",
@@ -2937,7 +2942,20 @@
         "automation",
         "terminal"
       ],
-      "text": "Start The Server agenttrail serve agenttrail serve --host 127.0.0.1 --port 4173 No arguments still start the local AgentTrail server for backward compatibility: agenttrail"
+      "text": "Start The Server agenttrail serve agenttrail serve --host 127.0.0.1 --port 4173 No arguments still start the local AgentTrail server for backward compatibility: agenttrail First run creates `./agenttrail-workspace` with `notes/first-r..."
+    },
+    {
+      "type": "section",
+      "title": "CLI - Setup Doctor",
+      "description": "agenttrail doctor agenttrail doctor --json agenttrail doctor --workspace \"$HOME/AgentTrail/workspace\" The doctor checks Node.js, workspace permissions, disk space, port availability, Ollama reachability, and default m...",
+      "href": "../CLI.md#setup-doctor",
+      "tags": [
+        "cli",
+        "chat",
+        "automation",
+        "terminal"
+      ],
+      "text": "Setup Doctor agenttrail doctor agenttrail doctor --json agenttrail doctor --workspace \"$HOME/AgentTrail/workspace\" The doctor checks Node.js, workspace permissions, disk space, port availability, Ollama reachability, and default m..."
     },
     {
       "type": "section",

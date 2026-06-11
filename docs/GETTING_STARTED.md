@@ -21,6 +21,14 @@ flowchart LR
 npx agenttrail
 ```
 
+This creates `./agenttrail-workspace`, writes `notes/first-run.md`, starts the local app, and keeps write previews gated by Apply.
+
+Check setup:
+
+```bash
+npx agenttrail doctor
+```
+
 Or from a clone:
 
 ```bash
@@ -62,6 +70,7 @@ http://127.0.0.1:4173
 ## Next Guides
 
 - Recipes: [RECIPE_AUTHORING.md](RECIPE_AUTHORING.md)
+- Install: [INSTALL.md](INSTALL.md)
 - Backends: [BACKEND_SETUP.md](BACKEND_SETUP.md)
 - Architecture: [ARCHITECTURE.md](ARCHITECTURE.md)
 - Troubleshooting: [TROUBLESHOOTING.md](TROUBLESHOOTING.md)

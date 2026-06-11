@@ -156,6 +156,7 @@ const {
   normalizeBudgetCaps,
   routingPrompt
 } = require("./src/accounting-routing");
+const { friendlyInstallError } = require("./src/setup-doctor");
 
 loadDotEnv();
 const PROJECT_ROOT = __dirname;
@@ -1128,6 +1129,11 @@ const server = http.createServer(async (req, res) => {
       res.end();
     }
   }
+});
+
+server.on("error", (error) => {
+  console.error(friendlyInstallError(error, { port: PORT, workspaceRoot: WORKSPACE_ROOT }));
+  process.exitCode = 1;
 });
 
 server.listen(PORT, HOST, () => {

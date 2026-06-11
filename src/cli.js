@@ -4,8 +4,15 @@ const fsp = require("node:fs/promises");
 const path = require("node:path");
 const readline = require("node:readline");
 const packageMeta = require("../package.json");
+const {
+  defaultWorkspaceRoot,
+  formatDoctorReport,
+  friendlyInstallError,
+  prepareFirstRunWorkspace,
+  runSetupDoctor
+} = require("./setup-doctor");
 
-const COMMANDS = ["chat", "run", "pull", "list", "rm", "ps", "show", "serve", "create", "completion"];
+const COMMANDS = ["chat", "run", "pull", "list", "rm", "ps", "show", "serve", "doctor", "create", "completion"];
 
 async function runCli(argv = process.argv.slice(2), io = process) {
   const parsed = parseCliArgs(argv);
@@ -24,7 +31,7 @@ async function runCli(argv = process.argv.slice(2), io = process) {
   }
 
   if (!parsed.command) {
-    return serveCommand(parsed.options);
+    return serveCommand(parsed.options, io);
   }
 
   switch (command) {
@@ -43,7 +50,9 @@ async function runCli(argv = process.argv.slice(2), io = process) {
     case "show":
       return showCommand(parsed.args, parsed.options, io);
     case "serve":
-      return serveCommand(parsed.options);
+      return serveCommand(parsed.options, io);
+    case "doctor":
+      return doctorCommand(parsed.options, io);
     case "create":
       return createCommand(parsed.args, parsed.options, io);
     case "completion":
@@ -90,6 +99,16 @@ function parseCliArgs(argv) {
       options.port = requireValue(argv, i += 1, arg);
     } else if (arg.startsWith("--port=")) {
       options.port = arg.slice("--port=".length);
+    } else if (arg === "-w" || arg === "--workspace") {
+      options.workspace = requireValue(argv, i += 1, arg);
+    } else if (arg.startsWith("--workspace=")) {
+      options.workspace = arg.slice("--workspace=".length);
+    } else if (arg === "--ollama-host") {
+      options.ollamaHost = requireValue(argv, i += 1, arg);
+    } else if (arg.startsWith("--ollama-host=")) {
+      options.ollamaHost = arg.slice("--ollama-host=".length);
+    } else if (arg === "--skip-ollama") {
+      options.skipOllama = true;
     } else if (arg === "-p" || arg === "--prompt") {
       options.prompt = requireValue(argv, i += 1, arg);
     } else if (arg.startsWith("--prompt=")) {
@@ -470,11 +489,57 @@ async function createCommand(args, options, io) {
   else io.stdout.write(`Created ${data.model.name} from ${path.basename(file)}\n`);
 }
 
-function serveCommand(options) {
+async function serveCommand(options, io = process) {
   if (options.port) process.env.PORT = String(options.port);
   if (options.host) process.env.HOST = String(options.host);
+  if (options.workspace) process.env.WORKSPACE_ROOT = path.resolve(options.workspace);
+  if (!process.env.WORKSPACE_ROOT) {
+    process.env.WORKSPACE_ROOT = defaultWorkspaceRoot(process.env, process.cwd());
+  }
   process.env.AGENTTRAIL_HEADLESS = process.env.AGENTTRAIL_HEADLESS || "1";
+  try {
+    const firstRun = await prepareFirstRunWorkspace({
+      env: process.env,
+      cwd: process.cwd(),
+      workspaceRoot: process.env.WORKSPACE_ROOT
+    });
+    const port = process.env.PORT || "4173";
+    const host = process.env.HOST || "127.0.0.1";
+    const displayHost = host === "0.0.0.0" ? "127.0.0.1" : host;
+    io.stdout.write([
+      "AgentTrail first-run path is ready.",
+      `Workspace: ${firstRun.workspaceRoot}`,
+      `Starter note: ${path.relative(firstRun.workspaceRoot, firstRun.welcomePath)}`,
+      `Open: http://${displayHost}:${port}`,
+      "Run `agenttrail doctor` if setup looks unhealthy.",
+      ""
+    ].join("\n"));
+  } catch (error) {
+    error.message = friendlyInstallError(error, { workspaceRoot: process.env.WORKSPACE_ROOT });
+    throw error;
+  }
   require("../server");
+}
+
+async function doctorCommand(options, io) {
+  const workspaceRoot = options.workspace
+    ? path.resolve(options.workspace)
+    : (process.env.WORKSPACE_ROOT || defaultWorkspaceRoot(process.env, process.cwd()));
+  const report = await runSetupDoctor({
+    env: process.env,
+    cwd: process.cwd(),
+    host: options.host,
+    port: options.port,
+    workspaceRoot,
+    ollamaHost: options.ollamaHost,
+    model: options.model,
+    skipOllama: options.skipOllama
+  });
+  if (options.json) {
+    writeJson(io, report);
+  } else {
+    io.stdout.write(formatDoctorReport(report));
+  }
 }
 
 function completionCommand(args, io) {
@@ -491,11 +556,16 @@ function baseUrlFromOptions(options = {}) {
 }
 
 async function requestJson(baseUrl, route, options = {}) {
-  const response = await fetch(`${trimTrailingSlash(baseUrl)}${route}`, {
-    method: options.method || "GET",
-    headers: options.body ? { "Content-Type": "application/json" } : {},
-    body: options.body ? JSON.stringify(options.body) : undefined
-  });
+  let response;
+  try {
+    response = await fetch(`${trimTrailingSlash(baseUrl)}${route}`, {
+      method: options.method || "GET",
+      headers: options.body ? { "Content-Type": "application/json" } : {},
+      body: options.body ? JSON.stringify(options.body) : undefined
+    });
+  } catch (error) {
+    throw new Error(`${friendlyInstallError(error)}\nStart AgentTrail with: agenttrail\nOr inspect setup with: agenttrail doctor`);
+  }
   const text = await response.text();
   if (!response.ok) {
     throw new Error(`${route} failed with HTTP ${response.status}: ${text}`);
@@ -520,7 +590,7 @@ async function requestSse(baseUrl, route, body, onEvent) {
       body: JSON.stringify(body)
     });
   } catch (error) {
-    throw new Error(`Could not reach AgentTrail at ${baseUrl}. Start it with: agenttrail serve`);
+    throw new Error(`${friendlyInstallError(error)}\nCould not reach AgentTrail at ${baseUrl}.\nStart it with: agenttrail\nOr inspect setup with: agenttrail doctor`);
   }
   if (!response.ok) {
     const text = await response.text();
@@ -650,11 +720,13 @@ function mainHelp() {
     "  agenttrail rm <model> [--json]",
     "  agenttrail ps [--json]",
     "  agenttrail show <model> [--json]",
+    "  agenttrail doctor [--workspace path] [--json]",
     "  agenttrail create <name> -f Modelfile [--json]",
     "  agenttrail completion <bash|zsh|fish>",
     "",
     "Global options:",
     "  -u, --url <url>       AgentTrail server URL (default http://127.0.0.1:4173)",
+    "  -w, --workspace <dir> Workspace root for serve/doctor",
     "      --json            Print machine-readable JSON",
     "  -p, --prompt <text>   Non-interactive prompt for chat/run",
     "  -m, --model <name>    Model for chat",
@@ -674,6 +746,7 @@ function commandHelp(command) {
     ps: "Usage: agenttrail ps [--json]\nShows active/queued AgentTrail model work.\n",
     show: "Usage: agenttrail show <model> [--json]\nShows Ollama or AgentTrail registry model metadata.\n",
     serve: "Usage: agenttrail serve [--host 127.0.0.1] [--port 4173]\nStarts the headless AgentTrail API/UI server.\n",
+    doctor: "Usage: agenttrail doctor [--workspace dir] [--ollama-host url] [--model name] [--json]\nChecks Node, workspace, disk, port, Ollama, and model readiness.\n",
     create: "Usage: agenttrail create <name> -f Modelfile [--tags a,b] [--json]\nCreates an AgentTrail registry model manifest from a build file.\n",
     completion: "Usage: agenttrail completion <bash|zsh|fish>\nPrints shell completion script.\n"
   };

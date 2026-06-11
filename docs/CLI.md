@@ -15,6 +15,22 @@ No arguments still start the local AgentTrail server for backward compatibility:
 agenttrail
 ```
 
+First run creates `./agenttrail-workspace` with `notes/first-run.md`. Use `--workspace` to pick another writable folder:
+
+```bash
+agenttrail --workspace "$HOME/AgentTrail/workspace"
+```
+
+## Setup Doctor
+
+```bash
+agenttrail doctor
+agenttrail doctor --json
+agenttrail doctor --workspace "$HOME/AgentTrail/workspace"
+```
+
+The doctor checks Node.js, workspace permissions, disk space, port availability, Ollama reachability, and default model availability.
+
 ## Run A Model
 
 Interactive REPL:

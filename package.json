@@ -86,6 +86,8 @@
     "test:advanced": "node tests/unit/advanced-agent.test.js && node tests/integration/advanced-agent.test.js",
     "test:desktop": "node tests/unit/desktop-distribution.test.js",
     "test:supply-chain": "node tests/unit/supply-chain.test.js",
+    "test:setup": "node tests/unit/setup-doctor.test.js",
+    "test:install": "node tests/integration/install-smoke.test.js",
     "test:security-privacy": "node tests/unit/security-privacy.test.js && node tests/integration/threat-model.test.js",
     "test:privacy-controls": "node tests/integration/privacy-controls.test.js",
     "test:observability": "node tests/unit/observability.test.js && node tests/integration/observability.test.js",

@@ -86,6 +86,7 @@ This section tracks the concrete work shipped after the roadmap was publicly ref
 | Codex Epic AN completion | T271-T272 | Added manifest-fingerprint plugin hot reload, `/api/plugins/status`, `/api/plugins/reload`, catalog reload receipts/logs, async sandbox execution, runnable `web-fetch`, `calculator`, and `shell-guarded` examples, and API/unit coverage for dev reload plus permissioned plugin behavior. |
 | Codex Epic AN/AO interop pass | T273-T280 | Added plugin marketplace browse/install UI and receipts, recipe share URLs/imports, VS Code chat/apply MVP, `agenttrail chat` REPL parity, webhook trigger presets, external stdio MCP client consumption, `/api/interop/openai-export`, replay bundle export/import, docs, route catalog, and API/CLI/MCP test coverage. |
 | Codex Epic AP demo-proof pass | T281-T287 | Added deterministic trust-loop demo data, `npm run demo:proof`, `npm run demo:health`, a refreshed five-step README GIF, proof storyboard, public `docs/demo-proof.html`, stale-asset fingerprinting, release checklist gates, release artifact coverage, and roadmap/docs/eval hooks. |
+| Codex Epic AQ install pass | T288-T294 | Added clean `npx agenttrail` first-run workspace creation, `agenttrail doctor`, friendly install failure guidance, Homebrew/Docker/macOS install docs, persisted Docker workspace mapping, packaged npm artifact install smoke coverage in CI, release artifact coverage, and repo eval hooks. |
 
 ### Verified After These Passes
 
@@ -95,7 +96,7 @@ This section tracks the concrete work shipped after the roadmap was publicly ref
 
 ### Best Continuation Points
 
-- T288/T295: continue with one-command install hardening and first-run retention now that Epic AP public proof is complete.
+- T295: continue with guided first-run retention now that Epic AQ install hardening is complete.
 
 ---
 
@@ -419,16 +420,16 @@ This section tracks the concrete work shipped after the roadmap was publicly ref
 4. We expand an epic's tasks into finer sub-tasks (toward 1000) only when we start that epic — so the plan stays honest and current.
 5. We re-mark `[x]` here as we go; this file is the single source of truth for the campaign.
 
-**Next up:** Continue the public-growth expansion at T288 with install-path hardening, then move into T295 first-run retention. The Phase 17-22 expansion below adds the public "top 1%" path without replacing any earlier phase.
+**Next up:** Continue the public-growth expansion at T295 with guided first-run retention. The Phase 17-22 expansion below adds the public "top 1%" path without replacing any earlier phase.
 
 ## Status & bug sweep (latest)
 
-- Progress: **Epic AP is complete through T287** with no open or partial pre-Phase-16 roadmap items. Fully complete tracked items now include T001-T287, including the pre-Phase-15 closeout tasks T044, T090, T091, T094, T096, T098, T104, T107, T109, and T110. Phase 1 is complete; Phase 2 Epic E/F search foundation is complete; Epic G document ingestion is complete; Phase 3 vision/audio/image generation is complete; Epic K is complete; Epic L is complete; Epic M is complete for the local automation/MCP server surface; Epic N/O now have cache, option passthrough, resources, speculative bundled-runtime policy, explicit shared-prefix prefill reuse, TTFT/tokens-sec usage visibility, keep-alive idle-unload controls, runtime visibility, the AJ resilience layer, T251 timeout/cancel surfacing, and the AK config/admin layer; Phase 6 now has a first-class bundled-runtime adapter seam plus local GGUF validation, streaming, embeddings, Epic Q/R/S hardware, loading, registry policy, Epic AC model ecosystem helpers, Epic AD advanced-agent manifests, Epic AE chat management, Epic AF composer editing, Epic AG access/PWA polish, Epic AH portability archives, Epic AI privacy controls, Epic AJ resilience controls, T251 run-control polish, and Epic AK config/admin controls; Epic T native desktop distribution is complete at the repo/scaffolding level; Epic U CLI parity is complete; Epic V packaging/supply-chain foundation is complete; Epic W security/privacy is complete; Epic X observability is complete; Epic Y team/enterprise is complete; Epic Z quality engineering is complete; Epic AA documentation is complete; Epic AB community/growth is complete; Epic AL eval quality is complete; Epic AM accounting/routing is complete; Epic AN SDK/permission hardening, plugin hot reload, runnable examples, marketplace install, and recipe sharing are complete; Epic AO interop is complete with VS Code, CLI chat, webhook triggers, MCP client, OpenAI export, and replay bundles; Epic AP killer demo proof is complete with deterministic demo assets and a release health gate; and the public starter issues are cleared with tests/docs.
+- Progress: **Epic AQ is complete through T294** with no open or partial pre-Phase-16 roadmap items. Fully complete tracked items now include T001-T294, including the pre-Phase-15 closeout tasks T044, T090, T091, T094, T096, T098, T104, T107, T109, and T110. Phase 1 is complete; Phase 2 Epic E/F search foundation is complete; Epic G document ingestion is complete; Phase 3 vision/audio/image generation is complete; Epic K is complete; Epic L is complete; Epic M is complete for the local automation/MCP server surface; Epic N/O now have cache, option passthrough, resources, speculative bundled-runtime policy, explicit shared-prefix prefill reuse, TTFT/tokens-sec usage visibility, keep-alive idle-unload controls, runtime visibility, the AJ resilience layer, T251 timeout/cancel surfacing, and the AK config/admin layer; Phase 6 now has a first-class bundled-runtime adapter seam plus local GGUF validation, streaming, embeddings, Epic Q/R/S hardware, loading, registry policy, Epic AC model ecosystem helpers, Epic AD advanced-agent manifests, Epic AE chat management, Epic AF composer editing, Epic AG access/PWA polish, Epic AH portability archives, Epic AI privacy controls, Epic AJ resilience controls, T251 run-control polish, and Epic AK config/admin controls; Epic T native desktop distribution is complete at the repo/scaffolding level; Epic U CLI parity is complete; Epic V packaging/supply-chain foundation is complete; Epic W security/privacy is complete; Epic X observability is complete; Epic Y team/enterprise is complete; Epic Z quality engineering is complete; Epic AA documentation is complete; Epic AB community/growth is complete; Epic AL eval quality is complete; Epic AM accounting/routing is complete; Epic AN SDK/permission hardening, plugin hot reload, runnable examples, marketplace install, and recipe sharing are complete; Epic AO interop is complete with VS Code, CLI chat, webhook triggers, MCP client, OpenAI export, and replay bundles; Epic AP killer demo proof is complete with deterministic demo assets and a release health gate; Epic AQ install hardening is complete with npx, Homebrew, Docker, Mac app, setup doctor, friendly failures, and packaged install CI coverage; and the public starter issues are cleared with tests/docs.
 - Focused test suite green: accounting/routing, MCP stdio contract, config-admin, docs generation, UI E2E, bundled runtime, API integration, smoke, and repo eval, plus the prior unit, resilience, observability, team enterprise, quality engineering, community-growth, model ecosystem, coverage gate, performance regression, desktop distribution, CLI integration, supply-chain, security/privacy threat-model, privacy controls, runtime hardware, runtime loading, model registry, redaction, document extraction, v1 API, health, concurrency, model options, resources, portability, recipe validation, receipt metadata, release SBOM, reproducibility, and release checksums coverage. All touched source files pass `node --check`.
 - **Bug fixed:** `listWorkspaceFiles` only skipped `.DS_Store`, so internal `.agenttrail/*` state (logs, store, search index, pending-run) was being walked, indexed, and returned in search — adding noise and per-request churn to the index. Now excludes `.agenttrail/`. Verified against smoke, api, search-incremental, search-chunking, and eval:search.
 - Known minor item: a couple of integration tests assert relative/invariant counts (not exact) because the workspace can still gain legit files (e.g. `memory/*`) between calls — intentional, not a bug.
 
-Next code target: install and first-run growth. Prioritize T288 one-command install hardening, then T295 guided first-run retention.
+Next code target: first-run retention. Prioritize T295 guided first-run wizard, then T296 sample task and T297 empty states.
 
 ---
 
@@ -574,13 +575,13 @@ This expansion does not replace Phase 0-16. It adds the next public-product laye
 - [x] T287 Add a release checklist item that blocks launches when demo assets are stale.
 
 ### Epic AQ — One-command install that feels real
-- [ ] T288 Make `npx agenttrail` start the app with a clean first-run path.
-- [ ] T289 Add `brew install agenttrail` instructions that work after the formula is published.
-- [ ] T290 Add a Docker quick-start that persists workspace data safely.
-- [ ] T291 Add a Mac app download path with checksum verification and Gatekeeper notes.
-- [ ] T292 Add a setup doctor that checks Node, Ollama, disk space, ports, and model availability.
-- [ ] T293 Add friendly install failure messages for port conflicts, missing model runtimes, and bad permissions.
-- [ ] T294 Add a 60-second install test in CI using the packaged artifact path.
+- [x] T288 Make `npx agenttrail` start the app with a clean first-run path.
+- [x] T289 Add `brew install agenttrail` instructions that work after the formula is published.
+- [x] T290 Add a Docker quick-start that persists workspace data safely.
+- [x] T291 Add a Mac app download path with checksum verification and Gatekeeper notes.
+- [x] T292 Add a setup doctor that checks Node, Ollama, disk space, ports, and model availability.
+- [x] T293 Add friendly install failure messages for port conflicts, missing model runtimes, and bad permissions.
+- [x] T294 Add a 60-second install test in CI using the packaged artifact path.
 
 ## Phase 18 — First-run retention and daily-use polish
 

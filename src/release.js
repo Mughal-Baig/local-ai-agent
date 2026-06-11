@@ -27,6 +27,7 @@ const RELEASE_ARTIFACTS = [
   "src/advanced-agent.js",
   "src/eval-quality.js",
   "src/accounting-routing.js",
+  "src/setup-doctor.js",
   "src/permissions.js",
   "src/mcp-client.js",
   "src/route-catalog.js",
@@ -78,6 +79,7 @@ const RELEASE_ARTIFACTS = [
   "docs/demo-video/README.md",
   "docs/MAC_APP.md",
   "docs/CLI.md",
+  "docs/INSTALL.md",
   "docs/GETTING_STARTED.md",
   "docs/RECIPE_AUTHORING.md",
   "docs/BACKEND_SETUP.md",
@@ -129,6 +131,7 @@ const RELEASE_ARTIFACTS = [
   "plugins/shell-guarded/plugin.json",
   "plugins/web-fetch/plugin.json",
   "tests/unit/security-privacy.test.js",
+  "tests/unit/setup-doctor.test.js",
   "tests/integration/privacy-controls.test.js",
   "tests/integration/threat-model.test.js",
   "tests/unit/observability.test.js",
@@ -154,6 +157,7 @@ const RELEASE_ARTIFACTS = [
   "tests/unit/docs.test.js",
   "tests/unit/community-growth.test.js",
   "tests/unit/mcp-client.test.js",
+  "tests/integration/install-smoke.test.js",
   "tests/fixtures/mock-external-mcp.js",
   "install.sh"
 ];
