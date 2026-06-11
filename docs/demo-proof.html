@@ -1,0 +1,223 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AgentTrail Demo Proof</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #1f2430;
+      --muted: #5b655f;
+      --paper: #ffffff;
+      --soft: #f4f7f5;
+      --line: #d8ded8;
+      --green: #246b62;
+      --green-strong: #174c46;
+      --clay: #b95b43;
+      --gold: #9c6a19;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: var(--soft);
+      color: var(--ink);
+    }
+    a { color: var(--green-strong); font-weight: 700; }
+    main { max-width: 1120px; margin: 0 auto; padding: 28px 20px 52px; }
+    .hero {
+      display: grid;
+      grid-template-columns: minmax(0, 1.05fr) minmax(320px, 0.95fr);
+      gap: 28px;
+      align-items: center;
+      min-height: 76vh;
+    }
+    h1 {
+      margin: 0 0 14px;
+      max-width: 780px;
+      font-size: clamp(2.5rem, 7vw, 5.8rem);
+      line-height: 0.95;
+      letter-spacing: 0;
+    }
+    .lede {
+      max-width: 720px;
+      margin: 0 0 20px;
+      color: var(--muted);
+      font-size: 1.1rem;
+      line-height: 1.65;
+    }
+    .commands {
+      display: grid;
+      gap: 10px;
+      margin-top: 22px;
+      max-width: 640px;
+    }
+    code, pre {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+    }
+    .command {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 12px 14px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--paper);
+      color: var(--green-strong);
+      font-weight: 800;
+      overflow-wrap: anywhere;
+    }
+    .media {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--paper);
+      padding: 12px;
+      box-shadow: 0 18px 45px rgba(31, 36, 48, 0.08);
+    }
+    .media img {
+      display: block;
+      width: 100%;
+      border-radius: 6px;
+      border: 1px solid var(--line);
+    }
+    .caption {
+      margin: 10px 2px 0;
+      color: var(--muted);
+      font-size: 0.92rem;
+      line-height: 1.5;
+    }
+    .score {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      margin: 0 0 18px;
+      padding: 10px 14px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--paper);
+      color: var(--green-strong);
+      font-weight: 900;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+      gap: 12px;
+      margin: 22px 0 36px;
+    }
+    .step {
+      min-height: 190px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      padding: 16px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--paper);
+    }
+    .step small {
+      color: var(--clay);
+      font-weight: 900;
+      text-transform: uppercase;
+    }
+    .step h2 {
+      margin: 0;
+      font-size: 1.05rem;
+      letter-spacing: 0;
+    }
+    .step p {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.55;
+    }
+    .step a { margin-top: auto; }
+    .source-list {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 10px;
+      margin-top: 16px;
+    }
+    .source-list a {
+      display: block;
+      padding: 12px 14px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--paper);
+      text-decoration: none;
+    }
+    @media (max-width: 820px) {
+      .hero { grid-template-columns: 1fr; min-height: auto; padding-top: 10px; }
+      .media { order: -1; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <section class="hero">
+      <div>
+        <div class="score">Trust Score 100 proof loop</div>
+        <h1>Search, preview, apply, receipt, report.</h1>
+        <p class="lede">This page proves AgentTrail's core promise with deterministic demo data. The same files generate the README GIF, the receipt, and the shareable report, so launches can block when the proof gets stale.</p>
+        <div class="commands" aria-label="Demo commands">
+          <div class="command"><code>npm run demo:proof</code><span>regenerate</span></div>
+          <div class="command"><code>npm run demo:health</code><span>verify</span></div>
+        </div>
+      </div>
+      <figure class="media">
+        <img src="agenttrail-demo.gif" alt="AgentTrail demo GIF showing search, diff preview, Apply, receipt, and report">
+        <figcaption class="caption">Why star this: AgentTrail does not ask visitors to trust a claim. It shows the local-agent loop and ships the source files that reproduce it.</figcaption>
+      </figure>
+    </section>
+
+    <section aria-labelledby="flow-title">
+      <h2 id="flow-title">Proof Flow</h2>
+      <div class="grid">
+        <article class="step">
+          <small>01 Search</small>
+          <h2>Search local workspace</h2>
+          <p>Find the selected workspace note before proposing an edit.</p>
+          <a href="demo-proof/search-results.json">docs/demo-proof/search-results.json</a>
+        </article>
+        <article class="step">
+          <small>02 Diff Preview</small>
+          <h2>Preview the exact patch</h2>
+          <p>Show a unified diff and keep writes locked until approval.</p>
+          <a href="demo-proof/diff-preview.patch">docs/demo-proof/diff-preview.patch</a>
+        </article>
+        <article class="step">
+          <small>03 Apply</small>
+          <h2>Apply after approval</h2>
+          <p>Write the approved content into the demo workspace.</p>
+          <a href="demo-proof/applied/notes/launch-note.md">docs/demo-proof/applied/notes/launch-note.md</a>
+        </article>
+        <article class="step">
+          <small>04 Receipt</small>
+          <h2>Save replayable receipt</h2>
+          <p>Capture the model, selected files, tool steps, diff, trust score, and replay command.</p>
+          <a href="demo-proof/receipts/trust-loop-receipt.md">docs/demo-proof/receipts/trust-loop-receipt.md</a>
+        </article>
+        <article class="step">
+          <small>05 Report</small>
+          <h2>Export shareable report</h2>
+          <p>Generate a polished HTML report that can be shared without the app running.</p>
+          <a href="demo-proof/reports/trust-loop-report.html">docs/demo-proof/reports/trust-loop-report.html</a>
+        </article>
+      </div>
+    </section>
+
+    <section aria-labelledby="source-title">
+      <h2 id="source-title">Source Files</h2>
+      <p class="lede">These are the files that create and verify the proof bundle.</p>
+      <div class="source-list">
+        <a href="https://github.com/Mughal-Baig/local-ai-agent/blob/main/scripts/create-demo-workspace.js">scripts/create-demo-workspace.js</a>
+        <a href="https://github.com/Mughal-Baig/local-ai-agent/blob/main/scripts/generate-demo-gif.js">scripts/generate-demo-gif.js</a>
+        <a href="https://github.com/Mughal-Baig/local-ai-agent/blob/main/scripts/record-demo.js">scripts/record-demo.js</a>
+        <a href="https://github.com/Mughal-Baig/local-ai-agent/blob/main/scripts/check-demo-proof.js">scripts/check-demo-proof.js</a>
+        <a href="demo-proof/manifest.json">docs/demo-proof/manifest.json</a>
+        <a href="demo-proof/fingerprint.json">docs/demo-proof/fingerprint.json</a>
+      </div>
+    </section>
+  </main>
+</body>
+</html>

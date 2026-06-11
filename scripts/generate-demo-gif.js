@@ -33,7 +33,8 @@ async function main() {
     drawFrame(0, "SEARCH", "semantic index finds local context"),
     drawFrame(1, "DIFF PREVIEW", "agent proposes a safe patch"),
     drawFrame(2, "APPLY", "human approves the exact change"),
-    drawFrame(3, "RECEIPT", "run is saved and replayable")
+    drawFrame(3, "RECEIPT", "run is saved and replayable"),
+    drawFrame(4, "REPORT", "shareable proof is exported")
   ];
   await fsp.writeFile(outPath, encodeGif(frames, 115));
   console.log(`Wrote ${outPath}`);
@@ -54,14 +55,15 @@ function drawFrame(activeStep, title, subtitle) {
 
   drawText(pixels, 44, 44, "AGENTTRAIL", 3, 2);
   drawText(pixels, 44, 66, "LOCAL LAYER", 8, 2);
-  drawText(pixels, 248, 38, title, activeStep === 3 ? 5 : 3, 3);
+  drawText(pixels, 248, 38, title, activeStep >= 3 ? 5 : 3, 3);
   drawText(pixels, 248, 68, subtitle.toUpperCase(), 2, 1);
 
   const steps = [
-    ["SEARCH", 52, 126, 0],
-    ["DIFF", 52, 174, 1],
-    ["APPLY", 52, 222, 2],
-    ["RECEIPT", 52, 270, 3]
+    ["SEARCH", 52, 112, 0],
+    ["DIFF", 52, 152, 1],
+    ["APPLY", 52, 192, 2],
+    ["RECEIPT", 52, 232, 3],
+    ["REPORT", 52, 272, 4]
   ];
   for (const [label, x, y, index] of steps) {
     fill(pixels, x, y, 122, 34, index === activeStep ? 4 : 1);
@@ -75,8 +77,10 @@ function drawFrame(activeStep, title, subtitle) {
     drawDiff(pixels);
   } else if (activeStep === 2) {
     drawApply(pixels);
-  } else {
+  } else if (activeStep === 3) {
     drawReceipt(pixels);
+  } else {
+    drawReport(pixels);
   }
 
   drawTrust(pixels, activeStep);
@@ -126,8 +130,20 @@ function drawReceipt(pixels) {
   drawText(pixels, 270, 264, "REPLAY THIS RUN", 3, 1);
 }
 
+function drawReport(pixels) {
+  drawText(pixels, 250, 126, "SHAREABLE REPORT", 2, 2);
+  fill(pixels, 250, 154, 330, 130, 1);
+  rect(pixels, 250, 154, 330, 130, 3);
+  fill(pixels, 268, 174, 294, 26, 4);
+  rect(pixels, 268, 174, 294, 26, 3);
+  drawText(pixels, 284, 183, "TRUST LOOP VERIFIED", 8, 1);
+  drawText(pixels, 270, 216, "TIMELINE DIFFS CITATIONS", 2, 1);
+  drawText(pixels, 270, 246, "MODEL FILES RECEIPT", 2, 1);
+  drawText(pixels, 270, 272, "EXPORT HTML", 5, 1);
+}
+
 function drawTrust(pixels, activeStep) {
-  const score = 72 + activeStep * 8;
+  const score = [68, 78, 88, 96, 100][activeStep] || 100;
   fill(pixels, 250, 324, Math.round(3.1 * score), 8, 3);
   drawText(pixels, 250, 300, `TRUST ${score}`, 3, 2);
 }

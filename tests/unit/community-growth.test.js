@@ -24,6 +24,9 @@ async function main() {
   const governance = await read("GOVERNANCE.md");
   const changelog = await read("CHANGELOG.md");
   const releaseProcess = await read("docs/RELEASE_PROCESS.md");
+  const readme = await read("README.md");
+  const demoProof = await read("docs/demo-proof.html");
+  const demoManifest = JSON.parse(await read("docs/demo-proof/manifest.json"));
   const showcase = JSON.parse(await read("docs/showcase/gallery.json"));
   const showcaseGuide = await read("docs/SHOWCASE.md");
   const comparison = JSON.parse(await read("docs/benchmarks/comparison.json"));
@@ -43,6 +46,7 @@ async function main() {
 
   assert.match(launch, /Response Triage/);
   assert.match(launch, /search -> diff preview -> Apply -> receipt/);
+  assert.match(launch, /npm run demo:health/);
   assert.equal(responseKit.schema, "agenttrail.launch-response-kit.v1");
   assert.equal(responseKit.primaryAssets.includes("docs/agenttrail-demo.gif"), true);
 
@@ -61,6 +65,13 @@ async function main() {
   assert.match(governance, /Maintainer Principles/);
   assert.match(changelog, /Unreleased/);
   assert.match(releaseProcess, /Release Readiness Gate/);
+  assert.match(releaseProcess, /demo assets are stale/);
+  assert.match(readme, /Why star this:/);
+  assert.match(readme, /demo-proof\.html/);
+  assert.match(demoProof, /Trust Score 100 proof loop/);
+  assert.match(demoProof, /docs\/demo-proof\/reports\/trust-loop-report\.html/);
+  assert.equal(demoManifest.schema, "agenttrail.demo-proof.v1");
+  assert.deepEqual(demoManifest.flow.map((step) => step.id), ["search", "diff", "apply", "receipt", "report"]);
 
   assert.equal(showcase.schema, "agenttrail.showcase-gallery.v1");
   assert.equal(showcase.entries.length >= 3, true);

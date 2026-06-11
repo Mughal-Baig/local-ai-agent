@@ -1,0 +1,56 @@
+{
+  "schema": "agenttrail.demo-proof-fingerprint.v1",
+  "generatedBy": "npm run demo:proof",
+  "inputs": [
+    {
+      "path": "docs/agenttrail-demo.gif",
+      "bytes": 1307421,
+      "sha256": "b9d72074df8bbf7b4b23e192eb4bc5a103e6b2dfc56ab487b95da98afe96e2d4"
+    },
+    {
+      "path": "docs/demo-proof.html",
+      "bytes": 7525,
+      "sha256": "361778f5ab0af7ab695bd15d6c2677f1aaf79830e30c2503ddd4ace6a4771882"
+    },
+    {
+      "path": "docs/demo-proof/manifest.json",
+      "bytes": 2892,
+      "sha256": "9a41e4b9761d9dadd51e0b0732c0311c68c1fb3792cc5ddec07ba6acdd8298b5"
+    },
+    {
+      "path": "docs/demo-video/storyboard.json",
+      "bytes": 1549,
+      "sha256": "5700d86bde2d53b4cd874b3063c0b9b7e8b42b7e13c890588862e8e0e45e8211"
+    },
+    {
+      "path": "docs/demo-video/README.md",
+      "bytes": 527,
+      "sha256": "635080b95d49baf0ae53cb8b64faf2b15c765d3f348254e872128e4b85e61942"
+    },
+    {
+      "path": "scripts/demo-proof-data.js",
+      "bytes": 8153,
+      "sha256": "c4f74e3a6a54a821cb75a257d0b99cfd26b96e0fdba6e67e01d7264b0a0d9e87"
+    },
+    {
+      "path": "scripts/create-demo-workspace.js",
+      "bytes": 1116,
+      "sha256": "86031d60b412653b99b199a87cdd56d30d0e088645f34ac939c46c0472fcc965"
+    },
+    {
+      "path": "scripts/generate-demo-gif.js",
+      "bytes": 10692,
+      "sha256": "927eee1643f2734a613c559e54b3921ab10103206ee19608ea4cda3a1fa181dd"
+    },
+    {
+      "path": "scripts/record-demo.js",
+      "bytes": 1939,
+      "sha256": "d3a19368c6234fc50b40f15ca728d5e1a19238218d81c86f76cca6e61913848f"
+    },
+    {
+      "path": "scripts/check-demo-proof.js",
+      "bytes": 3904,
+      "sha256": "d7e58bb1792b459572e7790fff1698317dcaf441d1e09cf58a8c72bc4d957487"
+    }
+  ]
+}

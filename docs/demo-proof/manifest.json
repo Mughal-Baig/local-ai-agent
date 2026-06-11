@@ -1,0 +1,88 @@
+{
+  "schema": "agenttrail.demo-proof.v1",
+  "generatedAt": "2026-06-12T00:00:00.000Z",
+  "title": "AgentTrail deterministic trust-loop demo",
+  "command": "npm run demo:proof",
+  "healthCheck": "npm run demo:health",
+  "flow": [
+    {
+      "id": "search",
+      "label": "Search",
+      "title": "Search local workspace",
+      "summary": "Find the selected workspace note before proposing an edit.",
+      "proof": "docs/demo-proof/search-results.json"
+    },
+    {
+      "id": "diff",
+      "label": "Diff Preview",
+      "title": "Preview the exact patch",
+      "summary": "Show a unified diff and keep writes locked until approval.",
+      "proof": "docs/demo-proof/diff-preview.patch"
+    },
+    {
+      "id": "apply",
+      "label": "Apply",
+      "title": "Apply after approval",
+      "summary": "Write the approved content into the demo workspace.",
+      "proof": "docs/demo-proof/applied/notes/launch-note.md"
+    },
+    {
+      "id": "receipt",
+      "label": "Receipt",
+      "title": "Save replayable receipt",
+      "summary": "Capture the model, selected files, tool steps, diff, trust score, and replay command.",
+      "proof": "docs/demo-proof/receipts/trust-loop-receipt.md"
+    },
+    {
+      "id": "report",
+      "label": "Report",
+      "title": "Export shareable report",
+      "summary": "Generate a polished HTML report that can be shared without the app running.",
+      "proof": "docs/demo-proof/reports/trust-loop-report.html"
+    }
+  ],
+  "files": [
+    {
+      "phase": "workspace",
+      "path": "docs/demo-proof/workspace/README.md",
+      "bytes": 239,
+      "sha256": "573a6472afb230d9d09648a322cec4186658670a809e754041fa13d51e9b9be0"
+    },
+    {
+      "phase": "workspace",
+      "path": "docs/demo-proof/workspace/notes/launch-note.md",
+      "bytes": 112,
+      "sha256": "0e0b76c0e0e8e0d8033713738879c81905acb2f5efae8f94fc17271e9af70891"
+    },
+    {
+      "phase": "search",
+      "path": "docs/demo-proof/search-results.json",
+      "bytes": 510,
+      "sha256": "68b99c4039d537d3702e9a1077a673f101a9663dc19fb4636ce467356b9113f7"
+    },
+    {
+      "phase": "diff",
+      "path": "docs/demo-proof/diff-preview.patch",
+      "bytes": 293,
+      "sha256": "3301d061d4d7060bd8ed15b4a1a8cb4b842c89ccbe91340a486890747a1b043c"
+    },
+    {
+      "phase": "apply",
+      "path": "docs/demo-proof/applied/notes/launch-note.md",
+      "bytes": 214,
+      "sha256": "df2e8fb9d4b80eace92b61af3715f02a33542814b6a51fdf9525e2418df70a9f"
+    },
+    {
+      "phase": "receipt",
+      "path": "docs/demo-proof/receipts/trust-loop-receipt.md",
+      "bytes": 560,
+      "sha256": "f8430e2cfff75b47a7a02a2edf4c7df48a649cf94f4123200fb5a2a0b29e2900"
+    },
+    {
+      "phase": "report",
+      "path": "docs/demo-proof/reports/trust-loop-report.html",
+      "bytes": 2735,
+      "sha256": "38d48bc8a75c1dee7ed1fe6c3382fcc2f0e4a5b34940a76f105cd54aa6dd1187"
+    }
+  ]
+}

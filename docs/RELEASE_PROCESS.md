@@ -7,9 +7,11 @@ Release discipline matters because AgentTrail makes a trust claim. Every release
 1. Update `CHANGELOG.md`.
 2. Add or update `docs/RELEASE_NOTES_vX.Y.Z.md`.
 3. Run `npm run docs:build`.
-4. Run `npm run test:community`.
-5. Run `npm run eval`.
-6. Run release artifact checks:
+4. Run `npm run demo:proof`.
+5. Run `npm run demo:health`.
+6. Run `npm run test:community`.
+7. Run `npm run eval`.
+8. Run release artifact checks:
 
 ```bash
 npm run release:homebrew
@@ -19,8 +21,8 @@ npm run release:verify-checksums
 npm run release:reproducible
 ```
 
-7. Attach the demo GIF, screenshots, checksums, and release notes.
-8. Keep the release post honest: show the exact workflow and limitations.
+9. Attach the demo GIF, proof page, screenshots, checksums, and release notes.
+10. Keep the release post honest: show the exact workflow and limitations.
 
 ## Release Notes Shape
 
@@ -50,3 +52,4 @@ A release is ready only when:
 - Community test passes.
 - Checksums have no missing artifacts.
 - The README still shows the demo and quick start above the fold.
+- `npm run demo:health` passes, which blocks launch when demo assets are stale.

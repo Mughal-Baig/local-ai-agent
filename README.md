@@ -12,9 +12,9 @@
 
 ![AgentTrail core loop: ask, search before answer, diff preview, explicit Apply, replayable receipt](docs/agenttrail-demo.gif)
 
-*The loop: **ask → search before answer → diff preview → you click Apply → replayable receipt.** Every step is shown. Writes are off by default.*
+*Why star this: AgentTrail proves the local-agent loop in public: **search -> diff preview -> Apply -> receipt -> shareable report.** The GIF is backed by deterministic demo files and a release-blocking health check.*
 
-**Live demo, zero install:** [mughal-baig.github.io/local-ai-agent/demo.html](https://mughal-baig.github.io/local-ai-agent/demo.html) or the richer [public recipe/safety/receipt demo](https://mughal-baig.github.io/local-ai-agent/public-demo.html)
+**Live demo, zero install:** [mughal-baig.github.io/local-ai-agent/demo-proof.html](https://mughal-baig.github.io/local-ai-agent/demo-proof.html), [mughal-baig.github.io/local-ai-agent/demo.html](https://mughal-baig.github.io/local-ai-agent/demo.html), or the richer [public recipe/safety/receipt demo](https://mughal-baig.github.io/local-ai-agent/public-demo.html)
 
 ChatGPT and Claude are great until you need an agent to touch private files. AgentTrail gives you the same chat-and-workspace workflow, but keeps the agent layer local: Ollama first, OpenAI-compatible local servers supported, workspace access sandboxed, writes diff-gated, and every action recorded as an auditable, replayable receipt.
 
@@ -31,6 +31,7 @@ Writes are off by default. The agent proposes a unified diff; you click **Apply*
 ## GitHub Visual Assets
 
 - Hero GIF: [`docs/agenttrail-demo.gif`](docs/agenttrail-demo.gif)
+- Demo proof page: [`docs/demo-proof.html`](docs/demo-proof.html), generated data in [`docs/demo-proof/`](docs/demo-proof/)
 - UI preview: [`docs/preview-app.png`](docs/preview-app.png)
 - Diff preview: [`docs/preview-diff.png`](docs/preview-diff.png)
 - Social preview upload asset: [`docs/social-preview.png`](docs/social-preview.png)
@@ -289,7 +290,7 @@ When write preview mode is enabled, `write_file` returns a diff preview instead 
 
 ## Top 1% Surfaces
 
-- Visual demo proof: [docs/agenttrail-demo.gif](docs/agenttrail-demo.gif), [docs/preview-app.png](docs/preview-app.png), [docs/preview-diff.png](docs/preview-diff.png)
+- Visual demo proof: [docs/agenttrail-demo.gif](docs/agenttrail-demo.gif), [docs/demo-proof.html](docs/demo-proof.html), [docs/preview-app.png](docs/preview-app.png), [docs/preview-diff.png](docs/preview-diff.png)
 - True semantic search: `/api/search-index`, `/api/search?mode=semantic`, named search collections, versioned on-disk vector store with IVF-lite ANN buckets, Ollama embeddings with local-vector fallback, BM25 + vector score fusion, late-interaction chunk vectors for long docs, reranking, and embedding cache
 - Receipt timeline and replay: saved Markdown receipts in `workspace/receipts/`, JSON sessions in `workspace/sessions/`, and receipt-derived resume
 - Conversation export: persistent conversation API, redacted Markdown/JSON/HTML export, restore/import/branch, folder/tag metadata, and theme toggle polish

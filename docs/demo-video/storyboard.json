@@ -1,15 +1,47 @@
 {
   "schema": "agenttrail.demo-video.v1",
   "title": "AgentTrail screen demo",
+  "generatedAt": "2026-06-12T00:00:00.000Z",
+  "gif": "docs/agenttrail-demo.gif",
+  "proofPage": "docs/demo-proof.html",
   "output": "docs/demo-video/agenttrail-screen-demo.webm",
+  "deterministicCommand": "npm run demo:proof",
+  "liveRecordingCommand": "npm run dev, then record http://127.0.0.1:4173/ while following this storyboard",
   "steps": [
-    "Open local app",
-    "Build semantic index",
-    "Search workspace",
-    "Show chunk citations",
-    "Preview diff",
-    "Apply diff",
-    "Export receipt and replay plan"
-  ],
-  "command": "Use Playwright video recording or OS screen recorder against http://127.0.0.1:4174/"
+    {
+      "order": 1,
+      "id": "search",
+      "label": "Search",
+      "action": "Find the selected workspace note before proposing an edit.",
+      "proof": "docs/demo-proof/search-results.json"
+    },
+    {
+      "order": 2,
+      "id": "diff",
+      "label": "Diff Preview",
+      "action": "Show a unified diff and keep writes locked until approval.",
+      "proof": "docs/demo-proof/diff-preview.patch"
+    },
+    {
+      "order": 3,
+      "id": "apply",
+      "label": "Apply",
+      "action": "Write the approved content into the demo workspace.",
+      "proof": "docs/demo-proof/applied/notes/launch-note.md"
+    },
+    {
+      "order": 4,
+      "id": "receipt",
+      "label": "Receipt",
+      "action": "Capture the model, selected files, tool steps, diff, trust score, and replay command.",
+      "proof": "docs/demo-proof/receipts/trust-loop-receipt.md"
+    },
+    {
+      "order": 5,
+      "id": "report",
+      "label": "Report",
+      "action": "Generate a polished HTML report that can be shared without the app running.",
+      "proof": "docs/demo-proof/reports/trust-loop-report.html"
+    }
+  ]
 }

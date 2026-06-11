@@ -1,0 +1,17 @@
+{
+  "schema": "agenttrail.demo-search-results.v1",
+  "generatedAt": "2026-06-12T00:00:00.000Z",
+  "query": "show the exact AgentTrail trust loop",
+  "mode": "deterministic-demo",
+  "results": [
+    {
+      "rank": 1,
+      "path": "workspace/notes/launch-note.md",
+      "lineStart": 3,
+      "lineEnd": 4,
+      "score": 0.97,
+      "citation": "workspace/notes/launch-note.md:3",
+      "snippet": "AgentTrail can search files and draft changes. The public demo should show the exact trust loop."
+    }
+  ]
+}

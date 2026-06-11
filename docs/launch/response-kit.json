@@ -3,6 +3,7 @@
   "launchPromise": "A local AI agent that shows its work: search, diff preview, Apply, receipt, report.",
   "primaryAssets": [
     "docs/agenttrail-demo.gif",
+    "docs/demo-proof.html",
     "docs/preview-app.png",
     "docs/preview-diff.png",
     "docs/public-demo.html"

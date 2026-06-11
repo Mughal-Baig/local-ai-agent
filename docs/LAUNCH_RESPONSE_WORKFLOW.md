@@ -61,6 +61,8 @@ The easiest first contribution is a small recipe, benchmark fixture, docs fix, o
 ## Launch Checklist
 
 - Verify `docs/agenttrail-demo.gif`, `docs/preview-app.png`, and `docs/preview-diff.png` render in the README.
+- Run `npm run demo:proof` after demo/storyboard/source changes.
+- Run `npm run demo:health`; do not launch if it reports stale demo proof assets.
 - Run `npm run test:community` and `npm run eval`.
 - Open 5-8 good-first issues from `docs/community/good-first-issues.json`.
 - Add labels from `.github/labels.yml`.
