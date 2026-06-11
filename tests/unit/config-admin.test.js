@@ -9,6 +9,7 @@ const path = require("node:path");
 const { validateConfig } = require("../../src/config");
 const {
   CONFIG_ADMIN_SCHEMA,
+  FIRST_RUN_SAMPLE_PATH,
   FIRST_RUN_SCHEMA,
   WORKSPACE_CONFIG_SCHEMA,
   applyWorkspaceConfigOverridesSync,
@@ -106,6 +107,28 @@ async function main() {
     assert.equal(wizard.schema, FIRST_RUN_SCHEMA);
     assert.equal(wizard.completed, true);
     assert.equal(wizard.steps.some((step) => step.id === "config" && step.ok), true);
+    assert.equal(wizard.guidedSteps.some((step) => step.id === "run-sample-task"), true);
+
+    const guidedWizard = buildFirstRunWizard({
+      version: "0.0.0",
+      workspaceRoot,
+      state: {
+        choices: { workspaceRoot, model: "llama3.2" },
+        sampleTask: { status: "completed", path: FIRST_RUN_SAMPLE_PATH, completedAt: new Date().toISOString() },
+        telemetry: { events: [{ type: "sample-task-completed", at: new Date().toISOString(), metadata: { path: FIRST_RUN_SAMPLE_PATH } }] }
+      },
+      configStatus: { ok: true, failed: [] },
+      modelStatus: { available: false },
+      files: [],
+      packs: [],
+      foundation: { score: 0 },
+      desktop: { enabled: false }
+    });
+    assert.equal(guidedWizard.completed, true);
+    assert.equal(guidedWizard.modelPrompt.show, false);
+    assert.equal(guidedWizard.sampleTask.path, FIRST_RUN_SAMPLE_PATH);
+    assert.equal(guidedWizard.telemetry.localOnly, true);
+    assert.equal(guidedWizard.guidedSteps.some((step) => step.id === "run-sample-task" && step.ok), true);
 
     console.log("Config admin unit test passed");
   } finally {

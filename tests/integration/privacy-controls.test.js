@@ -40,7 +40,11 @@ async function main() {
     assert.equal(dashboard.schema, "agenttrail.privacy-dashboard.v1");
     assert.equal(dashboard.localOnly, true);
     assert.equal(dashboard.artifacts.some((item) => item.id === "receipts" && item.count >= 2), true);
+    assert.equal(dashboard.artifacts.some((item) => item.id === "first-run" && item.count === 1), true);
     assert.equal(dashboard.settings.localAnalytics.enabled, false);
+    assert.equal(dashboard.firstRunTelemetry.localOnly, true);
+    assert.equal(dashboard.firstRunTelemetry.eventCount, 1);
+    assert.equal(dashboard.firstRunTelemetry.counts["sample-task-completed"], 1);
 
     const observabilityOff = await getJson("/api/observability");
     assert.equal(observabilityOff.analytics.schema, "agenttrail.local-analytics.v1");
@@ -97,6 +101,12 @@ async function seedWorkspace(workspaceRoot) {
   await fsp.mkdir(path.join(workspaceRoot, "memory"), { recursive: true });
   await fsp.mkdir(path.join(workspaceRoot, "reports"), { recursive: true });
   await fsp.writeFile(path.join(workspaceRoot, ".agenttrail", "conversations", "chat.json"), JSON.stringify({ title: "Private chat" }), "utf8");
+  await fsp.writeFile(path.join(workspaceRoot, ".agenttrail", "first-run.json"), JSON.stringify({
+    schema: "agenttrail.first-run.v1",
+    telemetry: {
+      events: [{ type: "sample-task-completed", at: new Date().toISOString(), metadata: { path: "first-run/sample-typo.md" } }]
+    }
+  }), "utf8");
   await fsp.writeFile(path.join(workspaceRoot, "receipts", "old.md"), "# Old receipt\n", "utf8");
   await fsp.writeFile(path.join(workspaceRoot, "receipts", "new.md"), "# New receipt\n", "utf8");
   await fsp.writeFile(path.join(workspaceRoot, "memory", "project-memory.md"), "# Memory\nKeep private.\n", "utf8");

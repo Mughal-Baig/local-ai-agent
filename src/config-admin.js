@@ -11,6 +11,10 @@ const WORKSPACE_CONFIG_SCHEMA = "agenttrail.workspace-config.v1";
 const FIRST_RUN_SCHEMA = "agenttrail.first-run.v1";
 const WORKSPACE_CONFIG_PATH = ".agenttrail/workspace-config.json";
 const FIRST_RUN_PATH = ".agenttrail/first-run.json";
+const FIRST_RUN_SAMPLE_PATH = "first-run/sample-typo.md";
+const FIRST_RUN_SAMPLE_RECEIPT_PATH = "receipts/first-run-safe-typo.md";
+const FIRST_RUN_SAMPLE_BEFORE = "# AgentTrail first run\n\nAgentTrail keeps your local files privte and shows every edit before it lands.\n";
+const FIRST_RUN_SAMPLE_AFTER = "# AgentTrail first run\n\nAgentTrail keeps your local files private and shows every edit before it lands.\n";
 const WORKSPACE_CONFIG_MODE_VALUES = new Set(["on", "off", "true", "false", "1", "0"]);
 
 const CONFIG_GROUPS = [
@@ -295,35 +299,36 @@ async function readFirstRunState(workspaceRoot) {
   const absolutePath = firstRunAbsolutePath(workspaceRoot);
   try {
     const parsed = JSON.parse(await fsp.readFile(absolutePath, "utf8"));
-    return {
-      schema: FIRST_RUN_SCHEMA,
-      completed: parsed.completed === true,
-      dismissed: parsed.dismissed === true,
-      completedAt: parsed.completedAt || null,
-      dismissedAt: parsed.dismissedAt || null,
-      updatedAt: parsed.updatedAt || null,
-      path: FIRST_RUN_PATH,
-      exists: true
-    };
+    return { ...normalizeFirstRunState(parsed), path: FIRST_RUN_PATH, exists: true };
   } catch (error) {
     if (error && error.code === "ENOENT") {
-      return { schema: FIRST_RUN_SCHEMA, completed: false, dismissed: false, completedAt: null, dismissedAt: null, updatedAt: null, path: FIRST_RUN_PATH, exists: false };
+      return { ...defaultFirstRunState(), path: FIRST_RUN_PATH, exists: false };
     }
-    return { schema: FIRST_RUN_SCHEMA, completed: false, dismissed: false, completedAt: null, dismissedAt: null, updatedAt: null, path: FIRST_RUN_PATH, exists: true, invalid: true, error: error.message };
+    return { ...defaultFirstRunState(), path: FIRST_RUN_PATH, exists: true, invalid: true, error: error.message };
   }
 }
 
 async function writeFirstRunState(workspaceRoot, patch = {}) {
   const current = await readFirstRunState(workspaceRoot);
   const stamp = nowIso();
-  const next = {
+  const next = normalizeFirstRunState({
+    ...current,
     schema: FIRST_RUN_SCHEMA,
     completed: patch.completed !== undefined ? patch.completed === true : current.completed,
     dismissed: patch.dismissed !== undefined ? patch.dismissed === true : current.dismissed,
     completedAt: patch.completed === true ? (current.completedAt || stamp) : (patch.completed === false ? null : current.completedAt),
     dismissedAt: patch.dismissed === true ? (current.dismissedAt || stamp) : (patch.dismissed === false ? null : current.dismissedAt),
-    updatedAt: stamp
-  };
+    updatedAt: stamp,
+    choices: normalizeFirstRunChoices({
+      ...(current.choices || {}),
+      ...(patch.choices || {}),
+      ...(patch.workspaceChoice !== undefined ? { workspaceRoot: patch.workspaceChoice } : {}),
+      ...(patch.modelChoice !== undefined ? { model: patch.modelChoice } : {})
+    }),
+    sampleTask: normalizeSampleTask({ ...(current.sampleTask || {}), ...(patch.sampleTask || {}) }),
+    handoff: normalizeFirstRunHandoff({ ...(current.handoff || {}), ...(patch.handoff || {}) }),
+    telemetry: appendFirstRunTelemetry(current.telemetry, patch.telemetryEvent, stamp)
+  });
   await atomicWriteFile(firstRunAbsolutePath(workspaceRoot), `${JSON.stringify(next, null, 2)}\n`, "utf8");
   return { ...next, path: FIRST_RUN_PATH, exists: true };
 }
@@ -337,6 +342,15 @@ function buildFirstRunWizard(input = {}) {
   const packs = Array.isArray(input.packs) ? input.packs : [];
   const foundation = input.foundation || {};
   const searchIndexReady = input.searchIndexReady === true;
+  const workspaceRoot = path.resolve(input.workspaceRoot || process.env.WORKSPACE_ROOT || "workspace");
+  const installedModels = modelNames(modelStatus);
+  const defaultModel = String(input.defaultModel || "llama3.2").trim() || "llama3.2";
+  const selectedModel = String((state.choices && state.choices.model) || defaultModel).trim() || defaultModel;
+  const selectedModelReady = modelInstalled(installedModels, selectedModel);
+  const modelMissing = modelStatus.available === true && selectedModel && !selectedModelReady;
+  const modelOptions = uniqueStrings([selectedModel, defaultModel, ...installedModels]);
+  const sampleTask = normalizeSampleTask(state.sampleTask);
+  const handoff = normalizeFirstRunHandoff(state.handoff);
   const steps = [
     { id: "config", label: "Config validated", ok: configStatus.ok !== false, required: true, action: firstConfigAction(configStatus) },
     { id: "desktop-shell", label: "Desktop shell launched", ok: desktop.enabled === true, required: false, action: "Open AgentTrail.app, AgentTrail-Tray.ps1, or the Linux desktop launcher" },
@@ -350,22 +364,213 @@ function buildFirstRunWizard(input = {}) {
   const completedSteps = steps.filter((step) => step.ok).length;
   const requiredOpen = steps.filter((step) => step.required && !step.ok);
   const score = Math.round((completedSteps / steps.length) * 100);
-  const completed = state.completed === true || requiredOpen.length === 0;
+  const guidedSteps = [
+    {
+      id: "choose-workspace",
+      label: "Choose workspace",
+      ok: state.completed === true || Boolean(state.choices && state.choices.workspaceRoot),
+      required: true,
+      action: "Confirm the project folder AgentTrail should work inside"
+    },
+    {
+      id: "choose-model",
+      label: "Choose model",
+      ok: state.completed === true || (Boolean(selectedModel) && !modelMissing),
+      required: true,
+      action: modelMissing ? `Pull ${selectedModel} or choose an installed model` : "Choose the local model AgentTrail should use"
+    },
+    {
+      id: "run-sample-task",
+      label: "Run safe sample task",
+      ok: state.completed === true || sampleTask.status === "completed",
+      required: true,
+      action: "Run the local typo-fix sample to see diff, apply, and receipt"
+    },
+    {
+      id: "use-own-project",
+      label: "Use your own project",
+      ok: Boolean(handoff.completedAt || state.completed === true),
+      required: false,
+      action: "After the sample, hand off to your real project"
+    }
+  ];
+  const guidedRequiredOpen = guidedSteps.filter((step) => step.required && !step.ok);
+  const nextGuided = guidedSteps.find((step) => !step.ok);
+  const completed = state.completed === true || guidedRequiredOpen.length === 0;
   return {
     schema: FIRST_RUN_SCHEMA,
     version: input.version || "",
-    status: completed ? "complete" : "needs-setup",
+    status: completed && !nextGuided ? "complete" : sampleTask.status === "completed" ? "handoff-ready" : "needs-setup",
     completed,
     dismissed: state.dismissed === true,
     completedAt: state.completedAt || null,
     updatedAt: state.updatedAt || null,
     score,
     progress: `${completedSteps}/${steps.length}`,
+    workspaceChoice: {
+      current: workspaceRoot,
+      selected: (state.choices && state.choices.workspaceRoot) || workspaceRoot,
+      applied: path.resolve((state.choices && state.choices.workspaceRoot) || workspaceRoot) === workspaceRoot
+    },
+    modelChoice: {
+      selected: selectedModel,
+      defaultModel,
+      installed: installedModels,
+      options: modelOptions,
+      backendAvailable: modelStatus.available === true,
+      ready: selectedModelReady,
+      missing: modelMissing
+    },
+    modelPrompt: {
+      show: modelMissing,
+      title: modelMissing ? "Model missing" : "Model ready",
+      action: modelMissing ? `ollama pull ${selectedModel}` : "No model download needed"
+    },
+    sampleTask,
+    handoff: {
+      ...handoff,
+      ready: handoff.ready === true || sampleTask.status === "completed",
+      message: sampleTask.status === "completed"
+        ? "Sample complete. Select or add your real project files, then ask AgentTrail for a safe first change."
+        : "Run the sample task first so the handoff starts from a proven safe loop."
+    },
+    telemetry: normalizeFirstRunTelemetry(state.telemetry),
+    guidedSteps,
+    nextAction: nextGuided ? nextGuided.action : "Ready for your own project",
     desktop,
     blockers: requiredOpen,
     steps,
     items: steps
   };
+}
+
+function defaultFirstRunState() {
+  return {
+    schema: FIRST_RUN_SCHEMA,
+    completed: false,
+    dismissed: false,
+    completedAt: null,
+    dismissedAt: null,
+    updatedAt: null,
+    choices: normalizeFirstRunChoices(),
+    sampleTask: normalizeSampleTask(),
+    handoff: normalizeFirstRunHandoff(),
+    telemetry: normalizeFirstRunTelemetry()
+  };
+}
+
+function normalizeFirstRunState(parsed = {}) {
+  return {
+    schema: FIRST_RUN_SCHEMA,
+    completed: parsed.completed === true,
+    dismissed: parsed.dismissed === true,
+    completedAt: parsed.completedAt || null,
+    dismissedAt: parsed.dismissedAt || null,
+    updatedAt: parsed.updatedAt || null,
+    choices: normalizeFirstRunChoices(parsed.choices),
+    sampleTask: normalizeSampleTask(parsed.sampleTask),
+    handoff: normalizeFirstRunHandoff(parsed.handoff),
+    telemetry: normalizeFirstRunTelemetry(parsed.telemetry)
+  };
+}
+
+function normalizeFirstRunChoices(input = {}) {
+  return {
+    workspaceRoot: input && input.workspaceRoot ? String(input.workspaceRoot) : null,
+    model: input && input.model ? String(input.model) : null
+  };
+}
+
+function normalizeSampleTask(input = {}) {
+  const status = ["pending", "completed", "failed"].includes(input.status) ? input.status : "pending";
+  return {
+    status,
+    path: input.path ? String(input.path) : FIRST_RUN_SAMPLE_PATH,
+    receiptPath: input.receiptPath ? String(input.receiptPath) : FIRST_RUN_SAMPLE_RECEIPT_PATH,
+    completedAt: input.completedAt || null,
+    lastError: input.lastError ? String(input.lastError) : null,
+    diffStats: input.diffStats && typeof input.diffStats === "object"
+      ? { added: Number(input.diffStats.added || 0), removed: Number(input.diffStats.removed || 0) }
+      : { added: 0, removed: 0 }
+  };
+}
+
+function normalizeFirstRunHandoff(input = {}) {
+  return {
+    ready: input.ready === true,
+    completedAt: input.completedAt || null,
+    target: input.target ? String(input.target) : null
+  };
+}
+
+function normalizeFirstRunTelemetry(input = {}) {
+  const events = Array.isArray(input.events)
+    ? input.events.map(normalizeFirstRunEvent).filter(Boolean).slice(-50)
+    : [];
+  const counts = events.reduce((acc, event) => {
+    acc[event.type] = (acc[event.type] || 0) + 1;
+    return acc;
+  }, {});
+  return {
+    schema: "agenttrail.first-run-telemetry.v1",
+    localOnly: true,
+    network: "disabled",
+    privacy: "Milestone metadata only; no prompts, file contents, diff text, or token text.",
+    events,
+    counts
+  };
+}
+
+function appendFirstRunTelemetry(currentTelemetry, event, stamp) {
+  const telemetry = normalizeFirstRunTelemetry(currentTelemetry);
+  const normalized = normalizeFirstRunEvent(event, stamp);
+  if (!normalized) {
+    return telemetry;
+  }
+  return normalizeFirstRunTelemetry({
+    events: [...telemetry.events, normalized]
+  });
+}
+
+function normalizeFirstRunEvent(event, stamp = nowIso()) {
+  if (!event || !event.type) {
+    return null;
+  }
+  const metadata = {};
+  for (const [key, value] of Object.entries(event.metadata || {})) {
+    if (value === null || value === undefined) {
+      continue;
+    }
+    if (typeof value === "number" || typeof value === "boolean") {
+      metadata[key] = value;
+    } else {
+      metadata[key] = String(value).slice(0, 160);
+    }
+  }
+  return {
+    id: event.id || `fr-${Date.parse(stamp) || Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    type: String(event.type).replace(/[^a-z0-9_.-]+/gi, "-").slice(0, 80),
+    at: event.at || stamp,
+    metadata
+  };
+}
+
+function modelNames(modelStatus = {}) {
+  const raw = Array.isArray(modelStatus.models) ? modelStatus.models : [];
+  return uniqueStrings(raw.map((model) => typeof model === "string" ? model : model && model.name).filter(Boolean));
+}
+
+function modelInstalled(installedModels, selectedModel) {
+  const selected = String(selectedModel || "").trim();
+  if (!selected) {
+    return false;
+  }
+  const names = new Set((installedModels || []).flatMap((name) => [name, name.replace(/:latest$/, "")]));
+  return names.has(selected) || names.has(selected.replace(/:latest$/, ""));
+}
+
+function uniqueStrings(values) {
+  return [...new Set(values.map((value) => String(value || "").trim()).filter(Boolean))];
 }
 
 function firstConfigAction(configStatus) {
@@ -377,7 +582,11 @@ module.exports = {
   CONFIG_ADMIN_SCHEMA,
   CONFIG_GROUPS,
   CONFIG_SETTINGS,
+  FIRST_RUN_SAMPLE_AFTER,
+  FIRST_RUN_SAMPLE_BEFORE,
   FIRST_RUN_PATH,
+  FIRST_RUN_SAMPLE_PATH,
+  FIRST_RUN_SAMPLE_RECEIPT_PATH,
   FIRST_RUN_SCHEMA,
   WORKSPACE_CONFIG_PATH,
   WORKSPACE_CONFIG_SCHEMA,

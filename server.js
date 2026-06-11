@@ -32,6 +32,10 @@ const {
   applyWorkspaceConfigOverridesSync,
   buildConfigAdmin,
   buildFirstRunWizard,
+  FIRST_RUN_SAMPLE_AFTER,
+  FIRST_RUN_SAMPLE_BEFORE,
+  FIRST_RUN_SAMPLE_PATH,
+  FIRST_RUN_SAMPLE_RECEIPT_PATH,
   readFirstRunState,
   writeFirstRunState,
   writeWorkspaceConfig
@@ -3806,7 +3810,7 @@ async function handleReleaseChecksums(res) {
   sendJson(res, 200, result);
 }
 
-async function handleOnboarding(res) {
+async function buildOnboardingPayload(extra = {}) {
   const [status, files, packs, foundation, savedState, searchIndex] = await Promise.all([
     fetchOllamaModels(),
     listWorkspaceFiles(),
@@ -3823,38 +3827,186 @@ async function handleOnboarding(res) {
     readSearchIndex().catch(() => null)
   ]);
   const desktopMode = process.env.AGENTTRAIL_DESKTOP === "1" || ["desktop", "menubar", "tray"].includes(String(process.env.AGENTTRAIL_APP_MODE || "").toLowerCase());
-  sendJson(res, 200, buildFirstRunWizard({
-    version: packageMeta.version,
-    desktop: {
-      enabled: desktopMode,
-      appMode: process.env.AGENTTRAIL_APP_MODE || "browser",
-      notifications: desktopNotificationsEnabled(process.env),
-      updateChannel: process.env.AGENTTRAIL_UPDATE_CHANNEL || "stable"
-    },
-    state: savedState,
-    configStatus: CONFIG_STATUS,
-    modelStatus: status,
-    files,
-    packs,
-    foundation,
-    defaultModel: DEFAULT_MODEL,
-    searchIndexReady: Boolean(searchIndex)
-  }));
+  return {
+    ...buildFirstRunWizard({
+      version: packageMeta.version,
+      workspaceRoot: WORKSPACE_ROOT,
+      desktop: {
+        enabled: desktopMode,
+        appMode: process.env.AGENTTRAIL_APP_MODE || "browser",
+        notifications: desktopNotificationsEnabled(process.env),
+        updateChannel: process.env.AGENTTRAIL_UPDATE_CHANNEL || "stable"
+      },
+      state: savedState,
+      configStatus: CONFIG_STATUS,
+      modelStatus: status,
+      files,
+      packs,
+      foundation,
+      defaultModel: DEFAULT_MODEL,
+      searchIndexReady: Boolean(searchIndex)
+    }),
+    ...extra
+  };
+}
+
+async function handleOnboarding(res) {
+  sendJson(res, 200, await buildOnboardingPayload());
 }
 
 async function handleUpdateOnboarding(req, res) {
   const body = await readJsonBody(req);
-  await writeFirstRunState(WORKSPACE_ROOT, {
-    completed: body.completed === true ? true : (body.completed === false ? false : undefined),
-    dismissed: body.dismissed === true ? true : (body.dismissed === false ? false : undefined)
-  });
+  const action = String(body.action || "").trim();
+  let lastAction = null;
+  if (action === "run-sample-task" || body.runSampleTask === true) {
+    lastAction = await runFirstRunSampleTask();
+  } else if (action === "use-own-project" || body.useOwnProject === true) {
+    const stamp = new Date().toISOString();
+    await writeFirstRunState(WORKSPACE_ROOT, {
+      completed: true,
+      handoff: {
+        ready: true,
+        completedAt: stamp,
+        target: body.target ? String(body.target) : WORKSPACE_ROOT
+      },
+      telemetryEvent: {
+        type: "use-own-project-handoff",
+        metadata: { workspaceRoot: WORKSPACE_ROOT }
+      }
+    });
+    lastAction = { ok: true, action: "use-own-project", completedAt: stamp };
+  } else {
+    const choices = {};
+    if (body.workspaceChoice !== undefined || body.workspaceRoot !== undefined) {
+      choices.workspaceRoot = String(body.workspaceChoice || body.workspaceRoot || "").trim() || WORKSPACE_ROOT;
+    }
+    if (body.modelChoice !== undefined || body.model !== undefined) {
+      choices.model = String(body.modelChoice || body.model || "").trim() || DEFAULT_MODEL;
+    }
+    await writeFirstRunState(WORKSPACE_ROOT, {
+      completed: body.completed === true ? true : (body.completed === false ? false : undefined),
+      dismissed: body.dismissed === true ? true : (body.dismissed === false ? false : undefined),
+      choices,
+      telemetryEvent: Object.keys(choices).length ? {
+        type: "choices-saved",
+        metadata: {
+          workspaceSelected: Boolean(choices.workspaceRoot),
+          modelSelected: choices.model || DEFAULT_MODEL
+        }
+      } : null
+    });
+    if (Object.keys(choices).length) {
+      lastAction = { ok: true, action: "choices-saved" };
+    }
+  }
   await STORE.append("onboarding-update", {
+    action: action || (lastAction && lastAction.action) || "state-update",
     completed: body.completed === true,
     dismissed: body.dismissed === true
   });
-  SQLITE.insert("onboarding-update", { completed: body.completed === true, dismissed: body.dismissed === true });
-  await LOGGER.log("info", "onboarding.update", { completed: body.completed === true, dismissed: body.dismissed === true });
-  return handleOnboarding(res);
+  SQLITE.insert("onboarding-update", { action: action || (lastAction && lastAction.action) || "state-update", completed: body.completed === true, dismissed: body.dismissed === true });
+  await LOGGER.log("info", "onboarding.update", { action: action || (lastAction && lastAction.action) || "state-update", completed: body.completed === true, dismissed: body.dismissed === true });
+  sendJson(res, 200, await buildOnboardingPayload(lastAction ? { lastAction } : {}));
+}
+
+async function runFirstRunSampleTask() {
+  const stamp = new Date().toISOString();
+  try {
+    await writeWorkspaceFile(FIRST_RUN_SAMPLE_PATH, FIRST_RUN_SAMPLE_BEFORE);
+    const preview = await previewWorkspaceFile(FIRST_RUN_SAMPLE_PATH, FIRST_RUN_SAMPLE_AFTER, { source: "first-run-sample" });
+    const applied = await writeWorkspaceFile(FIRST_RUN_SAMPLE_PATH, FIRST_RUN_SAMPLE_AFTER);
+    const receiptMarkdown = buildFirstRunSampleReceipt({
+      stamp,
+      preview,
+      applied,
+      path: FIRST_RUN_SAMPLE_PATH,
+      receiptPath: FIRST_RUN_SAMPLE_RECEIPT_PATH
+    });
+    const receipt = await writeWorkspaceFile(FIRST_RUN_SAMPLE_RECEIPT_PATH, receiptMarkdown);
+    const state = await writeFirstRunState(WORKSPACE_ROOT, {
+      choices: { workspaceRoot: WORKSPACE_ROOT, model: DEFAULT_MODEL },
+      sampleTask: {
+        status: "completed",
+        path: FIRST_RUN_SAMPLE_PATH,
+        receiptPath: FIRST_RUN_SAMPLE_RECEIPT_PATH,
+        completedAt: stamp,
+        lastError: null,
+        diffStats: preview.stats
+      },
+      handoff: { ready: true },
+      telemetryEvent: {
+        type: "sample-task-completed",
+        metadata: {
+          path: FIRST_RUN_SAMPLE_PATH,
+          receiptPath: FIRST_RUN_SAMPLE_RECEIPT_PATH,
+          added: preview.stats.added,
+          removed: preview.stats.removed
+        }
+      }
+    });
+    await STORE.append("first-run-sample", { path: FIRST_RUN_SAMPLE_PATH, receiptPath: FIRST_RUN_SAMPLE_RECEIPT_PATH, stats: preview.stats });
+    SQLITE.insert("first-run-sample", { path: FIRST_RUN_SAMPLE_PATH, receiptPath: FIRST_RUN_SAMPLE_RECEIPT_PATH, added: preview.stats.added, removed: preview.stats.removed });
+    await LOGGER.log("info", "onboarding.sample-task", { path: FIRST_RUN_SAMPLE_PATH, receiptPath: FIRST_RUN_SAMPLE_RECEIPT_PATH });
+    return {
+      ok: true,
+      action: "run-sample-task",
+      sampleTask: state.sampleTask,
+      preview: {
+        path: preview.path,
+        stats: preview.stats,
+        diff: preview.diff
+      },
+      receipt
+    };
+  } catch (error) {
+    await writeFirstRunState(WORKSPACE_ROOT, {
+      sampleTask: {
+        status: "failed",
+        path: FIRST_RUN_SAMPLE_PATH,
+        receiptPath: FIRST_RUN_SAMPLE_RECEIPT_PATH,
+        lastError: error.message
+      },
+      telemetryEvent: {
+        type: "sample-task-failed",
+        metadata: { path: FIRST_RUN_SAMPLE_PATH, error: error.message }
+      }
+    });
+    throw error;
+  }
+}
+
+function buildFirstRunSampleReceipt(input) {
+  const stats = input.preview && input.preview.stats ? input.preview.stats : { added: 0, removed: 0 };
+  return [
+    "# First-run safe typo fix",
+    "",
+    `Generated: ${input.stamp}`,
+    "",
+    "## What happened",
+    "",
+    "- Created a tiny local sample file.",
+    "- Previewed a deterministic typo fix.",
+    "- Applied the exact correction locally.",
+    "- Saved this receipt for replay and privacy review.",
+    "",
+    "## Files",
+    "",
+    `- Sample: ${input.path}`,
+    `- Receipt: ${input.receiptPath}`,
+    "",
+    "## Diff summary",
+    "",
+    `- Added lines: ${Number(stats.added || 0)}`,
+    `- Removed lines: ${Number(stats.removed || 0)}`,
+    "",
+    "## Trust checks",
+    "",
+    "- No model call required.",
+    "- No network call required.",
+    "- Workspace boundary enforced.",
+    "- Receipt saved locally.",
+    ""
+  ].join("\n");
 }
 
 async function handleUpdateCheck(url, res) {
@@ -6585,12 +6737,13 @@ async function handleSecurityPrivacy(res) {
 }
 
 async function handlePrivacyDashboard(res) {
-  const [settings, retentionPolicy] = await Promise.all([
+  const [settings, retentionPolicy, firstRunState] = await Promise.all([
     readPrivacySettings(WORKSPACE_ROOT),
-    readRetentionPolicy(WORKSPACE_ROOT)
+    readRetentionPolicy(WORKSPACE_ROOT),
+    readFirstRunState(WORKSPACE_ROOT)
   ]);
   sendJson(res, 200, {
-    ...await buildPrivacyDashboard(WORKSPACE_ROOT, { settings, retentionPolicy }),
+    ...await buildPrivacyDashboard(WORKSPACE_ROOT, { settings, retentionPolicy, firstRunTelemetry: firstRunState.telemetry }),
     runtimePrivacy: privacyStatus(process.env),
     networkPolicy: networkPolicyStatus(process.env)
   });

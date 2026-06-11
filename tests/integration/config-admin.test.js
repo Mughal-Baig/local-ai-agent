@@ -79,8 +79,31 @@ async function main() {
     const onboarding = await get("/api/onboarding");
     assert.equal(onboarding.schema, "agenttrail.first-run.v1");
     assert.equal(Array.isArray(onboarding.steps), true);
+    assert.equal(Array.isArray(onboarding.guidedSteps), true);
     assert.equal(onboarding.steps.some((step) => step.id === "config"), true);
+    assert.equal(onboarding.guidedSteps.some((step) => step.id === "run-sample-task"), true);
     assert.equal(onboarding.items.length, onboarding.steps.length);
+
+    const choices = await post("/api/onboarding", {
+      action: "save-choices",
+      workspaceChoice: workspaceRoot,
+      modelChoice: "llama3.2"
+    });
+    assert.equal(choices.workspaceChoice.selected, workspaceRoot);
+    assert.equal(choices.modelChoice.selected, "llama3.2");
+    assert.equal(choices.telemetry.counts["choices-saved"], 1);
+
+    const sample = await post("/api/onboarding", { action: "run-sample-task" });
+    assert.equal(sample.sampleTask.status, "completed");
+    assert.equal(sample.handoff.ready, true);
+    assert.equal(sample.telemetry.counts["sample-task-completed"], 1);
+    assert.match(await fsp.readFile(path.join(workspaceRoot, "first-run", "sample-typo.md"), "utf8"), /private/);
+    assert.doesNotMatch(await fsp.readFile(path.join(workspaceRoot, "first-run", "sample-typo.md"), "utf8"), /privte/);
+    assert.match(await fsp.readFile(path.join(workspaceRoot, "receipts", "first-run-safe-typo.md"), "utf8"), /First-run safe typo fix/);
+
+    const handoff = await post("/api/onboarding", { action: "use-own-project" });
+    assert.equal(handoff.completed, true);
+    assert.equal(handoff.telemetry.counts["use-own-project-handoff"], 1);
 
     const completed = await post("/api/onboarding", { completed: true });
     assert.equal(completed.schema, "agenttrail.first-run.v1");

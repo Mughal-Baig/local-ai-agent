@@ -107,6 +107,9 @@ async function runHttpUiContract() {
   assert.match(html, /configSettings/);
   assert.match(html, /saveWorkspaceConfig/);
   assert.match(html, /completeFirstRun/);
+  assert.match(html, /firstRunWorkspace/);
+  assert.match(html, /runFirstRunSample/);
+  assert.match(html, /useOwnProject/);
   assert.match(html, /privacySummary/);
   assert.match(html, /localAnalyticsToggle/);
   assert.match(html, /themeSelect/);
@@ -123,6 +126,8 @@ async function runHttpUiContract() {
   assert.match(app, /refreshConfigAdmin/);
   assert.match(app, /saveWorkspaceConfig/);
   assert.match(app, /completeFirstRun/);
+  assert.match(app, /runFirstRunSample/);
+  assert.match(app, /useOwnProjectHandoff/);
   assert.match(app, /wipePrivacyData/);
   assert.match(app, /refreshConversations/);
   assert.match(app, /branchConversation/);

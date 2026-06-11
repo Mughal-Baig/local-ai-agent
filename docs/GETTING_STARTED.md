@@ -43,12 +43,15 @@ http://127.0.0.1:4173
 
 ## First Safe Task
 
-1. Put a small note in `workspace/notes/demo.md`.
-2. Turn on file reads and write previews.
-3. Ask: `Search the workspace, improve notes/demo.md, and show me the diff before applying.`
-4. Review the Diff Review panel.
-5. Click Apply only after the proposed content looks right.
-6. Export a receipt or HTML report.
+The Setup panel now gives you a guided first run:
+
+1. Confirm the workspace folder.
+2. Choose the local model AgentTrail should use.
+3. Click `Run safe sample` to create and fix `first-run/sample-typo.md` locally.
+4. Open Privacy to see the local-only first-run telemetry.
+5. Click `Use own project`; AgentTrail drops a safe starter prompt into chat.
+
+For your own file, ask: `Search the workspace, improve notes/demo.md, and show me the diff before applying.`
 
 ## What Good Looks Like
 

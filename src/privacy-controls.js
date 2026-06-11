@@ -18,6 +18,7 @@ const ARTIFACT_TYPES = [
   { id: "memory", label: "Project memory", paths: ["memory"], defaultRetentionDays: 0, wipe: true },
   { id: "indexes", label: "Search and vector indexes", paths: [".agenttrail/search-index.json", ".agenttrail/vector-store.json", ".agenttrail/search-collections", ".agenttrail/vector-store-migrations.json"], defaultRetentionDays: 90, wipe: true },
   { id: "pending", label: "Pending runs", paths: [".agenttrail/pending-run.json"], defaultRetentionDays: 7, wipe: true },
+  { id: "first-run", label: "First-run telemetry", paths: [".agenttrail/first-run.json"], defaultRetentionDays: 90, wipe: true },
   { id: "logs", label: "Logs and event stores", paths: [".agenttrail/logs.jsonl", ".agenttrail/store.jsonl", ".agenttrail/agenttrail.db"], defaultRetentionDays: 30, wipe: true },
   { id: "analytics", label: "Local analytics", paths: [LOCAL_ANALYTICS_PATH], defaultRetentionDays: 30, wipe: true },
   { id: "backups", label: "Backups and restores", paths: ["backups", "restored"], defaultRetentionDays: 30, wipe: true },
@@ -53,7 +54,7 @@ function normalizePrivacySettings(input = {}, current = null) {
       network: "disabled",
       mode: "local-only",
       storagePath: enabled ? LOCAL_ANALYTICS_PATH : null,
-      includes: ["counts", "latency", "error codes", "trace ids"],
+      includes: ["counts", "latency", "error codes", "trace ids", "first-run milestones"],
       excludes: ["prompts", "file contents", "diff text", "token text"]
     }
   };
@@ -116,6 +117,7 @@ async function buildPrivacyDashboard(workspaceRoot, options = {}) {
     network: "disabled; these controls do not send telemetry or workspace data anywhere",
     settings,
     retentionPolicy: policy,
+    firstRunTelemetry: normalizeFirstRunDashboardTelemetry(options.firstRunTelemetry),
     totals: {
       artifactTypes: artifacts.length,
       files: artifacts.reduce((sum, artifact) => sum + artifact.count, 0),
@@ -123,6 +125,37 @@ async function buildPrivacyDashboard(workspaceRoot, options = {}) {
     },
     artifacts
   };
+}
+
+function normalizeFirstRunDashboardTelemetry(input = {}) {
+  const events = Array.isArray(input.events) ? input.events.slice(-10).map((event) => ({
+    type: String(event.type || "event"),
+    at: event.at || null,
+    metadata: summarizeTelemetryMetadata(event.metadata)
+  })) : [];
+  return {
+    schema: "agenttrail.first-run-telemetry-dashboard.v1",
+    localOnly: true,
+    network: "disabled",
+    privacy: "Milestone metadata only; prompts, file contents, diff text, and token text are excluded.",
+    eventCount: Array.isArray(input.events) ? input.events.length : 0,
+    counts: input && input.counts && typeof input.counts === "object" ? { ...input.counts } : {},
+    recentEvents: events
+  };
+}
+
+function summarizeTelemetryMetadata(metadata = {}) {
+  const summary = {};
+  for (const [key, value] of Object.entries(metadata || {})) {
+    if (typeof value === "number" || typeof value === "boolean") {
+      summary[key] = value;
+    } else if (key.toLowerCase().includes("path")) {
+      summary[key] = String(value || "").split(/[\\/]/).slice(-2).join("/");
+    } else {
+      summary[key] = String(value || "").slice(0, 80);
+    }
+  }
+  return summary;
 }
 
 async function applyRetentionPolicy(workspaceRoot, policy, options = {}) {

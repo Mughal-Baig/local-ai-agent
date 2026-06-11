@@ -481,6 +481,37 @@ select:hover, .search-input:hover { border-color: var(--line-strong); }
 
 .empty-state.compact { padding: 12px; font-size: 0.8rem; }
 
+.first-run-wizard {
+  display: grid;
+  gap: 8px;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
+}
+
+.first-run-wizard select {
+  width: 100%;
+  min-height: 34px;
+  padding: 7px 9px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--panel-2);
+  color: var(--ink);
+  font: inherit;
+}
+
+.setup-actions {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(88px, 1fr));
+  gap: 6px;
+}
+
+.setup-actions .compact-button {
+  min-height: 34px;
+  white-space: normal;
+  line-height: 1.15;
+}
+
 /* ---------- Search ---------- */
 .search-results { display: grid; gap: 8px; max-height: 210px; margin-top: 10px; overflow: auto; }
 

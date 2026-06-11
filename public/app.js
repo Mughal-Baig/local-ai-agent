@@ -55,6 +55,7 @@ const state = {
   semanticSearch: false,
   securityMode: true,
   models: [],
+  modelMissing: false,
   model: "",
   activeRecipeId: null,
   budgetProfile: "standard",
@@ -213,6 +214,13 @@ const els = {
   configSaveStatus: document.querySelector("#configSaveStatus"),
   refreshOnboarding: document.querySelector("#refreshOnboarding"),
   completeFirstRun: document.querySelector("#completeFirstRun"),
+  firstRunWizard: document.querySelector("#firstRunWizard"),
+  firstRunWorkspace: document.querySelector("#firstRunWorkspace"),
+  firstRunModel: document.querySelector("#firstRunModel"),
+  saveFirstRunChoices: document.querySelector("#saveFirstRunChoices"),
+  runFirstRunSample: document.querySelector("#runFirstRunSample"),
+  useOwnProject: document.querySelector("#useOwnProject"),
+  firstRunSampleStatus: document.querySelector("#firstRunSampleStatus"),
   firstRunStatus: document.querySelector("#firstRunStatus"),
   themeToggle: document.querySelector("#themeToggle"),
   themeSelect: document.querySelector("#themeSelect"),
@@ -585,6 +593,15 @@ function bindEvents() {
   }
   if (els.completeFirstRun) {
     els.completeFirstRun.addEventListener("click", completeFirstRun);
+  }
+  if (els.saveFirstRunChoices) {
+    els.saveFirstRunChoices.addEventListener("click", saveFirstRunChoices);
+  }
+  if (els.runFirstRunSample) {
+    els.runFirstRunSample.addEventListener("click", runFirstRunSample);
+  }
+  if (els.useOwnProject) {
+    els.useOwnProject.addEventListener("click", useOwnProjectHandoff);
   }
   initAccessPreferences();
   if (els.themeToggle) {
@@ -2075,7 +2092,9 @@ function renderSearchResults() {
   if (!state.searchResults.length) {
     const empty = document.createElement("div");
     empty.className = "empty-state compact";
-    empty.textContent = els.workspaceSearch.value.trim() ? "No matching workspace files." : "Search files and receipts without leaving the browser.";
+    empty.textContent = els.workspaceSearch.value.trim()
+      ? "No matching workspace files. Try another term or run the safe sample to create searchable proof."
+      : nextOnboardingAction("Search files and receipts, or run the safe sample from Setup.");
     els.searchResults.appendChild(empty);
     return;
   }
@@ -2115,22 +2134,46 @@ async function refreshStatus() {
     state.models = status.ollama.models || [];
     const available = status.ollama.available;
     state.ollamaAvailable = available;
+    const defaultModel = status.defaults && status.defaults.model ? status.defaults.model : "llama3.2";
+    const installedNames = state.models.map((model) => model.name).filter(Boolean);
+    state.modelMissing = available && !modelNameInstalled(installedNames, defaultModel);
     const backendMessage = resilience && resilience.backend && resilience.backend.message;
 
-    if (available && state.models.length) {
+    if (available && state.models.length && state.modelMissing) {
+      setConnection(`${status.backend?.title || "Backend"} is running; ${defaultModel} is missing`);
+      renderModels(defaultModel);
+      els.modelHint.textContent = `Pull ${defaultModel} or choose an installed model.`;
+      if (els.pullModelName && !els.pullModelName.value.trim()) {
+        els.pullModelName.value = defaultModel;
+      }
+      if (els.pullModelStatus) {
+        els.pullModelStatus.textContent = `Model setup needed: ollama pull ${defaultModel}`;
+      }
+      addTrail("model", `Default model ${defaultModel} is missing`);
+    } else if (available && state.models.length) {
       setConnection(`${state.models.length} local model(s) found`);
-      renderModels(status.defaults.model);
+      renderModels(defaultModel);
       els.modelHint.textContent = `Connected to ${status.ollama.host}`;
+      if (els.pullModelStatus) {
+        els.pullModelStatus.textContent = "Models are ready. Pull another only if you want to add one.";
+      }
       addTrail("model", `${state.models.length} local model(s) available`);
     } else if (available) {
       setConnection(`${status.backend?.title || "Backend"} is running with no models`);
-      renderModels(status.defaults.model);
-      els.modelHint.textContent = `Run: ollama pull ${status.defaults.model}`;
+      renderModels(defaultModel);
+      els.modelHint.textContent = `Run: ollama pull ${defaultModel}`;
+      if (els.pullModelName && !els.pullModelName.value.trim()) {
+        els.pullModelName.value = defaultModel;
+      }
+      if (els.pullModelStatus) {
+        els.pullModelStatus.textContent = `Model setup needed: ollama pull ${defaultModel}`;
+      }
       addTrail("model", "Ollama connected without models");
     } else {
       setConnection("Model backend is degraded");
-      renderModels(status.defaults.model);
+      renderModels(defaultModel);
       els.modelHint.textContent = backendMessage || "Start the local model backend and pull a model to chat.";
+      state.modelMissing = false;
       addTrail("warning", backendMessage || "Model backend not connected");
     }
     renderLocalSignals();
@@ -2141,6 +2184,7 @@ async function refreshStatus() {
     setConnection("Status check failed");
     els.modelHint.textContent = error.message;
     state.ollamaAvailable = false;
+    state.modelMissing = false;
     addTrail("error", error.message);
     renderLocalSignals();
     renderResilienceSummary();
@@ -2170,6 +2214,15 @@ function renderModels(defaultModel) {
   }
   els.modelSelect.value = state.model;
   renderModelScores();
+}
+
+function modelNameInstalled(installedNames, wantedName) {
+  const wanted = String(wantedName || "").trim();
+  if (!wanted) {
+    return false;
+  }
+  const names = new Set((installedNames || []).flatMap((name) => [name, String(name || "").replace(/:latest$/, "")]));
+  return names.has(wanted) || names.has(wanted.replace(/:latest$/, ""));
 }
 
 function pickRecommendedModel(modelNames) {
@@ -2630,6 +2683,7 @@ async function refreshOnboarding() {
     const data = await getJson("/api/onboarding");
     state.onboarding = data;
     renderSetupChecklist();
+    renderFirstRunWizard();
     renderOnboardingSummary();
   } catch (error) {
     if (els.firstRunStatus) {
@@ -2657,6 +2711,13 @@ function renderOnboardingSummary() {
     .join("");
 }
 
+function nextOnboardingAction(fallback) {
+  const wizard = state.onboarding || {};
+  const steps = Array.isArray(wizard.guidedSteps) ? wizard.guidedSteps : (Array.isArray(wizard.steps) ? wizard.steps : []);
+  const next = steps.find((step) => !step.ok);
+  return next && next.action ? next.action : fallback;
+}
+
 async function completeFirstRun() {
   if (els.completeFirstRun) {
     els.completeFirstRun.disabled = true;
@@ -2665,6 +2726,7 @@ async function completeFirstRun() {
     const data = await postJson("/api/onboarding", { completed: true });
     state.onboarding = data;
     renderSetupChecklist();
+    renderFirstRunWizard();
     renderOnboardingSummary();
     addTrail("system", "First-run setup completed");
   } catch (error) {
@@ -2675,6 +2737,134 @@ async function completeFirstRun() {
   } finally {
     if (els.completeFirstRun) {
       els.completeFirstRun.disabled = false;
+    }
+  }
+}
+
+function renderFirstRunWizard() {
+  if (!els.firstRunWizard) {
+    return;
+  }
+  const wizard = state.onboarding || {};
+  const workspace = wizard.workspaceChoice || {};
+  const model = wizard.modelChoice || {};
+  const sample = wizard.sampleTask || {};
+  const handoff = wizard.handoff || {};
+
+  if (els.firstRunWorkspace) {
+    els.firstRunWorkspace.value = workspace.selected || workspace.current || "";
+  }
+  if (els.firstRunModel) {
+    const options = Array.isArray(model.options) && model.options.length ? model.options : [model.selected || model.defaultModel || "llama3.2"];
+    els.firstRunModel.innerHTML = options
+      .map((name) => `<option value="${escapeHtml(name)}"${name === model.selected ? " selected" : ""}>${escapeHtml(name)}</option>`)
+      .join("");
+  }
+  if (els.runFirstRunSample) {
+    els.runFirstRunSample.disabled = sample.status === "completed";
+  }
+  if (els.useOwnProject) {
+    els.useOwnProject.disabled = !(handoff.ready || sample.status === "completed");
+  }
+  if (els.firstRunSampleStatus) {
+    const prompt = wizard.modelPrompt && wizard.modelPrompt.show ? ` Model setup: ${wizard.modelPrompt.action}.` : "";
+    if (sample.status === "completed") {
+      els.firstRunSampleStatus.textContent = `${handoff.message || "Sample complete. Ready for your own project."}${prompt}`;
+    } else if (sample.status === "failed") {
+      els.firstRunSampleStatus.textContent = sample.lastError || "Sample task failed.";
+    } else {
+      els.firstRunSampleStatus.textContent = `${wizard.nextAction || "Run the safe sample to prove the local trust loop."}${prompt}`;
+    }
+  }
+}
+
+async function saveFirstRunChoices() {
+  if (els.saveFirstRunChoices) {
+    els.saveFirstRunChoices.disabled = true;
+  }
+  if (els.firstRunSampleStatus) {
+    els.firstRunSampleStatus.textContent = "Saving choices...";
+  }
+  try {
+    const data = await postJson("/api/onboarding", {
+      action: "save-choices",
+      workspaceChoice: els.firstRunWorkspace ? els.firstRunWorkspace.value : "",
+      modelChoice: els.firstRunModel ? els.firstRunModel.value : ""
+    });
+    state.onboarding = data;
+    renderSetupChecklist();
+    renderFirstRunWizard();
+    renderOnboardingSummary();
+    await refreshPrivacy();
+    addTrail("system", "First-run choices saved locally");
+  } catch (error) {
+    if (els.firstRunSampleStatus) {
+      els.firstRunSampleStatus.textContent = error.message;
+    }
+    addTrail("error", error.message);
+  } finally {
+    if (els.saveFirstRunChoices) {
+      els.saveFirstRunChoices.disabled = false;
+    }
+  }
+}
+
+async function runFirstRunSample() {
+  if (els.runFirstRunSample) {
+    els.runFirstRunSample.disabled = true;
+  }
+  if (els.firstRunSampleStatus) {
+    els.firstRunSampleStatus.textContent = "Running local typo-fix sample...";
+  }
+  try {
+    const data = await postJson("/api/onboarding", { action: "run-sample-task" });
+    state.onboarding = data;
+    await Promise.all([refreshFiles(), refreshReceipts(), refreshPrivacy()]);
+    renderSetupChecklist();
+    renderFirstRunWizard();
+    renderOnboardingSummary();
+    if (data.sampleTask && data.sampleTask.path) {
+      state.selectedFiles.add(data.sampleTask.path);
+      renderFiles();
+    }
+    addTrail("system", "Safe first-run sample completed");
+  } catch (error) {
+    if (els.firstRunSampleStatus) {
+      els.firstRunSampleStatus.textContent = error.message;
+    }
+    addTrail("error", error.message);
+  } finally {
+    if (els.runFirstRunSample && !(state.onboarding && state.onboarding.sampleTask && state.onboarding.sampleTask.status === "completed")) {
+      els.runFirstRunSample.disabled = false;
+    }
+  }
+}
+
+async function useOwnProjectHandoff() {
+  if (els.useOwnProject) {
+    els.useOwnProject.disabled = true;
+  }
+  try {
+    const data = await postJson("/api/onboarding", { action: "use-own-project" });
+    state.onboarding = data;
+    renderSetupChecklist();
+    renderFirstRunWizard();
+    renderOnboardingSummary();
+    await refreshPrivacy();
+    if (els.prompt) {
+      els.prompt.value = "Use my own project: review the selected files, search first, then propose one safe diff-backed improvement.";
+      resizePrompt();
+      els.prompt.focus();
+    }
+    addTrail("system", "First-run handoff moved to your project");
+  } catch (error) {
+    if (els.firstRunSampleStatus) {
+      els.firstRunSampleStatus.textContent = error.message;
+    }
+    addTrail("error", error.message);
+  } finally {
+    if (els.useOwnProject && !(state.onboarding && state.onboarding.completed)) {
+      els.useOwnProject.disabled = false;
     }
   }
 }
@@ -2808,6 +2998,7 @@ function renderPrivacy() {
   const totals = data.totals || {};
   const settings = data.settings || {};
   const analytics = settings.localAnalytics || {};
+  const firstRunTelemetry = data.firstRunTelemetry || {};
   if (els.localAnalyticsToggle) {
     els.localAnalyticsToggle.checked = analytics.enabled === true;
   }
@@ -2815,6 +3006,7 @@ function renderPrivacy() {
     ["Managed files", `${totals.files || 0} file(s)`],
     ["Storage", formatBytes(totals.sizeBytes || 0)],
     ["Analytics", analytics.enabled ? "Local-only on" : "Off"],
+    ["First run", `${Number(firstRunTelemetry.eventCount || 0)} local event(s)`],
     ["Network", "Disabled"]
   ];
   els.privacySummary.innerHTML = rows
@@ -2822,7 +3014,7 @@ function renderPrivacy() {
     .join("");
 
   const artifacts = Array.isArray(data.artifacts) ? data.artifacts.slice(0, 8) : [];
-  els.privacyArtifacts.innerHTML = artifacts.length
+  const artifactHtml = artifacts.length
     ? artifacts.map((artifact) => `
       <div class="mini-row">
         <strong>${escapeHtml(artifact.label)}</strong>
@@ -2830,6 +3022,15 @@ function renderPrivacy() {
       </div>
     `).join("")
     : `<div class="mini-row muted">No AgentTrail-managed local files yet.</div>`;
+  const firstRunHtml = Array.isArray(firstRunTelemetry.recentEvents) && firstRunTelemetry.recentEvents.length
+    ? firstRunTelemetry.recentEvents.slice(-3).reverse().map((event) => `
+      <div class="mini-row">
+        <strong>${escapeHtml(event.type)}</strong>
+        <span>${escapeHtml(event.at || "local milestone")} · local-only</span>
+      </div>
+    `).join("")
+    : `<div class="mini-row muted">First-run telemetry appears after setup choices or the sample task.</div>`;
+  els.privacyArtifacts.innerHTML = `${artifactHtml}${firstRunHtml}`;
 }
 
 async function updateLocalAnalyticsSetting() {
@@ -3126,7 +3327,7 @@ function renderFiles() {
   if (!state.files.length) {
     const empty = document.createElement("div");
     empty.className = "empty-state";
-    empty.textContent = "No files yet. Create a note or add files to the workspace folder.";
+    empty.textContent = nextOnboardingAction("Run the safe sample from Setup, or add files to the workspace folder.");
     els.fileList.appendChild(empty);
     return;
   }
@@ -4200,7 +4401,7 @@ function renderTrail() {
   if (!state.trail.length) {
     const empty = document.createElement("div");
     empty.className = "empty-state";
-    empty.textContent = "No activity yet.";
+    empty.textContent = nextOnboardingAction("Search, run the safe sample, or ask for a diff-backed change.");
     els.agentTrail.appendChild(empty);
     return;
   }
@@ -4228,8 +4429,9 @@ function renderSetupChecklist() {
   if (!els.setupChecklist) {
     return;
   }
-  if (state.onboarding && Array.isArray(state.onboarding.steps)) {
-    els.setupChecklist.innerHTML = state.onboarding.steps
+  if (state.onboarding && (Array.isArray(state.onboarding.guidedSteps) || Array.isArray(state.onboarding.steps))) {
+    const items = Array.isArray(state.onboarding.guidedSteps) ? state.onboarding.guidedSteps : state.onboarding.steps;
+    els.setupChecklist.innerHTML = items
       .map((item) => `<div class="setup-item ${item.ok ? "ok" : ""}"><span>${item.ok ? "OK" : "TODO"}</span>${escapeHtml(item.label)}${item.ok ? "" : `<small>${escapeHtml(item.action || "")}</small>`}</div>`)
       .join("");
     if (els.firstRunStatus) {
@@ -4285,7 +4487,7 @@ function renderPendingChanges() {
   els.pendingChanges.innerHTML = "";
 
   if (!state.pendingPreviews.length) {
-    els.pendingChanges.innerHTML = `<div class="empty-state compact">No pending diffs yet.</div>`;
+    els.pendingChanges.innerHTML = `<div class="empty-state compact">${escapeHtml(nextOnboardingAction("Ask AgentTrail for a safe edit to preview a diff before applying."))}</div>`;
     return;
   }
 
@@ -4327,7 +4529,8 @@ function renderReceiptTimeline() {
   });
 
   if (!receipts.length) {
-    els.receiptTimeline.innerHTML = `<div class="empty-state compact">No receipts match this filter.</div>`;
+    const message = filter ? "No receipts match this filter." : nextOnboardingAction("Run the safe sample from Setup to create your first local receipt.");
+    els.receiptTimeline.innerHTML = `<div class="empty-state compact">${escapeHtml(message)}</div>`;
     if (els.resumeReceipt) {
       els.resumeReceipt.disabled = true;
     }
