@@ -1,0 +1,27 @@
+{
+  "schema": "agenttrail.plugin.v1",
+  "id": "calculator",
+  "title": "Calculator",
+  "version": "0.1.0",
+  "description": "Example pure-compute plugin for safe arithmetic without eval or network access.",
+  "tools": [
+    {
+      "name": "calculator.evaluate",
+      "description": "Evaluate a small arithmetic expression with +, -, *, /, %, decimals, and parentheses.",
+      "risk": "low",
+      "receipt": true
+    }
+  ],
+  "permissions": [
+    {
+      "tool": "calculator.evaluate",
+      "scope": "Evaluate one local arithmetic expression. No filesystem, shell, network, model, or workspace access.",
+      "risk": "low",
+      "receipt": true,
+      "limits": {
+        "maxExpressionLength": 200,
+        "operators": ["+", "-", "*", "/", "%", "(", ")"]
+      }
+    }
+  ]
+}

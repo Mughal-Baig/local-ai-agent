@@ -4,6 +4,18 @@ AgentTrail plugins are local manifests that describe tools, permissions, approva
 
 Current SDK contract: `agenttrail.plugin.v1`, loader SDK `0.2.0`.
 
+## Development Hot Reload
+
+The plugin catalog hot-reloads from manifest fingerprints. During development, edit any `plugins/<plugin-id>/plugin.json` file and call `/api/plugins` or `/api/plugins/status`; AgentTrail reloads the changed manifest without a server restart.
+
+Useful endpoints:
+
+| Endpoint | Purpose |
+| --- | --- |
+| `GET /api/plugins` | Returns sanitized public manifests plus hot-reload metadata. |
+| `GET /api/plugins/status` | Shows plugin count, invalid manifest count, watched paths, and reload count. |
+| `POST /api/plugins/reload` | Forces a catalog reload and records a local receipt/log event. |
+
 ## Plugin Shape
 
 Each plugin lives under `plugins/<plugin-id>/plugin.json`.
@@ -69,6 +81,7 @@ Each plugin lives under `plugins/<plugin-id>/plugin.json`.
 - Permission risk may be higher than tool risk, but not lower.
 - File-writing tools must require review and leave receipts.
 - Network tools must declare allowed host behavior.
+- Shell tools should use preview-only mode unless a future trusted executor is explicitly added.
 - Plugins should fail closed when permissions are missing.
 - `medium` and `high` tools require explicit approval at `/api/plugins/run`.
 - Inline VM code cannot reference `require`, `process`, `fs`, `child_process`, `fetch`, `XMLHttpRequest`, `WebSocket`, `eval`, or `Function`.
@@ -97,6 +110,9 @@ Each plugin lives under `plugins/<plugin-id>/plugin.json`.
 | `plugins/example-tool` | Minimal echo manifest | low |
 | `plugins/receipt-reporter` | Receipt summary example | low |
 | `plugins/read-only-url` | Read-only URL fetch example with allowlist expectation | medium |
+| `plugins/web-fetch` | Runnable read-only fetch example with allowlist, manual redirects, timeout, approval, and dry-run policy checks | medium |
+| `plugins/calculator` | Pure local arithmetic parser with no eval/network/filesystem | low |
+| `plugins/shell-guarded` | Preview-only high-risk shell pattern that never executes plugin commands | high |
 
 ## Contributor Checklist
 

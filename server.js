@@ -16,7 +16,7 @@ const { listStructuredOutputSchemas, selectStructuredOutputSchema, parseStructur
 const { JsonLineStore } = require("./src/json-store");
 const { JobManager } = require("./src/jobs");
 const { runMigrations, migrationStatus } = require("./src/migrations");
-const { loadPlugins } = require("./src/plugin-loader");
+const { loadPluginCatalog, loadPlugins, reloadPlugins } = require("./src/plugin-loader");
 const { publicPluginManifest } = require("./src/plugin-sdk");
 const { generateChecksums } = require("./src/release");
 const { buildFoundationStatus } = require("./src/foundation");
@@ -347,8 +347,9 @@ if (WORKSPACE_CONFIG_BOOT.error) {
 }
 
 const server = http.createServer(async (req, res) => {
+  let url = null;
   try {
-    const url = new URL(req.url, `http://${req.headers.host || "127.0.0.1"}`);
+    url = new URL(req.url, `http://${req.headers.host || "127.0.0.1"}`);
 
     if (url.pathname.startsWith("/v1/")) {
       return handleV1Route(req, res, url);
@@ -544,6 +545,14 @@ const server = http.createServer(async (req, res) => {
 
     if (url.pathname === "/api/plugins" && req.method === "GET") {
       return handlePlugins(res);
+    }
+
+    if (url.pathname === "/api/plugins/status" && req.method === "GET") {
+      return handlePluginStatus(res);
+    }
+
+    if (url.pathname === "/api/plugins/reload" && req.method === "POST") {
+      return handleReloadPlugins(res);
     }
 
     if (url.pathname === "/api/plugins/run" && req.method === "POST") {
@@ -1035,15 +1044,16 @@ const server = http.createServer(async (req, res) => {
 
     sendJson(res, 405, { error: "Method not allowed" });
   } catch (error) {
+    const route = url?.pathname || req.url || "/";
     const payload = friendlyError(error, {
-      route: url.pathname,
+      route,
       status: error.status || 500,
       ollamaHost: OLLAMA_HOST,
       defaultModel: DEFAULT_MODEL,
       embeddingModel: OLLAMA_EMBED_MODEL
     });
     OBSERVABILITY.recordError(error, {
-      route: url.pathname,
+      route,
       status: error.status || 500,
       code: payload.code,
       ollamaHost: OLLAMA_HOST,
@@ -1051,7 +1061,7 @@ const server = http.createServer(async (req, res) => {
       embeddingModel: OLLAMA_EMBED_MODEL
     });
     await LOGGER.log("error", "http.error", {
-      route: url.pathname,
+      route,
       method: req.method,
       status: error.status || 500,
       code: payload.code,
@@ -3382,8 +3392,49 @@ async function handleStartJob(req, res) {
 }
 
 async function handlePlugins(res) {
-  const plugins = await loadPlugins(PLUGINS_DIR);
-  sendJson(res, 200, { plugins: plugins.map(publicPluginManifest) });
+  const catalog = await loadPluginCatalog(PLUGINS_DIR);
+  sendJson(res, 200, {
+    plugins: catalog.plugins.map(publicPluginManifest),
+    invalid: catalog.invalid,
+    hotReload: catalog.hotReload
+  });
+}
+
+async function handlePluginStatus(res) {
+  const catalog = await loadPluginCatalog(PLUGINS_DIR);
+  sendJson(res, 200, {
+    ok: true,
+    hotReload: catalog.hotReload,
+    pluginCount: catalog.plugins.length,
+    invalidCount: catalog.invalid.length,
+    invalid: catalog.invalid
+  });
+}
+
+async function handleReloadPlugins(res) {
+  const catalog = await reloadPlugins(PLUGINS_DIR);
+  await STORE.append("plugin-reload", {
+    pluginCount: catalog.plugins.length,
+    invalidCount: catalog.invalid.length,
+    reloadCount: catalog.hotReload.reloadCount
+  });
+  SQLITE.insert("plugin", {
+    pluginId: "__catalog__",
+    tool: "plugins.reload",
+    result: true,
+    risk: "low"
+  });
+  await LOGGER.log("info", "plugin.reload", {
+    pluginCount: catalog.plugins.length,
+    invalidCount: catalog.invalid.length,
+    reloadCount: catalog.hotReload.reloadCount
+  });
+  sendJson(res, 200, {
+    ok: true,
+    plugins: catalog.plugins.map(publicPluginManifest),
+    invalid: catalog.invalid,
+    hotReload: catalog.hotReload
+  });
 }
 
 async function handleRunPlugin(req, res) {
@@ -3395,7 +3446,7 @@ async function handleRunPlugin(req, res) {
   if (!plugin) {
     return sendJson(res, 404, { error: "Plugin not found" });
   }
-  const result = runPluginTool(plugin, toolName, body.input || {}, { approved: body.approved === true });
+  const result = await runPluginTool(plugin, toolName, body.input || {}, { approved: body.approved === true });
   await STORE.append("plugin", { pluginId, tool: toolName, result: result.ok, permission: result.permission || null });
   SQLITE.insert("plugin", { pluginId, tool: toolName, result: result.ok, risk: result.permission?.risk || "unknown" });
   await LOGGER.log("info", "plugin.run", { pluginId, tool: toolName, risk: result.permission?.risk || "unknown" });

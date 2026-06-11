@@ -26,7 +26,7 @@ const ROUTE_CATALOG = [
   { area: "observability", module: "src/observability.js + src/logger.js", routes: ["/api/logs", "/api/metrics", "/api/observability", "/api/traces", "/api/traces/content", "/api/errors/taxonomy"] },
   { area: "team-enterprise", module: "src/team-enterprise.js", routes: ["/api/team/status", "/api/team/users", "/api/team/users/select", "/api/team/rbac", "/api/team/receipts", "/api/team/receipts/content", "/api/team/sync/status", "/api/team/sync/export", "/api/team/audit/export", "/api/team/sso", "/api/team/sso/validate"] },
   { area: "foundation", module: "src/foundation.js", routes: ["/api/foundation", "/api/schemas", "/api/migrations"] },
-  { area: "plugins", module: "src/plugin-loader.js + src/plugin-sandbox.js", routes: ["/api/plugins", "/api/plugins/run"] },
+  { area: "plugins", module: "src/plugin-loader.js + src/plugin-sandbox.js", routes: ["/api/plugins", "/api/plugins/status", "/api/plugins/reload", "/api/plugins/run"] },
   { area: "jobs", module: "src/jobs.js", routes: ["/api/jobs", "/api/jobs/start"] },
   { area: "backup", module: "server.js", routes: ["/api/workspace/portability", "/api/workspace/migration-plan", "/api/backup/export", "/api/backup/import", "/api/backup/schedule", "/api/backup/schedule/run"] }
 ];

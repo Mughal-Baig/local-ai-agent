@@ -33,7 +33,7 @@ AgentTrail exposes two API layers: local app endpoints under `/api/*` and an Ope
 | observability | src/observability.js + src/logger.js | `/api/logs`<br>`/api/metrics`<br>`/api/observability`<br>`/api/traces`<br>`/api/traces/content`<br>`/api/errors/taxonomy` |
 | team-enterprise | src/team-enterprise.js | `/api/team/status`<br>`/api/team/users`<br>`/api/team/users/select`<br>`/api/team/rbac`<br>`/api/team/receipts`<br>`/api/team/receipts/content`<br>`/api/team/sync/status`<br>`/api/team/sync/export`<br>`/api/team/audit/export`<br>`/api/team/sso`<br>`/api/team/sso/validate` |
 | foundation | src/foundation.js | `/api/foundation`<br>`/api/schemas`<br>`/api/migrations` |
-| plugins | src/plugin-loader.js + src/plugin-sandbox.js | `/api/plugins`<br>`/api/plugins/run` |
+| plugins | src/plugin-loader.js + src/plugin-sandbox.js | `/api/plugins`<br>`/api/plugins/status`<br>`/api/plugins/reload`<br>`/api/plugins/run` |
 | jobs | src/jobs.js | `/api/jobs`<br>`/api/jobs/start` |
 | backup | server.js | `/api/workspace/portability`<br>`/api/workspace/migration-plan`<br>`/api/backup/export`<br>`/api/backup/import`<br>`/api/backup/schedule`<br>`/api/backup/schedule/run` |
 

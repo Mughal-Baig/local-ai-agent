@@ -31,7 +31,7 @@ Minimum shape:
 }
 ```
 
-The `/api/plugins` endpoint lists installed manifests. Tool execution should go through the permission engine and leave receipts before becoming active.
+The `/api/plugins` endpoint lists installed manifests. `GET /api/plugins/status` shows hot-reload state, and `POST /api/plugins/reload` forces a manifest reload during development. Tool execution should go through the permission engine and leave receipts before becoming active.
 
 Runtime guardrails:
 
@@ -48,5 +48,8 @@ Runtime guardrails:
 - `plugins/example-tool`: minimum low-risk echo manifest.
 - `plugins/receipt-reporter`: read one selected receipt and summarize actions/files/trust signals.
 - `plugins/read-only-url`: medium-risk read-only network example that must use AgentTrail's allowlist policy.
+- `plugins/web-fetch`: runnable allowlisted GET example with approval, dry-run checks, timeout, and manual redirect guardrails.
+- `plugins/calculator`: pure local arithmetic example with a parser instead of eval.
+- `plugins/shell-guarded`: high-risk preview-only shell example; it never executes commands.
 
 Run `npm run test:plugins` and `npm run test:community` after adding a plugin manifest.

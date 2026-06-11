@@ -31,6 +31,9 @@ async function main() {
   const pluginSdk = await read("docs/PLUGIN_SDK.md");
   const receiptPlugin = JSON.parse(await read("plugins/receipt-reporter/plugin.json"));
   const urlPlugin = JSON.parse(await read("plugins/read-only-url/plugin.json"));
+  const webFetchPlugin = JSON.parse(await read("plugins/web-fetch/plugin.json"));
+  const calculatorPlugin = JSON.parse(await read("plugins/calculator/plugin.json"));
+  const shellPlugin = JSON.parse(await read("plugins/shell-guarded/plugin.json"));
   const ci = await read(".github/workflows/ci.yml");
   const docsIndex = JSON.parse(await read("docs/site/search-index.json"));
 
@@ -68,13 +71,17 @@ async function main() {
   assert.match(comparisonGuide, /Benchmark Rules/);
   assert.match(comparisonGuide, /Known Limits/);
 
-  for (const plugin of [receiptPlugin, urlPlugin]) {
+  for (const plugin of [receiptPlugin, urlPlugin, webFetchPlugin, calculatorPlugin, shellPlugin]) {
     assert.equal(plugin.schema, "agenttrail.plugin.v1");
     assert.equal(plugin.permissions.every((permission) => permission.scope && permission.receipt === true), true);
   }
   assert.match(pluginSdk, /Permission Contract/);
+  assert.match(pluginSdk, /Development Hot Reload/);
   assert.match(pluginSdk, /plugins\/receipt-reporter/);
   assert.match(pluginSdk, /plugins\/read-only-url/);
+  assert.match(pluginSdk, /plugins\/web-fetch/);
+  assert.match(pluginSdk, /plugins\/calculator/);
+  assert.match(pluginSdk, /plugins\/shell-guarded/);
 
   const communityDocs = [
     "LAUNCH_RESPONSE_WORKFLOW.md",

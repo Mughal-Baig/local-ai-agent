@@ -62,6 +62,7 @@ async function main() {
       "/api/sqlite/status",
       "/api/watch/status",
       "/api/plugins",
+      "/api/plugins/status",
       "/api/search?query=semantic",
       "/api/search/chunks?query=receipt",
       "/api/onboarding",
@@ -282,6 +283,18 @@ async function main() {
     assert.equal(examplePlugin.sdkVersion, "0.2.0");
     assert.equal(examplePlugin.tools[0].code, undefined);
     assert.equal(examplePlugin.tools[0].permission.receipt, true);
+    assert.equal(pluginCatalog.hotReload.enabled, true);
+    assert.equal(pluginCatalog.plugins.some((item) => item.id === "web-fetch"), true);
+    assert.equal(pluginCatalog.plugins.some((item) => item.id === "calculator"), true);
+    assert.equal(pluginCatalog.plugins.some((item) => item.id === "shell-guarded"), true);
+
+    const pluginStatus = await get("/api/plugins/status");
+    assert.equal(pluginStatus.ok, true);
+    assert.equal(pluginStatus.pluginCount >= 4, true);
+
+    const pluginReload = await post("/api/plugins/reload", {});
+    assert.equal(pluginReload.ok, true);
+    assert.equal(pluginReload.hotReload.forced, true);
 
     const plugin = await post("/api/plugins/run", {
       pluginId: "example-tool",
@@ -289,6 +302,36 @@ async function main() {
       input: { text: "hello" }
     });
     assert.equal(plugin.output, "hello");
+
+    const calcPlugin = await post("/api/plugins/run", {
+      pluginId: "calculator",
+      tool: "calculator.evaluate",
+      input: { expression: "6 * (7 - 2)" }
+    });
+    assert.equal(calcPlugin.output.result, 30);
+
+    const webFetchDryRun = await post("/api/plugins/run", {
+      pluginId: "web-fetch",
+      tool: "web.fetch_readonly",
+      approved: true,
+      input: {
+        url: urlPath,
+        allowlist: ["127.0.0.1"],
+        allowPrivate: true,
+        dryRun: true
+      }
+    });
+    assert.equal(webFetchDryRun.output.dryRun, true);
+    assert.equal(webFetchDryRun.output.host, `127.0.0.1:${urlServer.address().port}`);
+
+    const shellPlugin = await post("/api/plugins/run", {
+      pluginId: "shell-guarded",
+      tool: "shell.preview",
+      approved: true,
+      input: { command: ["git", "status", "--short"] }
+    });
+    assert.equal(shellPlugin.output.previewOnly, true);
+    assert.equal(shellPlugin.output.allowed, true);
 
     const webhook = await post("/api/webhooks/run", {
       source: "integration-test",

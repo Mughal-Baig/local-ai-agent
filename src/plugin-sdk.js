@@ -48,6 +48,8 @@ function normalizePermission(permission) {
     receipt: permission.receipt === true,
     requiresApproval: permission.requiresApproval === true || risk === "medium" || risk === "high",
     network: isObject(permission.network) ? { ...permission.network } : null,
+    shell: isObject(permission.shell) ? { ...permission.shell } : null,
+    limits: isObject(permission.limits) ? { ...permission.limits } : null,
     sandbox: isObject(permission.sandbox) ? { ...permission.sandbox } : null
   };
 }

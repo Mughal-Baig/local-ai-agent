@@ -1,0 +1,30 @@
+{
+  "schema": "agenttrail.plugin.v1",
+  "id": "web-fetch",
+  "title": "Web Fetch",
+  "version": "0.1.0",
+  "description": "Example read-only web fetch plugin with allowlist, approval, redirect, timeout, and receipt guardrails.",
+  "tools": [
+    {
+      "name": "web.fetch_readonly",
+      "description": "Fetch one allowlisted URL with GET only and return extracted text.",
+      "risk": "medium",
+      "receipt": true
+    }
+  ],
+  "permissions": [
+    {
+      "tool": "web.fetch_readonly",
+      "scope": "Read one explicitly approved allowlisted URL. No POST requests, cookies, credentials, or redirect following.",
+      "risk": "medium",
+      "receipt": true,
+      "requiresApproval": true,
+      "network": {
+        "policy": "agenttrail-egress-allowlist",
+        "methods": ["GET"],
+        "maxBytes": 20000,
+        "redirects": "manual"
+      }
+    }
+  ]
+}

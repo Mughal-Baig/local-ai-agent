@@ -33,7 +33,7 @@ Current schema families:
 
 The running app exposes schema summaries at `/api/schemas`. Markdown receipts now include a resume prompt section so `/api/receipts/resume` can recreate a pending run without depending on a proprietary container. Extracted PDF/DOCX/PPTX/XLSX/HTML/Markdown/code files, OCR image extracts, audio transcripts, local speech outputs, generated images, and allowlisted URL ingests are stored as plain Markdown sidecars or workspace artifacts with source/provenance metadata, plus ingestion receipts where applicable so search, receipts, and Git diffs can inspect normalized text and the ingestion steps without parsing the source again.
 
-Plugin manifests use `agenttrail.plugin.v1` with a stricter SDK validator in `src/plugin-sdk.js`: manifests require typed tools, matching receipt-backed permissions, explicit risk levels, and approval gates for medium/high-risk tools.
+Plugin manifests use `agenttrail.plugin.v1` with a stricter SDK validator in `src/plugin-sdk.js`: manifests require typed tools, matching receipt-backed permissions, explicit risk levels, approval gates for medium/high-risk tools, and hot-reloadable local manifest fingerprints.
 
 The served OpenAI-compatible API contract is documented separately as OpenAPI 3.1 in `docs/openapi/agenttrail-v1-openapi.json` and is available at `/v1/openapi.json`.
 

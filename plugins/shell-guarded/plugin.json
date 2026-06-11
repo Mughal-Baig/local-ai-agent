@@ -1,0 +1,30 @@
+{
+  "schema": "agenttrail.plugin.v1",
+  "id": "shell-guarded",
+  "title": "Shell Guarded",
+  "version": "0.1.0",
+  "description": "Example high-risk shell plugin that only produces a reviewed command preview and never executes.",
+  "tools": [
+    {
+      "name": "shell.preview",
+      "description": "Preview an allowlisted shell command for manual review without executing it.",
+      "risk": "high",
+      "receipt": true
+    }
+  ],
+  "permissions": [
+    {
+      "tool": "shell.preview",
+      "scope": "Preview a command for manual review. AgentTrail does not execute shell plugin previews.",
+      "risk": "high",
+      "receipt": true,
+      "requiresApproval": true,
+      "shell": {
+        "mode": "preview-only",
+        "allowExecutables": ["git", "npm", "node", "rg"],
+        "denyOperators": true,
+        "execution": "disabled"
+      }
+    }
+  ]
+}

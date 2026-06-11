@@ -24,7 +24,7 @@ async function runOpenAIStructuredOutput() {
   const agentPort = 6600 + Math.floor(Math.random() * 200);
   const mockPort = 6900 + Math.floor(Math.random() * 200);
   const state = { responseFormat: null };
-  const mock = startMockOpenAI(mockPort, state);
+  const mock = await startMockOpenAI(mockPort, state);
   const workspaceRoot = await fsp.mkdtemp(path.join(os.tmpdir(), "agenttrail-structured-openai-"));
   const child = spawn(process.execPath, ["server.js"], {
     cwd: projectRoot,
@@ -85,7 +85,7 @@ async function runOllamaStructuredOutput() {
   const agentPort = 7100 + Math.floor(Math.random() * 200);
   const mockPort = 7400 + Math.floor(Math.random() * 200);
   const state = { format: null };
-  const mock = startMockOllama(mockPort, state);
+  const mock = await startMockOllama(mockPort, state);
   const workspaceRoot = await fsp.mkdtemp(path.join(os.tmpdir(), "agenttrail-structured-ollama-"));
   const child = spawn(process.execPath, ["server.js"], {
     cwd: projectRoot,
@@ -120,7 +120,7 @@ async function runOllamaStructuredOutput() {
   }
 }
 
-function startMockOpenAI(port, state) {
+async function startMockOpenAI(port, state) {
   const server = http.createServer(async (req, res) => {
     if (req.method === "GET" && req.url.startsWith("/v1/models")) {
       return json(res, { object: "list", data: [{ id: "mock-model", object: "model" }] });
@@ -142,11 +142,11 @@ function startMockOpenAI(port, state) {
     }
     json(res, { error: "not found" }, 404);
   });
-  server.listen(port, "127.0.0.1");
+  await listen(server, port);
   return server;
 }
 
-function startMockOllama(port, state) {
+async function startMockOllama(port, state) {
   const server = http.createServer(async (req, res) => {
     if (req.method === "GET" && req.url.startsWith("/api/tags")) {
       return json(res, { models: [{ name: "mock-ollama", size: 1, modified_at: new Date().toISOString() }] });
@@ -163,8 +163,18 @@ function startMockOllama(port, state) {
     }
     json(res, { error: "not found" }, 404);
   });
-  server.listen(port, "127.0.0.1");
+  await listen(server, port);
   return server;
+}
+
+function listen(server, port) {
+  return new Promise((resolve, reject) => {
+    server.once("error", reject);
+    server.listen(port, "127.0.0.1", () => {
+      server.off("error", reject);
+      resolve();
+    });
+  });
 }
 
 function json(res, body, code = 200) {
@@ -198,9 +208,11 @@ async function postRaw(port, endpoint, body) {
 }
 
 async function waitForServer(port, getOutput) {
-  for (let i = 0; i < 80; i += 1) {
+  for (let i = 0; i < 160; i += 1) {
     try {
-      const response = await fetch(`http://127.0.0.1:${port}/api/config`);
+      const response = await fetch(`http://127.0.0.1:${port}/`, {
+        signal: AbortSignal.timeout(500)
+      });
       if (response.ok) return;
     } catch {
       // not up yet

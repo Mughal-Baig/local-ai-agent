@@ -83,6 +83,7 @@ This section tracks the concrete work shipped after the roadmap was publicly ref
 | Codex pre-Phase 15 cleanup | T044, T090, T091, T098, T104 | Closed the concrete carryovers before Phase 15: treated the local embedding stack as hardened by vector-store/chunk/eval/benchmark coverage, added `/api/webhooks/run` with pending-run receipts for automation triggers, added executable MCP stdio contract coverage for read/preview/write tools, surfaced time-to-first-token plus tokens/sec in usage accounting/UI, and exposed `OLLAMA_KEEP_ALIVE` as an idle-unload config/admin control. |
 | Codex pre-Phase 15 partial closeout | T094, T096, T107, T109, T110 | Closed the remaining partials with bundled-runtime speculative policy (`AGENTTRAIL_SPECULATIVE_DECODING`), shared-prefix prefill reuse (`AGENTTRAIL_PREFILL_REUSE` plus provider `preload` / `node-llama-cpp` `preloadPrompt`), in-process GGUF validation (`npm run validate:bundled-runtime`), and expanded `npm run test:bundled` coverage for local completion streaming and embeddings without an external model server. |
 | Codex Epic AN starter | T269-T270 | Added typed plugin manifest validation (`src/plugin-sdk.js`), SDK docs for required fields/approval behavior, sanitized public plugin manifests, receipt-backed permission enforcement, medium/high-risk approval gates, VM inline-code hardening, and `npm run test:plugins` CI coverage. |
+| Codex Epic AN completion | T271-T272 | Added manifest-fingerprint plugin hot reload, `/api/plugins/status`, `/api/plugins/reload`, catalog reload receipts/logs, async sandbox execution, runnable `web-fetch`, `calculator`, and `shell-guarded` examples, and API/unit coverage for dev reload plus permissioned plugin behavior. |
 
 ### Verified After These Passes
 
@@ -92,7 +93,7 @@ This section tracks the concrete work shipped after the roadmap was publicly ref
 
 ### Best Continuation Points
 
-- T271/T272: continue Epic AN with plugin hot-reload for development and richer example plugins now that the typed SDK and permission hardening are in place.
+- T273/T274: continue Epic AN with plugin marketplace browse/install and recipe sharing import/export now that the SDK, hot reload, and example plugins are complete.
 
 ---
 
@@ -416,16 +417,16 @@ This section tracks the concrete work shipped after the roadmap was publicly ref
 4. We expand an epic's tasks into finer sub-tasks (toward 1000) only when we start that epic — so the plan stays honest and current.
 5. We re-mark `[x]` here as we go; this file is the single source of truth for the campaign.
 
-**Next up:** Continue Epic AN with plugin hot-reload and richer example plugins. The new Phase 17-22 expansion below adds the public "top 1%" path without replacing any earlier phase.
+**Next up:** Continue Epic AN with plugin marketplace browse/install and recipe sharing import/export. The new Phase 17-22 expansion below adds the public "top 1%" path without replacing any earlier phase.
 
 ## Status & bug sweep (latest)
 
-- Progress: **Epic AN is underway and complete through T270** with no open or partial pre-Phase-16 roadmap items. Fully complete tracked items now include T001-T270, including the pre-Phase-15 closeout tasks T044, T090, T091, T094, T096, T098, T104, T107, T109, and T110. Phase 1 is complete; Phase 2 Epic E/F search foundation is complete; Epic G document ingestion is complete; Phase 3 vision/audio/image generation is complete; Epic K is complete; Epic L is complete; Epic M is complete for the local automation/MCP server surface; Epic N/O now have cache, option passthrough, resources, speculative bundled-runtime policy, explicit shared-prefix prefill reuse, TTFT/tokens-sec usage visibility, keep-alive idle-unload controls, runtime visibility, the AJ resilience layer, T251 timeout/cancel surfacing, and the AK config/admin layer; Phase 6 now has a first-class bundled-runtime adapter seam plus local GGUF validation, streaming, embeddings, Epic Q/R/S hardware, loading, registry policy, Epic AC model ecosystem helpers, Epic AD advanced-agent manifests, Epic AE chat management, Epic AF composer editing, Epic AG access/PWA polish, Epic AH portability archives, Epic AI privacy controls, Epic AJ resilience controls, T251 run-control polish, and Epic AK config/admin controls; Epic T native desktop distribution is complete at the repo/scaffolding level; Epic U CLI parity is complete; Epic V packaging/supply-chain foundation is complete; Epic W security/privacy is complete; Epic X observability is complete; Epic Y team/enterprise is complete; Epic Z quality engineering is complete; Epic AA documentation is complete; Epic AB community/growth is complete; Epic AL eval quality is complete; Epic AM accounting/routing is complete; Epic AN SDK/permission hardening has started with typed manifests and sandbox gates; and the public starter issues are cleared with tests/docs.
+- Progress: **Epic AN is underway and complete through T272** with no open or partial pre-Phase-16 roadmap items. Fully complete tracked items now include T001-T272, including the pre-Phase-15 closeout tasks T044, T090, T091, T094, T096, T098, T104, T107, T109, and T110. Phase 1 is complete; Phase 2 Epic E/F search foundation is complete; Epic G document ingestion is complete; Phase 3 vision/audio/image generation is complete; Epic K is complete; Epic L is complete; Epic M is complete for the local automation/MCP server surface; Epic N/O now have cache, option passthrough, resources, speculative bundled-runtime policy, explicit shared-prefix prefill reuse, TTFT/tokens-sec usage visibility, keep-alive idle-unload controls, runtime visibility, the AJ resilience layer, T251 timeout/cancel surfacing, and the AK config/admin layer; Phase 6 now has a first-class bundled-runtime adapter seam plus local GGUF validation, streaming, embeddings, Epic Q/R/S hardware, loading, registry policy, Epic AC model ecosystem helpers, Epic AD advanced-agent manifests, Epic AE chat management, Epic AF composer editing, Epic AG access/PWA polish, Epic AH portability archives, Epic AI privacy controls, Epic AJ resilience controls, T251 run-control polish, and Epic AK config/admin controls; Epic T native desktop distribution is complete at the repo/scaffolding level; Epic U CLI parity is complete; Epic V packaging/supply-chain foundation is complete; Epic W security/privacy is complete; Epic X observability is complete; Epic Y team/enterprise is complete; Epic Z quality engineering is complete; Epic AA documentation is complete; Epic AB community/growth is complete; Epic AL eval quality is complete; Epic AM accounting/routing is complete; Epic AN SDK/permission hardening, plugin hot reload, and runnable example plugins are complete through T272; and the public starter issues are cleared with tests/docs.
 - Focused test suite green: accounting/routing, MCP stdio contract, config-admin, docs generation, UI E2E, bundled runtime, API integration, smoke, and repo eval, plus the prior unit, resilience, observability, team enterprise, quality engineering, community-growth, model ecosystem, coverage gate, performance regression, desktop distribution, CLI integration, supply-chain, security/privacy threat-model, privacy controls, runtime hardware, runtime loading, model registry, redaction, document extraction, v1 API, health, concurrency, model options, resources, portability, recipe validation, receipt metadata, release SBOM, reproducibility, and release checksums coverage. All touched source files pass `node --check`.
 - **Bug fixed:** `listWorkspaceFiles` only skipped `.DS_Store`, so internal `.agenttrail/*` state (logs, store, search index, pending-run) was being walked, indexed, and returned in search — adding noise and per-request churn to the index. Now excludes `.agenttrail/`. Verified against smoke, api, search-incremental, search-chunking, and eval:search.
 - Known minor item: a couple of integration tests assert relative/invariant counts (not exact) because the workspace can still gain legit files (e.g. `memory/*`) between calls — intentional, not a bug.
 
-Next code target: Epic AN SDK and plugins. Prioritize T271/T272 so plugin development feels fast and the public examples show real permissioned tool patterns; keep T281/T288/T295 as public-growth follow-ups.
+Next code target: Epic AN marketplace and sharing. Prioritize T273/T274 so users can browse/install plugin examples and import/export recipe shares; keep T281/T288/T295 as public-growth follow-ups.
 
 ---
 
@@ -529,8 +530,8 @@ Open items are still marked `[ ]`; a few Phase 11/12 starter tasks are now `[x]`
 ### Epic AN — SDK & plugins
 - [x] T269 Documented plugin SDK + typed manifest (`src/plugin-sdk.js`, `docs/PLUGIN_SDK.md`, sanitized `/api/plugins` catalog, CI `npm run test:plugins`)
 - [x] T270 Plugin permissions + sandbox hardening review (matching permissions required, receipt-backed scopes, medium/high approval gates, inline VM code restrictions)
-- [ ] T271 Plugin hot-reload in dev
-- [ ] T272 Example plugins (web-fetch, calculator, shell-guarded)
+- [x] T271 Plugin hot-reload in dev (`loadPluginCatalog`, `/api/plugins/status`, `/api/plugins/reload`, reload logs/receipts)
+- [x] T272 Example plugins (runnable `web-fetch`, `calculator`, `shell-guarded` with permissioned sandbox handlers)
 - [ ] T273 Plugin marketplace browse/install from UI
 - [ ] T274 Recipe sharing import/export from URL (extend marketplace)
 

@@ -106,7 +106,7 @@ const SCHEMAS = {
   plugin: {
     schema: "agenttrail.plugin.v1",
     required: ["schema", "id", "title", "version", "tools", "permissions"],
-    optional: ["description", "author", "sdkVersion", "valid", "issues"]
+    optional: ["description", "author", "sdkVersion", "path", "valid", "issues"]
   },
   job: {
     schema: "agenttrail.job.v1",

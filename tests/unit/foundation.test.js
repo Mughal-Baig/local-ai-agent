@@ -206,7 +206,7 @@ async function main() {
 
   const plugins = await loadPlugins(path.resolve(__dirname, "../../plugins"));
   assert.equal(plugins.some((plugin) => plugin.id === "example-tool"), true);
-  assert.equal(runPluginTool(plugins.find((plugin) => plugin.id === "example-tool"), "example.echo", { text: "ok" }).output, "ok");
+  assert.equal((await runPluginTool(plugins.find((plugin) => plugin.id === "example-tool"), "example.echo", { text: "ok" })).output, "ok");
 
   console.log("Foundation unit tests passed");
 }
