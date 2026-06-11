@@ -1860,10 +1860,17 @@ function renderEvalHistory() {
     return;
   }
   const latest = state.evalHistory[0];
+  const latestScore = Number(latest.score || 0);
+  state.evals = {
+    score: latestScore,
+    checks: latest.checks || [],
+    source: latest.path ? "history" : "latest"
+  };
   els.evalSummary.innerHTML = `
-    <div class="eval-score">${Number(latest.score || 0)}/100</div>
+    <div class="eval-score">${latestScore}/100</div>
     <div class="eval-list"><span class="ok">${state.evalHistory.length} saved eval run(s)</span></div>
   `;
+  renderTrustScore();
 }
 
 async function runBenchmarks() {
