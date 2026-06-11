@@ -2,7 +2,7 @@
 
 ## Next
 
-- Move into Epic AN plugin/SDK hardening now that Epic AM accounting and routing is complete.
+- Continue Epic AN with plugin hot-reload and richer example plugins now that typed plugin manifests and sandbox hardening are complete.
 - Build the 60-second proof loop: search -> diff preview -> apply -> receipt -> shareable report.
 - Make the install path undeniable: `npx agenttrail`, Docker persistence, Homebrew publication, setup doctor, and friendly failure states.
 - Use the new Epic AL eval quality layer to keep golden task fixtures, citation-faithfulness checks, unsupported-claim detection, and model benchmarks regression-gated.
@@ -72,6 +72,7 @@
 - Config/admin layer: schema-backed settings UI for model/cache/budget/host envs, friendly startup validation, per-workspace overrides, and a persisted first-run setup wizard.
 - Eval quality layer: golden agent task dataset, citation-faithfulness checks, unsupported-claim detector, CI regression trend gate, A/B model comparison, tool-use correctness eval, and latency/tokens benchmarks.
 - Accounting and routing layer: per-chat token/time usage receipts, aggregate model/recipe/time dashboards, soft/hard budget caps, automatic task-based routing, speculative draft-then-verify, and per-recipe default model hints.
+- Plugin SDK hardening: typed `agenttrail.plugin.v1` manifest validation, sanitized plugin catalog output, receipt-backed permission scopes, medium/high-risk approval gates, VM inline-code restrictions, and CI plugin SDK tests.
 - Top 1% expansion added to the long roadmap: Phase 17-22 now covers demo proof, one-command install, first-run retention, safety proof, public comparisons, signed releases, supportability, and durable AgentTrail-specific moat.
 
 ## Not Planned

@@ -17,7 +17,12 @@
       "tool": "url.fetch_readonly",
       "scope": "Read one allowlisted URL. No POST requests, no cookies, no credential forwarding.",
       "risk": "medium",
-      "receipt": true
+      "receipt": true,
+      "requiresApproval": true,
+      "network": {
+        "policy": "agenttrail-egress-allowlist",
+        "methods": ["GET"]
+      }
     }
   ]
 }

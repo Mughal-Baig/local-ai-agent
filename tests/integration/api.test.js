@@ -277,6 +277,12 @@ async function main() {
     const badge = await post("/api/trust/badge", { score: 96, label: "run" });
     assert.match(badge.svg, /AgentTrail/);
 
+    const pluginCatalog = await get("/api/plugins");
+    const examplePlugin = pluginCatalog.plugins.find((item) => item.id === "example-tool");
+    assert.equal(examplePlugin.sdkVersion, "0.2.0");
+    assert.equal(examplePlugin.tools[0].code, undefined);
+    assert.equal(examplePlugin.tools[0].permission.receipt, true);
+
     const plugin = await post("/api/plugins/run", {
       pluginId: "example-tool",
       tool: "example.echo",

@@ -17,6 +17,7 @@ const { JsonLineStore } = require("./src/json-store");
 const { JobManager } = require("./src/jobs");
 const { runMigrations, migrationStatus } = require("./src/migrations");
 const { loadPlugins } = require("./src/plugin-loader");
+const { publicPluginManifest } = require("./src/plugin-sdk");
 const { generateChecksums } = require("./src/release");
 const { buildFoundationStatus } = require("./src/foundation");
 const { StructuredLogger } = require("./src/logger");
@@ -3381,7 +3382,8 @@ async function handleStartJob(req, res) {
 }
 
 async function handlePlugins(res) {
-  sendJson(res, 200, { plugins: await loadPlugins(PLUGINS_DIR) });
+  const plugins = await loadPlugins(PLUGINS_DIR);
+  sendJson(res, 200, { plugins: plugins.map(publicPluginManifest) });
 }
 
 async function handleRunPlugin(req, res) {
@@ -3393,10 +3395,10 @@ async function handleRunPlugin(req, res) {
   if (!plugin) {
     return sendJson(res, 404, { error: "Plugin not found" });
   }
-  const result = runPluginTool(plugin, toolName, body.input || {});
-  await STORE.append("plugin", { pluginId, tool: toolName, result: result.ok });
-  SQLITE.insert("plugin", { pluginId, tool: toolName, result: result.ok });
-  await LOGGER.log("info", "plugin.run", { pluginId, tool: toolName });
+  const result = runPluginTool(plugin, toolName, body.input || {}, { approved: body.approved === true });
+  await STORE.append("plugin", { pluginId, tool: toolName, result: result.ok, permission: result.permission || null });
+  SQLITE.insert("plugin", { pluginId, tool: toolName, result: result.ok, risk: result.permission?.risk || "unknown" });
+  await LOGGER.log("info", "plugin.run", { pluginId, tool: toolName, risk: result.permission?.risk || "unknown" });
   sendJson(res, 200, result);
 }
 

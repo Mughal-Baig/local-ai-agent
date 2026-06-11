@@ -45,6 +45,9 @@ jobs:
       - run: node --check src/accounting-routing.js
       - run: node --check src/desktop-notifications.js
       - run: node --check src/bundled-runtime.js
+      - run: node --check src/plugin-sdk.js
+      - run: node --check src/plugin-loader.js
+      - run: node --check src/plugin-sandbox.js
       - run: node --check scripts/load-test.js
       - run: node --check scripts/benchmark-runtime.js
       - run: node --check scripts/validate-bundled-runtime.js
@@ -85,6 +88,7 @@ jobs:
       - run: node --check tests/unit/workspace-safety-fuzz.test.js
       - run: node --check tests/unit/docs.test.js
       - run: node --check tests/unit/community-growth.test.js
+      - run: node --check tests/unit/plugin-sdk.test.js
       - run: node --check tests/integration/model-registry.test.js
       - run: node --check tests/integration/model-ecosystem.test.js
       - run: node --check tests/integration/advanced-agent.test.js
@@ -125,6 +129,7 @@ jobs:
       - run: node scripts/generate-docs-site.js --check
       - run: node tests/unit/docs.test.js
       - run: node tests/unit/community-growth.test.js
+      - run: node tests/unit/plugin-sdk.test.js
       - run: node tests/unit/security-privacy.test.js
       - run: node tests/unit/redact.test.js
       - run: node tests/integration/redact.test.js

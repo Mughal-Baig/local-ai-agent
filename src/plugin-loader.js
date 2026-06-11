@@ -2,6 +2,7 @@
 
 const fsp = require("node:fs/promises");
 const path = require("node:path");
+const { validatePluginManifest } = require("./plugin-sdk");
 
 async function loadPlugins(pluginsDir) {
   const entries = await fsp.readdir(pluginsDir, { withFileTypes: true }).catch(() => []);
@@ -13,16 +14,9 @@ async function loadPlugins(pluginsDir) {
     const manifestPath = path.join(pluginsDir, entry.name, "plugin.json");
     try {
       const manifest = JSON.parse(await fsp.readFile(manifestPath, "utf8"));
-      if (manifest && manifest.id && manifest.title) {
-        plugins.push({
-          id: String(manifest.id),
-          title: String(manifest.title),
-          version: String(manifest.version || "0.0.0"),
-          description: String(manifest.description || ""),
-          tools: Array.isArray(manifest.tools) ? manifest.tools : [],
-          permissions: Array.isArray(manifest.permissions) ? manifest.permissions : [],
-          path: `plugins/${entry.name}/plugin.json`
-        });
+      const validation = validatePluginManifest(manifest, { path: `plugins/${entry.name}/plugin.json` });
+      if (validation.ok) {
+        plugins.push(validation.plugin);
       }
     } catch {
       // Broken community plugins should not break startup.

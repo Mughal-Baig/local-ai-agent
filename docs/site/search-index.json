@@ -758,9 +758,19 @@
           "snippet": "Each plugin lives under `plugins/<plugin-id>/plugin.json`. { \"schema\": \"agenttrail.plugin.v1\", \"id\": \"receipt-reporter\", \"title\": \"Receipt Reporter\", \"version\": \"0.1.0\", \"tools\": ["
         },
         {
+          "title": "Required Fields",
+          "anchor": "required-fields",
+          "snippet": ""
+        },
+        {
+          "title": "Tool Fields",
+          "anchor": "tool-fields",
+          "snippet": ""
+        },
+        {
           "title": "Permission Contract",
           "anchor": "permission-contract",
-          "snippet": "Every tool needs a human-readable scope. Risk must be explicit: `low`, `medium`, or `high`. File-writing tools must require review and leave receipts. Network tools must declare allowed host behavior."
+          "snippet": "Every tool needs a human-readable scope. Every tool must have a matching permission where `permission.tool === tool.name`. Risk must be explicit: `low`, `medium`, or `high`. Permission risk may be higher than tool ris..."
         },
         {
           "title": "Example Plugins",
@@ -770,7 +780,7 @@
         {
           "title": "Contributor Checklist",
           "anchor": "contributor-checklist",
-          "snippet": "Add a manifest under `plugins/`. Use `agenttrail.plugin.v1`. Include at least one permission with scope and receipt behavior. Add docs if the tool has user-visible setup. Run `npm run test:community`."
+          "snippet": "Add a manifest under `plugins/`. Use `agenttrail.plugin.v1`. Include at least one permission with scope and receipt behavior. Keep tool names unique and dotted. Use `requiresApproval: true` for any network, shell, wri..."
         }
       ]
     },
@@ -2361,7 +2371,7 @@
         "sdk",
         "permissions"
       ],
-      "text": "Plugin SDK AgentTrail plugins are local manifests that describe tools, permissions, and receipt behavior. The SDK is intentionally small so contributors can add integrations without editing core files first. Plugin Shape Each plugin lives under plugins/<plugin-id /plugin.json . Permission Contract - Every tool needs a human-readable scope. - Risk must be explicit: low , medium , or high . - File-writing tools must require review and leave receipts. - Network tools must declare allowed host behavior. - Plugins should fail closed when permissions are missing. Example Plugins Plugin Purpose Risk --- --- --- plugins/example-tool Minimal echo manifest low plugins/receipt-reporter Receipt summary example low plugins/read-only-url Read-only URL fetch example with allowlist expectation medium Contributor Checklist - Add a manifest under plugins/ . - Use agenttrail.plugin.v1 . - Include at least one permission with scope and receipt behavior. - Add docs if the tool has user-visible setup. - Run npm run test:community ."
+      "text": "Plugin SDK AgentTrail plugins are local manifests that describe tools, permissions, approval rules, and receipt behavior. The SDK is intentionally small so contributors can add integrations without editing core files first, while AgentTrail can still fail closed when a manifest is ambiguous. Current SDK contract: agenttrail.plugin.v1 , loader SDK 0.2.0 . Plugin Shape Each plugin lives under plugins/<plugin-id /plugin.json . Required Fields Field Rule --- --- schema Must be exactly agenttrail.plugin.v1 . id Lowercase slug, letters/numbers/hyphens only. title Human-readable name. version Semver-like string such as 0.1.0 . tools At least one tool, at most 25. permissions At least one matching permission. Tool Fields Field Rule --- --- name Dotted tool name such as receipt.summary . description Human-readable purpose. risk low , medium , or high . receipt Must be true ; plugin tools must leave receipts. code Optional inline VM code for small examples only. execution.runtime Required as vm when code is present. Permission Contract - Every tool needs a human-readable scope. - Every tool must have a matching permission where permission.tool === tool.name . - Risk must be explicit: low , medium , or high . - Permission risk may be higher than tool risk, but not lower. - File-writing tools must require review and leave receipts. - Network tools must declare allowed host behavior. - Plugins should fail closed when permissions are missing. - medium and high tools require explicit approval at /api/plugins/run . - Inline VM code cannot reference require , process , fs , child_process , fetch , XMLHttpRequest , WebSocket , eval , or Function . /api/plugins returns sanitized plugin manifests. Inline code is removed from the public catalog response. /api/plugins/run accepts: approved is only required for medium and high tools. Low-risk tools can run without it. Example Plugins Plugin Purpose Risk --- --- --- plugins/example-tool Minimal echo manifest low plugins/receipt-reporter Receipt summary example low plugins/read-only-url Read-only URL fetch example with allowlist expectation medium Contributor Checklist - Add a manifest under plugins/ . - Use agenttrail.plugin.v1 . - Include at least one permission with scope and receipt behavior. - Keep tool names unique and dotted. - Use requiresApproval: true for any network, shell, write, delete, export, or external-system action. - Add docs if the tool has user-visible setup. - Run npm run test:plugins and npm run test:community ."
     },
     {
       "type": "section",
@@ -2377,15 +2387,39 @@
     },
     {
       "type": "section",
+      "title": "Plugin SDK - Required Fields",
+      "description": "",
+      "href": "../PLUGIN_SDK.md#required-fields",
+      "tags": [
+        "plugins",
+        "sdk",
+        "permissions"
+      ],
+      "text": "Required Fields "
+    },
+    {
+      "type": "section",
+      "title": "Plugin SDK - Tool Fields",
+      "description": "",
+      "href": "../PLUGIN_SDK.md#tool-fields",
+      "tags": [
+        "plugins",
+        "sdk",
+        "permissions"
+      ],
+      "text": "Tool Fields "
+    },
+    {
+      "type": "section",
       "title": "Plugin SDK - Permission Contract",
-      "description": "Every tool needs a human-readable scope. Risk must be explicit: `low`, `medium`, or `high`. File-writing tools must require review and leave receipts. Network tools must declare allowed host behavior.",
+      "description": "Every tool needs a human-readable scope. Every tool must have a matching permission where `permission.tool === tool.name`. Risk must be explicit: `low`, `medium`, or `high`. Permission risk may be higher than tool ris...",
       "href": "../PLUGIN_SDK.md#permission-contract",
       "tags": [
         "plugins",
         "sdk",
         "permissions"
       ],
-      "text": "Permission Contract Every tool needs a human-readable scope. Risk must be explicit: `low`, `medium`, or `high`. File-writing tools must require review and leave receipts. Network tools must declare allowed host behavior."
+      "text": "Permission Contract Every tool needs a human-readable scope. Every tool must have a matching permission where `permission.tool === tool.name`. Risk must be explicit: `low`, `medium`, or `high`. Permission risk may be higher than tool ris..."
     },
     {
       "type": "section",
@@ -2402,14 +2436,14 @@
     {
       "type": "section",
       "title": "Plugin SDK - Contributor Checklist",
-      "description": "Add a manifest under `plugins/`. Use `agenttrail.plugin.v1`. Include at least one permission with scope and receipt behavior. Add docs if the tool has user-visible setup. Run `npm run test:community`.",
+      "description": "Add a manifest under `plugins/`. Use `agenttrail.plugin.v1`. Include at least one permission with scope and receipt behavior. Keep tool names unique and dotted. Use `requiresApproval: true` for any network, shell, wri...",
       "href": "../PLUGIN_SDK.md#contributor-checklist",
       "tags": [
         "plugins",
         "sdk",
         "permissions"
       ],
-      "text": "Contributor Checklist Add a manifest under `plugins/`. Use `agenttrail.plugin.v1`. Include at least one permission with scope and receipt behavior. Add docs if the tool has user-visible setup. Run `npm run test:community`."
+      "text": "Contributor Checklist Add a manifest under `plugins/`. Use `agenttrail.plugin.v1`. Include at least one permission with scope and receipt behavior. Keep tool names unique and dotted. Use `requiresApproval: true` for any network, shell, wri..."
     },
     {
       "type": "doc",

@@ -91,6 +91,7 @@
     "test:quality": "node tests/unit/quality-engineering.test.js && node tests/unit/workspace-safety-fuzz.test.js",
     "test:docs": "node scripts/generate-api-reference.js --check && node scripts/generate-docs-site.js --check && node tests/unit/docs.test.js",
     "test:community": "node scripts/generate-docs-site.js --check && node tests/unit/community-growth.test.js",
+    "test:plugins": "node tests/unit/plugin-sdk.test.js",
     "test:fuzz": "node tests/unit/workspace-safety-fuzz.test.js",
     "coverage": "node scripts/coverage-report.js",
     "test:conv-export": "node tests/integration/conversation-export.test.js",
